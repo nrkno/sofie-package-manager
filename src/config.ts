@@ -57,7 +57,7 @@ const config: Config = {
 		port: port,
 		watchdog: !disableWatchdog,
 	},
-	// tsr: {},
+	packageManager: {},
 }
 
 export { config, logPath, disableWatchdog, disableAtemUpload }

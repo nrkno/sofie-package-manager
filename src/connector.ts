@@ -1,5 +1,6 @@
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { LoggerInstance } from './index'
+import { PackageManagerConfig, PackageManagerHandler } from './packageManager'
 import { Process } from './process'
 // import {Conductor, DeviceType} from 'timeline-state-resolver'
 
@@ -7,7 +8,7 @@ export interface Config {
 	process: ProcessConfig
 	device: DeviceConfig
 	core: CoreConfig
-	// tsr: TSRConfig
+	packageManager: PackageManagerConfig
 }
 export interface ProcessConfig {
 	/** Will cause the Node applocation to blindly accept all certificates. Not recommenced unless in local, controlled networks. */
@@ -20,7 +21,7 @@ export interface DeviceConfig {
 	deviceToken: string
 }
 export class Connector {
-	// private tsrHandler: TSRHandler | undefined
+	private packageManagerHandler: PackageManagerHandler | undefined
 	private coreHandler: CoreHandler | undefined
 	private _logger: LoggerInstance
 	private _process: Process | undefined
@@ -41,11 +42,10 @@ export class Connector {
 			await this.coreHandler.init(config.core, this._process)
 			this._logger.info('Core initialized')
 
-			// TODO: TO be implemented:
-			// this._logger.info('Initializing TSR...')
-			// this.tsrHandler = new TSRHandler(this._logger)
-			// await this.tsrHandler.init(config.tsr, this.coreHandler)
-			// this._logger.info('TSR initialized')
+			this._logger.info('Initializing PackageManager...')
+			this.packageManagerHandler = new PackageManagerHandler(this._logger)
+			await this.packageManagerHandler.init(config.packageManager, this.coreHandler)
+			this._logger.info('PackageManager initialized')
 
 			this._logger.info('Initialization done')
 			return

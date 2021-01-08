@@ -530,10 +530,8 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@sofie-automation/blueprints-integration@1.17.0-nightly-release29-20201214-112856-14d38e17.0":
-  version "1.17.0-nightly-release29-20201214-112856-14d38e17.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.17.0-nightly-release29-20201214-112856-14d38e17.0.tgz#10863c55762a36807db08bf96368d70a56f3760b"
-  integrity sha512-CET4YxZ/CuDsGci4s3FhplSolowfw/6/T1CRq27YTZzYWFchmvaQc3b+tQlLmewUcz+WgBPgPjM5+P+awRgs4Q==
+"@sofie-automation/blueprints-integration@file:../Core/packages/blueprints-integration":
+  version "1.17.0-in-development-R29.0"
   dependencies:
     moment "2.29.1"
     timeline-state-resolver-types "5.3.0-nightly-release28-20201214-110646-441c431f.0"

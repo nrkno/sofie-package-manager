@@ -14,6 +14,7 @@ import { LoggerInstance } from './index'
 
 import { Process } from './process'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
+import { PackageManagerHandler } from './packageManager'
 
 export interface CoreConfig {
 	host: string
@@ -50,7 +51,7 @@ export class CoreHandler {
 	private _deviceOptions: DeviceConfig
 	private _onConnected?: () => any
 	private _executedFunctions: { [id: string]: boolean } = {}
-	// private _tsrHandler?: TSRHandler
+	private _packageManagerHandler?: PackageManagerHandler
 	private _coreConfig?: CoreConfig
 	private _process?: Process
 
@@ -100,9 +101,9 @@ export class CoreHandler {
 		this._statusInitialized = true
 		await this.updateCoreStatus()
 	}
-	// setTSR(tsr: TSRHandler): void {
-	// 	this._tsrHandler = tsr
-	// }
+	setPackageManagerHandler(handler: PackageManagerHandler): void {
+		this._packageManagerHandler = handler
+	}
 	async setupObserversAndSubscriptions(): Promise<void> {
 		this.logger.info('Core: Setting up subscriptions..')
 		this.logger.info('DeviceId: ' + this.core.deviceId)
@@ -111,7 +112,7 @@ export class CoreHandler {
 				_id: this.core.deviceId,
 			}),
 			this.core.autoSubscribe('studioOfDevice', this.core.deviceId),
-			// this.core.autoSubscribe('mappingsForDevice', this.core.deviceId),
+			this.core.autoSubscribe('expectedPackagesForDevice', this.core.deviceId, undefined),
 			// this.core.autoSubscribe('timelineForDevice', this.core.deviceId),
 			this.core.autoSubscribe('peripheralDeviceCommands', this.core.deviceId),
 		])
@@ -216,9 +217,9 @@ export class CoreHandler {
 				this.reportAllCommands = this.deviceSettings['reportAllCommands']
 			}
 
-			// if (this._tsrHandler) {
-			// 	this._tsrHandler.onSettingsChanged()
-			// }
+			if (this._packageManagerHandler) {
+				this._packageManagerHandler.onSettingsChanged()
+			}
 		}
 	}
 	get logDebug(): boolean {
@@ -237,7 +238,7 @@ export class CoreHandler {
 				this.core
 					.callMethod(P.methods.functionReply, [cmd._id, err, res])
 					.then(() => {
-						// console.log('cb done')
+						// nothing
 					})
 					.catch((e) => {
 						this.logger.error(e)
