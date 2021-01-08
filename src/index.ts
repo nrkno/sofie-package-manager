@@ -23,16 +23,16 @@ if (logPath) {
 	})
 	logger.info('Logging to', logPath)
 	// Hijack console.log:
-	const orgConsoleLog = console.log
-	console.log = function (...args: any[]) {
-		// orgConsoleLog('a')
-		if (args.length >= 1) {
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore one or more arguments
-			logger.debug(...args)
-			orgConsoleLog(...args)
-		}
-	}
+	// const orgConsoleLog = console.log
+	// console.log = function (...args: any[]) {
+	// 	// orgConsoleLog('a')
+	// 	if (args.length >= 1) {
+	// 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+	// 		// @ts-ignore one or more arguments
+	// 		logger.debug(...args)
+	// 		orgConsoleLog(...args)
+	// 	}
+	// }
 } else {
 	// Log json to console
 	logger.add(Winston.transports.Console, {
