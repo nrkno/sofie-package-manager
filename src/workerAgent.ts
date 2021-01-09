@@ -1,6 +1,6 @@
 import { Expectation } from './worker/expectationApi'
 import { GenericWorker, IWorkInProgress } from './worker/worker'
-import { LocalWorker } from './worker/workers/localWorker'
+import { LocalWorker } from './worker/workers/localWorker/localWorker'
 
 // Note:
 // The long-term goal is that Worker-Agents are separate processes / containers
