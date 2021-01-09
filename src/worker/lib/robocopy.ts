@@ -12,14 +12,20 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 		const dstFolder = path.dirname(dst)
 		const srcFileName = path.basename(src)
 		const dstFileName = path.basename(dst)
+
 		let rbcpy: cp.ChildProcess | undefined = cp.spawn('robocopy', [
 			'/bytes',
-			'/njh',
-			'/njs',
+			'/njh', // Specifies that there is no job header.
+			'/njs', // Specifies that there is no job summary.
+			// '/mt', // multi-threading
+			// '/z', // Copies files in restartable mode.
 			srcFolder,
 			dstFolder,
 			srcFileName,
 		])
+
+		// Change priority of the process:
+		cp.exec(`wmic process where "ProcessId=${rbcpy.pid}" CALL setpriority 16384`) // 16384="below normal"
 
 		const errors: string[] = []
 		const output: string[] = []
@@ -68,6 +74,7 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 		onCancel(() => {
 			if (rbcpy !== undefined) {
 				cp.spawn('taskkill', ['/pid', rbcpy.pid.toString(), '/f', '/t'])
+				rbcpy = undefined
 			}
 		})
 	})
