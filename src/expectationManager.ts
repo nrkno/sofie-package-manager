@@ -13,11 +13,13 @@ export class ExpectationManager {
 	private receivedExpectationsUpdated = false
 
 	private tracked: { [id: string]: TrackedExpectation } = {}
+	private triggerByFullfilledIds: { [fullfilledId: string]: string[] } = {}
 	private _handleExpectationsTimeout: NodeJS.Timeout | undefined = undefined
 	private _handleExpectationsBusy = false
+	private _handleExpectationsRunAsap = false
 
 	constructor(private logger: LoggerInstance) {
-		this._triggerHandleExpectations()
+		this._triggerHandleExpectations(true)
 	}
 
 	async init(): Promise<void> {
@@ -28,9 +30,10 @@ export class ExpectationManager {
 		this.receivedExpectations = expectations
 		this.receivedExpectationsUpdated = true
 
-		this._triggerHandleExpectations()
+		this._triggerHandleExpectations(true)
 	}
 	private _triggerHandleExpectations(asap?: boolean) {
+		if (asap) this._handleExpectationsRunAsap = true
 		if (this._handleExpectationsBusy) return
 
 		if (this._handleExpectationsTimeout) {
@@ -40,6 +43,7 @@ export class ExpectationManager {
 
 		this._handleExpectationsTimeout = setTimeout(
 			() => {
+				this._handleExpectationsRunAsap = false
 				this._handleExpectationsBusy = true
 				this._handleExpectations()
 					.then((runAgainASAP: boolean) => {
@@ -53,18 +57,19 @@ export class ExpectationManager {
 						this._triggerHandleExpectations()
 					})
 			},
-			asap ? 100 : this.HANDLE_INTERVAL
+			this._handleExpectationsRunAsap ? 100 : this.HANDLE_INTERVAL
 		)
 	}
 	private async _handleExpectations(): Promise<boolean> {
+		this.logger.info(Date.now() / 1000 + ' _handleExpectations ----------')
 		if (this.receivedExpectationsUpdated) {
-			this.updateReceivedExpectations()
+			await this.updateReceivedExpectations()
 		}
 		let runAgainASAP = false
 
 		const now = Date.now()
 
-		const MAX_COUNT_PER_ITERATION = 100
+		const MAX_COUNT_PER_ITERATION = 10
 		const RETRY_TIME = 10 * 1000 // ms
 		const FULLFILLED_MONITOR_TIME = 10 * 1000 // ms
 
@@ -83,13 +88,10 @@ export class ExpectationManager {
 			goThroughTracked.push(tracked[i])
 		}
 
-		const expThatTurnedFullfilled: { [id: string]: TrackedExpectation } = {}
 		const removeIds: string[] = []
 
 		await Promise.all(
 			goThroughTracked.map(async (trackedExp) => {
-				const prevStatus = trackedExp.status
-
 				if (trackedExp.status === TrackedExpectationStatus.NEW) {
 					trackedExp.lastOperationTime = now
 
@@ -121,6 +123,10 @@ export class ExpectationManager {
 						if (fulfilled.fulfilled) {
 							// The expectation is already fulfilled
 							trackedExp.status = TrackedExpectationStatus.FULFILLED
+							trackedExp.reason = fulfilled.reason
+							if (this.handleTriggerByFullfilledIds(trackedExp)) {
+								runAgainASAP = true
+							}
 						} else {
 							const readyToStart = await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
 							if (readyToStart.ready) {
@@ -148,16 +154,24 @@ export class ExpectationManager {
 							)
 						})
 						trackedExp.workInProgress.on('error', (err) => {
-							trackedExp.reason = err
-							this.logger.info(`${trackedExp.exp.label}: Reason: ${trackedExp.reason}`)
-							trackedExp.lastOperationTime = Date.now()
-							trackedExp.status = TrackedExpectationStatus.NOT_READY
+							if (trackedExp.status === TrackedExpectationStatus.WORKING) {
+								trackedExp.reason = err
+								this.logger.info(`${trackedExp.exp.label}: Reason: ${trackedExp.reason}`)
+								trackedExp.lastOperationTime = Date.now()
+								trackedExp.status = TrackedExpectationStatus.NOT_READY
+							}
 						})
 						trackedExp.workInProgress.on('done', (result: any) => {
-							trackedExp.status = TrackedExpectationStatus.FULFILLED
-							trackedExp.lastOperationTime = Date.now()
-							if (trackedExp.handleResult) {
-								trackedExp.handleResult(result)
+							if (trackedExp.status === TrackedExpectationStatus.WORKING) {
+								trackedExp.status = TrackedExpectationStatus.FULFILLED
+								trackedExp.lastOperationTime = Date.now()
+								if (trackedExp.handleResult) {
+									trackedExp.handleResult(result)
+								}
+								if (this.handleTriggerByFullfilledIds(trackedExp)) {
+									// Something was triggered, run again ASAP:
+									this._triggerHandleExpectations(true)
+								}
 							}
 						})
 
@@ -177,6 +191,9 @@ export class ExpectationManager {
 							if (!fulfilled.fulfilled) {
 								trackedExp.status = TrackedExpectationStatus.NOT_READY
 								trackedExp.reason = fulfilled.reason
+								this.logger.info(
+									`${trackedExp.exp.label}: Setting to Not ready, reason: ${trackedExp.reason}`
+								)
 								trackedExp.lastOperationTime = 0 // so that it reruns ASAP
 								runAgainASAP = true
 							}
@@ -193,55 +210,16 @@ export class ExpectationManager {
 							trackedExp.reason = removed.reason
 						}
 					}
-
-					// if (now - trackedExp.lastOperationTime > FULLFILLED_MONITOR_TIME) {
-					// 	trackedExp.lastOperationTime = now
-
-					// 	const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
-					// 	if (workerAgent) {
-					// 		// Check if it is still fulfilled:
-					// 		const fulfilled = await workerAgent.isExpectationFullfilled(trackedExp.exp)
-					// 		if (!fulfilled.fulfilled) {
-					// 			trackedExp.status = TrackedExpectationStatus.NOT_READY
-					// 			trackedExp.reason = fulfilled.reason
-					// 			trackedExp.lastOperationTime = 0 // so that it reruns ASAP
-					// 			runAgainASAP = true
-					// 		}
-					// 	}
-					// }
 				}
 				this.logger.info(`${trackedExp.exp.label}.status: ${trackedExp.status}`)
-
-				const statusChanged = prevStatus !== trackedExp.status
-
-				if (statusChanged && trackedExp.status === TrackedExpectationStatus.FULFILLED) {
-					expThatTurnedFullfilled[trackedExp.id] = trackedExp
-				}
 			})
 		)
-		if (Object.keys(expThatTurnedFullfilled).length > 0) {
-			for (const id of Object.keys(this.tracked)) {
-				const trackedExp = this.tracked[id]
-				if (trackedExp.exp.triggerByFullfilledIds) {
-					for (const triggerByFullfilledId of trackedExp.exp.triggerByFullfilledIds) {
-						if (expThatTurnedFullfilled[triggerByFullfilledId]) {
-							// trackedExp should be triggered asap
-
-							trackedExp.lastOperationTime = 0 // so that it reruns ASAP
-							runAgainASAP = true
-							break
-						}
-					}
-				}
-			}
-		}
 		for (const id of removeIds) {
 			delete this.tracked[id]
 		}
-
 		return runAgainASAP
 	}
-	private updateReceivedExpectations(): void {
+	private async updateReceivedExpectations(): Promise<void> {
 		this.receivedExpectationsUpdated = false
 
 		// Added / Changed
@@ -255,9 +233,12 @@ export class ExpectationManager {
 			} else if (!_.isEqual(this.tracked[id].exp, exp)) {
 				const trackedExp = this.tracked[id]
 
-				if (trackedExp.status !== TrackedExpectationStatus.WORKING) {
-					doUpdate = true
+				if (trackedExp.status == TrackedExpectationStatus.WORKING) {
+					if (trackedExp.workInProgress) {
+						await trackedExp.workInProgress.cancel()
+					}
 				}
+				doUpdate = true
 			}
 			if (doUpdate) {
 				this.tracked[id] = {
@@ -280,13 +261,50 @@ export class ExpectationManager {
 
 				if (trackedExp.status == TrackedExpectationStatus.WORKING) {
 					if (trackedExp.workInProgress) {
-						trackedExp.workInProgress.cancel()
+						await trackedExp.workInProgress.cancel()
 					}
 				}
 
 				trackedExp.status = TrackedExpectationStatus.REMOVED
+				trackedExp.lastOperationTime = 0 // To rerun ASAP
 			}
 		}
+
+		this.triggerByFullfilledIds = {}
+		for (const id of Object.keys(this.tracked)) {
+			const trackedExp = this.tracked[id]
+			if (trackedExp.exp.triggerByFullfilledIds) {
+				for (const triggerByFullfilledId of trackedExp.exp.triggerByFullfilledIds) {
+					if (triggerByFullfilledId === id) {
+						throw new Error(`triggerByFullfilledIds not allowed to contain it's own id: "${id}"`)
+					}
+
+					if (!this.triggerByFullfilledIds[triggerByFullfilledId]) {
+						this.triggerByFullfilledIds[triggerByFullfilledId] = []
+					}
+					this.triggerByFullfilledIds[triggerByFullfilledId].push(trackedExp.id)
+				}
+			}
+		}
+	}
+	/**
+	 * To be called when trackedExp.status turns fullfilled.
+	 * Triggers any other expectations that listens to the fullfilled one.
+	 */
+	private handleTriggerByFullfilledIds(trackedExp: TrackedExpectation): boolean {
+		let hasTriggeredSomething = false
+		if (trackedExp.status === TrackedExpectationStatus.FULFILLED) {
+			const toTriggerIds = this.triggerByFullfilledIds[trackedExp.id] || []
+
+			for (const id of toTriggerIds) {
+				const toTriggerExp = this.tracked[id]
+				if (toTriggerExp) {
+					toTriggerExp.lastOperationTime = 0 // so that it reruns ASAP
+					hasTriggeredSomething = true
+				}
+			}
+		}
+		return hasTriggeredSomething
 	}
 }
 enum TrackedExpectationStatus {
