@@ -22,12 +22,16 @@ export abstract class GenericWorker {
 	 * Tells the Worker to start working on fullfilling the Expectation.
 	 */
 	abstract workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress>
+	/**
+	 * Tells the Worker that an Expectation has been removed
+	 */
+	abstract removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason?: string }>
 }
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
 	progress: (progress: number) => void
-	done: () => void
+	done: (result: any) => void
 	error: (error: string) => void
 }
 export declare interface IWorkInProgress {
@@ -39,6 +43,9 @@ export declare interface IWorkInProgress {
 	cancel: () => Promise<void>
 }
 export class WorkInProgress extends EventEmitter implements IWorkInProgress {
+	private _reportProgressTimeout: NodeJS.Timeout | undefined
+	private _progress = 0
+
 	constructor(private _onCancel: () => Promise<void>) {
 		super()
 	}
@@ -47,10 +54,18 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	}
 
 	_reportProgress(progress: number): void {
-		this.emit('progress', progress)
+		this._progress = progress
+
+		if (!this._reportProgressTimeout) {
+			this._reportProgressTimeout = setTimeout(() => {
+				this._reportProgressTimeout = undefined
+				this.emit('progress', this._progress)
+			}, 300) // Rate-limit
+		}
 	}
-	_reportComplete(): void {
-		this.emit('done')
+	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+	_reportComplete(result: any): void {
+		this.emit('done', result)
 	}
 	_reportError(err: string): void {
 		this.emit('error', err)

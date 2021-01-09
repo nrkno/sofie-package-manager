@@ -1,6 +1,6 @@
 import { CoreHandler } from './coreHandler'
 import { LoggerInstance } from './index'
-import { ExpectedPackage, PackageOriginMetadata } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackage, PackageOriginOnPackage } from '@sofie-automation/blueprints-integration'
 import { generateExpectations } from './expectationGenerator'
 import { ExpectationManager } from './expectationManager'
 
@@ -101,7 +101,7 @@ export class PackageManagerHandler {
 
 export interface ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.Any
-	origins: PackageOriginMetadata.Any[]
+	origins: PackageOriginOnPackage.Any[]
 	playoutDeviceId: string
 	playoutLocation: any
 }
