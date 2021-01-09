@@ -91,7 +91,7 @@ export class PackageManagerHandler {
 	private handleExpectedPackages(expectedPackages: ExpectedPackageWrap[]) {
 		// Step 1: Generate expectations:
 		const expectations = generateExpectations(expectedPackages)
-		this.logger.info('expectations')
+		this.logger.info('expectations:')
 		this.logger.info(JSON.stringify(expectations, null, 2))
 
 		// Step 2: Track and handle new expectations:

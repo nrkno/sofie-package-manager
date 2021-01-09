@@ -5,12 +5,15 @@ import * as fs from 'fs'
 import { promisify } from 'util'
 import { roboCopyFile } from '../lib/robocopy'
 import { GenericWorker, IWorkInProgress, WorkInProgress } from '../worker'
+import { exec, ChildProcess } from 'child_process'
+import { hashObj } from '../lib/lib'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
 const fsUnlink = promisify(fs.unlink)
 
-export class NodeJSWorker extends GenericWorker {
+/** This is a type of worker that runs locally, close to the location */
+export class LocalWorker extends GenericWorker {
 	private corePackageInfoInterface = new TMPCorePackageInfoInterface() // todo
 
 	doYouSupportExpectation(exp: Expectation.Any): boolean {
@@ -66,6 +69,13 @@ namespace MediaFileCopy {
 	export async function isExpectationReadyToStartWorkingOn(
 		exp: Expectation.MediaFileCopy
 	): Promise<{ ready: boolean; reason?: string }> {
+		if (exp.endRequirement.location.type !== PackageOrigin.OriginType.LOCAL_FOLDER) {
+			return {
+				ready: false,
+				reason: `Unsupported location.type "${exp.endRequirement.location.type}"`,
+			}
+		}
+
 		const lookupOrigin = await lookupExpOrigin(exp)
 
 		return {
@@ -251,6 +261,7 @@ namespace MediaFileScan {
 
 			return { ready: true, reason: '' }
 		} else {
+			// console.log('exp.startRequirement.location', exp.startRequirement.location)
 			throw new Error(`Unsupported location type "${exp.startRequirement.location.type}"`)
 		}
 
@@ -263,55 +274,156 @@ namespace MediaFileScan {
 		/** undefined if all good, error string otherwise */
 		// let reason: undefined | string = 'Unknown fulfill error'
 
+		const fullPath = path.join(exp.startRequirement.location.folderPath, exp.startRequirement.content.filePath)
+
+		try {
+			await fsAccess(fullPath, fs.constants.R_OK)
+			// The file exists
+		} catch (err) {
+			return { fulfilled: false, reason: `File does not exist: ${err.toString()}` }
+		}
+		const stat = await fsStat(fullPath)
+		const statVersion = convertStatToVersion(stat)
+
 		if (exp.endRequirement.location.type === PackageOrigin.OriginType.CORE_PACKAGE_INFO) {
-			if (
-				await corePackageInfo.hasRecord(
-					exp.startRequirement.location,
-					exp.startRequirement.content,
-					exp.startRequirement.version
-				)
-			) {
-				return { fulfilled: true, reason: '' }
+			/** A string that should change whenever the file is changed */
+			const fileHash = hashObj(statVersion)
+
+			const storedHash = await corePackageInfo.fetchPackageInfoHash(
+				exp.startRequirement.location,
+				exp.startRequirement.content,
+				exp.startRequirement.version
+			)
+
+			if (storedHash === fileHash) {
+				return { fulfilled: true, reason: 'Record matches file' }
 			}
 		} else {
 			throw new Error(`Unsupported location type "${exp.endRequirement.location.type}"`)
 		}
 
-		return { fulfilled: true, reason: '' }
+		return { fulfilled: false, reason: '' }
 	}
 	export async function workOnExpectation(
-		_exp: Expectation.MediaFileScan,
-		_corePackageInfo: TMPCorePackageInfoInterface
+		exp: Expectation.MediaFileScan,
+		corePackageInfo: TMPCorePackageInfoInterface
 	): Promise<IWorkInProgress> {
+		// Scan the media file
+
+		let ffProbeProcess: ChildProcess | undefined
 		const workInProgress = new WorkInProgress(async () => {
-			// on cancel
-			// copying.cancel()
-			// todo: should we remove the target file?
+			// On cancel
+			if (ffProbeProcess) {
+				ffProbeProcess.kill() // todo: signal?
+			}
 		})
 
-		workInProgress._reportComplete(undefined)
+		setImmediate(() => {
+			;(async () => {
+				const fullPath = path.join(
+					exp.startRequirement.location.folderPath,
+					exp.startRequirement.content.filePath
+				)
+
+				try {
+					await fsAccess(fullPath, fs.constants.R_OK)
+					// The file exists
+				} catch (err) {
+					workInProgress._reportError(err.toString())
+					return
+				}
+
+				const stat = await fsStat(fullPath)
+				const statVersion = convertStatToVersion(stat)
+				const fileHash = hashObj(statVersion)
+
+				// Use FFProbe to scan the file:
+				const args = [
+					process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
+					'-hide_banner',
+					`-i "${fullPath}"`,
+					'-show_streams',
+					'-show_format',
+					'-print_format',
+					'json',
+				]
+				console.log('Starting ffprobe')
+				ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
+					// console.log(stdout)
+					// console.log(stderr)
+					// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+					ffProbeProcess = undefined
+					if (err) {
+						workInProgress._reportError(err.toString())
+						return
+					}
+					const json: any = JSON.parse(stdout)
+					if (!json.streams || !json.streams[0]) {
+						workInProgress._reportError(`File doesn't seem to be a media file`)
+						return
+					}
+
+					corePackageInfo
+						.storePackageInfo(
+							exp.startRequirement.location,
+							exp.startRequirement.content,
+							exp.startRequirement.version,
+							fileHash,
+							json
+						)
+						.then(
+							() => {
+								workInProgress._reportComplete(undefined)
+							},
+							(err) => {
+								workInProgress._reportError(err.toString())
+							}
+						)
+				})
+			})().catch((err) => {
+				workInProgress._reportError(err.toString())
+			})
+		})
+
 		// workInProgress._reportError(err)
 
 		return workInProgress
 	}
 	export async function removeExpectation(
-		_exp: Expectation.MediaFileScan,
-		_corePackageInfo: TMPCorePackageInfoInterface
+		exp: Expectation.MediaFileScan,
+		corePackageInfo: TMPCorePackageInfoInterface
 	): Promise<{ removed: boolean; reason?: string }> {
 		// todo: remove from corePackageInfo
 		// corePackageInfo
+
+		await corePackageInfo.removePackageInfo(
+			exp.startRequirement.location,
+			exp.startRequirement.content,
+			exp.startRequirement.version
+		)
 
 		return { removed: true, reason: '' }
 	}
 }
 
+function convertStatToVersion(stat: fs.Stats): Expectation.MediaFileVersion {
+	return {
+		fileSize: stat.size,
+		modifiedDate: stat.mtimeMs * 1000,
+		// checksum?: string
+		// checkSumType?: 'sha' | 'md5' | 'whatever'
+	}
+}
 function compareFileVersion(stat: fs.Stats, version: Expectation.MediaFileVersion): undefined | string {
 	let errorReason: string | undefined = undefined
-	if (version.fileSize && stat.size !== version.fileSize) {
-		errorReason = `Origin file size differ (${version.fileSize}, ${stat.size})`
+
+	const statVersion = convertStatToVersion(stat)
+
+	if (version.fileSize && statVersion.fileSize !== version.fileSize) {
+		errorReason = `Origin file size differ (${version.fileSize}, ${statVersion.fileSize})`
 	}
-	if (version.modifiedDate && stat.mtimeMs * 1000 !== version.modifiedDate) {
-		errorReason = `Origin modified date differ (${version.modifiedDate}, ${stat.mtimeMs * 1000})`
+	if (version.modifiedDate && statVersion.modifiedDate !== version.modifiedDate) {
+		errorReason = `Origin modified date differ (${version.modifiedDate}, ${statVersion.modifiedDate})`
 	}
 	if (version.checksum) {
 		// TODO
@@ -321,12 +433,42 @@ function compareFileVersion(stat: fs.Stats, version: Expectation.MediaFileVersio
 }
 
 class TMPCorePackageInfoInterface {
-	async hasRecord(
-		_location: PackageOrigin.LocalFolder,
-		_content: { filePath: string },
-		_version: Expectation.MediaFileVersion
-	): Promise<boolean> {
-		return true
-		throw new Error('Method not implemented.')
+	// This is to be moved to Core:
+	private tmpStore: { [key: string]: { hash: string; record: any } } = {}
+
+	async fetchPackageInfoHash(
+		location: PackageOrigin.LocalFolder,
+		content: { filePath: string },
+		version: Expectation.MediaFileVersion
+	): Promise<string | undefined> {
+		const key = hashObj({ location, content, version })
+
+		return this.tmpStore[key]?.hash || undefined
+	}
+	async storePackageInfo(
+		location: PackageOrigin.LocalFolder,
+		content: { filePath: string },
+		version: Expectation.MediaFileVersion,
+		hash: string,
+		record: any
+	): Promise<void> {
+		const key = hashObj({ location, content, version })
+
+		this.tmpStore[key] = {
+			hash: hash,
+			record: record,
+		}
+		console.log('Stored', record)
+	}
+	async removePackageInfo(
+		location: PackageOrigin.LocalFolder,
+		content: { filePath: string },
+		version: Expectation.MediaFileVersion
+	): Promise<void> {
+		const key = hashObj({ location, content, version })
+
+		console.log('Removed')
+
+		delete this.tmpStore[key]
 	}
 }

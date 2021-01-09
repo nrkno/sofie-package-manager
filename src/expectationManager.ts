@@ -5,7 +5,7 @@ import { Expectation } from './worker/expectationApi'
 import { IWorkInProgress } from './worker/worker'
 
 export class ExpectationManager {
-	private HANDLE_INTERVAL = 2000
+	private readonly HANDLE_INTERVAL = 2000
 
 	private _workforce: Workforce = new Workforce()
 
@@ -64,7 +64,7 @@ export class ExpectationManager {
 
 		const now = Date.now()
 
-		const MAX_COUNT_PER_ITERATION = 10
+		const MAX_COUNT_PER_ITERATION = 100
 		const RETRY_TIME = 10 * 1000 // ms
 		const FULLFILLED_MONITOR_TIME = 10 * 1000 // ms
 
@@ -83,8 +83,13 @@ export class ExpectationManager {
 			goThroughTracked.push(tracked[i])
 		}
 
+		const expThatTurnedFullfilled: { [id: string]: TrackedExpectation } = {}
+		const removeIds: string[] = []
+
 		await Promise.all(
 			goThroughTracked.map(async (trackedExp) => {
+				const prevStatus = trackedExp.status
+
 				if (trackedExp.status === TrackedExpectationStatus.NEW) {
 					trackedExp.lastOperationTime = now
 
@@ -178,9 +183,61 @@ export class ExpectationManager {
 						}
 					}
 				}
+				if (trackedExp.status === TrackedExpectationStatus.REMOVED) {
+					const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
+					if (workerAgent) {
+						const removed = await workerAgent.removeExpectation(trackedExp.exp)
+						if (removed.removed) {
+							removeIds.push(trackedExp.id)
+						} else {
+							trackedExp.reason = removed.reason
+						}
+					}
+
+					// if (now - trackedExp.lastOperationTime > FULLFILLED_MONITOR_TIME) {
+					// 	trackedExp.lastOperationTime = now
+
+					// 	const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
+					// 	if (workerAgent) {
+					// 		// Check if it is still fulfilled:
+					// 		const fulfilled = await workerAgent.isExpectationFullfilled(trackedExp.exp)
+					// 		if (!fulfilled.fulfilled) {
+					// 			trackedExp.status = TrackedExpectationStatus.NOT_READY
+					// 			trackedExp.reason = fulfilled.reason
+					// 			trackedExp.lastOperationTime = 0 // so that it reruns ASAP
+					// 			runAgainASAP = true
+					// 		}
+					// 	}
+					// }
+				}
 				this.logger.info(`${trackedExp.exp.label}.status: ${trackedExp.status}`)
+
+				const statusChanged = prevStatus !== trackedExp.status
+
+				if (statusChanged && trackedExp.status === TrackedExpectationStatus.FULFILLED) {
+					expThatTurnedFullfilled[trackedExp.id] = trackedExp
+				}
 			})
 		)
+		if (Object.keys(expThatTurnedFullfilled).length > 0) {
+			for (const id of Object.keys(this.tracked)) {
+				const trackedExp = this.tracked[id]
+				if (trackedExp.exp.triggerByFullfilledIds) {
+					for (const triggerByFullfilledId of trackedExp.exp.triggerByFullfilledIds) {
+						if (expThatTurnedFullfilled[triggerByFullfilledId]) {
+							// trackedExp should be triggered asap
+
+							trackedExp.lastOperationTime = 0 // so that it reruns ASAP
+							runAgainASAP = true
+							break
+						}
+					}
+				}
+			}
+		}
+		for (const id of removeIds) {
+			delete this.tracked[id]
+		}
 
 		return runAgainASAP
 	}
@@ -204,6 +261,7 @@ export class ExpectationManager {
 			}
 			if (doUpdate) {
 				this.tracked[id] = {
+					id: id,
 					exp: exp,
 					status: TrackedExpectationStatus.NEW,
 					potentialWorkerIds: [],
@@ -225,7 +283,8 @@ export class ExpectationManager {
 						trackedExp.workInProgress.cancel()
 					}
 				}
-				delete this.tracked[id]
+
+				trackedExp.status = TrackedExpectationStatus.REMOVED
 			}
 		}
 	}
@@ -236,8 +295,10 @@ enum TrackedExpectationStatus {
 	READY = 'ready',
 	WORKING = 'working',
 	FULFILLED = 'fulfilled',
+	REMOVED = 'removed',
 }
 interface TrackedExpectation {
+	id: string
 	exp: Expectation.Any
 	status: TrackedExpectationStatus
 	potentialWorkerIds: string[]

@@ -11,7 +11,7 @@ export namespace Expectation {
 		QUANTEL_COPY = 'quantel_copy',
 	}
 
-	export interface ExpectationBase {
+	export interface Base {
 		id: string
 		type: Type
 
@@ -23,9 +23,13 @@ export namespace Expectation {
 			content: any
 			version: any
 		}
+		/** Reference to another expectation.
+		 * On fullfillement, this will be triggered immediately.
+		 */
+		triggerByFullfilledIds?: string[]
 	}
 
-	export interface MediaFileCopy extends ExpectationBase {
+	export interface MediaFileCopy extends Base {
 		type: Type.MEDIA_FILE_COPY
 		label: string
 
@@ -51,7 +55,7 @@ export namespace Expectation {
 		checksum?: string
 		checkSumType?: 'sha' | 'md5' | 'whatever'
 	}
-	export interface MediaFileScan extends ExpectationBase {
+	export interface MediaFileScan extends Base {
 		type: Type.MEDIA_FILE_SCAN
 		label: string
 
@@ -65,7 +69,7 @@ export namespace Expectation {
 		}
 	}
 
-	export interface QuantelClipCopy extends ExpectationBase {
+	export interface QuantelClipCopy extends Base {
 		type: Type.QUANTEL_COPY
 		label: string
 

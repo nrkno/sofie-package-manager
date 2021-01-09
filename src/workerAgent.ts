@@ -1,6 +1,6 @@
 import { Expectation } from './worker/expectationApi'
 import { GenericWorker, IWorkInProgress } from './worker/worker'
-import { NodeJSWorker } from './worker/workers/nodeJSWorker'
+import { LocalWorker } from './worker/workers/localWorker'
 
 // Note:
 // The long-term goal is that Worker-Agents are separate processes / containers
@@ -12,7 +12,7 @@ export class WorkerAgent {
 
 	constructor(public readonly id: string) {
 		// Todo: Different types of workers
-		this._worker = new NodeJSWorker()
+		this._worker = new LocalWorker()
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<boolean> {
 		return this._worker.doYouSupportExpectation(exp)
@@ -25,6 +25,9 @@ export class WorkerAgent {
 	}
 	async workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
 		return this.setBusy(() => this._worker.workOnExpectation(exp))
+	}
+	async removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason?: string }> {
+		return this.setBusy(() => this._worker.removeExpectation(exp))
 	}
 	private async setBusy<T>(fcn: () => Promise<T>): Promise<T> {
 		this._busyMethodCount++
