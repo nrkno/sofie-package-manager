@@ -84,6 +84,7 @@ export async function workOnExpectation(exp: Expectation.MediaFileCopy): Promise
 		// on cancel
 		copying.cancel()
 		// todo: should we remove the target file?
+		await fsUnlink(targetPath)
 	})
 	const copying = roboCopyFile(lookupOrigin.foundOriginPath, targetPath, (progress: number) => {
 		workInProgress._reportProgress(progress)
