@@ -50,7 +50,6 @@ export class FileStorage extends Storage {
 		const packages: PackageInfo[] = []
 
 		const getAllFiles = async (basePath: string, dirPath: string) => {
-			console.log('getAllFiles', basePath, dirPath)
 			const files = await fsReaddir(path.join(basePath, dirPath))
 
 			await Promise.all(

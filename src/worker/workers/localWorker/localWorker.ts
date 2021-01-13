@@ -14,7 +14,7 @@ export class LocalWorker extends GenericWorker {
 		}
 		return false
 	}
-	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason?: string }> {
+	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
 		switch (exp.type) {
 			case Expectation.Type.MEDIA_FILE_COPY:
 				return MediaFileCopy.isExpectationReadyToStartWorkingOn(exp)
@@ -24,7 +24,7 @@ export class LocalWorker extends GenericWorker {
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
 	}
-	isExpectationFullfilled(exp: Expectation.Any): Promise<{ fulfilled: boolean; reason?: string }> {
+	isExpectationFullfilled(exp: Expectation.Any): Promise<{ fulfilled: boolean; reason: string }> {
 		switch (exp.type) {
 			case Expectation.Type.MEDIA_FILE_COPY:
 				return MediaFileCopy.isExpectationFullfilled(exp)
@@ -44,7 +44,7 @@ export class LocalWorker extends GenericWorker {
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
 	}
-	removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason?: string }> {
+	removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason: string }> {
 		switch (exp.type) {
 			case Expectation.Type.MEDIA_FILE_COPY:
 				return MediaFileCopy.removeExpectation(exp)
@@ -75,6 +75,7 @@ export class TMPCorePackageInfoInterface {
 		content: { filePath: string },
 		version: Expectation.MediaFileVersion,
 		hash: string,
+		// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 		record: any
 	): Promise<void> {
 		const key = hashObj({ location, content, version })

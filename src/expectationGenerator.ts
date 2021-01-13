@@ -25,8 +25,17 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			const exp: Expectation.MediaFileCopy = {
 				id: '', // set later
 				type: Expectation.Type.MEDIA_FILE_COPY,
-
-				label: `${expWrapMediaFile.playoutDeviceId}: Media ${expWrapMediaFile.expectedPackage.content.filePath}`,
+				statusReport: {
+					packageId: expWrap.expectedPackage._id,
+					label: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
+					description: `Copy media "${
+						expWrapMediaFile.expectedPackage.content.filePath
+					}" to the playout-device "${expWrapMediaFile.playoutDeviceId}", from "${JSON.stringify(
+						expWrapMediaFile.origins
+					)}"`,
+					requiredForPlayout: true,
+					displayRank: 0,
+				},
 
 				startRequirement: {
 					origins: expWrapMediaFile.origins,
@@ -44,23 +53,31 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 
 			expectations[exp.id] = exp
 		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
-			const expWrapMediaFile = expWrap as ExpectedPackageWrapQuantel
+			const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
-			const content = expWrapMediaFile.expectedPackage.content
+			const content = expWrapQuantelClip.expectedPackage.content
 			const exp: Expectation.QuantelClipCopy = {
 				id: '', // set later
 				type: Expectation.Type.QUANTEL_COPY,
 
-				label: `${expWrapMediaFile.playoutDeviceId}: Media ${content.title || content.guid}`,
+				statusReport: {
+					packageId: expWrap.expectedPackage._id,
+					label: `Copy Quantel clip ${content.title || content.guid}`,
+					description: `Copy Quantel clip ${content.title || content.guid} to server for "${
+						expWrapQuantelClip.playoutDeviceId
+					}", from ${expWrapQuantelClip.origins}`,
+					requiredForPlayout: true,
+					displayRank: 0,
+				},
 
 				startRequirement: {
-					origins: expWrapMediaFile.origins,
+					origins: expWrapQuantelClip.origins,
 				},
 
 				endRequirement: {
-					location: expWrapMediaFile.playoutLocation, // todo
+					location: expWrapQuantelClip.playoutLocation, // todo
 					content: content,
-					version: expWrapMediaFile.expectedPackage.version,
+					version: expWrapQuantelClip.expectedPackage.version,
 				},
 			}
 			exp.id = hashObj(exp.endRequirement)
@@ -75,11 +92,19 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 	for (const id of Object.keys(expectations)) {
 		const expectation = expectations[id]
 		if (expectation.type === Expectation.Type.MEDIA_FILE_COPY) {
+			// All files that have been copied should also be scanned:
+
 			const exp: Expectation.MediaFileScan = {
 				id: expectation.id + '_scan',
 				type: Expectation.Type.MEDIA_FILE_SCAN,
 
-				label: `Scan ${expectation.label}`,
+				statusReport: {
+					packageId: expectation.statusReport.packageId,
+					label: `Scan ${expectation.statusReport.label}`,
+					description: `Scanning is used to provide Sofie GUI with status about the media`,
+					requiredForPlayout: false,
+					displayRank: 10,
+				},
 
 				startRequirement: expectation.endRequirement,
 
@@ -90,6 +115,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 					content: expectation.endRequirement.content,
 					version: expectation.endRequirement.version,
 				},
+				dependsOnFullfilled: [expectation.id],
 				triggerByFullfilledIds: [expectation.id],
 			}
 			expectations[exp.id] = exp

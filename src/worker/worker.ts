@@ -31,7 +31,7 @@ export abstract class GenericWorker {
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
 	progress: (progress: number) => void
-	done: (result: any) => void
+	done: (reson: string, result: any) => void
 	error: (error: string) => void
 }
 export declare interface IWorkInProgress {
@@ -64,8 +64,8 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 		}
 	}
 	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-	_reportComplete(result: any): void {
-		this.emit('done', result)
+	_reportComplete(reason: string, result: any): void {
+		this.emit('done', reason, result)
 	}
 	_reportError(err: string): void {
 		this.emit('error', err)

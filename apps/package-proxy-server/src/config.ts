@@ -11,8 +11,6 @@ const argv = yargs(process.argv.slice(2)).options({
 	certificates: { type: 'string' },
 }).argv
 
-// console.log('argv', argv)
-
 if (!argv.apiKeyWrite && argv.apiKeyRead) {
 	console.log('Error: When apiKeyRead is given, apiKeyWrite is required!')
 	process.exit(1)

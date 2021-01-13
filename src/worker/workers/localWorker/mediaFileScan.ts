@@ -14,7 +14,7 @@ const fsAccess = promisify(fs.access)
 
 export async function isExpectationReadyToStartWorkingOn(
 	exp: Expectation.MediaFileScan
-): Promise<{ ready: boolean; reason?: string }> {
+): Promise<{ ready: boolean; reason: string }> {
 	if (exp.startRequirement.location.type === PackageOrigin.OriginType.LOCAL_FOLDER) {
 		const fullPath = path.join(exp.startRequirement.location.folderPath, exp.startRequirement.content.filePath)
 
@@ -30,9 +30,8 @@ export async function isExpectationReadyToStartWorkingOn(
 		const errorReason = compareFileVersion(stat, exp.startRequirement.version)
 		if (errorReason) return { ready: false, reason: errorReason }
 
-		return { ready: true, reason: '' }
+		return { ready: true, reason: 'File found' }
 	} else {
-		// console.log('exp.startRequirement.location', exp.startRequirement.location)
 		throw new Error(`Unsupported location type "${exp.startRequirement.location.type}"`)
 	}
 
@@ -41,7 +40,7 @@ export async function isExpectationReadyToStartWorkingOn(
 export async function isExpectationFullfilled(
 	exp: Expectation.MediaFileScan,
 	corePackageInfo: TMPCorePackageInfoInterface
-): Promise<{ fulfilled: boolean; reason?: string }> {
+): Promise<{ fulfilled: boolean; reason: string }> {
 	/** undefined if all good, error string otherwise */
 	// let reason: undefined | string = 'Unknown fulfill error'
 
@@ -95,6 +94,7 @@ export async function workOnExpectation(
 
 	setImmediate(() => {
 		;(async () => {
+			const startTime = Date.now()
 			const fullPath = path.join(exp.startRequirement.location.folderPath, exp.startRequirement.content.filePath)
 
 			try {
@@ -119,10 +119,7 @@ export async function workOnExpectation(
 				'-print_format',
 				'json',
 			]
-			console.log('Starting ffprobe')
 			ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
-				// console.log(stdout)
-				// console.log(stderr)
 				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
 				ffProbeProcess = undefined
 				if (err) {
@@ -145,7 +142,11 @@ export async function workOnExpectation(
 					)
 					.then(
 						() => {
-							workInProgress._reportComplete(undefined)
+							const duration = Date.now() - startTime
+							workInProgress._reportComplete(
+								`Scan completed in ${Math.round(duration / 100) / 10}s`,
+								undefined
+							)
 						},
 						(err) => {
 							workInProgress._reportError(err.toString())
@@ -164,7 +165,7 @@ export async function workOnExpectation(
 export async function removeExpectation(
 	exp: Expectation.MediaFileScan,
 	corePackageInfo: TMPCorePackageInfoInterface
-): Promise<{ removed: boolean; reason?: string }> {
+): Promise<{ removed: boolean; reason: string }> {
 	// todo: remove from corePackageInfo
 	// corePackageInfo
 
@@ -174,5 +175,5 @@ export async function removeExpectation(
 		exp.startRequirement.version
 	)
 
-	return { removed: true, reason: '' }
+	return { removed: true, reason: 'Removed scan info from Store' }
 }

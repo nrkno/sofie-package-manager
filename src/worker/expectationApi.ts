@@ -1,4 +1,8 @@
-import { PackageLocation, PackageOriginOnPackage } from '@sofie-automation/blueprints-integration'
+import {
+	PackageLocation,
+	PackageOriginOnPackage,
+	ExpectedPackageStatusAPI,
+} from '@sofie-automation/blueprints-integration'
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expectation {
@@ -15,6 +19,12 @@ export namespace Expectation {
 		id: string
 		type: Type
 
+		/** Contains info for reporting back status to Core */
+		statusReport: {
+			/** Reference to the package-id from which this expectation originated from */
+			packageId: string
+		} & ExpectedPackageStatusAPI.BaseInfo
+
 		/** Contains info for determining that work can start (and is used to perform the work) */
 		startRequirement: any
 		/** Contains info for determining that work can end (and is used to perform the work) */
@@ -24,6 +34,10 @@ export namespace Expectation {
 			version: any
 		}
 		/** Reference to another expectation.
+		 * Won't start until ALL other expectations are fullfilled
+		 */
+		dependsOnFullfilled?: string[]
+		/** Reference to another expectation.
 		 * On fullfillement, this will be triggered immediately.
 		 */
 		triggerByFullfilledIds?: string[]
@@ -31,7 +45,6 @@ export namespace Expectation {
 
 	export interface MediaFileCopy extends Base {
 		type: Type.MEDIA_FILE_COPY
-		label: string
 
 		startRequirement: {
 			origins: (
@@ -57,7 +70,6 @@ export namespace Expectation {
 	}
 	export interface MediaFileScan extends Base {
 		type: Type.MEDIA_FILE_SCAN
-		label: string
 
 		startRequirement: MediaFileCopy['endRequirement']
 		endRequirement: {
@@ -71,7 +83,6 @@ export namespace Expectation {
 
 	export interface QuantelClipCopy extends Base {
 		type: Type.QUANTEL_COPY
-		label: string
 
 		startRequirement: {
 			origins: PackageOriginOnPackage.Quantel[]

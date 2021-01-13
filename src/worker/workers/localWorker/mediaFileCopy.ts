@@ -13,7 +13,7 @@ const fsUnlink = promisify(fs.unlink)
 
 export async function isExpectationReadyToStartWorkingOn(
 	exp: Expectation.MediaFileCopy
-): Promise<{ ready: boolean; reason?: string }> {
+): Promise<{ ready: boolean; reason: string }> {
 	if (exp.endRequirement.location.type !== PackageOrigin.OriginType.LOCAL_FOLDER) {
 		return {
 			ready: false,
@@ -24,13 +24,13 @@ export async function isExpectationReadyToStartWorkingOn(
 	const lookupOrigin = await lookupExpOrigin(exp)
 
 	return {
-		ready: !lookupOrigin.errorReason,
-		reason: lookupOrigin.errorReason,
+		ready: lookupOrigin.ready,
+		reason: lookupOrigin.reason,
 	}
 }
 export async function isExpectationFullfilled(
 	exp: Expectation.MediaFileCopy
-): Promise<{ fulfilled: boolean; reason?: string }> {
+): Promise<{ fulfilled: boolean; reason: string }> {
 	/** undefined if all good, error string otherwise */
 	let reason: undefined | string = 'Unknown fulfilled error'
 
@@ -52,7 +52,7 @@ export async function isExpectationFullfilled(
 
 	const lookupOrigin = await lookupExpOrigin(exp)
 	// TODO: how to handle if the origin is gone? is it still fullfilled then?
-	if (lookupOrigin && !lookupOrigin.errorReason && lookupOrigin.foundOriginPath) {
+	if (lookupOrigin && lookupOrigin.ready && lookupOrigin.foundOriginPath) {
 		const originStat = await fsStat(lookupOrigin.foundOriginPath)
 
 		if (stat.size !== originStat.size) {
@@ -64,15 +64,20 @@ export async function isExpectationFullfilled(
 		// TODO: check other things?
 	}
 
-	return { fulfilled: !reason, reason }
+	return {
+		fulfilled: !reason,
+		reason: reason || `File "${exp.endRequirement.content.filePath}" already exists on location`,
+	}
 }
 export async function workOnExpectation(exp: Expectation.MediaFileCopy): Promise<IWorkInProgress> {
 	// Copies the file from Origin to Location
 
+	const startTime = Date.now()
+
 	const lookupOrigin = await lookupExpOrigin(exp)
 
-	if (lookupOrigin.errorReason) {
-		throw new Error(`Can't start working due to: ${lookupOrigin.errorReason}`)
+	if (!lookupOrigin.ready) {
+		throw new Error(`Can't start working due to: ${lookupOrigin.reason}`)
 	}
 	if (!lookupOrigin.foundOriginPath) {
 		throw new Error(`No origin path found!`)
@@ -92,7 +97,8 @@ export async function workOnExpectation(exp: Expectation.MediaFileCopy): Promise
 
 	copying
 		.then(() => {
-			workInProgress._reportComplete(undefined)
+			const duration = Date.now() - startTime
+			workInProgress._reportComplete(`Copy completed in ${Math.round(duration / 100) / 10}s`, undefined)
 		})
 		.catch((err) => {
 			workInProgress._reportError(err)
@@ -100,9 +106,7 @@ export async function workOnExpectation(exp: Expectation.MediaFileCopy): Promise
 
 	return workInProgress
 }
-export async function removeExpectation(
-	exp: Expectation.MediaFileCopy
-): Promise<{ removed: boolean; reason?: string }> {
+export async function removeExpectation(exp: Expectation.MediaFileCopy): Promise<{ removed: boolean; reason: string }> {
 	// Remove the file on the location
 
 	const targetPath = path.join(exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
@@ -121,7 +125,7 @@ export async function removeExpectation(
 		return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
 	}
 
-	return { removed: true, reason: '' }
+	return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from location` }
 }
 
 // eslint-disable-next-line no-inner-declarations
@@ -181,5 +185,9 @@ async function lookupExpOrigin(exp: Expectation.MediaFileCopy) {
 	}
 
 	if (errorReason) foundOriginPath = undefined
-	return { foundOriginPath, errorReason }
+	return {
+		foundOriginPath,
+		ready: !errorReason,
+		reason: errorReason || 'Found origin OK',
+	}
 }

@@ -3,6 +3,7 @@ import { LoggerInstance } from './index'
 import { Workforce } from './workforce'
 import { Expectation } from './worker/expectationApi'
 import { IWorkInProgress } from './worker/worker'
+import { WorkerAgent } from './workerAgent'
 
 export class ExpectationManager {
 	private readonly HANDLE_INTERVAL = 2000
@@ -18,7 +19,18 @@ export class ExpectationManager {
 	private _handleExpectationsBusy = false
 	private _handleExpectationsRunAsap = false
 
-	constructor(private logger: LoggerInstance) {
+	constructor(
+		private logger: LoggerInstance,
+		private updateExpectationStatus: (
+			expectationId: string,
+			expectaction: Expectation.Any | null,
+			statusInfo: {
+				status?: string
+				progress?: number
+				statusReason?: string
+			}
+		) => void
+	) {
 		this._triggerHandleExpectations(true)
 	}
 
@@ -92,11 +104,14 @@ export class ExpectationManager {
 
 		await Promise.all(
 			goThroughTracked.map(async (trackedExp) => {
+				const prevStatus = trackedExp.status
+				const prevReason = trackedExp.reason
+
 				if (trackedExp.status === TrackedExpectationStatus.NEW) {
 					trackedExp.lastOperationTime = now
 
 					// Check which workers might want to handle it:
-					this.logger.info(`${trackedExp.exp.label}: New`)
+					this.logger.info(`${trackedExp.exp.statusReport.label}: New`)
 
 					trackedExp.potentialWorkerIds = []
 					for (const workerAgent of this._workforce.getWorkerAgents()) {
@@ -108,12 +123,12 @@ export class ExpectationManager {
 						trackedExp.status = TrackedExpectationStatus.NOT_READY
 					} else {
 						trackedExp.reason = 'No workers found'
-						this.logger.info(`${trackedExp.exp.label}: Reason: ${trackedExp.reason}`)
+						this.logger.info(`${trackedExp.exp.statusReport.label}: Reason: ${trackedExp.reason}`)
 					}
 				}
 				if (trackedExp.status === TrackedExpectationStatus.NOT_READY) {
 					// Check if the expectation is ready to start:
-					this.logger.info(`${trackedExp.exp.label}: Not ready`)
+					this.logger.info(`${trackedExp.exp.statusReport.label}: Not ready`)
 
 					const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
 					if (workerAgent) {
@@ -128,19 +143,19 @@ export class ExpectationManager {
 								runAgainASAP = true
 							}
 						} else {
-							const readyToStart = await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
+							const readyToStart = await this.isExpectationReadyToStartWorkingOn(workerAgent, trackedExp)
 							if (readyToStart.ready) {
 								trackedExp.status = TrackedExpectationStatus.READY
 							} else {
 								trackedExp.reason = readyToStart.reason
-								this.logger.info(`${trackedExp.exp.label}: Reason: ${trackedExp.reason}`)
+								this.logger.info(`${trackedExp.exp.statusReport.label}: Reason: ${trackedExp.reason}`)
 							}
 						}
 					}
 				}
 				if (trackedExp.status === TrackedExpectationStatus.READY) {
 					// Start working on it:
-					this.logger.info(`${trackedExp.exp.label}: Ready`)
+					this.logger.info(`${trackedExp.exp.statusReport.label}: Ready`)
 
 					const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
 					if (workerAgent) {
@@ -150,21 +165,40 @@ export class ExpectationManager {
 
 						trackedExp.workInProgress.on('progress', (progress) => {
 							this.logger.info(
-								`Expectation "${JSON.stringify(trackedExp.exp.label)}" progress: ${progress}`
+								`Expectation "${JSON.stringify(
+									trackedExp.exp.statusReport.label
+								)}" progress: ${progress}`
 							)
+
+							this.updateExpectationStatus(trackedExp.id, trackedExp.exp, {
+								progress: progress / 100,
+							})
 						})
 						trackedExp.workInProgress.on('error', (err) => {
 							if (trackedExp.status === TrackedExpectationStatus.WORKING) {
 								trackedExp.reason = err
-								this.logger.info(`${trackedExp.exp.label}: Reason: ${trackedExp.reason}`)
+								this.logger.info(`${trackedExp.exp.statusReport.label}: Reason: ${trackedExp.reason}`)
 								trackedExp.lastOperationTime = Date.now()
 								trackedExp.status = TrackedExpectationStatus.NOT_READY
+
+								this.updateExpectationStatus(trackedExp.id, trackedExp.exp, {
+									status: trackedExp.status,
+									statusReason: trackedExp.reason,
+								})
 							}
 						})
-						trackedExp.workInProgress.on('done', (result: any) => {
+						trackedExp.workInProgress.on('done', (reason: string, result: any) => {
 							if (trackedExp.status === TrackedExpectationStatus.WORKING) {
 								trackedExp.status = TrackedExpectationStatus.FULFILLED
 								trackedExp.lastOperationTime = Date.now()
+								trackedExp.reason = reason
+
+								this.updateExpectationStatus(trackedExp.id, trackedExp.exp, {
+									status: trackedExp.status,
+									statusReason: trackedExp.reason,
+									progress: 1,
+								})
+
 								if (trackedExp.handleResult) {
 									trackedExp.handleResult(result)
 								}
@@ -192,7 +226,7 @@ export class ExpectationManager {
 								trackedExp.status = TrackedExpectationStatus.NOT_READY
 								trackedExp.reason = fulfilled.reason
 								this.logger.info(
-									`${trackedExp.exp.label}: Setting to Not ready, reason: ${trackedExp.reason}`
+									`${trackedExp.exp.statusReport.label}: Setting to Not ready, reason: ${trackedExp.reason}`
 								)
 								trackedExp.lastOperationTime = 0 // so that it reruns ASAP
 								runAgainASAP = true
@@ -206,12 +240,24 @@ export class ExpectationManager {
 						const removed = await workerAgent.removeExpectation(trackedExp.exp)
 						if (removed.removed) {
 							removeIds.push(trackedExp.id)
+
+							this.updateExpectationStatus(trackedExp.id, null, {})
 						} else {
 							trackedExp.reason = removed.reason
 						}
 					}
 				}
-				this.logger.info(`${trackedExp.exp.label}.status: ${trackedExp.status}`)
+				if (trackedExp.status !== prevStatus) {
+					this.updateExpectationStatus(trackedExp.id, trackedExp.exp, {
+						status: trackedExp.status,
+					})
+				}
+				if (trackedExp.reason !== prevReason) {
+					this.updateExpectationStatus(trackedExp.id, trackedExp.exp, {
+						statusReason: trackedExp.reason,
+					})
+				}
+				this.logger.info(`${trackedExp.exp.statusReport.label}.status: ${trackedExp.status}`)
 			})
 		)
 		for (const id of removeIds) {
@@ -305,6 +351,32 @@ export class ExpectationManager {
 			}
 		}
 		return hasTriggeredSomething
+	}
+	private async isExpectationReadyToStartWorkingOn(
+		workerAgent: WorkerAgent,
+		trackedExp: TrackedExpectation
+	): Promise<{
+		ready: boolean
+		reason?: string | undefined
+	}> {
+		if (trackedExp.exp.dependsOnFullfilled?.length) {
+			// Check if those are fullfilled:
+			let waitingFor: TrackedExpectation | undefined = undefined
+			for (const id of trackedExp.exp.dependsOnFullfilled) {
+				if (this.tracked[id].status !== TrackedExpectationStatus.FULFILLED) {
+					waitingFor = this.tracked[id]
+					break
+				}
+			}
+			if (waitingFor) {
+				return {
+					ready: false,
+					reason: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+				}
+			}
+		}
+
+		return await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
 	}
 }
 enum TrackedExpectationStatus {
