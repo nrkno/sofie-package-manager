@@ -154,9 +154,8 @@ export class PackageManagerHandler {
 			}
 
 			this.toReportStatuses[expectationId] = packageStatus
-
-			this.triggerSendUpdateExpectationStatus(expectationId)
 		}
+		this.triggerSendUpdateExpectationStatus(expectationId)
 	}
 	private triggerSendUpdateExpectationStatus(expectationId: string) {
 		if (!this.sendUpdateExpectationStatusTimeouts[expectationId]) {
