@@ -5,6 +5,7 @@ import { Expectation } from '../../expectationApi'
 import { GenericWorker, IWorkInProgress } from '../../worker'
 import * as MediaFileCopy from './mediaFileCopy'
 import * as MediaFileScan from './mediaFileScan'
+import * as MediaFileThumbnail from './mediaFileThumbnail'
 
 /** This is a type of worker that runs locally, close to the location */
 export class LocalWorker extends GenericWorker {
@@ -53,6 +54,8 @@ export class LocalWorker extends GenericWorker {
 				return MediaFileCopy.isExpectationReadyToStartWorkingOn(exp)
 			case Expectation.Type.MEDIA_FILE_SCAN:
 				return MediaFileScan.isExpectationReadyToStartWorkingOn(exp)
+			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
+				return MediaFileThumbnail.isExpectationReadyToStartWorkingOn(exp)
 			default:
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
@@ -63,6 +66,8 @@ export class LocalWorker extends GenericWorker {
 				return MediaFileCopy.isExpectationFullfilled(exp)
 			case Expectation.Type.MEDIA_FILE_SCAN:
 				return MediaFileScan.isExpectationFullfilled(exp, corePackageInfoInterface)
+			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
+				return MediaFileThumbnail.isExpectationFullfilled(exp)
 			default:
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
@@ -73,6 +78,8 @@ export class LocalWorker extends GenericWorker {
 				return MediaFileCopy.workOnExpectation(exp)
 			case Expectation.Type.MEDIA_FILE_SCAN:
 				return MediaFileScan.workOnExpectation(exp, corePackageInfoInterface)
+			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
+				return MediaFileThumbnail.workOnExpectation(exp)
 			default:
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
@@ -83,6 +90,8 @@ export class LocalWorker extends GenericWorker {
 				return MediaFileCopy.removeExpectation(exp)
 			case Expectation.Type.MEDIA_FILE_SCAN:
 				return MediaFileScan.removeExpectation(exp, corePackageInfoInterface)
+			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
+				return MediaFileThumbnail.removeExpectation(exp)
 			default:
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}

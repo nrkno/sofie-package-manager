@@ -99,8 +99,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 		const expectation = expectations[id]
 		if (expectation.type === Expectation.Type.MEDIA_FILE_COPY) {
 			// All files that have been copied should also be scanned:
-
-			const exp: Expectation.MediaFileScan = {
+			const scan: Expectation.MediaFileScan = {
 				id: expectation.id + '_scan',
 				type: Expectation.Type.MEDIA_FILE_SCAN,
 
@@ -129,12 +128,45 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 						},
 					],
 					content: expectation.endRequirement.content,
-					version: expectation.endRequirement.version,
+					version: null, // expectation.endRequirement.version,
 				},
 				dependsOnFullfilled: [expectation.id],
 				triggerByFullfilledIds: [expectation.id],
 			}
-			expectations[exp.id] = exp
+			expectations[scan.id] = scan
+
+			// All files that have been copied should also get a thumbnail:
+			const thumbnail: Expectation.MediaFileThumbnail = {
+				id: expectation.id + '_thumbnail',
+				type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
+
+				statusReport: {
+					packageId: expectation.statusReport.packageId,
+					label: `Generate thumbnail for ${expectation.statusReport.label}`,
+					description: `Thumbnail is used in Sofie GUI`,
+					requiredForPlayout: false,
+					displayRank: 11,
+				},
+
+				startRequirement: {
+					sources: expectation.endRequirement.targets,
+					content: expectation.endRequirement.content,
+					version: expectation.endRequirement.version,
+				},
+				endRequirement: {
+					targets: expectation.endRequirement.targets,
+					content: {
+						filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.png'),
+					},
+					version: {
+						width: 512,
+						// height: auto
+					},
+				},
+				dependsOnFullfilled: [expectation.id],
+				triggerByFullfilledIds: [expectation.id],
+			}
+			expectations[thumbnail.id] = thumbnail
 		}
 	}
 

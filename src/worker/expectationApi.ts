@@ -6,11 +6,12 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expectation {
-	export type Any = MediaFileCopy | MediaFileScan | QuantelClipCopy
+	export type Any = MediaFileCopy | MediaFileScan | MediaFileThumbnail | QuantelClipCopy
 
 	export enum Type {
 		MEDIA_FILE_COPY = 'media_file_copy',
 		MEDIA_FILE_SCAN = 'media_file_scan',
+		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 
 		QUANTEL_COPY = 'quantel_copy',
 	}
@@ -87,12 +88,31 @@ export namespace Expectation {
 			content: {
 				filePath: string
 			}
-			version: MediaFileVersion
+			version: null // MediaFileVersion?
 		}
 	}
 	export interface PackageContainerOnPackageCorePackage extends PackageContainerOnPackage {
 		accessors: {
 			[accessorId: string]: AccessorOnPackage.CorePackageCollection
+		}
+	}
+	export interface MediaFileThumbnail extends Base {
+		type: Type.MEDIA_FILE_THUMBNAIL
+
+		startRequirement: {
+			sources: MediaFileCopy['endRequirement']['targets']
+			content: MediaFileCopy['endRequirement']['content']
+			version: MediaFileCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: PackageContainerOnPackageFile[]
+			content: {
+				filePath: string
+			}
+			version: {
+				width?: number
+				height?: number
+			}
 		}
 	}
 

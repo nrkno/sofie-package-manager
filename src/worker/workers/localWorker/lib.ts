@@ -1,5 +1,9 @@
 import * as fs from 'fs'
+import { promisify } from 'util'
 import { Expectation } from '../../../worker/expectationApi'
+
+const fsAccess = promisify(fs.access)
+const fsUnlink = promisify(fs.unlink)
 
 export function compareFileVersion(stat: fs.Stats, version: Expectation.MediaFileVersion): undefined | string {
 	let errorReason: string | undefined = undefined
@@ -25,4 +29,15 @@ export function convertStatToVersion(stat: fs.Stats): Expectation.MediaFileVersi
 		// checksum?: string
 		// checkSumType?: 'sha' | 'md5' | 'whatever'
 	}
+}
+export async function unlinkIfExists(path: string) {
+	let exists = false
+	try {
+		await fsAccess(path, fs.constants.R_OK)
+		// The file exists
+		exists = true
+	} catch (err) {
+		// Ignore
+	}
+	if (exists) await fsUnlink(path)
 }
