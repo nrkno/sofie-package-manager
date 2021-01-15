@@ -1,7 +1,7 @@
 import {
-	PackageLocation,
-	PackageOriginOnPackage,
 	ExpectedPackageStatusAPI,
+	AccessorOnPackage,
+	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -23,13 +23,15 @@ export namespace Expectation {
 		statusReport: {
 			/** Reference to the package-id from which this expectation originated from */
 			packageId: string
-		} & ExpectedPackageStatusAPI.BaseInfo
+		} & ExpectedPackageStatusAPI.WorkBaseInfo
 
 		/** Contains info for determining that work can start (and is used to perform the work) */
-		startRequirement: any
+		startRequirement: {
+			sources: PackageContainerOnPackage[]
+		}
 		/** Contains info for determining that work can end (and is used to perform the work) */
 		endRequirement: {
-			location: undefined | PackageLocation.Any
+			targets: PackageContainerOnPackage[]
 			content: any
 			version: any
 		}
@@ -47,19 +49,23 @@ export namespace Expectation {
 		type: Type.MEDIA_FILE_COPY
 
 		startRequirement: {
-			origins: (
-				| PackageOriginOnPackage.LocalFolder
-				| PackageOriginOnPackage.FileShare
-				| PackageOriginOnPackage.MappedDrive
-				| PackageOriginOnPackage.HTTP
-			)[]
+			sources: PackageContainerOnPackageFile[]
 		}
 		endRequirement: {
-			location: PackageLocation.LocalFolder // | PackageLocation.FileShare | PackageLocation.HTTP | PackageLocation.MappedDrive
+			targets: PackageContainerOnPackageFile[]
 			content: {
 				filePath: string
 			}
 			version: MediaFileVersion
+		}
+	}
+	export interface PackageContainerOnPackageFile extends PackageContainerOnPackage {
+		accessors: {
+			[accessorId: string]:
+				| AccessorOnPackage.LocalFolder
+				| AccessorOnPackage.FileShare
+				| AccessorOnPackage.MappedDrive
+				| AccessorOnPackage.HTTP
 		}
 	}
 	export interface MediaFileVersion {
@@ -71,13 +77,22 @@ export namespace Expectation {
 	export interface MediaFileScan extends Base {
 		type: Type.MEDIA_FILE_SCAN
 
-		startRequirement: MediaFileCopy['endRequirement']
+		startRequirement: {
+			sources: MediaFileCopy['endRequirement']['targets']
+			content: MediaFileCopy['endRequirement']['content']
+			version: MediaFileCopy['endRequirement']['version']
+		}
 		endRequirement: {
-			location: PackageLocation.CorePackageCollection
+			targets: [PackageContainerOnPackageCorePackage]
 			content: {
 				filePath: string
 			}
 			version: MediaFileVersion
+		}
+	}
+	export interface PackageContainerOnPackageCorePackage extends PackageContainerOnPackage {
+		accessors: {
+			[accessorId: string]: AccessorOnPackage.CorePackageCollection
 		}
 	}
 
@@ -85,15 +100,20 @@ export namespace Expectation {
 		type: Type.QUANTEL_COPY
 
 		startRequirement: {
-			origins: PackageOriginOnPackage.Quantel[]
+			sources: PackageContainerOnPackageQuantel[]
 		}
 		endRequirement: {
-			location: PackageLocation.Quantel
+			targets: [PackageContainerOnPackageQuantel]
 			content: {
 				guid?: string
 				title?: string
 			}
 			version: any // todo
+		}
+	}
+	export interface PackageContainerOnPackageQuantel extends PackageContainerOnPackage {
+		accessors: {
+			[accessorId: string]: AccessorOnPackage.Quantel
 		}
 	}
 }

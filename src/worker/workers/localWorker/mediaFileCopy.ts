@@ -1,7 +1,7 @@
 import * as path from 'path'
 import { promisify } from 'util'
 import * as fs from 'fs'
-import { PackageOrigin } from '@sofie-automation/blueprints-integration'
+import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../../worker/expectationApi'
 import { IWorkInProgress, WorkInProgress } from '../../../worker/worker'
 import { roboCopyFile } from '../../lib/robocopy'
@@ -14,18 +14,24 @@ const fsUnlink = promisify(fs.unlink)
 export async function isExpectationReadyToStartWorkingOn(
 	exp: Expectation.MediaFileCopy
 ): Promise<{ ready: boolean; reason: string }> {
-	if (exp.endRequirement.location.type !== PackageOrigin.OriginType.LOCAL_FOLDER) {
+	const lookupSource = await lookupSources(exp)
+	if (!lookupSource.ready) {
 		return {
-			ready: false,
-			reason: `Unsupported location.type "${exp.endRequirement.location.type}"`,
+			ready: lookupSource.ready,
+			reason: lookupSource.reason,
+		}
+	}
+	const lookupTarget = await lookupTargets(exp)
+	if (!lookupTarget.ready) {
+		return {
+			ready: lookupTarget.ready,
+			reason: lookupTarget.reason,
 		}
 	}
 
-	const lookupOrigin = await lookupExpOrigin(exp)
-
 	return {
-		ready: lookupOrigin.ready,
-		reason: lookupOrigin.reason,
+		ready: true,
+		reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 	}
 }
 export async function isExpectationFullfilled(
@@ -34,7 +40,11 @@ export async function isExpectationFullfilled(
 	/** undefined if all good, error string otherwise */
 	let reason: undefined | string = 'Unknown fulfilled error'
 
-	const fullPath = path.join(exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
+	const lookupTarget = await lookupTargets(exp)
+	if (!lookupTarget.ready) return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+
+	const fullPath = lookupTarget.foundPath
+	// path.join( exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
 
 	try {
 		await fsAccess(fullPath, fs.constants.R_OK)
@@ -50,16 +60,16 @@ export async function isExpectationFullfilled(
 
 	if (reason) return { fulfilled: false, reason }
 
-	const lookupOrigin = await lookupExpOrigin(exp)
-	// TODO: how to handle if the origin is gone? is it still fullfilled then?
-	if (lookupOrigin && lookupOrigin.ready && lookupOrigin.foundOriginPath) {
-		const originStat = await fsStat(lookupOrigin.foundOriginPath)
+	const lookupSource = await lookupSources(exp)
+	// TODO: how to handle if the source is gone? is it still fullfilled then?
+	if (lookupSource && lookupSource.ready && lookupSource.foundPath) {
+		const sourceStat = await fsStat(lookupSource.foundPath)
 
-		if (stat.size !== originStat.size) {
-			reason = `File size differ from origin (${originStat.size}, ${stat.size})`
+		if (stat.size !== sourceStat.size) {
+			reason = `File size differ from source (${sourceStat.size}, ${stat.size})`
 		}
-		if (stat.mtimeMs !== originStat.mtimeMs) {
-			reason = `Modified time differ from origin (${originStat.mtimeMs}, ${stat.mtimeMs})`
+		if (stat.mtimeMs !== sourceStat.mtimeMs) {
+			reason = `Modified time differ from source (${sourceStat.mtimeMs}, ${stat.mtimeMs})`
 		}
 		// TODO: check other things?
 	}
@@ -70,28 +80,31 @@ export async function isExpectationFullfilled(
 	}
 }
 export async function workOnExpectation(exp: Expectation.MediaFileCopy): Promise<IWorkInProgress> {
-	// Copies the file from Origin to Location
+	// Copies the file from Source to Target
 
 	const startTime = Date.now()
 
-	const lookupOrigin = await lookupExpOrigin(exp)
+	const lookupSource = await lookupSources(exp)
+	if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+	if (!lookupSource.foundPath) throw new Error(`No source path found!`)
 
-	if (!lookupOrigin.ready) {
-		throw new Error(`Can't start working due to: ${lookupOrigin.reason}`)
+	const lookupTarget = await lookupTargets(exp)
+	if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+	if (!lookupTarget.foundPath) throw new Error(`No target path found!`)
+
+	const sourcePath = lookupSource.foundPath //  path.join(exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
+	const targetPath = lookupTarget.foundPath //  path.join(exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
+
+	if (lookupSource.foundAccessor.type !== Accessor.AccessType.LOCAL_FOLDER) {
+		throw new Error(`MediaFile.workOnExpectation: Unsupported accessor type "${lookupSource.foundAccessor.type}"`)
 	}
-	if (!lookupOrigin.foundOriginPath) {
-		throw new Error(`No origin path found!`)
-	}
-
-	const targetPath = path.join(exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
-
 	const workInProgress = new WorkInProgress(async () => {
 		// on cancel
 		copying.cancel()
 		// todo: should we remove the target file?
 		await fsUnlink(targetPath)
 	})
-	const copying = roboCopyFile(lookupOrigin.foundOriginPath, targetPath, (progress: number) => {
+	const copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
 		workInProgress._reportProgress(progress)
 	})
 
@@ -109,15 +122,20 @@ export async function workOnExpectation(exp: Expectation.MediaFileCopy): Promise
 export async function removeExpectation(exp: Expectation.MediaFileCopy): Promise<{ removed: boolean; reason: string }> {
 	// Remove the file on the location
 
-	const targetPath = path.join(exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
-
-	try {
-		await fsAccess(targetPath, fs.constants.R_OK)
-		// The file exists
-	} catch (err) {
-		// File is not writeable
-		return { removed: false, reason: `Cannot write to file: ${err.toString()}` }
+	const lookupTarget = await lookupTargets(exp)
+	if (!lookupTarget.ready) {
+		return { removed: false, reason: `No access to target: ${lookupTarget.reason}` }
 	}
+
+	const targetPath = lookupTarget.foundPath // path.join(exp.endRequirement.location.folderPath, exp.endRequirement.content.filePath)
+
+	// try {
+	// 	await fsAccess(targetPath, fs.constants.R_OK)
+	// 	// The file exists
+	// } catch (err) {
+	// 	// File is not writeable
+	// 	return { removed: false, reason: `Cannot write to file: ${err.toString()}` }
+	// }
 
 	try {
 		await fsUnlink(targetPath)
@@ -128,66 +146,128 @@ export async function removeExpectation(exp: Expectation.MediaFileCopy): Promise
 	return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from location` }
 }
 
-// eslint-disable-next-line no-inner-declarations
-async function lookupExpOrigin(exp: Expectation.MediaFileCopy) {
+type LookupResource =
+	| { foundPath: string; foundAccessor: AccessorOnPackage.Any; ready: true; reason: string }
+	| {
+			foundPath: undefined
+			foundAccessor: undefined
+			ready: false
+			reason: string
+	  }
+
+/** Check that we have any access to a Package on an source-resource, then return the resource */
+async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupResource> {
 	/** undefined if all good, error string otherwise */
-	let errorReason: undefined | string = 'No origin found'
-	let foundOriginPath: undefined | string = undefined
+	let errorReason: undefined | string = 'No source found'
 
-	// See if the file is available at any of the origins:
-	for (const origin of exp.startRequirement.origins) {
-		if (origin.type === PackageOrigin.OriginType.LOCAL_FOLDER) {
-			errorReason = undefined
+	// See if the file is available at any of the sources:
+	for (const resource of exp.startRequirement.sources) {
+		for (const [accessorId, accessor] of Object.entries(resource.accessors)) {
+			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
+				errorReason = undefined
 
-			const folderPath = origin.folderPath
-			if (!folderPath) {
-				errorReason = `Origin folder path not set`
-				continue // Maybe next origin works?
+				const folderPath = accessor.folderPath
+				if (!folderPath) {
+					errorReason = `Accessor "${accessorId}": folder path not set`
+					continue // Maybe next source works?
+				}
+				const filePath = accessor.filePath // || exp.endRequirement.content.filePath
+				if (!filePath) {
+					errorReason = `Accessor "${accessorId}": file path not set`
+					continue // Maybe next source works?
+				}
+
+				const fullPath = path.join(folderPath, filePath)
+
+				try {
+					await fsAccess(fullPath, fs.constants.R_OK)
+					// The file exists
+				} catch (err) {
+					// File is not readable
+					errorReason = `Not able to read file: ${err.toString()}`
+				}
+				if (errorReason) continue // Maybe next accessor works?
+
+				// Check that the file is of the right version:
+				const stat = await fsStat(fullPath)
+				errorReason = compareFileVersion(stat, exp.endRequirement.version)
+
+				if (!errorReason) {
+					// All good, no need to look further:
+					return {
+						foundPath: fullPath,
+						foundAccessor: accessor,
+						ready: true,
+						reason: `Can access source "${resource.label}" through accessor "${accessorId}"`,
+					}
+				}
+			} else {
+				errorReason = `Unsupported accessor "${accessorId}" type "${accessor.type}"`
 			}
-			const filePath = origin.filePath || exp.endRequirement.content.filePath
-			if (!filePath) {
-				errorReason = `Origin file path not set`
-				continue // Maybe next origin works?
-			}
-
-			const fullPath = path.join(folderPath, filePath)
-
-			try {
-				await fsAccess(fullPath, fs.constants.R_OK)
-				// The file exists
-			} catch (err) {
-				// File is not readable
-				errorReason = `Not able to read file: ${err.toString()}`
-			}
-			if (errorReason) continue // Maybe next origin works?
-
-			// Check that the file is of the right version:
-			const stat = await fsStat(fullPath)
-			errorReason = compareFileVersion(stat, exp.endRequirement.version)
-
-			if (!errorReason) {
-				// All good, no need to look further
-				foundOriginPath = fullPath
-				break
-			}
-		} else {
-			throw new Error(`Unsupported MediaFile origin.type "${origin.type}"`)
 		}
 	}
-
-	// Also check that the target location is writeable:
-	const targetPath = exp.endRequirement.location.folderPath
-	try {
-		await fsAccess(targetPath, fs.constants.W_OK)
-		// Is writeable
-	} catch (err) {
-		errorReason = `Not able to write to location. ${err.toString()}`
-	}
-
-	if (errorReason) foundOriginPath = undefined
 	return {
-		foundOriginPath,
-		ready: !errorReason,
-		reason: errorReason || 'Found origin OK',
+		foundPath: undefined,
+		foundAccessor: undefined,
+		ready: false,
+		reason: errorReason,
+	}
+}
+
+/** Check that we have any access to a Package on an target-resource, then return the resource */
+async function lookupTargets(exp: Expectation.MediaFileCopy): Promise<LookupResource> {
+	/** undefined if all good, error string otherwise */
+	let errorReason: undefined | string = 'No target found'
+
+	// See if the file is available at any of the targets:
+	for (const resource of exp.endRequirement.targets) {
+		for (const [accessorId, accessor] of Object.entries(resource.accessors)) {
+			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
+				errorReason = undefined
+
+				const folderPath = accessor.folderPath
+				if (!folderPath) {
+					errorReason = `Accessor "${accessorId}": folder path not set`
+					continue // Maybe next target works?
+				}
+				const filePath = accessor.filePath || exp.endRequirement.content.filePath
+				if (!filePath) {
+					errorReason = `Accessor "${accessorId}": file path not set`
+					continue // Maybe next target works?
+				}
+
+				const fullPath = path.join(folderPath, filePath)
+
+				try {
+					await fsAccess(folderPath, fs.constants.W_OK)
+					// The file exists
+				} catch (err) {
+					// File is not readable
+					errorReason = `Not able to write to file: ${err.toString()}`
+				}
+				// if (errorReason) continue // Maybe next accessor works?
+				// Check that the file is of the right version:
+				// const stat = await fsStat(fullPath)
+				// errorReason = compareFileVersion(stat, exp.endRequirement.version)
+
+				if (!errorReason) {
+					// All good, no need to look further:
+					return {
+						foundPath: fullPath,
+						foundAccessor: accessor,
+						ready: true,
+						reason: `Can access target "${resource.label}" through accessor "${accessorId}"`,
+					}
+				}
+			} else {
+				errorReason = `Unsupported accessor "${accessorId}" type "${accessor.type}"`
+			}
+		}
+	}
+	return {
+		foundPath: undefined,
+		foundAccessor: undefined,
+		ready: false,
+		reason: errorReason,
 	}
 }

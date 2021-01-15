@@ -5,7 +5,7 @@ import { LoggerInstance } from './index'
 import {
 	ExpectedPackage,
 	ExpectedPackageStatusAPI,
-	PackageOriginOnPackage,
+	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
 import { generateExpectations } from './expectationGenerator'
 import { ExpectationManager } from './expectationManager'
@@ -20,9 +20,9 @@ export class PackageManagerHandler {
 
 	private _expectationManager: ExpectationManager
 	private expectedPackageCache: { [id: string]: ExpectedPackageWrap } = {}
-	private toReportStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageStatus } = {}
+	private toReportStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 	private sendUpdateExpectationStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
-	private reportedStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageStatus } = {}
+	private reportedStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 
 	constructor(logger: LoggerInstance) {
 		this.logger = logger
@@ -104,7 +104,6 @@ export class PackageManagerHandler {
 			return
 		}
 		const expectedPackages = expectedPackageObj.expectedPackages as ExpectedPackageWrap[]
-		// const packageOrigins = [] as PackageOriginMetadata.Any[] //TODO
 		// const settings = {} // TODO
 
 		this.handleExpectedPackages(expectedPackages)
@@ -116,6 +115,9 @@ export class PackageManagerHandler {
 		for (const exp of expectedPackages) {
 			this.expectedPackageCache[exp.expectedPackage._id] = exp
 		}
+
+		this.logger.info('expectedPackages')
+		this.logger.info(JSON.stringify(expectedPackages, null, 2))
 
 		// Step 1: Generate expectations:
 		const expectations = generateExpectations(expectedPackages)
@@ -137,7 +139,7 @@ export class PackageManagerHandler {
 		if (!expectaction) {
 			delete this.toReportStatuses[expectationId]
 		} else {
-			const packageStatus: ExpectedPackageStatusAPI.PackageStatus = {
+			const packageStatus: ExpectedPackageStatusAPI.WorkStatus = {
 				// Default properties:
 				...{
 					status: 'N/A',
@@ -192,7 +194,7 @@ export class PackageManagerHandler {
 						this.logger.error(err)
 					})
 			} else {
-				const mod: Partial<ExpectedPackageStatusAPI.PackageStatus> = {}
+				const mod: Partial<ExpectedPackageStatusAPI.WorkStatus> = {}
 				for (const key of Object.keys(toReportStatus)) {
 					// @ts-expect-error no index signature found
 					if (toReportStatus[key] !== lastReportedStatus[key]) {
@@ -233,9 +235,12 @@ export class PackageManagerHandler {
 	}
 }
 
-export interface ExpectedPackageWrap {
-	expectedPackage: ExpectedPackage.Any
-	origins: PackageOriginOnPackage.Any[]
+interface ResultingExpectedPackage {
+	// This is copied from Core
+	expectedPackage: ExpectedPackage.Base
+	sources: PackageContainerOnPackage[]
+	targets: PackageContainerOnPackage[]
 	playoutDeviceId: string
-	playoutLocation: any
+	// playoutLocation: any // todo?
 }
+export type ExpectedPackageWrap = ResultingExpectedPackage

@@ -1,15 +1,21 @@
-import { ExpectedPackage, PackageOrigin } from '@sofie-automation/blueprints-integration'
+import { Accessor, ExpectedPackage } from '@sofie-automation/blueprints-integration'
 import { ExpectedPackageWrap } from './packageManager'
 import { Expectation } from './worker/expectationApi'
 import { hashObj } from './worker/lib/lib'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
-	origins: ExpectedPackage.ExpectedPackageMediaFile['origins'][0]['originMetadata'][]
+	sources: {
+		label: string
+		accessors: ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']
+	}[]
 }
 export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageQuantelClip
-	origins: ExpectedPackage.ExpectedPackageQuantelClip['origins'][0]['originMetadata'][]
+	sources: {
+		label: string
+		accessors: ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']
+	}[]
 }
 
 export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): { [id: string]: Expectation.Any } {
@@ -31,25 +37,25 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 					description: `Copy media "${
 						expWrapMediaFile.expectedPackage.content.filePath
 					}" to the playout-device "${expWrapMediaFile.playoutDeviceId}", from "${JSON.stringify(
-						expWrapMediaFile.origins
+						expWrapMediaFile.sources
 					)}"`,
 					requiredForPlayout: true,
 					displayRank: 0,
 				},
 
 				startRequirement: {
-					origins: expWrapMediaFile.origins,
+					sources: expWrapMediaFile.sources,
 				},
 
 				endRequirement: {
-					location: expWrapMediaFile.playoutLocation,
+					targets: expWrapMediaFile.targets as Expectation.PackageContainerOnPackageFile[],
 					content: expWrapMediaFile.expectedPackage.content,
 					version: expWrapMediaFile.expectedPackage.version,
 				},
 			}
 			exp.id = hashObj(exp.endRequirement)
 
-			// TODO: what should happen if there are several that have the same endRequirement? join origins?
+			// TODO: what should happen if there are several that have the same endRequirement? join sources?
 
 			expectations[exp.id] = exp
 		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
@@ -65,24 +71,24 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 					label: `Copy Quantel clip ${content.title || content.guid}`,
 					description: `Copy Quantel clip ${content.title || content.guid} to server for "${
 						expWrapQuantelClip.playoutDeviceId
-					}", from ${expWrapQuantelClip.origins}`,
+					}", from ${expWrapQuantelClip.sources}`,
 					requiredForPlayout: true,
 					displayRank: 0,
 				},
 
 				startRequirement: {
-					origins: expWrapQuantelClip.origins,
+					sources: expWrapQuantelClip.sources,
 				},
 
 				endRequirement: {
-					location: expWrapQuantelClip.playoutLocation, // todo
+					targets: expWrapQuantelClip.targets as [Expectation.PackageContainerOnPackageQuantel],
 					content: content,
 					version: expWrapQuantelClip.expectedPackage.version,
 				},
 			}
 			exp.id = hashObj(exp.endRequirement)
 
-			// TODO: what should happen if there are several that have the same endRequirement? join origins?
+			// TODO: what should happen if there are several that have the same endRequirement? join sources?
 
 			expectations[exp.id] = exp
 		}
@@ -106,12 +112,22 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 					displayRank: 10,
 				},
 
-				startRequirement: expectation.endRequirement,
-
+				startRequirement: {
+					sources: expectation.endRequirement.targets,
+					content: expectation.endRequirement.content,
+					version: expectation.endRequirement.version,
+				},
 				endRequirement: {
-					location: {
-						type: PackageOrigin.OriginType.CORE_PACKAGE_INFO,
-					},
+					targets: [
+						{
+							label: 'Core package info',
+							accessors: {
+								coreCollection: {
+									type: Accessor.AccessType.CORE_PACKAGE_INFO,
+								},
+							},
+						},
+					],
 					content: expectation.endRequirement.content,
 					version: expectation.endRequirement.version,
 				},

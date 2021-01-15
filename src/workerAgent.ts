@@ -12,10 +12,10 @@ export class WorkerAgent {
 
 	constructor(public readonly id: string) {
 		// Todo: Different types of workers
-		this._worker = new LocalWorker()
+		this._worker = new LocalWorker('default', ['default'])
 	}
-	async doYouSupportExpectation(exp: Expectation.Any): Promise<boolean> {
-		return this._worker.doYouSupportExpectation(exp)
+	async doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }> {
+		return await this._worker.doYouSupportExpectation(exp)
 	}
 	async isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason?: string }> {
 		return this.setBusy(() => this._worker.isExpectationReadyToStartWorkingOn(exp))
@@ -29,6 +29,7 @@ export class WorkerAgent {
 	async removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason?: string }> {
 		return this.setBusy(() => this._worker.removeExpectation(exp))
 	}
+	/** Keep track of the promise retorned by fcn and when it's resolved, to determine how busy we are */
 	private async setBusy<T>(fcn: () => Promise<T>): Promise<T> {
 		this._busyMethodCount++
 		try {

@@ -8,7 +8,7 @@ export abstract class GenericWorker {
 	/**
 	 * A check if the worker supports fulfilling the Expectation at all
 	 */
-	abstract doYouSupportExpectation(exp: Expectation.Any): boolean
+	abstract doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }>
 	/**
 	 * A check if it is possible to start working on the Expectation.
 	 */

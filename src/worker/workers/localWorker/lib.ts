@@ -7,10 +7,10 @@ export function compareFileVersion(stat: fs.Stats, version: Expectation.MediaFil
 	const statVersion = convertStatToVersion(stat)
 
 	if (version.fileSize && statVersion.fileSize !== version.fileSize) {
-		errorReason = `Origin file size differ (${version.fileSize}, ${statVersion.fileSize})`
+		errorReason = `Source file size differ (${version.fileSize}, ${statVersion.fileSize})`
 	}
 	if (version.modifiedDate && statVersion.modifiedDate !== version.modifiedDate) {
-		errorReason = `Origin modified date differ (${version.modifiedDate}, ${statVersion.modifiedDate})`
+		errorReason = `Source modified date differ (${version.modifiedDate}, ${statVersion.modifiedDate})`
 	}
 	if (version.checksum) {
 		// TODO
