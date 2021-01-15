@@ -146,7 +146,7 @@ export async function removeExpectation(exp: Expectation.MediaFileCopy): Promise
 	return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from location` }
 }
 
-type LookupResource =
+type LookupPackageContainer =
 	| { foundPath: string; foundAccessor: AccessorOnPackage.Any; ready: true; reason: string }
 	| {
 			foundPath: undefined
@@ -155,25 +155,30 @@ type LookupResource =
 			reason: string
 	  }
 
-/** Check that we have any access to a Package on an source-resource, then return the resource */
-async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupResource> {
+/** Check that we have any access to a Package on an source-packageContainer, then return the packageContainer */
+export async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No source found'
 
 	// See if the file is available at any of the sources:
-	for (const resource of exp.startRequirement.sources) {
-		for (const [accessorId, accessor] of Object.entries(resource.accessors)) {
+	for (const packageContainer of exp.startRequirement.sources) {
+		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
 				errorReason = undefined
 
+				if (!accessor.allowRead) {
+					errorReason = `${packageContainer.label}: Accessor "${accessorId}": doesn't allow reading`
+					continue
+				}
+
 				const folderPath = accessor.folderPath
 				if (!folderPath) {
-					errorReason = `Accessor "${accessorId}": folder path not set`
+					errorReason = `${packageContainer.label}: Accessor "${accessorId}": folder path not set`
 					continue // Maybe next source works?
 				}
-				const filePath = accessor.filePath // || exp.endRequirement.content.filePath
+				const filePath = accessor.filePath || exp.endRequirement.content.filePath
 				if (!filePath) {
-					errorReason = `Accessor "${accessorId}": file path not set`
+					errorReason = `${packageContainer.label}: Accessor "${accessorId}": file path not set`
 					continue // Maybe next source works?
 				}
 
@@ -198,7 +203,7 @@ async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupReso
 						foundPath: fullPath,
 						foundAccessor: accessor,
 						ready: true,
-						reason: `Can access source "${resource.label}" through accessor "${accessorId}"`,
+						reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
 					}
 				}
 			} else {
@@ -214,25 +219,30 @@ async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupReso
 	}
 }
 
-/** Check that we have any access to a Package on an target-resource, then return the resource */
-async function lookupTargets(exp: Expectation.MediaFileCopy): Promise<LookupResource> {
+/** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
+async function lookupTargets(exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No target found'
 
 	// See if the file is available at any of the targets:
-	for (const resource of exp.endRequirement.targets) {
-		for (const [accessorId, accessor] of Object.entries(resource.accessors)) {
+	for (const packageContainer of exp.endRequirement.targets) {
+		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
 				errorReason = undefined
 
+				if (!accessor.allowWrite) {
+					errorReason = `${packageContainer.label}: Accessor "${accessorId}": doesn't allow writing`
+					continue
+				}
+
 				const folderPath = accessor.folderPath
 				if (!folderPath) {
-					errorReason = `Accessor "${accessorId}": folder path not set`
+					errorReason = `${packageContainer.label}: Accessor "${accessorId}": folder path not set`
 					continue // Maybe next target works?
 				}
 				const filePath = accessor.filePath || exp.endRequirement.content.filePath
 				if (!filePath) {
-					errorReason = `Accessor "${accessorId}": file path not set`
+					errorReason = `${packageContainer.label}: Accessor "${accessorId}": file path not set`
 					continue // Maybe next target works?
 				}
 
@@ -256,7 +266,7 @@ async function lookupTargets(exp: Expectation.MediaFileCopy): Promise<LookupReso
 						foundPath: fullPath,
 						foundAccessor: accessor,
 						ready: true,
-						reason: `Can access target "${resource.label}" through accessor "${accessorId}"`,
+						reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
 					}
 				}
 			} else {

@@ -18,24 +18,24 @@ export class LocalWorker extends GenericWorker {
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }> {
 		if (exp.type === Expectation.Type.MEDIA_FILE_COPY) {
-			// Check that we have access to the resource
+			// Check that we have access to the packageContainer
 
-			const accessSourceResource = this.findResourceWithAccess(exp.startRequirement.sources)
-			const accessTargetResource = this.findResourceWithAccess(exp.endRequirement.targets)
-			if (accessSourceResource) {
-				if (accessTargetResource) {
+			const accessSourcePackageContainer = this.findPackageContainerWithAccess(exp.startRequirement.sources)
+			const accessTargetPackageContainer = this.findPackageContainerWithAccess(exp.endRequirement.targets)
+			if (accessSourcePackageContainer) {
+				if (accessTargetPackageContainer) {
 					return {
 						support: true,
-						reason: `Has access to source "${accessSourceResource.resource.label}" through accessor "${accessSourceResource.accessorId}" and target "${accessTargetResource.resource.label}" through accessor "${accessTargetResource.accessorId}"`,
+						reason: `Has access to source "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}" and target "${accessTargetPackageContainer.packageContainer.label}" through accessor "${accessTargetPackageContainer.accessorId}"`,
 					}
 				} else {
-					return { support: false, reason: `Doesn't have access to any of the target resources` }
+					return { support: false, reason: `Doesn't have access to any of the target packageContainers` }
 				}
 			} else {
-				return { support: false, reason: `Doesn't have access to any of the source resources` }
+				return { support: false, reason: `Doesn't have access to any of the source packageContainers` }
 			}
 		} else if (exp.type === Expectation.Type.MEDIA_FILE_SCAN) {
-			const accessSource = this.findResourceWithAccess(exp.startRequirement.sources)
+			const accessSource = this.findPackageContainerWithAccess(exp.startRequirement.sources)
 			if (accessSource) {
 				return { support: true, reason: `Has access to source` }
 			} else {
@@ -87,29 +87,31 @@ export class LocalWorker extends GenericWorker {
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
 	}
-	/** Looks through the resources provided and returns the first one we have access to. */
-	private findResourceWithAccess(
-		resources: PackageContainerOnPackage[]
-	): { resource: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: string } | undefined {
-		for (const resource of resources) {
-			for (const [accessorId, accessor] of Object.entries(resource.accessors)) {
+	/** Looks through the packageContainer provided and returns the first one we have access to. */
+	private findPackageContainerWithAccess(
+		packageContainers: PackageContainerOnPackage[]
+	):
+		| { packageContainer: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: string }
+		| undefined {
+		for (const packageContainer of packageContainers) {
+			for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 				if (
 					accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
 					(!accessor.resourceId || accessor.resourceId === this.localComputerId)
 				) {
-					return { resource, accessor, accessorId }
+					return { packageContainer: packageContainer, accessor, accessorId }
 				} else if (
 					accessor.type === Accessor.AccessType.FILE_SHARE &&
 					(!accessor.networkId || this.localNetworkIds.includes(accessor.networkId))
 				) {
-					return { resource, accessor, accessorId }
+					return { packageContainer: packageContainer, accessor, accessorId }
 				} else if (
 					accessor.type === Accessor.AccessType.MAPPED_DRIVE &&
 					(!accessor.networkId || this.localNetworkIds.includes(accessor.networkId))
 				) {
-					return { resource, accessor, accessorId }
+					return { packageContainer: packageContainer, accessor, accessorId }
 				} else if (accessor.type === Accessor.AccessType.HTTP) {
-					return { resource, accessor, accessorId }
+					return { packageContainer: packageContainer, accessor, accessorId }
 				}
 			}
 		}
@@ -122,24 +124,24 @@ export class TMPCorePackageInfoInterface {
 	private tmpStore: { [key: string]: { hash: string; record: any } } = {}
 
 	async fetchPackageInfoHash(
-		resource: Expectation.PackageContainerOnPackageFile,
+		packageContainer: Expectation.PackageContainerOnPackageFile,
 		content: { filePath: string },
 		version: Expectation.MediaFileVersion
 	): Promise<string | undefined> {
-		const key = hashObj({ resource, content, version })
+		const key = hashObj({ packageContainer, content, version })
 
 		console.log('fetch', key, this.tmpStore[key]?.hash)
 		return this.tmpStore[key]?.hash || undefined
 	}
 	async storePackageInfo(
-		resource: Expectation.PackageContainerOnPackageFile,
+		packageContainer: Expectation.PackageContainerOnPackageFile,
 		content: { filePath: string },
 		version: Expectation.MediaFileVersion,
 		hash: string,
 		// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 		record: any
 	): Promise<void> {
-		const key = hashObj({ resource, content, version })
+		const key = hashObj({ packageContainer, content, version })
 		console.log('store', key)
 
 		this.tmpStore[key] = {
@@ -149,11 +151,11 @@ export class TMPCorePackageInfoInterface {
 		console.log('Stored', record)
 	}
 	async removePackageInfo(
-		resource: Expectation.PackageContainerOnPackageFile,
+		packageContainer: Expectation.PackageContainerOnPackageFile,
 		content: { filePath: string },
 		version: Expectation.MediaFileVersion
 	): Promise<void> {
-		const key = hashObj({ resource, content, version })
+		const key = hashObj({ packageContainer, content, version })
 		console.log('remove', key)
 
 		delete this.tmpStore[key]

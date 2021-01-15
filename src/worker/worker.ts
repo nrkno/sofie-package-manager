@@ -67,7 +67,7 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	_reportComplete(reason: string, result: any): void {
 		this.emit('done', reason, result)
 	}
-	_reportError(err: string): void {
-		this.emit('error', err)
+	_reportError(err: Error): void {
+		this.emit('error', err.toString() + err.stack)
 	}
 }

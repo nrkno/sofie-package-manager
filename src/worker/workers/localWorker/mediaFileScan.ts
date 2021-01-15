@@ -16,19 +16,9 @@ export async function isExpectationReadyToStartWorkingOn(
 	exp: Expectation.MediaFileScan
 ): Promise<{ ready: boolean; reason: string }> {
 	const lookupSource = await lookupSources(exp)
-	if (!lookupSource.ready) {
-		return {
-			ready: lookupSource.ready,
-			reason: lookupSource.reason,
-		}
-	}
+	if (!lookupSource.ready) return lookupSource
 	const lookupTarget = await lookupTargets(exp)
-	if (!lookupTarget.ready) {
-		return {
-			ready: lookupTarget.ready,
-			reason: lookupTarget.reason,
-		}
-	}
+	if (!lookupTarget.ready) return lookupTarget
 
 	return {
 		ready: true,
@@ -110,7 +100,7 @@ export async function workOnExpectation(
 				await fsAccess(fullPath, fs.constants.R_OK)
 				// The file exists
 			} catch (err) {
-				workInProgress._reportError(err.toString())
+				workInProgress._reportError(err)
 				return
 			}
 
@@ -132,12 +122,12 @@ export async function workOnExpectation(
 				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
 				ffProbeProcess = undefined
 				if (err) {
-					workInProgress._reportError(err.toString())
+					workInProgress._reportError(err)
 					return
 				}
 				const json: any = JSON.parse(stdout)
 				if (!json.streams || !json.streams[0]) {
-					workInProgress._reportError(`File doesn't seem to be a media file`)
+					workInProgress._reportError(new Error(`File doesn't seem to be a media file`))
 					return
 				}
 
@@ -158,12 +148,12 @@ export async function workOnExpectation(
 							)
 						},
 						(err) => {
-							workInProgress._reportError(err.toString())
+							workInProgress._reportError(err)
 						}
 					)
 			})
 		})().catch((err) => {
-			workInProgress._reportError(err.toString())
+			workInProgress._reportError(err)
 		})
 	})
 
@@ -187,7 +177,7 @@ export async function removeExpectation(
 	return { removed: true, reason: 'Removed scan info from Store' }
 }
 
-type LookupResource =
+type LookupPackageContainer =
 	| { foundPath: string; foundAccessor: AccessorOnPackage.Any; ready: true; reason: string }
 	| {
 			foundPath: undefined
@@ -196,14 +186,14 @@ type LookupResource =
 			reason: string
 	  }
 
-/** Check that we have any access to a Package on an source-resource, then return the resource */
-async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupResource> {
+/** Check that we have any access to a Package on an source-packageContainer, then return the packageContainer */
+export async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No source found'
 
 	// See if the file is available at any of the sources:
-	for (const resource of exp.startRequirement.sources) {
-		for (const [accessorId, accessor] of Object.entries(resource.accessors)) {
+	for (const packageContainer of exp.startRequirement.sources) {
+		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
 				errorReason = undefined
 
@@ -231,7 +221,7 @@ async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupReso
 
 				// Check that the file is of the right version:
 				const stat = await fsStat(fullPath)
-				errorReason = compareFileVersion(stat, exp.endRequirement.version)
+				errorReason = compareFileVersion(stat, exp.startRequirement.version)
 
 				if (!errorReason) {
 					// All good, no need to look further:
@@ -239,7 +229,7 @@ async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupReso
 						foundPath: fullPath,
 						foundAccessor: accessor,
 						ready: true,
-						reason: `Can access source "${resource.label}" through accessor "${accessorId}"`,
+						reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
 					}
 				}
 			} else {
@@ -255,14 +245,14 @@ async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupReso
 	}
 }
 
-/** Check that we have any access to a Package on an target-resource, then return the resource */
-async function lookupTargets(exp: Expectation.MediaFileScan): Promise<LookupResource> {
+/** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
+async function lookupTargets(exp: Expectation.MediaFileScan): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No target found'
 
 	// See if the file is available at any of the targets:
-	for (const resource of exp.endRequirement.targets) {
-		for (const [accessorId, accessor] of Object.entries(resource.accessors)) {
+	for (const packageContainer of exp.endRequirement.targets) {
+		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
 				errorReason = undefined
 
@@ -272,7 +262,7 @@ async function lookupTargets(exp: Expectation.MediaFileScan): Promise<LookupReso
 						foundPath: 'N/A',
 						foundAccessor: accessor,
 						ready: true,
-						reason: `Can access target "${resource.label}" through accessor "${accessorId}"`,
+						reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
 					}
 				}
 			} else {
