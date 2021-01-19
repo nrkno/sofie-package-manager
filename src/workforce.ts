@@ -1,8 +1,10 @@
-import { WorkerAgent } from './workerAgent'
+import { MessageFromWorker, MessageFromWorkerPayload, WorkerAgent } from './workerAgent'
 
 export class Workforce {
 	private i = 0
 	private workerAgents: { [id: string]: WorkerAgent } = {}
+
+	constructor(private onMessageFromWorker: MessageFromWorker) {}
 
 	async init(): Promise<void> {
 		// todo: handle spinning up of worker agents intelligently
@@ -32,7 +34,13 @@ export class Workforce {
 	private async addWorkerAgent(): Promise<string> {
 		const id = 'agent' + this.i++
 
-		this.workerAgents[id] = new WorkerAgent(id)
+		this.workerAgents[id] = new WorkerAgent(id, async (message: MessageFromWorkerPayload) => {
+			try {
+				return await this.onMessageFromWorker(message)
+			} catch (error) {
+				return { error: typeof error === 'string' ? error : error.message || error.reason || error.toString() }
+			}
+		})
 
 		return id
 	}

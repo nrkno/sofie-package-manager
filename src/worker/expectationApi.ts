@@ -20,11 +20,16 @@ export namespace Expectation {
 		id: string
 		type: Type
 
+		/** A list of which expectedPackages that resultet in this expectation */
+		fromPackages: {
+			/** ExpectedPackage id */
+			id: string
+			/** Reference to the contentVersionHash of the ExpectedPackage, used to reference the expected content+version of the Package */
+			expectedContentVersionHash: string
+		}[]
+
 		/** Contains info for reporting back status to Core */
-		statusReport: {
-			/** Reference to the package-id from which this expectation originated from */
-			packageId: string
-		} & ExpectedPackageStatusAPI.WorkBaseInfo
+		statusReport: Omit<ExpectedPackageStatusAPI.WorkBaseInfo, 'fromPackages'>
 
 		/** Contains info for determining that work can start (and is used to perform the work) */
 		startRequirement: {

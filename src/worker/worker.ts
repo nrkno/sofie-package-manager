@@ -1,10 +1,14 @@
 import { EventEmitter } from 'events'
+import { MessageFromWorker } from '../workerAgent'
 import { Expectation } from './expectationApi'
+import { CorePackageInfoInterface } from './lib/corePackageInto'
 
 /**
  * A Worker runs static stateless/lamda functions.
  */
 export abstract class GenericWorker {
+	public corePackageInfoInterface = new CorePackageInfoInterface(this)
+	constructor(public sendMessageToManager: MessageFromWorker) {}
 	/**
 	 * A check if the worker supports fulfilling the Expectation at all
 	 */
@@ -30,9 +34,9 @@ export abstract class GenericWorker {
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
-	progress: (progress: number) => void
-	done: (reson: string, result: any) => void
-	error: (error: string) => void
+	progress: (actualVersionHash: string | null, progress: number) => void
+	done: (actualVersionHash: string, reason: string, result: any) => void
+	error: (actualVersionHash: string, error: string) => void
 }
 export declare interface IWorkInProgress {
 	on<U extends keyof WorkInProgressEvents>(event: U, listener: WorkInProgressEvents[U]): this
@@ -45,6 +49,7 @@ export declare interface IWorkInProgress {
 export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	private _reportProgressTimeout: NodeJS.Timeout | undefined
 	private _progress = 0
+	private _actualVersionHash: string | null = null
 
 	constructor(private _onCancel: () => Promise<void>) {
 		super()
@@ -53,19 +58,20 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 		return this._onCancel()
 	}
 
-	_reportProgress(progress: number): void {
+	_reportProgress(actualVersionHash: string | null, progress: number): void {
 		this._progress = progress
+		this._actualVersionHash = actualVersionHash
 
 		if (!this._reportProgressTimeout) {
 			this._reportProgressTimeout = setTimeout(() => {
 				this._reportProgressTimeout = undefined
-				this.emit('progress', this._progress)
+				this.emit('progress', this._actualVersionHash, this._progress)
 			}, 300) // Rate-limit
 		}
 	}
 	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-	_reportComplete(reason: string, result: any): void {
-		this.emit('done', reason, result)
+	_reportComplete(actualVersionHash: string, reason: string, result: any): void {
+		this.emit('done', actualVersionHash, reason, result)
 	}
 	_reportError(err: Error): void {
 		this.emit('error', err.toString() + err.stack)

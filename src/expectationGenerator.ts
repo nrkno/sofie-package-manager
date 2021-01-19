@@ -30,9 +30,14 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 
 			const exp: Expectation.MediaFileCopy = {
 				id: '', // set later
+				fromPackages: [
+					{
+						id: expWrap.expectedPackage._id,
+						expectedContentVersionHash: expWrap.expectedPackage.contentVersionHash,
+					},
+				],
 				type: Expectation.Type.MEDIA_FILE_COPY,
 				statusReport: {
-					packageId: expWrap.expectedPackage._id,
 					label: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
 					description: `Copy media "${
 						expWrapMediaFile.expectedPackage.content.filePath
@@ -55,9 +60,12 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			}
 			exp.id = hashObj(exp.endRequirement)
 
-			// TODO: what should happen if there are several that have the same endRequirement? join sources?
-
-			expectations[exp.id] = exp
+			if (expectations[exp.id]) {
+				// There is already an expectation pointing at the same place.
+				expectations[exp.id].fromPackages.push(exp.fromPackages[0])
+			} else {
+				expectations[exp.id] = exp
+			}
 		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
 			const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
@@ -65,9 +73,14 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			const exp: Expectation.QuantelClipCopy = {
 				id: '', // set later
 				type: Expectation.Type.QUANTEL_COPY,
+				fromPackages: [
+					{
+						id: expWrap.expectedPackage._id,
+						expectedContentVersionHash: expWrap.expectedPackage.contentVersionHash,
+					},
+				],
 
 				statusReport: {
-					packageId: expWrap.expectedPackage._id,
 					label: `Copy Quantel clip ${content.title || content.guid}`,
 					description: `Copy Quantel clip ${content.title || content.guid} to server for "${
 						expWrapQuantelClip.playoutDeviceId
@@ -88,9 +101,12 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			}
 			exp.id = hashObj(exp.endRequirement)
 
-			// TODO: what should happen if there are several that have the same endRequirement? join sources?
-
-			expectations[exp.id] = exp
+			if (expectations[exp.id]) {
+				// There is already an expectation pointing at the same place.
+				expectations[exp.id].fromPackages.push(exp.fromPackages[0])
+			} else {
+				expectations[exp.id] = exp
+			}
 		}
 	}
 
@@ -102,9 +118,9 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			const scan: Expectation.MediaFileScan = {
 				id: expectation.id + '_scan',
 				type: Expectation.Type.MEDIA_FILE_SCAN,
+				fromPackages: expectation.fromPackages,
 
 				statusReport: {
-					packageId: expectation.statusReport.packageId,
 					label: `Scan ${expectation.statusReport.label}`,
 					description: `Scanning is used to provide Sofie GUI with status about the media`,
 					requiredForPlayout: false,
@@ -139,9 +155,9 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			const thumbnail: Expectation.MediaFileThumbnail = {
 				id: expectation.id + '_thumbnail',
 				type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
+				fromPackages: expectation.fromPackages,
 
 				statusReport: {
-					packageId: expectation.statusReport.packageId,
 					label: `Generate thumbnail for ${expectation.statusReport.label}`,
 					description: `Thumbnail is used in Sofie GUI`,
 					requiredForPlayout: false,

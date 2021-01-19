@@ -534,7 +534,7 @@
   version "1.17.0-in-development-R29.0"
   dependencies:
     moment "2.29.1"
-    timeline-state-resolver-types "5.3.0-nightly-release28-20201214-110646-441c431f.0"
+    timeline-state-resolver-types "5.3.0-nightly-release29-20210104-122313-8763a79d.0"
     tslib "^2.0.3"
     underscore "1.12.0"
 
@@ -557,10 +557,8 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.17.0-nightly-release29-20201214-112856-14d38e17.0":
-  version "1.17.0-nightly-release29-20201214-112856-14d38e17.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.17.0-nightly-release29-20201214-112856-14d38e17.0.tgz#bfd119087b3126acb0648e7fc981339a19a40936"
-  integrity sha512-K5EESamFSIIfIkaSOPAWpIjn8w9f/in810+6s+PtZI2rYkzTdHfNFLLS1BaeGpwao8g5u7sr2KUMo0Iwlboxow==
+"@sofie-automation/server-core-integration@file:../Core/packages/server-core-integration":
+  version "1.17.0-in-development-R29.0"
   dependencies:
     data-store "3.1.0"
     ejson "^2.2.0"
@@ -691,9 +689,9 @@
   integrity sha512-fZQQafSREFyuZcdWFAExYjBiCL7AUCdgsk80iO0q4yihYYdcIiH28CcuPTGFgLOCC8RlW49GSQxdHwZP+I7CNg==
 
 "@types/node@*":
-  version "14.14.13"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.13.tgz#9e425079799322113ae8477297ae6ef51b8e0cdf"
-  integrity sha512-vbxr0VZ8exFMMAjCW8rJwaya0dMCDyYW2ZRdTyjtrCvJoENMpdUHOT/eTzvgyA5ZnqRZ/sI0NwqAxNHKYokLJQ==
+  version "14.14.21"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.21.tgz#d934aacc22424fe9622ebf6857370c052eae464e"
+  integrity sha512-cHYfKsnwllYhjOzuC5q1VpguABBeecUp24yFluHpn/BQaVxB1CuQ1FSRZCzrPxrkIfWISXV2LbeoBthLWg0+0A==
 
 "@types/node@^12.19.9":
   version "12.19.9"
@@ -1966,9 +1964,9 @@ ecc-jsbn@~0.1.1:
     safer-buffer "^2.1.0"
 
 ejson@^2.2.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/ejson/-/ejson-2.2.0.tgz#16c177cb2c064f2be8876d4a2f7f09ab704f560d"
-  integrity sha512-kWa0AKAxDhmr4t6c4pgQqk6yL52/M67xOMh60HRnAeydzo5QIxOitN5bE1+e0rbdnxfly7FTB9e2Ny0ypLMbag==
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/ejson/-/ejson-2.2.1.tgz#53569bdf3a60013f5dc206e0f9640b64cd674acc"
+  integrity sha512-Tah5TfXynM7dCqnI/YyyI93/vN0hwXQrimNNzXIKmhr11vGrVtXhzwZ4Gyx+AHb4FqJa0YQORoaKnJHRB1TnwQ==
 
 emittery@^0.7.1:
   version "0.7.2"
@@ -2784,9 +2782,9 @@ http-cache-semantics@^4.0.0:
   integrity sha512-carPklcUh7ROWRK7Cv27RPtdhYhUsela/ue5/jKzjegVvXDqM2ILE9Q2BGn9JZJh1g87cp56su/FgQSzcWS8cQ==
 
 http-parser-js@>=0.5.1:
-  version "0.5.2"
-  resolved "https://registry.yarnpkg.com/http-parser-js/-/http-parser-js-0.5.2.tgz#da2e31d237b393aae72ace43882dd7e270a8ff77"
-  integrity sha512-opCO9ASqg5Wy2FNo7A0sxy71yGbbkJJXLdgMK04Tcypw9jr2MgWbyubb0+WdmDmGnFflO7fRbqbaihh/ENDlRQ==
+  version "0.5.3"
+  resolved "https://registry.yarnpkg.com/http-parser-js/-/http-parser-js-0.5.3.tgz#01d2709c79d41698bb01d4decc5e9da4e4a033d9"
+  integrity sha512-t7hjvef/5HEK7RWTdUzVUhl8zkEu+LlaE0IYzdMuvbSDipxBRpOn4Uhw8ZyECEa808iVT8XCjzo6xmYt4CiLZg==
 
 http-proxy-agent@^4.0.0:
   version "4.0.1"
@@ -5792,10 +5790,10 @@ through@2, "through@>=2.2.7 <3", through@^2.3.8:
   resolved "https://registry.yarnpkg.com/through/-/through-2.3.8.tgz#0dd4c9ffaabc357960b1b724115d7e0e86a2e1f5"
   integrity sha1-DdTJ/6q8NXlgsbckEV1+Doai4fU=
 
-timeline-state-resolver-types@5.3.0-nightly-release28-20201214-110646-441c431f.0:
-  version "5.3.0-nightly-release28-20201214-110646-441c431f.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.3.0-nightly-release28-20201214-110646-441c431f.0.tgz#9b5ce3659b95c21f4104c37debbfbef9a0440e01"
-  integrity sha512-EZ0CsNmr1RO1iW2uO3eEt2UzPOFTuuSpUHfBaDjC+N5xCpDzyYFVJej3hBLoG7/y0in6Ihi8L5uHZ1yWMTueew==
+timeline-state-resolver-types@5.3.0-nightly-release29-20210104-122313-8763a79d.0:
+  version "5.3.0-nightly-release29-20210104-122313-8763a79d.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.3.0-nightly-release29-20210104-122313-8763a79d.0.tgz#1ef1c5533fff51b678d10fe926014ab475006428"
+  integrity sha512-bGd3AOVr9aYmx5bU70G4tcsIJ3eS9sCoUFseCKSP69Xxkh1J9QycO63ybdPTDjdNiydLQaGUk+uW82ENhtU46A==
   dependencies:
     tslib "^1.13.0"
 

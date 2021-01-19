@@ -1,21 +1,23 @@
 import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
-import { hashObj } from '../../../worker/lib/lib'
 import { Expectation } from '../../expectationApi'
 
 import { GenericWorker, IWorkInProgress } from '../../worker'
-import * as MediaFileCopy from './mediaFileCopy'
-import * as MediaFileScan from './mediaFileScan'
-import * as MediaFileThumbnail from './mediaFileThumbnail'
+import { MediaFileCopy } from './expectationHandlers/mediaFileCopy'
+import { MediaFileScan } from './expectationHandlers/mediaFileScan'
+import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
+import { ExpectationHandler } from '../../lib/expectationHandler'
+import { MessageFromWorker } from '../../../workerAgent'
 
-/** This is a type of worker that runs locally, close to the location */
-export class LocalWorker extends GenericWorker {
+/** This is a type of worker that runs on a windows machine */
+export class WindowsWorker extends GenericWorker {
 	constructor(
+		sendMessageToManager: MessageFromWorker,
 		/** The name/identifier of the computer that this runs on */
 		private localComputerId?: string,
 		/** The names/identifiers of the local network that this has access to */
 		private localNetworkIds: string[] = []
 	) {
-		super()
+		super(sendMessageToManager)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }> {
 		if (exp.type === Expectation.Type.MEDIA_FILE_COPY) {
@@ -49,49 +51,25 @@ export class LocalWorker extends GenericWorker {
 		}
 	}
 	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
-		switch (exp.type) {
-			case Expectation.Type.MEDIA_FILE_COPY:
-				return MediaFileCopy.isExpectationReadyToStartWorkingOn(exp)
-			case Expectation.Type.MEDIA_FILE_SCAN:
-				return MediaFileScan.isExpectationReadyToStartWorkingOn(exp)
-			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
-				return MediaFileThumbnail.isExpectationReadyToStartWorkingOn(exp)
-			default:
-				throw new Error(`Unsupported expectation.type "${exp.type}"`)
-		}
+		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
 	}
 	isExpectationFullfilled(exp: Expectation.Any): Promise<{ fulfilled: boolean; reason: string }> {
-		switch (exp.type) {
-			case Expectation.Type.MEDIA_FILE_COPY:
-				return MediaFileCopy.isExpectationFullfilled(exp)
-			case Expectation.Type.MEDIA_FILE_SCAN:
-				return MediaFileScan.isExpectationFullfilled(exp, corePackageInfoInterface)
-			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
-				return MediaFileThumbnail.isExpectationFullfilled(exp)
-			default:
-				throw new Error(`Unsupported expectation.type "${exp.type}"`)
-		}
+		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, this, this)
 	}
 	workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
-		switch (exp.type) {
-			case Expectation.Type.MEDIA_FILE_COPY:
-				return MediaFileCopy.workOnExpectation(exp)
-			case Expectation.Type.MEDIA_FILE_SCAN:
-				return MediaFileScan.workOnExpectation(exp, corePackageInfoInterface)
-			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
-				return MediaFileThumbnail.workOnExpectation(exp)
-			default:
-				throw new Error(`Unsupported expectation.type "${exp.type}"`)
-		}
+		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this)
 	}
 	removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason: string }> {
+		return this.getExpectationHandler(exp).removeExpectation(exp, this, this)
+	}
+	private getExpectationHandler(exp: Expectation.Any): ExpectationHandler {
 		switch (exp.type) {
 			case Expectation.Type.MEDIA_FILE_COPY:
-				return MediaFileCopy.removeExpectation(exp)
+				return MediaFileCopy
 			case Expectation.Type.MEDIA_FILE_SCAN:
-				return MediaFileScan.removeExpectation(exp, corePackageInfoInterface)
+				return MediaFileScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
-				return MediaFileThumbnail.removeExpectation(exp)
+				return MediaFileThumbnail
 			default:
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
@@ -127,48 +105,3 @@ export class LocalWorker extends GenericWorker {
 		return undefined
 	}
 }
-
-export class TMPCorePackageInfoInterface {
-	// This is to be moved to Core:
-	private tmpStore: { [key: string]: { hash: string; record: any } } = {}
-
-	async fetchPackageInfoHash(
-		packageContainer: Expectation.PackageContainerOnPackageFile,
-		content: { filePath: string },
-		version: Expectation.MediaFileVersion
-	): Promise<string | undefined> {
-		const key = hashObj({ packageContainer, content, version })
-
-		console.log('fetch', key, this.tmpStore[key]?.hash)
-		return this.tmpStore[key]?.hash || undefined
-	}
-	async storePackageInfo(
-		packageContainer: Expectation.PackageContainerOnPackageFile,
-		content: { filePath: string },
-		version: Expectation.MediaFileVersion,
-		hash: string,
-		// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-		record: any
-	): Promise<void> {
-		const key = hashObj({ packageContainer, content, version })
-		console.log('store', key)
-
-		this.tmpStore[key] = {
-			hash: hash,
-			record: record,
-		}
-		console.log('Stored', record)
-	}
-	async removePackageInfo(
-		packageContainer: Expectation.PackageContainerOnPackageFile,
-		content: { filePath: string },
-		version: Expectation.MediaFileVersion
-	): Promise<void> {
-		const key = hashObj({ packageContainer, content, version })
-		console.log('remove', key)
-
-		delete this.tmpStore[key]
-	}
-}
-
-const corePackageInfoInterface = new TMPCorePackageInfoInterface() // todo

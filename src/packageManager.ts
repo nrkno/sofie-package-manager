@@ -10,6 +10,7 @@ import {
 import { generateExpectations } from './expectationGenerator'
 import { ExpectationManager } from './expectationManager'
 import { Expectation } from './worker/expectationApi'
+import { MessageFromWorkerPayload } from './workerAgent'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PackageManagerConfig {}
@@ -31,12 +32,14 @@ export class PackageManagerHandler {
 			(
 				expectationId: string,
 				expectaction: Expectation.Any | null,
+				actualVersionHash: string | null,
 				statusInfo: {
 					status?: string
 					progress?: number
 					statusReason?: string
 				}
-			) => this.updateExpectationStatus(expectationId, expectaction, statusInfo)
+			) => this.updateExpectationStatus(expectationId, expectaction, actualVersionHash, statusInfo),
+			(message: MessageFromWorkerPayload) => this.onMessageFromWorker(message)
 		)
 	}
 
@@ -130,6 +133,7 @@ export class PackageManagerHandler {
 	public updateExpectationStatus(
 		expectationId: string,
 		expectaction: Expectation.Any | null,
+		actualVersionHash: string | null,
 		statusInfo: {
 			status?: string
 			progress?: number
@@ -147,10 +151,21 @@ export class PackageManagerHandler {
 					statusReason: '',
 				},
 				// Previous properties:
-				...(this.toReportStatuses[expectationId] || {}),
+				...(((this.toReportStatuses[expectationId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in const packageStatus more strict
 				// Updated porperties:
 				...expectaction.statusReport,
 				...statusInfo,
+
+				fromPackages: expectaction.fromPackages.map((fromPackage) => {
+					const prevPromPackage = this.toReportStatuses[expectationId]?.fromPackages.find(
+						(p) => p.id === fromPackage.id
+					)
+					return {
+						id: fromPackage.id,
+						expectedContentVersionHash: fromPackage.expectedContentVersionHash,
+						actualContentVersionHash: actualVersionHash || prevPromPackage?.actualContentVersionHash || '',
+					}
+				}),
 			}
 
 			this.toReportStatuses[expectationId] = packageStatus
@@ -231,6 +246,32 @@ export class PackageManagerHandler {
 			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
 			[]
 		)
+	}
+	private async onMessageFromWorker(message: MessageFromWorkerPayload): Promise<any> {
+		switch (message.type) {
+			case 'updatePackageContainerPackageStatus':
+				return this._coreHandler.core.callMethod(
+					PeripheralDeviceAPI.methods.updatePackageContainerPackageStatus,
+					message.arguments
+				)
+			case 'fetchPackageInfoMetadata':
+				return this._coreHandler.core.callMethod(
+					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
+					message.arguments
+				)
+			case 'updatePackageInfo':
+				return this._coreHandler.core.callMethod(
+					PeripheralDeviceAPI.methods.updatePackageInfo,
+					message.arguments
+				)
+			case 'removePackageInfo':
+				return this._coreHandler.core.callMethod(
+					PeripheralDeviceAPI.methods.removePackageInfo,
+					message.arguments
+				)
+			default:
+				throw new Error(`Unsupported message type "${message.type}"`)
+		}
 	}
 }
 
