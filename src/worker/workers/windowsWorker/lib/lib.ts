@@ -1,44 +1,50 @@
-import * as fs from 'fs'
-import { promisify } from 'util'
 import { Expectation } from '../../../expectationApi'
 
-const fsAccess = promisify(fs.access)
-const fsUnlink = promisify(fs.unlink)
-
-export function compareFileVersion(
-	actualVersion: Expectation.MediaFileVersion,
-	expectVersion: Expectation.MediaFileVersion
+export function compareActualExpectVersions(
+	actualVersion: Expectation.Version.Any,
+	expectVersion: Expectation.Version.ExpectAny
 ): undefined | string {
 	let errorReason: string | undefined = undefined
 
-	if (expectVersion.fileSize && actualVersion.fileSize !== expectVersion.fileSize) {
-		errorReason = `Source file size differ (${expectVersion.fileSize}, ${actualVersion.fileSize})`
+	if (expectVersion.type !== actualVersion.type) {
+		errorReason = `Actual version type differs from expected (${expectVersion.type}, ${actualVersion.type})`
 	}
-	if (expectVersion.modifiedDate && actualVersion.modifiedDate !== expectVersion.modifiedDate) {
-		errorReason = `Source modified date differ (${expectVersion.modifiedDate}, ${actualVersion.modifiedDate})`
+
+	if (expectVersion.type === Expectation.Version.Type.MEDIA_FILE) {
+		if (expectVersion.fileSize && expectVersion.fileSize !== actualVersion.fileSize) {
+			errorReason = `Actual file size differ from expected (${expectVersion.fileSize}, ${actualVersion.fileSize})`
+		}
+		if (expectVersion.modifiedDate && expectVersion.modifiedDate !== actualVersion.modifiedDate) {
+			errorReason = `Actual modified date differ from expected (${expectVersion.modifiedDate}, ${actualVersion.modifiedDate})`
+		}
+		// Todo: checksum?
+	} else {
+		throw new Error(`compareActualExpectVersions: Unsupported type "${expectVersion.type}"`)
 	}
-	if (expectVersion.checksum) {
-		// TODO
-		throw new Error('Checksum not implemented yet')
-	}
+
 	return errorReason
 }
-export function convertStatToVersion(stat: fs.Stats): Expectation.MediaFileVersion {
-	return {
-		fileSize: stat.size,
-		modifiedDate: stat.mtimeMs * 1000,
-		// checksum?: string
-		// checkSumType?: 'sha' | 'md5' | 'whatever'
+export function compareActualVersions(
+	actualVersionSource: Expectation.Version.Any,
+	actualVersionTarget: Expectation.Version.Any
+): undefined | string {
+	let errorReason: string | undefined = undefined
+
+	if (actualVersionSource.type !== actualVersionTarget.type) {
+		errorReason = `Source/Target versions type differs (${actualVersionSource.type}, ${actualVersionTarget.type})`
 	}
-}
-export async function unlinkIfExists(path: string): Promise<void> {
-	let exists = false
-	try {
-		await fsAccess(path, fs.constants.R_OK)
-		// The file exists
-		exists = true
-	} catch (err) {
-		// Ignore
+
+	if (actualVersionSource.type === Expectation.Version.Type.MEDIA_FILE) {
+		if (actualVersionSource.fileSize && actualVersionSource.fileSize !== actualVersionTarget.fileSize) {
+			errorReason = `Target file size differ from source (${actualVersionSource.fileSize}, ${actualVersionTarget.fileSize})`
+		}
+		if (actualVersionSource.modifiedDate && actualVersionSource.modifiedDate !== actualVersionTarget.modifiedDate) {
+			errorReason = `Target modified date differ from source (${actualVersionSource.modifiedDate}, ${actualVersionTarget.modifiedDate})`
+		}
+		// Todo: checksum?
+	} else {
+		throw new Error(`compareActualVersions: Unsupported type "${actualVersionSource.type}"`)
 	}
-	if (exists) await fsUnlink(path)
+
+	return errorReason
 }

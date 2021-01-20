@@ -62,7 +62,7 @@ export namespace Expectation {
 			content: {
 				filePath: string
 			}
-			version: MediaFileVersion
+			version: Version.ExpectedMediaFile
 		}
 	}
 	export interface PackageContainerOnPackageFile extends PackageContainerOnPackage {
@@ -74,11 +74,27 @@ export namespace Expectation {
 				| AccessorOnPackage.HTTP
 		}
 	}
-	export interface MediaFileVersion {
-		fileSize?: number // in bytes
-		modifiedDate?: number // timestamp (ms)?: number
-		checksum?: string
-		checkSumType?: 'sha' | 'md5' | 'whatever'
+	// eslint-disable-next-line @typescript-eslint/no-namespace
+	export namespace Version {
+		export type ExpectAny = ExpectedMediaFile
+		export type Any = MediaFile
+		export interface Base {
+			type: Type
+		}
+		export enum Type {
+			MEDIA_FILE = 'media_file',
+		}
+		export type ExpectedMediaFile = Partial<MediaFile>
+		export interface MediaFile extends Base {
+			type: Type.MEDIA_FILE
+
+			fileSize: number // in bytes
+			modifiedDate: number // timestamp (ms)?: number
+
+			// Not implemented (yet?)
+			// checksum?: string
+			// checkSumType?: 'sha' | 'md5' | 'whatever'
+		}
 	}
 	export interface MediaFileScan extends Base {
 		type: Type.MEDIA_FILE_SCAN

@@ -1,19 +1,13 @@
-import * as path from 'path'
-import { promisify } from 'util'
-import * as fs from 'fs'
 import { exec, ChildProcess } from 'child_process'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { hashObj } from '../../../lib/lib'
 import { Expectation } from '../../../expectationApi'
-import { compareFileVersion, convertStatToVersion, unlinkIfExists } from '../lib/lib'
+import { compareActualExpectVersions } from '../lib/lib'
 import { IWorkInProgress, WorkInProgress } from '../../../worker'
 import * as _ from 'underscore'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-
-const fsStat = promisify(fs.stat)
-const fsAccess = promisify(fs.access)
-const fsReadFile = promisify(fs.readFile)
-const fsWriteFile = promisify(fs.writeFile)
+import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
+import { getAccessorHandle } from '../../../accessorHandlers/accessor'
 
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> => {
@@ -166,10 +160,10 @@ function isMediaFileThumbnail(exp: Expectation.Any): exp is Expectation.MediaFil
 }
 
 type LookupPackageContainer =
-	| { foundPath: string; foundAccessor: AccessorOnPackage.Any; ready: true; reason: string }
+	| { accessor: AccessorOnPackage.Any; handle: GenericAccessorHandle; ready: true; reason: string }
 	| {
-			foundPath: undefined
-			foundAccessor: undefined
+			accessor: undefined
+			handle: undefined
 			ready: false
 			reason: string
 	  }
@@ -182,53 +176,43 @@ async function lookupSources(exp: Expectation.MediaFileThumbnail): Promise<Looku
 	// See if the file is available at any of the sources:
 	for (const packageContainer of exp.startRequirement.sources) {
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-				errorReason = undefined
+			errorReason = undefined
 
-				const folderPath = accessor.folderPath
-				if (!folderPath) {
-					errorReason = `Accessor "${accessorId}": folder path not set`
-					continue // Maybe next source works?
+			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+
+			const issueAccessor = handle.checkHandleRead()
+			if (issueAccessor) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
+				continue // Maybe next source works?
+			}
+
+			const issuePackageContainer = await handle.checkPackageReadAccess()
+			if (issuePackageContainer) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackageContainer}`
+				continue // Maybe next source works?
+			}
+			// Check that the file is of the right version:
+			const actualSourceVersion = await handle.getPackageActualVersion()
+			const fileVersionReason = compareActualExpectVersions(actualSourceVersion, exp.startRequirement.version)
+			if (fileVersionReason) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${fileVersionReason}`
+				continue // Maybe next source works?
+			}
+
+			if (!errorReason) {
+				// All good, no need to look further:
+				return {
+					accessor: accessor,
+					handle: handle,
+					ready: true,
+					reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
 				}
-				const filePath = accessor.filePath || exp.startRequirement.content.filePath
-				if (!filePath) {
-					errorReason = `Accessor "${accessorId}": file path not set`
-					continue // Maybe next source works?
-				}
-
-				const fullPath = path.join(folderPath, filePath)
-
-				try {
-					await fsAccess(fullPath, fs.constants.R_OK)
-					// The file exists
-				} catch (err) {
-					// File is not readable
-					errorReason = `Not able to read file: ${err.toString()}`
-				}
-				if (errorReason) continue // Maybe next accessor works?
-
-				// Check that the file is of the right version:
-				const stat = await fsStat(fullPath)
-				const sourceVersion = convertStatToVersion(stat)
-				errorReason = compareFileVersion(sourceVersion, exp.startRequirement.version)
-
-				if (!errorReason) {
-					// All good, no need to look further:
-					return {
-						foundPath: fullPath,
-						foundAccessor: accessor,
-						ready: true,
-						reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
-					}
-				}
-			} else {
-				errorReason = `Unsupported accessor "${accessorId}" type "${accessor.type}"`
 			}
 		}
 	}
 	return {
-		foundPath: undefined,
-		foundAccessor: undefined,
+		accessor: undefined,
+		handle: undefined,
 		ready: false,
 		reason: errorReason,
 	}
@@ -242,33 +226,30 @@ async function lookupTargets(exp: Expectation.MediaFileThumbnail): Promise<Looku
 	// See if the file is available at any of the targets:
 	for (const packageContainer of exp.endRequirement.targets) {
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-				errorReason = undefined
-				if (!accessor.folderPath) {
-					errorReason = `Accessor folderPath not set`
-					continue
-				}
+			errorReason = undefined
 
-				if (!errorReason) {
-					// All good, no need to look further:
-					return {
-						foundPath: path.join(
-							accessor.folderPath,
-							accessor.filePath || exp.endRequirement.content.filePath
-						),
-						foundAccessor: accessor,
-						ready: true,
-						reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
-					}
+			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+
+			const issueAccessor = handle.checkHandleWrite()
+			if (issueAccessor) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
+				continue // Maybe next source works?
+			}
+
+			if (!errorReason) {
+				// All good, no need to look further:
+				return {
+					accessor: accessor,
+					handle: handle,
+					ready: true,
+					reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
 				}
-			} else {
-				errorReason = `Unsupported accessor "${accessorId}" type "${accessor.type}"`
 			}
 		}
 	}
 	return {
-		foundPath: undefined,
-		foundAccessor: undefined,
+		accessor: undefined,
+		handle: undefined,
 		ready: false,
 		reason: errorReason,
 	}

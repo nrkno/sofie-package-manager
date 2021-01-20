@@ -1,16 +1,12 @@
-import * as path from 'path'
-import { promisify } from 'util'
-import * as fs from 'fs'
 import { exec, ChildProcess } from 'child_process'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../../expectationApi'
-import { compareFileVersion, convertStatToVersion } from '../lib/lib'
+import { compareActualExpectVersions } from '../lib/lib'
 import { GenericWorker, IWorkInProgress, WorkInProgress } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { hashObj } from '../../../lib/lib'
-
-const fsStat = promisify(fs.stat)
-const fsAccess = promisify(fs.access)
+import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
+import { getAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 
 export const MediaFileScan: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> => {
@@ -40,7 +36,8 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready)
 			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 
-		const fullPath = lookupSource.foundPath
+		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
+		// const fullPath = lookupSource.foundPath
 		// const fullPath = path.join(exp.startRequirement.location.folderPath, exp.startRequirement.content.filePath)
 
 		// try {
@@ -49,8 +46,8 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		// } catch (err) {
 		// 	return { fulfilled: false, reason: `File does not exist: ${err.toString()}` }
 		// }
-		const stat = await fsStat(fullPath)
-		const statVersion = convertStatToVersion(stat)
+		// const stat = await fsStat(fullPath)
+		// const statVersion = convertStatToVersion(stat)
 
 		/** A string that should change whenever the file is changed */
 		// const fileHash = hashObj(statVersion)
@@ -59,7 +56,7 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 			'ffprobe',
 			exp,
 			exp.startRequirement.content,
-			statVersion
+			actualSourceVersion
 		)
 		if (packageInfoSynced.needsUpdate) {
 			return { fulfilled: false, reason: packageInfoSynced.reason }
@@ -83,11 +80,9 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 
 		const lookupSource = await lookupSources(exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
-		if (!lookupSource.foundPath) throw new Error(`No source path found!`)
 
 		const lookupTarget = await lookupTargets(exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
-		if (!lookupTarget.foundPath) throw new Error(`No target path found!`)
 
 		let ffProbeProcess: ChildProcess | undefined
 		const workInProgress = new WorkInProgress(async () => {
@@ -100,63 +95,80 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		setImmediate(() => {
 			;(async () => {
 				const startTime = Date.now()
-				const sourcePath = lookupSource.foundPath
+				// const sourcePath = lookupSource.foundPath
 				// const fullPath = path.join( exp.startRequirement.location.folderPath, exp.startRequirement.content.filePath)
 
-				try {
-					await fsAccess(sourcePath, fs.constants.R_OK)
-					// The file exists
-				} catch (err) {
-					workInProgress._reportError(err)
-					return
-				}
+				// const actualSourceVersion = await lookupSource.accessHandler.getPackageActualVersion()
 
-				const stat = await fsStat(sourcePath)
-				const sourceVersion = convertStatToVersion(stat)
-				const sourceVersionHash = hashObj(sourceVersion)
+				if (
+					lookupSource.accessor.type !== Accessor.AccessType.LOCAL_FOLDER &&
+					lookupTarget.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO
+				) {
+					if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
+					// if (!isLocalFolderAccessor(lookupTarget.accessHandler))
+					// 	throw new Error(`Source AccessHandler type is wrong`)
 
-				// Use FFProbe to scan the file:
-				const args = [
-					process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
-					'-hide_banner',
-					`-i "${sourcePath}"`,
-					'-show_streams',
-					'-show_format',
-					'-print_format',
-					'json',
-				]
+					const issueReadPackage = await lookupSource.handle.checkPackageReadAccess()
+					if (issueReadPackage) {
+						workInProgress._reportError(new Error(issueReadPackage))
+					} else {
+						const actualSourceVersion = lookupSource.handle.getPackageActualVersion()
+						const sourceVersionHash = hashObj(actualSourceVersion)
 
-				workInProgress._reportProgress(sourceVersionHash, 0.1)
+						// Use FFProbe to scan the file:
+						const args = [
+							process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
+							'-hide_banner',
+							`-i "${lookupSource.handle.fullPath}"`,
+							'-show_streams',
+							'-show_format',
+							'-print_format',
+							'json',
+						]
 
-				ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
-					// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-					ffProbeProcess = undefined
-					if (err) {
-						workInProgress._reportError(err)
-						return
-					}
-					const json: any = JSON.parse(stdout)
-					if (!json.streams || !json.streams[0]) {
-						workInProgress._reportError(new Error(`File doesn't seem to be a media file`))
-						return
-					}
+						workInProgress._reportProgress(sourceVersionHash, 0.1)
 
-					worker.corePackageInfoInterface
-						.updatePackageInfo('ffprobe', exp, exp.startRequirement.content, sourceVersion, json)
-						.then(
-							() => {
-								const duration = Date.now() - startTime
-								workInProgress._reportComplete(
-									sourceVersionHash,
-									`Scan completed in ${Math.round(duration / 100) / 10}s`,
-									undefined
-								)
-							},
-							(err) => {
+						ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
+							// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+							ffProbeProcess = undefined
+							if (err) {
 								workInProgress._reportError(err)
+								return
 							}
-						)
-				})
+							const json: any = JSON.parse(stdout)
+							if (!json.streams || !json.streams[0]) {
+								workInProgress._reportError(new Error(`File doesn't seem to be a media file`))
+								return
+							}
+
+							worker.corePackageInfoInterface
+								.updatePackageInfo(
+									'ffprobe',
+									exp,
+									exp.startRequirement.content,
+									actualSourceVersion,
+									json
+								)
+								.then(
+									() => {
+										const duration = Date.now() - startTime
+										workInProgress._reportComplete(
+											sourceVersionHash,
+											`Scan completed in ${Math.round(duration / 100) / 10}s`,
+											undefined
+										)
+									},
+									(err) => {
+										workInProgress._reportError(err)
+									}
+								)
+						})
+					}
+				} else {
+					throw new Error(
+						`MediaFileScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+					)
+				}
 			})().catch((err) => {
 				workInProgress._reportError(err)
 			})
@@ -182,10 +194,15 @@ function isMediaFileScan(exp: Expectation.Any): exp is Expectation.MediaFileScan
 }
 
 type LookupPackageContainer =
-	| { foundPath: string; foundAccessor: AccessorOnPackage.Any; ready: true; reason: string }
 	| {
-			foundPath: undefined
-			foundAccessor: undefined
+			accessor: AccessorOnPackage.Any
+			handle: GenericAccessorHandle
+			ready: true
+			reason: string
+	  }
+	| {
+			accessor: undefined
+			handle: undefined
 			ready: false
 			reason: string
 	  }
@@ -198,53 +215,43 @@ async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupPack
 	// See if the file is available at any of the sources:
 	for (const packageContainer of exp.startRequirement.sources) {
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-				errorReason = undefined
+			errorReason = undefined
 
-				const folderPath = accessor.folderPath
-				if (!folderPath) {
-					errorReason = `Accessor "${accessorId}": folder path not set`
-					continue // Maybe next source works?
+			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+
+			const issueAccessor = handle.checkHandleRead()
+			if (issueAccessor) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
+				continue // Maybe next source works?
+			}
+			// Check that the file is of the right version:
+			const issuePackageContainer = await handle.checkPackageReadAccess()
+			if (issuePackageContainer) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackageContainer}`
+				continue // Maybe next source works?
+			}
+
+			const actualSourceVersion = await handle.getPackageActualVersion()
+			const fileVersionReason = compareActualExpectVersions(actualSourceVersion, exp.startRequirement.version)
+			if (fileVersionReason) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${fileVersionReason}`
+				continue // Maybe next source works?
+			}
+
+			if (!errorReason) {
+				// All good, no need to look further:
+				return {
+					accessor: accessor,
+					handle: handle,
+					ready: true,
+					reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
 				}
-				const filePath = accessor.filePath || exp.endRequirement.content.filePath
-				if (!filePath) {
-					errorReason = `Accessor "${accessorId}": file path not set`
-					continue // Maybe next source works?
-				}
-
-				const fullPath = path.join(folderPath, filePath)
-
-				try {
-					await fsAccess(fullPath, fs.constants.R_OK)
-					// The file exists
-				} catch (err) {
-					// File is not readable
-					errorReason = `Not able to read file: ${err.toString()}`
-				}
-				if (errorReason) continue // Maybe next accessor works?
-
-				// Check that the file is of the right version:
-				const stat = await fsStat(fullPath)
-				const sourceVersion = convertStatToVersion(stat)
-				errorReason = compareFileVersion(sourceVersion, exp.startRequirement.version)
-
-				if (!errorReason) {
-					// All good, no need to look further:
-					return {
-						foundPath: fullPath,
-						foundAccessor: accessor,
-						ready: true,
-						reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
-					}
-				}
-			} else {
-				errorReason = `Unsupported accessor "${accessorId}" type "${accessor.type}"`
 			}
 		}
 	}
 	return {
-		foundPath: undefined,
-		foundAccessor: undefined,
+		accessor: undefined,
+		handle: undefined,
 		ready: false,
 		reason: errorReason,
 	}
@@ -258,26 +265,30 @@ async function lookupTargets(exp: Expectation.MediaFileScan): Promise<LookupPack
 	// See if the file is available at any of the targets:
 	for (const packageContainer of exp.endRequirement.targets) {
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
-				errorReason = undefined
+			errorReason = undefined
 
-				if (!errorReason) {
-					// All good, no need to look further:
-					return {
-						foundPath: 'N/A',
-						foundAccessor: accessor,
-						ready: true,
-						reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
-					}
+			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+
+			const issueAccessor = handle.checkHandleWrite()
+			if (issueAccessor) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
+				continue // Maybe next source works?
+			}
+
+			if (!errorReason) {
+				// All good, no need to look further:
+				return {
+					accessor: accessor,
+					handle: handle,
+					ready: true,
+					reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
 				}
-			} else {
-				errorReason = `Unsupported accessor "${accessorId}" type "${accessor.type}"`
 			}
 		}
 	}
 	return {
-		foundPath: undefined,
-		foundAccessor: undefined,
+		accessor: undefined,
+		handle: undefined,
 		ready: false,
 		reason: errorReason,
 	}
