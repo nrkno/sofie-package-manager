@@ -6,14 +6,21 @@ import { GenericWorker, IWorkInProgress, WorkInProgress } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { hashObj } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
-import { getAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
+import {
+	getAccessorHandle,
+	isCorePackageInfoAccessorHandle,
+	isLocalFolderHandle,
+} from '../../../accessorHandlers/accessor'
 
 export const MediaFileScan: ExpectationWindowsHandler = {
-	isExpectationReadyToStartWorkingOn: async (exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> => {
+	isExpectationReadyToStartWorkingOn: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<{ ready: boolean; reason: string }> => {
 		if (!isMediaFileScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupSource = await lookupSources(exp)
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready) return lookupSource
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) return lookupTarget
 		return {
 			ready: true,
@@ -23,36 +30,23 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 	isExpectationFullfilled: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
-		// corePackageInfo: TMPCorePackageInfoInterface
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		/** undefined if all good, error string otherwise */
 		// let reason: undefined | string = 'Unknown fulfill error'
 
-		const lookupSource = await lookupSources(exp)
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready)
 			return { fulfilled: false, reason: `Not able to access source: ${lookupSource.reason}` }
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
-		// const fullPath = lookupSource.foundPath
-		// const fullPath = path.join(exp.startRequirement.location.folderPath, exp.startRequirement.content.filePath)
 
-		// try {
-		// 	await fsAccess(fullPath, fs.constants.R_OK)
-		// 	// The file exists
-		// } catch (err) {
-		// 	return { fulfilled: false, reason: `File does not exist: ${err.toString()}` }
-		// }
-		// const stat = await fsStat(fullPath)
-		// const statVersion = convertStatToVersion(stat)
+		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
-		/** A string that should change whenever the file is changed */
-		// const fileHash = hashObj(statVersion)
-
-		const packageInfoSynced = await worker.corePackageInfoInterface.findUnUpdatedPackageInfo(
+		const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
 			'ffprobe',
 			exp,
 			exp.startRequirement.content,
@@ -63,25 +57,16 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		} else {
 			return { fulfilled: true, reason: packageInfoSynced.reason }
 		}
-
-		// if (!storedHash) {
-		// 	return { fulfilled: false, reason: 'No Record found' }
-		// } else if (storedHash !== fileHash) {
-		// 	return { fulfilled: false, reason: `Record doesn't match file` }
-		// } else {
-		// 	return { fulfilled: true, reason: 'Record already matches file' }
-		// }
-
-		// return { fulfilled: false, reason: 'N/A' }
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
 		if (!isMediaFileScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		// Scan the media file
+		// Scan the source media file and upload the results to Core
+		const startTime = Date.now()
 
-		const lookupSource = await lookupSources(exp)
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
 
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
 		let ffProbeProcess: ChildProcess | undefined
@@ -91,90 +76,70 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 				ffProbeProcess.kill() // todo: signal?
 			}
 		})
+		if (
+			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
+			lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
+		) {
+			if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isCorePackageInfoAccessorHandle(lookupTarget.handle))
+				throw new Error(`Target AccessHandler type is wrong`)
 
-		setImmediate(() => {
-			;(async () => {
-				const startTime = Date.now()
-				// const sourcePath = lookupSource.foundPath
-				// const fullPath = path.join( exp.startRequirement.location.folderPath, exp.startRequirement.content.filePath)
+			const targetHandle = lookupTarget.handle
 
-				// const actualSourceVersion = await lookupSource.accessHandler.getPackageActualVersion()
+			const issueReadPackage = await lookupSource.handle.checkPackageReadAccess()
+			if (issueReadPackage) {
+				workInProgress._reportError(new Error(issueReadPackage))
+			} else {
+				const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
+				const sourceVersionHash = hashObj(actualSourceVersion)
 
-				if (
-					lookupSource.accessor.type !== Accessor.AccessType.LOCAL_FOLDER &&
-					lookupTarget.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO
-				) {
-					if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
-					// if (!isLocalFolderAccessor(lookupTarget.accessHandler))
-					// 	throw new Error(`Source AccessHandler type is wrong`)
+				// Use FFProbe to scan the file:
+				const args = [
+					process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
+					'-hide_banner',
+					`-i "${lookupSource.handle.fullPath}"`,
+					'-show_streams',
+					'-show_format',
+					'-print_format',
+					'json',
+				]
+				// Report back an initial status, because it looks nice:
+				workInProgress._reportProgress(sourceVersionHash, 0.1)
 
-					const issueReadPackage = await lookupSource.handle.checkPackageReadAccess()
-					if (issueReadPackage) {
-						workInProgress._reportError(new Error(issueReadPackage))
-					} else {
-						const actualSourceVersion = lookupSource.handle.getPackageActualVersion()
-						const sourceVersionHash = hashObj(actualSourceVersion)
-
-						// Use FFProbe to scan the file:
-						const args = [
-							process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
-							'-hide_banner',
-							`-i "${lookupSource.handle.fullPath}"`,
-							'-show_streams',
-							'-show_format',
-							'-print_format',
-							'json',
-						]
-
-						workInProgress._reportProgress(sourceVersionHash, 0.1)
-
-						ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
-							// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-							ffProbeProcess = undefined
-							if (err) {
-								workInProgress._reportError(err)
-								return
-							}
-							const json: any = JSON.parse(stdout)
-							if (!json.streams || !json.streams[0]) {
-								workInProgress._reportError(new Error(`File doesn't seem to be a media file`))
-								return
-							}
-
-							worker.corePackageInfoInterface
-								.updatePackageInfo(
-									'ffprobe',
-									exp,
-									exp.startRequirement.content,
-									actualSourceVersion,
-									json
-								)
-								.then(
-									() => {
-										const duration = Date.now() - startTime
-										workInProgress._reportComplete(
-											sourceVersionHash,
-											`Scan completed in ${Math.round(duration / 100) / 10}s`,
-											undefined
-										)
-									},
-									(err) => {
-										workInProgress._reportError(err)
-									}
-								)
-						})
+				ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
+					// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+					ffProbeProcess = undefined
+					if (err) {
+						workInProgress._reportError(err)
+						return
 					}
-				} else {
-					throw new Error(
-						`MediaFileScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
-					)
-				}
-			})().catch((err) => {
-				workInProgress._reportError(err)
-			})
-		})
-
-		// workInProgress._reportError(err)
+					const json: any = JSON.parse(stdout)
+					if (!json.streams || !json.streams[0]) {
+						workInProgress._reportError(new Error(`File doesn't seem to be a media file`))
+						return
+					}
+					targetHandle
+						.updatePackageInfo('ffprobe', exp, exp.startRequirement.content, actualSourceVersion, json)
+						.then(
+							() => {
+								const duration = Date.now() - startTime
+								workInProgress._reportComplete(
+									sourceVersionHash,
+									`Scan completed in ${Math.round(duration / 100) / 10}s`,
+									undefined
+								)
+							},
+							(err) => {
+								workInProgress._reportError(err)
+							}
+						)
+				})
+			}
+		} else {
+			throw new Error(
+				`MediaFileScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+			)
+		}
 
 		return workInProgress
 	},
@@ -183,8 +148,11 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		worker: GenericWorker
 	): Promise<{ removed: boolean; reason: string }> => {
 		if (!isMediaFileScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		const lookupTarget = await lookupTargets(worker, exp)
+		if (!lookupTarget.ready) return { removed: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
-		await worker.corePackageInfoInterface.removePackageInfo('ffprobe', exp)
+		await lookupTarget.handle.removePackageInfo('ffprobe', exp)
 
 		return { removed: true, reason: 'Removed scan info from Store' }
 	},
@@ -196,7 +164,7 @@ function isMediaFileScan(exp: Expectation.Any): exp is Expectation.MediaFileScan
 type LookupPackageContainer =
 	| {
 			accessor: AccessorOnPackage.Any
-			handle: GenericAccessorHandle
+			handle: GenericAccessorHandle<any>
 			ready: true
 			reason: string
 	  }
@@ -208,7 +176,7 @@ type LookupPackageContainer =
 	  }
 
 /** Check that we have any access to a Package on an source-packageContainer, then return the packageContainer */
-async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupPackageContainer> {
+async function lookupSources(worker: GenericWorker, exp: Expectation.MediaFileScan): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No source found'
 
@@ -217,7 +185,7 @@ async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupPack
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			errorReason = undefined
 
-			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+			const handle = getAccessorHandle(worker, accessor, exp.startRequirement.content)
 
 			const issueAccessor = handle.checkHandleRead()
 			if (issueAccessor) {
@@ -258,7 +226,7 @@ async function lookupSources(exp: Expectation.MediaFileScan): Promise<LookupPack
 }
 
 /** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
-async function lookupTargets(exp: Expectation.MediaFileScan): Promise<LookupPackageContainer> {
+async function lookupTargets(worker: GenericWorker, exp: Expectation.MediaFileScan): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No target found'
 
@@ -267,7 +235,7 @@ async function lookupTargets(exp: Expectation.MediaFileScan): Promise<LookupPack
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			errorReason = undefined
 
-			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+			const handle = getAccessorHandle(worker, accessor, exp.endRequirement.content)
 
 			const issueAccessor = handle.checkHandleWrite()
 			if (issueAccessor) {

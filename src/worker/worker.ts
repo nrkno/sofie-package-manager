@@ -1,13 +1,11 @@
 import { EventEmitter } from 'events'
 import { MessageFromWorker } from '../workerAgent'
 import { Expectation } from './expectationApi'
-import { CorePackageInfoInterface } from './lib/corePackageInto'
 
 /**
  * A Worker runs static stateless/lamda functions.
  */
 export abstract class GenericWorker {
-	public corePackageInfoInterface = new CorePackageInfoInterface(this)
 	constructor(public sendMessageToManager: MessageFromWorker) {}
 	/**
 	 * A check if the worker supports fulfilling the Expectation at all

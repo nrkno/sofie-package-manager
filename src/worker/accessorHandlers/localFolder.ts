@@ -4,19 +4,24 @@ import * as fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { GenericAccessorHandle } from './genericHandle'
 import { Expectation } from '../expectationApi'
+import { GenericWorker } from '../worker'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
 const fsUnlink = promisify(fs.unlink)
+const fsReadFile = promisify(fs.readFile)
+const fsWriteFile = promisify(fs.writeFile)
 
-export class LocalFolderAccessorHandle extends GenericAccessorHandle {
+/** Accessor handle for accessing files in a local folder */
+export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	constructor(
+		worker: GenericWorker,
 		private accessor: AccessorOnPackage.LocalFolder,
 		private content: {
 			filePath: string
 		}
 	) {
-		super(accessor, content, 'localFolder')
+		super(worker, accessor, content, 'localFolder')
 	}
 	checkHandleRead(): string | undefined {
 		if (!this.accessor.allowRead) {
@@ -107,5 +112,32 @@ export class LocalFolderAccessorHandle extends GenericAccessorHandle {
 			// Ignore
 		}
 		if (exists) await fsUnlink(path)
+	}
+
+	// Note: We handle metadata by storing a metadata json-file to the side of the file.
+
+	async fetchMetadata(): Promise<Metadata | undefined> {
+		try {
+			await fsAccess(this.metadataPath, fs.constants.R_OK)
+			// The file exists
+
+			const text = await fsReadFile(this.metadataPath, {
+				encoding: 'utf-8',
+			})
+			return JSON.parse(text)
+		} catch (err) {
+			// File doesn't exist
+			return undefined
+		}
+	}
+	async updateMetadata(metadata: Metadata): Promise<void> {
+		await fsWriteFile(this.metadataPath, JSON.stringify(metadata))
+	}
+	async removeMetadata(): Promise<void> {
+		await this.unlinkIfExists(this.metadataPath)
+	}
+	private get metadataPath() {
+		// (exp: Expectation.MediaFileThumbnail, accessor: AccessorOnPackage.Any
+		return this.fullPath + '_metadata.json'
 	}
 }

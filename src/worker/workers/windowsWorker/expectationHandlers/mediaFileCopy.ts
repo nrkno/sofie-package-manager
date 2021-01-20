@@ -1,6 +1,6 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../../expectationApi'
-import { IWorkInProgress, WorkInProgress } from '../../../worker'
+import { GenericWorker, IWorkInProgress, WorkInProgress } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 import { compareActualExpectVersions, compareActualVersions } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
@@ -9,17 +9,20 @@ import { getAccessorHandle, isLocalFolderHandle } from '../../../accessorHandler
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 
 export const MediaFileCopy: ExpectationWindowsHandler = {
-	isExpectationReadyToStartWorkingOn: async (exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> => {
+	isExpectationReadyToStartWorkingOn: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<{ ready: boolean; reason: string }> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupSources(exp)
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready) {
 			return {
 				ready: lookupSource.ready,
 				reason: lookupSource.reason,
 			}
 		}
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) {
 			return {
 				ready: lookupTarget.ready,
@@ -32,10 +35,13 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
-	isExpectationFullfilled: async (exp: Expectation.Any): Promise<{ fulfilled: boolean; reason: string }> => {
+	isExpectationFullfilled: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 
@@ -50,7 +56,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		const actualVersionReason = compareActualExpectVersions(actualTargetVersion, exp.endRequirement.version)
 		if (actualVersionReason) return { fulfilled: false, reason: actualVersionReason }
 
-		const lookupSource = await lookupSources(exp)
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
@@ -65,27 +71,31 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			reason: `File "${exp.endRequirement.content.filePath}" already exists on location`,
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
 		const startTime = Date.now()
 
-		const lookupSource = await lookupSources(exp)
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
 
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
 		const actualSourceVersion = lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
 
 		if (
-			lookupSource.accessor.type !== Accessor.AccessType.LOCAL_FOLDER &&
-			lookupTarget.accessor.type !== Accessor.AccessType.LOCAL_FOLDER
+			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
+			lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER
 		) {
 			if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!isLocalFolderHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
+
+			if (lookupSource.handle.fullPath === lookupTarget.handle.fullPath) {
+				throw new Error('Unable to copy: source and Target file paths are the same!')
+			}
 
 			const workInProgress = new WorkInProgress(async () => {
 				// on cancel
@@ -100,7 +110,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 
 			const copying = roboCopyFile(
 				lookupSource.handle.fullPath,
-				lookupSource.handle.fullPath,
+				lookupTarget.handle.fullPath,
 				(progress: number) => {
 					workInProgress._reportProgress(actualSourceVersionHash, progress)
 				}
@@ -125,11 +135,14 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any): Promise<{ removed: boolean; reason: string }> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<{ removed: boolean; reason: string }> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) {
 			return { removed: false, reason: `No access to target: ${lookupTarget.reason}` }
 		}
@@ -150,7 +163,7 @@ function isMediaFileCopy(exp: Expectation.Any): exp is Expectation.MediaFileCopy
 type LookupPackageContainer =
 	| {
 			accessor: AccessorOnPackage.Any
-			handle: GenericAccessorHandle
+			handle: GenericAccessorHandle<any>
 			ready: true
 			reason: string
 	  }
@@ -162,7 +175,7 @@ type LookupPackageContainer =
 	  }
 
 /** Check that we have any access to a Package on an source-packageContainer, then return the packageContainer */
-async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
+async function lookupSources(worker: GenericWorker, exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No source found'
 
@@ -171,7 +184,7 @@ async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupPack
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			errorReason = undefined
 
-			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+			const handle = getAccessorHandle(worker, accessor, exp.endRequirement.content)
 
 			const issueHandle = handle.checkHandleRead()
 			if (issueHandle) {
@@ -179,9 +192,9 @@ async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupPack
 				continue // Maybe next source works?
 			}
 
-			const issuePackageContainer = await handle.checkPackageReadAccess()
-			if (issuePackageContainer) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackageContainer}`
+			const issueSourcePackage = await handle.checkPackageReadAccess()
+			if (issueSourcePackage) {
+				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueSourcePackage}`
 				continue // Maybe next source works?
 			}
 
@@ -215,7 +228,7 @@ async function lookupSources(exp: Expectation.MediaFileCopy): Promise<LookupPack
 }
 
 /** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
-async function lookupTargets(exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
+async function lookupTargets(worker: GenericWorker, exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No target found'
 
@@ -224,7 +237,7 @@ async function lookupTargets(exp: Expectation.MediaFileCopy): Promise<LookupPack
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			errorReason = undefined
 
-			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+			const handle = getAccessorHandle(worker, accessor, exp.endRequirement.content)
 
 			const issueHandle = handle.checkHandleWrite()
 			if (issueHandle) {

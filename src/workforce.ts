@@ -36,7 +36,7 @@ export class Workforce {
 
 		this.workerAgents[id] = new WorkerAgent(id, async (message: MessageFromWorkerPayload) => {
 			try {
-				return await this.onMessageFromWorker(message)
+				return { error: undefined, result: await this.onMessageFromWorker(message) }
 			} catch (error) {
 				return { error: typeof error === 'string' ? error : error.message || error.reason || error.toString() }
 			}

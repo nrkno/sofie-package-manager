@@ -250,22 +250,22 @@ export class PackageManagerHandler {
 	private async onMessageFromWorker(message: MessageFromWorkerPayload): Promise<any> {
 		switch (message.type) {
 			case 'updatePackageContainerPackageStatus':
-				return this._coreHandler.core.callMethod(
+				return await this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.updatePackageContainerPackageStatus,
 					message.arguments
 				)
 			case 'fetchPackageInfoMetadata':
-				return this._coreHandler.core.callMethod(
+				return await this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
 					message.arguments
 				)
 			case 'updatePackageInfo':
-				return this._coreHandler.core.callMethod(
+				return await this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.updatePackageInfo,
 					message.arguments
 				)
 			case 'removePackageInfo':
-				return this._coreHandler.core.callMethod(
+				return await this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.removePackageInfo,
 					message.arguments
 				)

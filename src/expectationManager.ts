@@ -263,6 +263,7 @@ export class ExpectationManager {
 						}
 					}
 				} catch (err) {
+					this.logger.error(err)
 					trackedExp.reason = err.toString()
 				}
 
@@ -270,13 +271,14 @@ export class ExpectationManager {
 					this.updateExpectationStatus(trackedExp.id, trackedExp.exp, null, {
 						status: trackedExp.status,
 					})
+					this.logger.info(`${trackedExp.exp.statusReport.label}.status: ${trackedExp.status}`)
 				}
 				if (trackedExp.reason !== prevReason) {
 					this.updateExpectationStatus(trackedExp.id, trackedExp.exp, null, {
 						statusReason: trackedExp.reason,
 					})
+					this.logger.info(`${trackedExp.exp.statusReport.label}.reason: ${trackedExp.reason}`)
 				}
-				this.logger.info(`${trackedExp.exp.statusReport.label}.status: ${trackedExp.status}`)
 			})
 		)
 		for (const id of removeIds) {

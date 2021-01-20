@@ -55,7 +55,10 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 				endRequirement: {
 					targets: expWrapMediaFile.targets as Expectation.PackageContainerOnPackageFile[],
 					content: expWrapMediaFile.expectedPackage.content,
-					version: expWrapMediaFile.expectedPackage.version,
+					version: {
+						type: Expectation.Version.Type.MEDIA_FILE,
+						...expWrapMediaFile.expectedPackage.version,
+					},
 				},
 			}
 			exp.id = hashObj(exp.endRequirement)
@@ -175,6 +178,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 						filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.png'),
 					},
 					version: {
+						type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
 						width: 512,
 						// height: auto
 					},

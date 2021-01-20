@@ -3,65 +3,66 @@ import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integr
 import { hashObj } from '../../../lib/lib'
 import { Expectation } from '../../../expectationApi'
 import { compareActualExpectVersions } from '../lib/lib'
-import { IWorkInProgress, WorkInProgress } from '../../../worker'
-import * as _ from 'underscore'
+import { GenericWorker, IWorkInProgress, WorkInProgress } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
-import { getAccessorHandle } from '../../../accessorHandlers/accessor'
+import { getAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
-	isExpectationReadyToStartWorkingOn: async (exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> => {
+	isExpectationReadyToStartWorkingOn: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<{ ready: boolean; reason: string }> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupSource = await lookupSources(exp)
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready) return lookupSource
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) return lookupTarget
-
 		return {
 			ready: true,
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
-	isExpectationFullfilled: async (exp: Expectation.Any): Promise<{ fulfilled: boolean; reason: string }> => {
+	isExpectationFullfilled: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupSource = await lookupSources(exp)
+
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready)
 			return { fulfilled: false, reason: `Not able to access source: ${lookupSource.reason}` }
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 
-		try {
-			await fsAccess(lookupTarget.foundPath, fs.constants.R_OK)
-			// The file exists
-		} catch (err) {
-			return { fulfilled: false, reason: `File does not exist: ${err.toString()}` }
+		const issueReadPackage = await lookupTarget.handle.checkPackageReadAccess()
+		if (issueReadPackage) {
+			return { fulfilled: false, reason: `Thumbnail does not exist: ${issueReadPackage}` }
 		}
-		const stat = await fsStat(lookupSource.foundPath)
-		const statVersion = convertStatToVersion(stat)
-		const fileVersionHash = hashObj(statVersion)
+		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
+		const actualSourceVersionHash = hashObj(actualSourceVersion)
 
-		const sideCar = await getSideCar(exp, lookupTarget.foundAccessor)
+		const sideCar = await lookupTarget.handle.fetchMetadata()
 
 		if (!sideCar) {
 			return { fulfilled: false, reason: 'No file found' }
-		} else if (sideCar.fileVersionHash !== fileVersionHash) {
+		} else if (sideCar.sourceVersionHash !== actualSourceVersionHash) {
 			return { fulfilled: false, reason: `Thumbnail version doesn't match file` }
-		} else if (sideCar.filePath !== lookupSource.foundPath) {
-			return { fulfilled: false, reason: `Thumbnail path doesn't match` }
-		} else if (!_.isEqual(sideCar.version, exp.endRequirement.version)) {
-			return { fulfilled: false, reason: `Thumbnail path doesn't match expectation` }
 		} else {
 			return { fulfilled: true, reason: 'Thumbnail already matches file' }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		// Scan the media file
+		// Create a thumbnail from the source media file
 
-		const lookupSource = await lookupSources(exp)
+		const startTime = Date.now()
+
+		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
-		const lookupTarget = await lookupTargets(exp)
+
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
 		let ffMpegProcess: ChildProcess | undefined
@@ -72,45 +73,47 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 			}
 		})
 
-		setImmediate(() => {
-			;(async () => {
-				const startTime = Date.now()
+		if (
+			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
+			lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER
+		) {
+			if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isLocalFolderHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
-				try {
-					await fsAccess(lookupSource.foundPath, fs.constants.R_OK)
-					// The file exists
-				} catch (err) {
-					workInProgress._reportError(new Error(`File does not exist: ${err.toString()}`))
-					return
+			const issueReadPackage = await lookupSource.handle.checkPackageReadAccess()
+			if (issueReadPackage) {
+				workInProgress._reportError(new Error(issueReadPackage))
+			} else {
+				const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
+				const sourceVersionHash = hashObj(actualSourceVersion)
+
+				const metadata: Metadata = {
+					sourceVersionHash: sourceVersionHash,
+					version: {
+						...{
+							// Default values:
+							type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
+							width: 256,
+							height: -1,
+						},
+						...exp.endRequirement.version,
+					},
 				}
-				const stat = await fsStat(lookupSource.foundPath)
-				const sourceVersion = convertStatToVersion(stat)
-				const sourceVersionHash = hashObj(sourceVersion)
 
-				const sideCar: SideCar = {
-					filePath: lookupSource.foundPath, // maybe change to local path?
-					fileVersionHash: sourceVersionHash,
-					version: exp.endRequirement.version,
-				}
-				removeSideCar(exp, lookupTarget.foundAccessor)
+				await lookupTarget.handle.removeMetadata()
+				await lookupTarget.handle.removePackage()
 
-				if (lookupTarget.foundAccessor.type !== Accessor.AccessType.LOCAL_FOLDER)
-					throw new Error(`Unsupported target Accessor type "${lookupTarget.foundAccessor.type}"`)
-
-				// Remove the target file if it already exists:
-				await unlinkIfExists(lookupTarget.foundPath)
-
-				// Use FFProbe to generate the thumbnail:
+				// Use FFMpeg to generate the thumbnail:
 				const args = [
 					process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
 					'-hide_banner',
-					`-i "${lookupSource.foundPath}"`,
+					`-i "${lookupSource.handle.fullPath}"`,
 					'-frames:v 1',
-					`-vf thumbnail,scale=${exp.endRequirement.version.width || 256}:` +
-						`${exp.endRequirement.version.height || -1}`,
+					`-vf thumbnail,scale=${metadata.version.width}:` + `${metadata.version.height}`,
 					'-threads 1',
-					`"${lookupTarget.foundPath}"`,
+					`"${lookupTarget.handle.fullPath}"`,
 				]
+				// Report back an initial status, because it looks nice:
 				workInProgress._reportProgress(sourceVersionHash, 0.1)
 
 				ffMpegProcess = exec(args.join(' '), (err, _stdout, _stderr) => {
@@ -121,7 +124,8 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 						return
 					}
 
-					saveSideCar(exp, lookupTarget.foundAccessor, sideCar)
+					lookupTarget.handle
+						.updateMetadata(metadata)
 						.then(() => {
 							const duration = Date.now() - startTime
 							workInProgress._reportComplete(
@@ -134,23 +138,25 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 							workInProgress._reportError(err)
 						})
 				})
-			})().catch((err) => {
-				workInProgress._reportError(err)
-			})
-		})
+			}
+		} else {
+			throw new Error(
+				`MediaFileScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+			)
+		}
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any): Promise<{ removed: boolean; reason: string }> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<{ removed: boolean; reason: string }> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupTarget = await lookupTargets(exp)
+		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
-		await removeSideCar(exp, lookupTarget.foundAccessor)
-
-		if (lookupTarget.foundAccessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-			await unlinkIfExists(lookupTarget.foundPath)
-		} else throw new Error(`Unsupported target Accessor type "${lookupTarget.foundAccessor.type}"`)
+		await lookupTarget.handle.removeMetadata()
+		await lookupTarget.handle.removePackage()
 
 		return { removed: true, reason: 'Removed thumbnail' }
 	},
@@ -160,7 +166,12 @@ function isMediaFileThumbnail(exp: Expectation.Any): exp is Expectation.MediaFil
 }
 
 type LookupPackageContainer =
-	| { accessor: AccessorOnPackage.Any; handle: GenericAccessorHandle; ready: true; reason: string }
+	| {
+			accessor: AccessorOnPackage.Any
+			handle: GenericAccessorHandle<Metadata>
+			ready: true
+			reason: string
+	  }
 	| {
 			accessor: undefined
 			handle: undefined
@@ -169,7 +180,10 @@ type LookupPackageContainer =
 	  }
 
 /** Check that we have any access to a Package on an source-packageContainer, then return the packageContainer */
-async function lookupSources(exp: Expectation.MediaFileThumbnail): Promise<LookupPackageContainer> {
+async function lookupSources(
+	worker: GenericWorker,
+	exp: Expectation.MediaFileThumbnail
+): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No source found'
 
@@ -178,24 +192,24 @@ async function lookupSources(exp: Expectation.MediaFileThumbnail): Promise<Looku
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			errorReason = undefined
 
-			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+			const handle = getAccessorHandle<Metadata>(worker, accessor, exp.startRequirement.content)
 
 			const issueAccessor = handle.checkHandleRead()
 			if (issueAccessor) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
+				errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issueAccessor}`
 				continue // Maybe next source works?
 			}
 
 			const issuePackageContainer = await handle.checkPackageReadAccess()
 			if (issuePackageContainer) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackageContainer}`
+				errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issuePackageContainer}`
 				continue // Maybe next source works?
 			}
 			// Check that the file is of the right version:
 			const actualSourceVersion = await handle.getPackageActualVersion()
 			const fileVersionReason = compareActualExpectVersions(actualSourceVersion, exp.startRequirement.version)
 			if (fileVersionReason) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${fileVersionReason}`
+				errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${fileVersionReason}`
 				continue // Maybe next source works?
 			}
 
@@ -219,7 +233,10 @@ async function lookupSources(exp: Expectation.MediaFileThumbnail): Promise<Looku
 }
 
 /** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
-async function lookupTargets(exp: Expectation.MediaFileThumbnail): Promise<LookupPackageContainer> {
+async function lookupTargets(
+	worker: GenericWorker,
+	exp: Expectation.MediaFileThumbnail
+): Promise<LookupPackageContainer> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No target found'
 
@@ -228,7 +245,7 @@ async function lookupTargets(exp: Expectation.MediaFileThumbnail): Promise<Looku
 		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
 			errorReason = undefined
 
-			const handle = getAccessorHandle(accessor, exp.endRequirement.content)
+			const handle = getAccessorHandle<Metadata>(worker, accessor, exp.endRequirement.content)
 
 			const issueAccessor = handle.checkHandleWrite()
 			if (issueAccessor) {
@@ -255,57 +272,7 @@ async function lookupTargets(exp: Expectation.MediaFileThumbnail): Promise<Looku
 	}
 }
 
-async function getSideCar(
-	exp: Expectation.MediaFileThumbnail,
-	accessor: AccessorOnPackage.Any
-): Promise<SideCar | undefined> {
-	if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-		const sideCarPath = getSideCarPath(exp, accessor)
-
-		try {
-			await fsAccess(sideCarPath, fs.constants.R_OK)
-			// The file exists
-
-			const text = await fsReadFile(sideCarPath, {
-				encoding: 'utf-8',
-			})
-			return JSON.parse(text)
-		} catch (err) {
-			return undefined
-		}
-	} else throw new Error(`Unsupported Accessor type "${accessor.type}"`)
-}
-async function saveSideCar(
-	exp: Expectation.MediaFileThumbnail,
-	accessor: AccessorOnPackage.Any,
-	sidecar: SideCar
-): Promise<void> {
-	if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-		const sideCarPath = getSideCarPath(exp, accessor)
-
-		await fsWriteFile(sideCarPath, JSON.stringify(sidecar))
-	} else throw new Error(`Unsupported Accessor type "${accessor.type}"`)
-}
-async function removeSideCar(exp: Expectation.MediaFileThumbnail, accessor: AccessorOnPackage.Any): Promise<void> {
-	if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-		const sideCarPath = getSideCarPath(exp, accessor)
-
-		await unlinkIfExists(sideCarPath)
-	} else throw new Error(`Unsupported Accessor type "${accessor.type}"`)
-}
-function getSideCarPath(exp: Expectation.MediaFileThumbnail, accessor: AccessorOnPackage.Any) {
-	if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-		if (!accessor.folderPath) throw new Error(`Accessor folderPath not set`)
-		return (
-			path.join(accessor.folderPath, accessor.filePath || exp.endRequirement.content.filePath) + '_sidecar.json'
-		)
-	} else throw new Error(`Unsupported Accessor type "${accessor.type}"`)
-}
-interface SideCar {
-	filePath: string
-	fileVersionHash: string
-	version: {
-		width?: number
-		height?: number
-	}
+interface Metadata {
+	sourceVersionHash: string
+	version: Expectation.Version.MediaFileThumbnail
 }

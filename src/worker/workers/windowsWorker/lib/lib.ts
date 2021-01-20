@@ -10,7 +10,10 @@ export function compareActualExpectVersions(
 		errorReason = `Actual version type differs from expected (${expectVersion.type}, ${actualVersion.type})`
 	}
 
-	if (expectVersion.type === Expectation.Version.Type.MEDIA_FILE) {
+	if (
+		actualVersion.type === Expectation.Version.Type.MEDIA_FILE &&
+		expectVersion.type === Expectation.Version.Type.MEDIA_FILE
+	) {
 		if (expectVersion.fileSize && expectVersion.fileSize !== actualVersion.fileSize) {
 			errorReason = `Actual file size differ from expected (${expectVersion.fileSize}, ${actualVersion.fileSize})`
 		}
@@ -34,7 +37,10 @@ export function compareActualVersions(
 		errorReason = `Source/Target versions type differs (${actualVersionSource.type}, ${actualVersionTarget.type})`
 	}
 
-	if (actualVersionSource.type === Expectation.Version.Type.MEDIA_FILE) {
+	if (
+		actualVersionSource.type === Expectation.Version.Type.MEDIA_FILE &&
+		actualVersionTarget.type === Expectation.Version.Type.MEDIA_FILE
+	) {
 		if (actualVersionSource.fileSize && actualVersionSource.fileSize !== actualVersionTarget.fileSize) {
 			errorReason = `Target file size differ from source (${actualVersionSource.fileSize}, ${actualVersionTarget.fileSize})`
 		}

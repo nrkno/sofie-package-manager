@@ -1,8 +1,10 @@
 import { AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../expectationApi'
+import { GenericWorker } from '../worker'
 
-export abstract class GenericAccessorHandle {
+export abstract class GenericAccessorHandle<Metadata> {
 	constructor(
+		protected worker: GenericWorker,
 		protected _accessor: AccessorOnPackage.Any,
 		protected _content: unknown,
 		public readonly type: string
@@ -22,4 +24,8 @@ export abstract class GenericAccessorHandle {
 	abstract getPackageActualVersion(): Promise<Expectation.Version.Any>
 
 	abstract removePackage(): Promise<void>
+
+	abstract fetchMetadata(): Promise<Metadata | undefined>
+	abstract updateMetadata(metadata: Metadata): Promise<void>
+	abstract removeMetadata(): Promise<void>
 }

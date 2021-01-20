@@ -74,28 +74,7 @@ export namespace Expectation {
 				| AccessorOnPackage.HTTP
 		}
 	}
-	// eslint-disable-next-line @typescript-eslint/no-namespace
-	export namespace Version {
-		export type ExpectAny = ExpectedMediaFile
-		export type Any = MediaFile
-		export interface Base {
-			type: Type
-		}
-		export enum Type {
-			MEDIA_FILE = 'media_file',
-		}
-		export type ExpectedMediaFile = Partial<MediaFile>
-		export interface MediaFile extends Base {
-			type: Type.MEDIA_FILE
 
-			fileSize: number // in bytes
-			modifiedDate: number // timestamp (ms)?: number
-
-			// Not implemented (yet?)
-			// checksum?: string
-			// checkSumType?: 'sha' | 'md5' | 'whatever'
-		}
-	}
 	export interface MediaFileScan extends Base {
 		type: Type.MEDIA_FILE_SCAN
 
@@ -109,7 +88,7 @@ export namespace Expectation {
 			content: {
 				filePath: string
 			}
-			version: null // MediaFileVersion?
+			version: null
 		}
 	}
 	export interface PackageContainerOnPackageCorePackage extends PackageContainerOnPackage {
@@ -130,10 +109,7 @@ export namespace Expectation {
 			content: {
 				filePath: string
 			}
-			version: {
-				width?: number
-				height?: number
-			}
+			version: Version.ExpectedMediaFileThumbnail
 		}
 	}
 
@@ -155,6 +131,42 @@ export namespace Expectation {
 	export interface PackageContainerOnPackageQuantel extends PackageContainerOnPackage {
 		accessors: {
 			[accessorId: string]: AccessorOnPackage.Quantel
+		}
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-namespace
+	export namespace Version {
+		export type ExpectAny = ExpectedMediaFile | MediaFileThumbnail | ExpectedCorePackageInfo
+		export type Any = MediaFile | MediaFileThumbnail | CorePackageInfo
+		export interface Base {
+			type: Type
+		}
+		export enum Type {
+			MEDIA_FILE = 'media_file',
+			MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
+			CORE_PACKAGE_INFO = 'core_package_info',
+		}
+		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
+		export type ExpectedMediaFile = ExpectedType<MediaFile>
+		export interface MediaFile extends Base {
+			type: Type.MEDIA_FILE
+			fileSize: number // in bytes
+			modifiedDate: number // timestamp (ms)?: number
+
+			// Not implemented (yet?)
+			// checksum?: string
+			// checkSumType?: 'sha' | 'md5' | 'whatever'
+		}
+		export type ExpectedMediaFileThumbnail = ExpectedType<MediaFileThumbnail>
+		export interface MediaFileThumbnail extends Base {
+			type: Type.MEDIA_FILE_THUMBNAIL
+			width: number
+			height: number
+		}
+		export type ExpectedCorePackageInfo = ExpectedType<CorePackageInfo>
+		export interface CorePackageInfo extends Base {
+			type: Type.CORE_PACKAGE_INFO
+			actualContentVersionHash: string
 		}
 	}
 }
