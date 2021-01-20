@@ -28,4 +28,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 	abstract fetchMetadata(): Promise<Metadata | undefined>
 	abstract updateMetadata(metadata: Metadata): Promise<void>
 	abstract removeMetadata(): Promise<void>
+
+	abstract getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }>
+	abstract pipePackageStream(sourceStream: NodeJS.ReadStream): Promise<NodeJS.WritableStream>
 }

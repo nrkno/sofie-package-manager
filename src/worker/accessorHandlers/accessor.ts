@@ -2,6 +2,7 @@ import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integr
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { GenericAccessorHandle as GenericAccessorHandle } from './genericHandle'
+import { HTTPAccessorHandle } from './http'
 import { LocalFolderAccessorHandle } from './localFolder'
 
 export function getAccessorHandle<Metadata>(
@@ -13,6 +14,8 @@ export function getAccessorHandle<Metadata>(
 		return new LocalFolderAccessorHandle(worker, accessor, content as any)
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
 		return new CorePackageInfoAccessorHandle(worker, accessor, content as any)
+	} else if (accessor.type === Accessor.AccessType.HTTP) {
+		return new HTTPAccessorHandle(worker, accessor, content as any)
 	} else {
 		throw new Error(`Unsupported Accessor type "${accessor.type}"`)
 	}
@@ -27,4 +30,9 @@ export function isCorePackageInfoAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is CorePackageInfoAccessorHandle<Metadata> {
 	return accessorHandler.type === 'corePackageInfo'
+}
+export function isHTTPAccessorHandle<Metadata>(
+	accessorHandler: GenericAccessorHandle<Metadata>
+): accessorHandler is HTTPAccessorHandle<Metadata> {
+	return accessorHandler.type === 'http'
 }

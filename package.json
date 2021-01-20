@@ -79,6 +79,7 @@
 		"@sofie-automation/code-standard-preset": "^0.2.1",
 		"@types/jest": "^26.0.19",
 		"@types/node": "^12.19.9",
+		"@types/node-fetch": "^2.5.8",
 		"@types/underscore": "^1.10.24",
 		"@types/winston": "^2.3.9",
 		"codecov": "^3.8.1",
@@ -106,7 +107,9 @@
 	"dependencies": {
 		"@sofie-automation/blueprints-integration": "file:../Core/packages/blueprints-integration",
 		"@sofie-automation/server-core-integration": "file:../Core/packages/server-core-integration",
+		"abort-controller": "^3.0.0",
 		"fast-clone": "^1.5.13",
+		"node-fetch": "^2.6.1",
 		"tslib": "^2.0.3",
 		"underscore": "^1.12.0",
 		"winston": "^2.4.2"

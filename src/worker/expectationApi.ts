@@ -136,8 +136,8 @@ export namespace Expectation {
 
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace Version {
-		export type ExpectAny = ExpectedMediaFile | MediaFileThumbnail | ExpectedCorePackageInfo
-		export type Any = MediaFile | MediaFileThumbnail | CorePackageInfo
+		export type ExpectAny = ExpectedMediaFile | MediaFileThumbnail | ExpectedCorePackageInfo | ExpectedHTTPFile
+		export type Any = MediaFile | MediaFileThumbnail | CorePackageInfo | HTTPFile
 		export interface Base {
 			type: Type
 		}
@@ -145,6 +145,7 @@ export namespace Expectation {
 			MEDIA_FILE = 'media_file',
 			MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 			CORE_PACKAGE_INFO = 'core_package_info',
+			HTTP_FILE = 'http_file',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
 		export type ExpectedMediaFile = ExpectedType<MediaFile>
@@ -167,6 +168,14 @@ export namespace Expectation {
 		export interface CorePackageInfo extends Base {
 			type: Type.CORE_PACKAGE_INFO
 			actualContentVersionHash: string
+		}
+		export type ExpectedHTTPFile = ExpectedType<HTTPFile>
+		export interface HTTPFile extends Base {
+			type: Type.HTTP_FILE
+			contentType: string
+			contentLength: number
+			modified: number
+			etags: string[]
 		}
 	}
 }

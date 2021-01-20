@@ -180,7 +180,7 @@ export class ExpectationManager {
 									)
 
 									this.updateExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
-										progress: progress / 100,
+										progress: progress,
 									})
 								}
 							)

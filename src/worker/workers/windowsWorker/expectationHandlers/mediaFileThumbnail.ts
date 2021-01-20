@@ -43,11 +43,11 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
 
-		const sideCar = await lookupTarget.handle.fetchMetadata()
+		const metadata = await lookupTarget.handle.fetchMetadata()
 
-		if (!sideCar) {
+		if (!metadata) {
 			return { fulfilled: false, reason: 'No file found' }
-		} else if (sideCar.sourceVersionHash !== actualSourceVersionHash) {
+		} else if (metadata.sourceVersionHash !== actualSourceVersionHash) {
 			return { fulfilled: false, reason: `Thumbnail version doesn't match file` }
 		} else {
 			return { fulfilled: true, reason: 'Thumbnail already matches file' }

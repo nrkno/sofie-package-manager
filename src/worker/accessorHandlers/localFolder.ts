@@ -114,6 +114,27 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		if (exists) await fsUnlink(path)
 	}
 
+	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
+		const readStream = await new Promise<fs.ReadStream>((resolve, reject) => {
+			const readStream = fs.createReadStream(this.fullPath)
+			readStream.once('error', reject)
+			// Wait for the stream to be actually valid before continuing:
+			readStream.once('open', () => resolve(readStream))
+		})
+
+		return {
+			readStream: readStream,
+			cancel: () => {
+				readStream.close()
+			},
+		}
+	}
+	async pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<NodeJS.WritableStream> {
+		const writeStream = fs.createWriteStream(this.fullPath)
+
+		return sourceStream.pipe(writeStream)
+	}
+
 	// Note: We handle metadata by storing a metadata json-file to the side of the file.
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
@@ -137,7 +158,6 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		await this.unlinkIfExists(this.metadataPath)
 	}
 	private get metadataPath() {
-		// (exp: Expectation.MediaFileThumbnail, accessor: AccessorOnPackage.Any
 		return this.fullPath + '_metadata.json'
 	}
 }

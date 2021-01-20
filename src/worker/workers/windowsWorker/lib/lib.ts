@@ -4,53 +4,79 @@ export function compareActualExpectVersions(
 	actualVersion: Expectation.Version.Any,
 	expectVersion: Expectation.Version.ExpectAny
 ): undefined | string {
-	let errorReason: string | undefined = undefined
+	const expectProperties = makeUniversalVersion(expectVersion)
+	const actualProperties = makeUniversalVersion(actualVersion)
 
-	if (expectVersion.type !== actualVersion.type) {
-		errorReason = `Actual version type differs from expected (${expectVersion.type}, ${actualVersion.type})`
+	for (const key of Object.keys(expectProperties)) {
+		const expect = expectProperties[key] as VersionProperty
+		const actual = actualProperties[key] as VersionProperty
+
+		if (expect.value !== undefined && actual.value && expect.value !== actual.value) {
+			return `Actual ${actual.name} differ from expected (${expect.value}, ${actual.value})`
+		}
 	}
 
-	if (
-		actualVersion.type === Expectation.Version.Type.MEDIA_FILE &&
-		expectVersion.type === Expectation.Version.Type.MEDIA_FILE
-	) {
-		if (expectVersion.fileSize && expectVersion.fileSize !== actualVersion.fileSize) {
-			errorReason = `Actual file size differ from expected (${expectVersion.fileSize}, ${actualVersion.fileSize})`
-		}
-		if (expectVersion.modifiedDate && expectVersion.modifiedDate !== actualVersion.modifiedDate) {
-			errorReason = `Actual modified date differ from expected (${expectVersion.modifiedDate}, ${actualVersion.modifiedDate})`
-		}
-		// Todo: checksum?
-	} else {
-		throw new Error(`compareActualExpectVersions: Unsupported type "${expectVersion.type}"`)
-	}
-
-	return errorReason
+	return undefined // All good!
 }
-export function compareActualVersions(
-	actualVersionSource: Expectation.Version.Any,
-	actualVersionTarget: Expectation.Version.Any
+export function compareUniversalVersions(
+	sourceVersion: UniversalVersion,
+	targetVersion: UniversalVersion
 ): undefined | string {
-	let errorReason: string | undefined = undefined
+	for (const key of Object.keys(sourceVersion)) {
+		const source = sourceVersion[key] as VersionProperty
+		const target = targetVersion[key] as VersionProperty
 
-	if (actualVersionSource.type !== actualVersionTarget.type) {
-		errorReason = `Source/Target versions type differs (${actualVersionSource.type}, ${actualVersionTarget.type})`
-	}
-
-	if (
-		actualVersionSource.type === Expectation.Version.Type.MEDIA_FILE &&
-		actualVersionTarget.type === Expectation.Version.Type.MEDIA_FILE
-	) {
-		if (actualVersionSource.fileSize && actualVersionSource.fileSize !== actualVersionTarget.fileSize) {
-			errorReason = `Target file size differ from source (${actualVersionSource.fileSize}, ${actualVersionTarget.fileSize})`
+		if (source.value !== target.value) {
+			return `Target ${source.name} differ from source (${target.value}, ${source.value})`
 		}
-		if (actualVersionSource.modifiedDate && actualVersionSource.modifiedDate !== actualVersionTarget.modifiedDate) {
-			errorReason = `Target modified date differ from source (${actualVersionSource.modifiedDate}, ${actualVersionTarget.modifiedDate})`
-		}
-		// Todo: checksum?
-	} else {
-		throw new Error(`compareActualVersions: Unsupported type "${actualVersionSource.type}"`)
 	}
-
-	return errorReason
+	return undefined // All good!
 }
+
+export function makeUniversalVersion(
+	version: Expectation.Version.Any | Expectation.Version.ExpectAny
+): UniversalVersion {
+	if (![Expectation.Version.Type.MEDIA_FILE, Expectation.Version.Type.HTTP_FILE].includes(version.type)) {
+		throw new Error(`getAllVersionProperties: Unsupported types "${version.type}"-"${version.type}"`)
+	}
+
+	// Note: When having added a new type below, add it to the list of supported types above to enable support for it
+
+	return {
+		fileSize: {
+			name: 'File size',
+			value:
+				version.type === Expectation.Version.Type.MEDIA_FILE
+					? version.fileSize
+					: version.type === Expectation.Version.Type.HTTP_FILE
+					? version.contentLength
+					: undefined,
+		},
+
+		modified: {
+			name: 'Modified date',
+			value:
+				version.type === Expectation.Version.Type.MEDIA_FILE
+					? version.modifiedDate
+					: version.type === Expectation.Version.Type.HTTP_FILE
+					? version.modified
+					: undefined,
+		},
+		etags: {
+			name: 'http-etags',
+			value: version.type === Expectation.Version.Type.HTTP_FILE ? version.etags?.join() : undefined,
+		},
+		contentType: {
+			name: 'content type',
+			value: version.type === Expectation.Version.Type.HTTP_FILE ? version.contentType : undefined,
+		},
+	}
+}
+export interface UniversalVersion {
+	fileSize: VersionProperty
+	modified: VersionProperty
+	etags: VersionProperty
+	contentType: VersionProperty
+	[key: string]: VersionProperty
+}
+export type VersionProperty = { name: string; value: string | number | undefined }

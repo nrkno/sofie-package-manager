@@ -4,12 +4,7 @@ import { Expectation } from '../expectationApi'
 import { GenericWorker } from '../worker'
 import { hashObj } from '../lib/lib'
 
-// const fsStat = promisify(fs.stat)
-// const fsAccess = promisify(fs.access)
-// const fsUnlink = promisify(fs.unlink)
-
 /** Accessor handle for accessing data store in Core */
-
 export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	constructor(
 		worker: GenericWorker,
@@ -55,6 +50,13 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 
 		// todo: implement
 		// await this.removePackageInfo(this.content.infoType, 1234)
+	}
+
+	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
+		throw new Error('CorePackageInfo.getPackageReadStream: Not supported by CorePackageInfo')
+	}
+	async pipePackageStream(_sourceStream: NodeJS.ReadableStream): Promise<NodeJS.WritableStream> {
+		throw new Error('CorePackageInfo.pipePackageStream: Not supported by CorePackageInfo')
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {

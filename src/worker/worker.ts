@@ -56,6 +56,11 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 		return this._onCancel()
 	}
 
+	/**
+	 * Report progress back to
+	 * @param actualVersionHash A hash of the actual Verison of the Package being worken on
+	 * @param progress 0-1
+	 */
 	_reportProgress(actualVersionHash: string | null, progress: number): void {
 		this._progress = progress
 		this._actualVersionHash = actualVersionHash

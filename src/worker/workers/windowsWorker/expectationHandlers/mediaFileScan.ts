@@ -32,8 +32,6 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		worker: GenericWorker
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		/** undefined if all good, error string otherwise */
-		// let reason: undefined | string = 'Unknown fulfill error'
 
 		const lookupSource = await lookupSources(worker, exp)
 		if (!lookupSource.ready)
