@@ -16,6 +16,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	) {
 		super(worker, accessor, content, 'http')
 	}
+	doYouSupportAccess(): boolean {
+		return !this.accessor.networkId || this.worker.location.localNetworkIds.includes(this.accessor.networkId)
+	}
 	checkHandleRead(): string | undefined {
 		if (!this.accessor.allowRead) {
 			return `Not allowed to read`
@@ -30,7 +33,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	private checkAccessor(): string | undefined {
 		if (this.accessor.type !== Accessor.AccessType.HTTP) {
-			return `LocalFolder Accessor type is not HTTP ("${this.accessor.type}")!`
+			return `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`
 		}
 		if (!this.accessor.baseUrl) return `Accessor baseUrl not set`
 		if (!this.filePath) return `filePath not set`
@@ -42,10 +45,6 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (header.status >= 400) {
 			return `Error when requesting url "${this.fullUrl}": [${header.status}]: ${header.statusText}`
 		}
-		return undefined // all good
-	}
-	async checkPackageWriteAccess(): Promise<string | undefined> {
-		// todo: how to check this?
 		return undefined // all good
 	}
 	async checkPackageContainerWriteAccess(): Promise<string | undefined> {

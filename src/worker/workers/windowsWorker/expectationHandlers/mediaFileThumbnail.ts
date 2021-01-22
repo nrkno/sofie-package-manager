@@ -2,13 +2,24 @@ import { exec, ChildProcess } from 'child_process'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { hashObj } from '../../../lib/lib'
 import { Expectation } from '../../../expectationApi'
-import { compareActualExpectVersions } from '../lib/lib'
+import { compareActualExpectVersions, findPackageContainerWithAccess } from '../lib/lib'
+import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { getAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
+		// Check that we have access to the packageContainer
+
+		const accessSource = findPackageContainerWithAccess(genericWorker, exp.startRequirement.sources)
+		if (accessSource) {
+			return { support: true, reason: `Has access to source` }
+		} else {
+			return { support: false, reason: `Doesn't have access to any of the sources` }
+		}
+	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
@@ -117,7 +128,6 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				workInProgress._reportProgress(sourceVersionHash, 0.1)
 
 				ffMpegProcess = exec(args.join(' '), (err, _stdout, _stderr) => {
-					// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
 					ffMpegProcess = undefined
 					if (err) {
 						workInProgress._reportError(err)

@@ -3,6 +3,11 @@ import { GenericWorker } from '../worker'
 import { IWorkInProgress } from './workInProgress'
 
 export interface ExpectationHandler {
+	doYouSupportExpectation: (
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		windowsWorker: any
+	) => { support: boolean; reason: string }
 	isExpectationReadyToStartWorkingOn: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,

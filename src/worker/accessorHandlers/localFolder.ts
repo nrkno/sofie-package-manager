@@ -23,6 +23,9 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 	) {
 		super(worker, accessor, content, 'localFolder')
 	}
+	doYouSupportAccess(): boolean {
+		return !this.accessor.resourceId || this.accessor.resourceId === this.worker.location.localComputerId
+	}
 	checkHandleRead(): string | undefined {
 		if (!this.accessor.allowRead) {
 			return `Not allowed to read`
@@ -50,16 +53,6 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		} catch (err) {
 			// File is not readable
 			return `Not able to read file: ${err.toString()}`
-		}
-		return undefined // all good
-	}
-	async checkPackageWriteAccess(): Promise<string | undefined> {
-		try {
-			await fsAccess(this.fullPath, fs.constants.W_OK)
-			// The file exists
-		} catch (err) {
-			// File is not readable
-			return `Not able to write to file: ${err.toString()}`
 		}
 		return undefined // all good
 	}

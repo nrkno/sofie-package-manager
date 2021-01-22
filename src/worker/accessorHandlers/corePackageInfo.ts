@@ -16,6 +16,9 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		super(worker, accessor, content, 'corePackageInfo')
 		this.content
 	}
+	doYouSupportAccess(): boolean {
+		return true // always has access
+	}
 	checkHandleRead(): string | undefined {
 		// Note: We assume that we always have write access here, no need to check this.accessor.allowRead
 		return this.checkAccessor()
@@ -31,10 +34,6 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		return undefined // all good
 	}
 	async checkPackageReadAccess(): Promise<string | undefined> {
-		// todo: add a check here?
-		return undefined // all good
-	}
-	async checkPackageWriteAccess(): Promise<string | undefined> {
 		// todo: add a check here?
 		return undefined // all good
 	}

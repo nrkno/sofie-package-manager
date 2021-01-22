@@ -1,3 +1,6 @@
+import { AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
+import { getAccessorHandle } from '../../../accessorHandlers/accessor'
+import { GenericWorker } from '../../../worker'
 import { Expectation } from '../../../expectationApi'
 
 export function compareActualExpectVersions(
@@ -80,3 +83,18 @@ export interface UniversalVersion {
 	[key: string]: VersionProperty
 }
 export type VersionProperty = { name: string; value: string | number | undefined }
+
+/** Looks through the packageContainers and return the first one we support access to. */
+export function findPackageContainerWithAccess(
+	worker: GenericWorker,
+	packageContainers: PackageContainerOnPackage[]
+): { packageContainer: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: string } | undefined {
+	for (const packageContainer of packageContainers) {
+		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
+			if (getAccessorHandle(worker, accessor, {}).doYouSupportAccess()) {
+				return { packageContainer, accessor, accessorId }
+			}
+		}
+	}
+	return undefined
+}

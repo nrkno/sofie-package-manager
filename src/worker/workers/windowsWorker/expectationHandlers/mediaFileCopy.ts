@@ -7,15 +7,38 @@ import {
 	compareActualExpectVersions,
 	compareUniversalVersions,
 	makeUniversalVersion,
+	findPackageContainerWithAccess,
 } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { hashObj } from '../../../lib/lib'
-import { getAccessorHandle, isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
+import {
+	getAccessorHandle,
+	isFileShareAccessorHandle,
+	isHTTPAccessorHandle,
+	isLocalFolderHandle,
+} from '../../../accessorHandlers/accessor'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 
 export const MediaFileCopy: ExpectationWindowsHandler = {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
+		// Check that we have access to the packageContainers
+		const accessSourcePackageContainer = findPackageContainerWithAccess(genericWorker, exp.startRequirement.sources)
+		const accessTargetPackageContainer = findPackageContainerWithAccess(genericWorker, exp.endRequirement.targets)
+		if (accessSourcePackageContainer) {
+			if (accessTargetPackageContainer) {
+				return {
+					support: true,
+					reason: `Has access to source "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}" and target "${accessTargetPackageContainer.packageContainer.label}" through accessor "${accessTargetPackageContainer.accessorId}"`,
+				}
+			} else {
+				return { support: false, reason: `Doesn't have access to any of the target packageContainers` }
+			}
+		} else {
+			return { support: false, reason: `Doesn't have access to any of the source packageContainers` }
+		}
+	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker

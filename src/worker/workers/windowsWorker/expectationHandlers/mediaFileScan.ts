@@ -1,7 +1,7 @@
 import { exec, ChildProcess } from 'child_process'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../../expectationApi'
-import { compareActualExpectVersions } from '../lib/lib'
+import { compareActualExpectVersions, findPackageContainerWithAccess } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { hashObj } from '../../../lib/lib'
@@ -14,6 +14,17 @@ import {
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 
 export const MediaFileScan: ExpectationWindowsHandler = {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
+		// Check that we have access to the packageContainer
+
+		const accessSource = findPackageContainerWithAccess(genericWorker, exp.startRequirement.sources)
+		if (accessSource) {
+			return { support: true, reason: `Has access to source` }
+		} else {
+			return { support: false, reason: `Doesn't have access to any of the sources` }
+		}
+	},
+
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
