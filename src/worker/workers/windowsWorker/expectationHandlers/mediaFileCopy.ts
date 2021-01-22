@@ -116,11 +116,14 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
 		if (
-			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
-			lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER
+			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE) &&
+			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE)
 		) {
 			// We can do RoboCopy
-			if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isLocalFolderHandle(lookupSource.handle) && !isFileShareAccessorHandle(lookupSource.handle))
+				throw new Error(`Source AccessHandler type is wrong`)
 			if (!isLocalFolderHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
 
 			if (lookupSource.handle.fullPath === lookupTarget.handle.fullPath) {

@@ -52,3 +52,28 @@ export class WindowsWorker extends GenericWorker {
 		}
 	}
 }
+export interface WindowsWorkerConfig extends GenericWorkerConfig {
+	allowedMappedDriveLetters: (
+		| 'F'
+		| 'G'
+		| 'H'
+		| 'I'
+		| 'J'
+		| 'K'
+		| 'L'
+		| 'M'
+		| 'N'
+		| 'O'
+		| 'P'
+		| 'Q'
+		| 'R'
+		| 's'
+		| 'T'
+		| 'U'
+		| 'V'
+		| 'W'
+		| 'X'
+		| 'Y'
+		| 'Z'
+	)[]
+}

@@ -67,11 +67,7 @@ export namespace Expectation {
 	}
 	export interface PackageContainerOnPackageFile extends PackageContainerOnPackage {
 		accessors: {
-			[accessorId: string]:
-				| AccessorOnPackage.LocalFolder
-				| AccessorOnPackage.FileShare
-				| AccessorOnPackage.MappedDrive
-				| AccessorOnPackage.HTTP
+			[accessorId: string]: AccessorOnPackage.LocalFolder | AccessorOnPackage.FileShare | AccessorOnPackage.HTTP
 		}
 	}
 

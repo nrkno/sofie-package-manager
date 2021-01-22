@@ -14,6 +14,9 @@ export class WorkerAgent {
 	constructor(public readonly id: string, private onMessageFromWorker: MessageFromWorkerSerialized) {
 		// Todo: Different types of workers
 		this._worker = new WindowsWorker(
+			{
+				allowedMappedDriveLetters: ['X', 'Y', 'Z'],
+			},
 			async (message: MessageFromWorkerPayload) => {
 				// Forward the message to our superior over the wire:
 				const { error, result } = await this.onMessageFromWorker(message)
@@ -23,8 +26,11 @@ export class WorkerAgent {
 					return result
 				}
 			},
-			'default',
-			['default']
+			{
+				// todo: tmp:
+				localComputerId: 'default',
+				localNetworkIds: ['default'],
+			}
 		)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }> {

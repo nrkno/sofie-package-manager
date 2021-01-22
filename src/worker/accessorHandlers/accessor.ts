@@ -1,7 +1,8 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
-import { GenericAccessorHandle as GenericAccessorHandle } from './genericHandle'
+import { FileShareAccessorHandle } from './fileShare'
+import { GenericAccessorHandle } from './genericHandle'
 import { HTTPAccessorHandle } from './http'
 import { LocalFolderAccessorHandle } from './localFolder'
 
@@ -16,6 +17,8 @@ export function getAccessorHandle<Metadata>(
 		return new CorePackageInfoAccessorHandle(worker, accessor, content as any)
 	} else if (accessor.type === Accessor.AccessType.HTTP) {
 		return new HTTPAccessorHandle(worker, accessor, content as any)
+	} else if (accessor.type === Accessor.AccessType.FILE_SHARE) {
+		return new FileShareAccessorHandle(worker, accessor, content as any)
 	} else {
 		throw new Error(`Unsupported Accessor type "${accessor.type}"`)
 	}
@@ -35,4 +38,9 @@ export function isHTTPAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is HTTPAccessorHandle<Metadata> {
 	return accessorHandler.type === 'http'
+}
+export function isFileShareAccessorHandle<Metadata>(
+	accessorHandler: GenericAccessorHandle<Metadata>
+): accessorHandler is FileShareAccessorHandle<Metadata> {
+	return accessorHandler.type === 'fileShare'
 }
