@@ -1,6 +1,6 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../../expectationApi'
-import { GenericWorker, IWorkInProgress, WorkInProgress } from '../../../worker'
+import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 import {
 	UniversalVersion,
@@ -13,6 +13,7 @@ import { hashObj } from '../../../lib/lib'
 import { getAccessorHandle, isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { ByteCounter } from '../../../lib/streamByteCounter'
+import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 
 export const MediaFileCopy: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (

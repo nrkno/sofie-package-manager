@@ -2,7 +2,7 @@ import { exec, ChildProcess } from 'child_process'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../../expectationApi'
 import { compareActualExpectVersions } from '../lib/lib'
-import { GenericWorker, IWorkInProgress, WorkInProgress } from '../../../worker'
+import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { hashObj } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
@@ -11,6 +11,7 @@ import {
 	isCorePackageInfoAccessorHandle,
 	isLocalFolderHandle,
 } from '../../../accessorHandlers/accessor'
+import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 
 export const MediaFileScan: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (

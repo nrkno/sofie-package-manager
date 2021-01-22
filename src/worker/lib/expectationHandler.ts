@@ -1,5 +1,6 @@
 import { Expectation } from '../expectationApi'
-import { GenericWorker, IWorkInProgress } from '../worker'
+import { GenericWorker } from '../worker'
+import { IWorkInProgress } from './workInProgress'
 
 export interface ExpectationHandler {
 	isExpectationReadyToStartWorkingOn: (

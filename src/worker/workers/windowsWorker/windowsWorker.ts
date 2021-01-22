@@ -1,12 +1,13 @@
 import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../expectationApi'
 
-import { GenericWorker, IWorkInProgress } from '../../worker'
+import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker'
 import { MediaFileCopy } from './expectationHandlers/mediaFileCopy'
 import { MediaFileScan } from './expectationHandlers/mediaFileScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
 import { MessageFromWorker } from '../../../workerAgent'
+import { IWorkInProgress } from '../../lib/workInProgress'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {

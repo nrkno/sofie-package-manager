@@ -1,5 +1,6 @@
 import { Expectation } from './worker/expectationApi'
-import { GenericWorker, IWorkInProgress } from './worker/worker'
+import { IWorkInProgress } from './worker/lib/workInProgress'
+import { GenericWorker } from './worker/worker'
 import { WindowsWorker } from './worker/workers/windowsWorker/windowsWorker'
 
 // Note:

@@ -1,7 +1,8 @@
+import { IWorkInProgress } from '../../lib/workInProgress'
 import { MessageFromWorker } from '../../../workerAgent'
 import { Expectation } from '../../expectationApi'
 
-import { GenericWorker, IWorkInProgress } from '../../worker'
+import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker'
 
 /** This is a type of worker that runs on a linux machine */
 export class WindowsWorker extends GenericWorker {

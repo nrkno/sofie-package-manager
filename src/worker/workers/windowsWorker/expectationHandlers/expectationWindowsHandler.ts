@@ -1,7 +1,8 @@
 import { ExpectationHandler } from '../../../lib/expectationHandler'
 import { Expectation } from '../../../expectationApi'
-import { GenericWorker, IWorkInProgress } from '../../../worker'
+import { GenericWorker } from '../../../worker'
 import { WindowsWorker } from '../windowsWorker'
+import { IWorkInProgress } from '../../../lib/workInProgress'
 
 export interface ExpectationWindowsHandler extends ExpectationHandler {
 	isExpectationReadyToStartWorkingOn: (

@@ -2,7 +2,7 @@ import * as _ from 'underscore'
 import { LoggerInstance } from './index'
 import { Workforce } from './workforce'
 import { Expectation } from './worker/expectationApi'
-import { IWorkInProgress } from './worker/worker'
+import { IWorkInProgress } from './worker/lib/workInProgress'
 import { MessageFromWorker, WorkerAgent } from './workerAgent'
 
 export class ExpectationManager {
