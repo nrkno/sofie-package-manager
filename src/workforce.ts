@@ -2,7 +2,7 @@ import { MessageFromWorker, MessageFromWorkerPayload, WorkerAgent } from './work
 
 export class Workforce {
 	private i = 0
-	private workerAgents: { [id: string]: WorkerAgent } = {}
+	private workerAgents: { [id: string]: TrackedWorkerAgent } = {}
 
 	constructor(private onMessageFromWorker: MessageFromWorker) {}
 
@@ -13,28 +13,29 @@ export class Workforce {
 		await this.addWorkerAgent()
 		await this.addWorkerAgent()
 	}
-	getWorkerAgent(id: string): WorkerAgent | undefined {
+	public getAllWorkerAgents(): WorkerAgent[] {
+		return Object.values(this.workerAgents).map((w) => w.worker)
+	}
+	public getWorkerAgent(id: string): TrackedWorkerAgent | undefined {
 		return this.workerAgents[id]
 	}
-	getWorkerAgentIds(): string[] {
-		return Object.keys(this.workerAgents)
-	}
-	getWorkerAgents(): WorkerAgent[] {
-		return Object.values(this.workerAgents)
-	}
-	getNextFreeWorker(ids: string[]): WorkerAgent | undefined {
-		for (const id of ids) {
-			const workerAgent = this.getWorkerAgent(id)
-			if (workerAgent && workerAgent.isFree()) {
-				return workerAgent
-			}
-		}
-		return undefined
-	}
+	// getWorkerAgentIds(): string[] {
+	// 	return Object.keys(this.workerAgents)
+	// }
+
+	// getNextFreeWorker(ids: string[]): WorkerAgent | undefined {
+	// 	for (const id of ids) {
+	// 		const workerAgent = this.getWorkerAgent(id)
+	// 		if (workerAgent && workerAgent.isFree()) {
+	// 			return workerAgent
+	// 		}
+	// 	}
+	// 	return undefined
+	// }
 	private async addWorkerAgent(): Promise<string> {
 		const id = 'agent' + this.i++
 
-		this.workerAgents[id] = new WorkerAgent(id, async (message: MessageFromWorkerPayload) => {
+		const worker = new WorkerAgent(id, async (message: MessageFromWorkerPayload) => {
 			try {
 				return { error: undefined, result: await this.onMessageFromWorker(message) }
 			} catch (error) {
@@ -42,6 +43,14 @@ export class Workforce {
 			}
 		})
 
+		this.workerAgents[id] = {
+			worker: worker,
+		}
+
 		return id
 	}
+}
+
+interface TrackedWorkerAgent {
+	worker: WorkerAgent
 }

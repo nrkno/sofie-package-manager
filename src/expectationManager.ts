@@ -3,25 +3,27 @@ import { LoggerInstance } from './index'
 import { Workforce } from './workforce'
 import { Expectation } from './worker/expectationApi'
 import { IWorkInProgress } from './worker/lib/workInProgress'
-import { MessageFromWorker, WorkerAgent } from './workerAgent'
+import { ExpectationCost, MessageFromWorker, WorkerAgent } from './workerAgent'
 
 export class ExpectationManager {
-	private readonly HANDLE_INTERVAL = 2000
+	private readonly EVALUATE_INTERVAL = 10 * 1000
+	private readonly FULLFILLED_MONITOR_TIME = 10 * 1000 // ms
+	private readonly ALLOW_SKIPPING_QUEUE_TIME = 30 * 1000 // ms
 
 	private _workforce: Workforce = new Workforce(this.onMessageFromWorker)
 
 	private receivedExpectations: { [id: string]: Expectation.Any } = {}
-	private receivedExpectationsUpdated = false
+	private receivedExpectationsHasBeenUpdated = false
 
 	private tracked: { [id: string]: TrackedExpectation } = {}
 	private triggerByFullfilledIds: { [fullfilledId: string]: string[] } = {}
-	private _handleExpectationsTimeout: NodeJS.Timeout | undefined = undefined
-	private _handleExpectationsBusy = false
-	private _handleExpectationsRunAsap = false
+	private _evaluateExpectationsTimeout: NodeJS.Timeout | undefined = undefined
+	private _evaluateExpectationsIsBusy = false
+	private _evaluateExpectationsRunAsap = false
 
 	constructor(
 		private logger: LoggerInstance,
-		private updateExpectationStatus: (
+		private reportExpectationStatus: (
 			expectationId: string,
 			expectaction: Expectation.Any | null,
 			actualVersionHash: string | null,
@@ -33,7 +35,7 @@ export class ExpectationManager {
 		) => void,
 		private onMessageFromWorker: MessageFromWorker
 	) {
-		this._triggerHandleExpectations(true)
+		this._triggerEvaluateExpectations(true)
 	}
 
 	async init(): Promise<void> {
@@ -42,252 +44,102 @@ export class ExpectationManager {
 
 	updateExpectations(expectations: { [id: string]: Expectation.Any }): void {
 		this.receivedExpectations = expectations
-		this.receivedExpectationsUpdated = true
+		this.receivedExpectationsHasBeenUpdated = true
 
-		this._triggerHandleExpectations(true)
+		this._triggerEvaluateExpectations(true)
 	}
-	private _triggerHandleExpectations(asap?: boolean) {
-		if (asap) this._handleExpectationsRunAsap = true
-		if (this._handleExpectationsBusy) return
+	private _triggerEvaluateExpectations(asap?: boolean) {
+		if (asap) this._evaluateExpectationsRunAsap = true
+		if (this._evaluateExpectationsIsBusy) return
 
-		if (this._handleExpectationsTimeout) {
-			clearTimeout(this._handleExpectationsTimeout)
-			this._handleExpectationsTimeout = undefined
+		if (this._evaluateExpectationsTimeout) {
+			clearTimeout(this._evaluateExpectationsTimeout)
+			this._evaluateExpectationsTimeout = undefined
 		}
 
-		this._handleExpectationsTimeout = setTimeout(
+		this._evaluateExpectationsTimeout = setTimeout(
 			() => {
-				this._handleExpectationsRunAsap = false
-				this._handleExpectationsBusy = true
-				this._handleExpectations()
-					.then((runAgainASAP: boolean) => {
-						this._handleExpectationsBusy = false
-						this._triggerHandleExpectations(runAgainASAP)
+				this._evaluateExpectationsRunAsap = false
+				this._evaluateExpectationsIsBusy = true
+				this._evaluateExpectations()
+					.then(() => {
+						this._evaluateExpectationsIsBusy = false
+						this._triggerEvaluateExpectations()
 					})
 					.catch((err) => {
 						this.logger.error(err)
 
-						this._handleExpectationsBusy = false
-						this._triggerHandleExpectations()
+						this._evaluateExpectationsIsBusy = false
+						this._triggerEvaluateExpectations()
 					})
 			},
-			this._handleExpectationsRunAsap ? 100 : this.HANDLE_INTERVAL
+			this._evaluateExpectationsRunAsap ? 100 : this.EVALUATE_INTERVAL
 		)
 	}
-	private async _handleExpectations(): Promise<boolean> {
-		this.logger.info(Date.now() / 1000 + ' _handleExpectations ----------')
-		if (this.receivedExpectationsUpdated) {
+	private async _evaluateExpectations(): Promise<void> {
+		this.logger.info(Date.now() / 1000 + ' _evaluateExpectations ----------')
+		if (this.receivedExpectationsHasBeenUpdated) {
 			await this.updateReceivedExpectations()
 		}
+
+		const tracked: TrackedExpectation[] = Object.values(this.tracked)
+		tracked.sort((a, b) => {
+			// Lowest priority first
+			if (a.exp.priority > b.exp.priority) return 1
+			if (a.exp.priority < b.exp.priority) return -1
+
+			// Lowest lastOperationTime first
+			if (a.lastEvaluationTime > b.lastEvaluationTime) return 1
+			if (a.lastEvaluationTime < b.lastEvaluationTime) return -1
+
+			return 0
+		})
+
+		const startTime = Date.now()
 		let runAgainASAP = false
-
-		const now = Date.now()
-
-		const MAX_COUNT_PER_ITERATION = 10
-		const RETRY_TIME = 10 * 1000 // ms
-		const FULLFILLED_MONITOR_TIME = 10 * 1000 // ms
-
-		const tracked: TrackedExpectation[] = []
-		for (const id of Object.keys(this.tracked)) {
-			const trackedExp = this.tracked[id]
-
-			if (now - trackedExp.lastOperationTime > RETRY_TIME) {
-				tracked.push(trackedExp)
-			}
-		}
-		tracked.sort((a, b) => a.lastOperationTime - b.lastOperationTime)
-
-		const goThroughTracked: TrackedExpectation[] = []
-		for (let i = 0; i < tracked.length && i < MAX_COUNT_PER_ITERATION; i++) {
-			goThroughTracked.push(tracked[i])
-		}
-
 		const removeIds: string[] = []
 
-		await Promise.all(
-			goThroughTracked.map(async (trackedExp) => {
-				const prevStatus = trackedExp.status
-				const prevReason = trackedExp.reason
-				try {
-					if (trackedExp.status === TrackedExpectationStatus.NEW) {
-						trackedExp.lastOperationTime = now
-
-						// Check which workers might want to handle it:
-						this.logger.info(`${trackedExp.exp.statusReport.label}: New`)
-
-						trackedExp.potentialWorkerIds = []
-						for (const workerAgent of this._workforce.getWorkerAgents()) {
-							if (workerAgent && (await workerAgent.doYouSupportExpectation(trackedExp.exp))) {
-								trackedExp.potentialWorkerIds.push(workerAgent.id)
-							}
-						}
-						if (trackedExp.potentialWorkerIds.length) {
-							trackedExp.status = TrackedExpectationStatus.NOT_READY
-						} else {
-							trackedExp.reason = 'No workers found'
-							this.logger.info(`${trackedExp.exp.statusReport.label}: Reason: ${trackedExp.reason}`)
-						}
-					}
-					if (trackedExp.status === TrackedExpectationStatus.NOT_READY) {
-						// Check if the expectation is ready to start:
-						this.logger.info(`${trackedExp.exp.statusReport.label}: Not ready`)
-
-						const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
-						if (workerAgent) {
-							trackedExp.lastOperationTime = now
-							// First, check if it is already fulfilled
-							const fulfilled = await workerAgent.isExpectationFullfilled(trackedExp.exp)
-							if (fulfilled.fulfilled) {
-								// The expectation is already fulfilled
-								trackedExp.status = TrackedExpectationStatus.FULFILLED
-								trackedExp.reason = fulfilled.reason
-								if (this.handleTriggerByFullfilledIds(trackedExp)) {
-									runAgainASAP = true
-								}
-							} else {
-								const readyToStart = await this.isExpectationReadyToStartWorkingOn(
-									workerAgent,
-									trackedExp
-								)
-								if (readyToStart.ready) {
-									trackedExp.status = TrackedExpectationStatus.READY
-								} else {
-									trackedExp.reason = readyToStart.reason
-									this.logger.info(
-										`${trackedExp.exp.statusReport.label}: Reason: ${trackedExp.reason}`
-									)
-								}
-							}
-						}
-					}
-					if (trackedExp.status === TrackedExpectationStatus.READY) {
-						// Start working on it:
-						this.logger.info(`${trackedExp.exp.statusReport.label}: Ready`)
-
-						const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
-						if (workerAgent) {
-							trackedExp.lastOperationTime = now
-
-							trackedExp.workInProgress = await workerAgent.workOnExpectation(trackedExp.exp)
-
-							trackedExp.workInProgress.on(
-								'progress',
-								(actualVersionHash: string | null, progress: number) => {
-									this.logger.info(
-										`Expectation "${JSON.stringify(
-											trackedExp.exp.statusReport.label
-										)}" progress: ${progress}`
-									)
-
-									this.updateExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
-										progress: progress,
-									})
-								}
-							)
-							trackedExp.workInProgress.on('error', (err: string) => {
-								if (trackedExp.status === TrackedExpectationStatus.WORKING) {
-									trackedExp.reason = err
-									this.logger.info(
-										`${trackedExp.exp.statusReport.label}: Reason: ${trackedExp.reason}`
-									)
-									trackedExp.lastOperationTime = Date.now()
-									trackedExp.status = TrackedExpectationStatus.NOT_READY
-
-									this.updateExpectationStatus(trackedExp.id, trackedExp.exp, null, {
-										status: trackedExp.status,
-										statusReason: trackedExp.reason,
-									})
-								}
-							})
-							trackedExp.workInProgress.on(
-								'done',
-								(actualVersionHash: string, reason: string, result: any) => {
-									if (trackedExp.status === TrackedExpectationStatus.WORKING) {
-										trackedExp.status = TrackedExpectationStatus.FULFILLED
-										trackedExp.lastOperationTime = Date.now()
-										trackedExp.reason = reason
-
-										this.updateExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
-											status: trackedExp.status,
-											statusReason: trackedExp.reason,
-											progress: 1,
-										})
-
-										if (trackedExp.handleResult) {
-											trackedExp.handleResult(result)
-										}
-										if (this.handleTriggerByFullfilledIds(trackedExp)) {
-											// Something was triggered, run again ASAP:
-											this._triggerHandleExpectations(true)
-										}
-									}
-								}
-							)
-
-							trackedExp.status = TrackedExpectationStatus.WORKING
-						}
-					}
-					if (trackedExp.status === TrackedExpectationStatus.FULFILLED) {
-						// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore
-
-						if (now - trackedExp.lastOperationTime > FULLFILLED_MONITOR_TIME) {
-							trackedExp.lastOperationTime = now
-
-							const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
-							if (workerAgent) {
-								// Check if it is still fulfilled:
-								const fulfilled = await workerAgent.isExpectationFullfilled(trackedExp.exp)
-								if (!fulfilled.fulfilled) {
-									trackedExp.status = TrackedExpectationStatus.NOT_READY
-									trackedExp.reason = fulfilled.reason
-									this.logger.info(
-										`${trackedExp.exp.statusReport.label}: Setting to Not ready, reason: ${trackedExp.reason}`
-									)
-									trackedExp.lastOperationTime = 0 // so that it reruns ASAP
-									runAgainASAP = true
-								}
-							}
-						}
-					}
-					if (trackedExp.status === TrackedExpectationStatus.REMOVED) {
-						const workerAgent = this._workforce.getNextFreeWorker(trackedExp.potentialWorkerIds)
-						if (workerAgent) {
-							const removed = await workerAgent.removeExpectation(trackedExp.exp)
-							if (removed.removed) {
-								removeIds.push(trackedExp.id)
-
-								this.updateExpectationStatus(trackedExp.id, null, null, {})
-							} else {
-								trackedExp.reason = removed.reason
-							}
-						}
-					}
-				} catch (err) {
-					this.logger.error(err)
-					trackedExp.reason = err.toString()
+		for (const trackedExp of tracked) {
+			let assignedWorker: WorkerAgentAssignment | undefined
+			let runAgain = true
+			let runCount = 0
+			while (runAgain) {
+				runAgain = false
+				runCount++
+				const session = await this.evaluateTrackedExpectation(trackedExp, assignedWorker)
+				assignedWorker = session.assignedWorker // So that this will be piped right into the evatuation on next pass
+				if (session.triggerExpectationAgain && runCount < 10) {
+					// Will cause this expectation to be evaluated again ASAP
+					runAgain = true
 				}
-
-				if (trackedExp.status !== prevStatus) {
-					this.updateExpectationStatus(trackedExp.id, trackedExp.exp, null, {
-						status: trackedExp.status,
-					})
-					this.logger.info(`${trackedExp.exp.statusReport.label}.status: ${trackedExp.status}`)
+				if (session.triggerOtherExpectationsAgain) {
+					// Will cause another iteration of this._handleExpectations to be called again ASAP after this iteration has finished
+					runAgainASAP = true
 				}
-				if (trackedExp.reason !== prevReason) {
-					this.updateExpectationStatus(trackedExp.id, trackedExp.exp, null, {
-						statusReason: trackedExp.reason,
-					})
-					this.logger.info(`${trackedExp.exp.statusReport.label}.reason: ${trackedExp.reason}`)
+				if (session.expectationCanBeRemoved) {
+					// The tracked expectation can be removed
+					removeIds.push(trackedExp.id)
 				}
-			})
-		)
+			}
+			if (runAgainASAP && Date.now() - startTime > this.ALLOW_SKIPPING_QUEUE_TIME) {
+				// Skip the rest of the queue, so that we don't get stuck on evaluating low-prios far down the line.
+				break
+			}
+			if (this.receivedExpectationsHasBeenUpdated) {
+				// We have received new expectations. We should abort the evaluation queue and restart from the beginning.
+				runAgainASAP = true
+				break
+			}
+		}
 		for (const id of removeIds) {
 			delete this.tracked[id]
 		}
-		return runAgainASAP
+		if (runAgainASAP) {
+			this._triggerEvaluateExpectations(true)
+		}
 	}
 	private async updateReceivedExpectations(): Promise<void> {
-		this.receivedExpectationsUpdated = false
+		this.receivedExpectationsHasBeenUpdated = false
 
 		// Added / Changed
 		for (const id of Object.keys(this.receivedExpectations)) {
@@ -300,7 +152,7 @@ export class ExpectationManager {
 			} else if (!_.isEqual(this.tracked[id].exp, exp)) {
 				const trackedExp = this.tracked[id]
 
-				if (trackedExp.status == TrackedExpectationStatus.WORKING) {
+				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.workInProgress) {
 						await trackedExp.workInProgress.cancel()
 					}
@@ -311,9 +163,9 @@ export class ExpectationManager {
 				this.tracked[id] = {
 					id: id,
 					exp: exp,
-					status: TrackedExpectationStatus.NEW,
-					potentialWorkerIds: [],
-					lastOperationTime: 0,
+					state: TrackedExpectationState.NEW,
+					availableWorkers: [],
+					lastEvaluationTime: 0,
 				}
 			}
 		}
@@ -326,14 +178,14 @@ export class ExpectationManager {
 
 				const trackedExp = this.tracked[id]
 
-				if (trackedExp.status == TrackedExpectationStatus.WORKING) {
+				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.workInProgress) {
 						await trackedExp.workInProgress.cancel()
 					}
 				}
 
-				trackedExp.status = TrackedExpectationStatus.REMOVED
-				trackedExp.lastOperationTime = 0 // To rerun ASAP
+				trackedExp.state = TrackedExpectationState.REMOVED
+				trackedExp.lastEvaluationTime = 0 // To rerun ASAP
 			}
 		}
 
@@ -354,19 +206,279 @@ export class ExpectationManager {
 			}
 		}
 	}
+	async evaluateTrackedExpectation(
+		trackedExp: TrackedExpectation,
+		assignedWorker0: WorkerAgentAssignment | undefined
+	): Promise<ExpectationStateHandlerSession> {
+		const timeSinceLastEvaluation = Date.now() - trackedExp.lastEvaluationTime
+
+		const session: ExpectationStateHandlerSession = {
+			triggerExpectationAgain: false,
+			triggerOtherExpectationsAgain: false,
+			assignedWorker: assignedWorker0,
+		}
+		try {
+			if (trackedExp.state === TrackedExpectationState.NEW) {
+				// Check which workers might want to handle it:
+
+				trackedExp.availableWorkers = []
+				let notSupportReason = 'No workers registered'
+				await Promise.all(
+					this._workforce.getAllWorkerAgents().map(async (workerAgent) => {
+						const support = await workerAgent.doYouSupportExpectation(trackedExp.exp)
+
+						if (support.support) {
+							trackedExp.availableWorkers.push(workerAgent.id)
+						} else {
+							notSupportReason = support.reason
+						}
+					})
+				)
+				if (trackedExp.availableWorkers.length) {
+					this.updateTrackedExp(
+						trackedExp,
+						TrackedExpectationState.WAITING,
+						`Found ${trackedExp.availableWorkers.length} workers who supports this Expectation`
+					)
+					session.triggerExpectationAgain = true
+				} else {
+					this.updateTrackedExp(
+						trackedExp,
+						TrackedExpectationState.NEW,
+						`Found no workers who supports this Expectation: "${notSupportReason}"`
+					)
+				}
+			} else if (trackedExp.state === TrackedExpectationState.WAITING) {
+				// Check if the expectation is ready to start:
+
+				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				if (session.assignedWorker) {
+					// First, check if it is already fulfilled:
+					const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(trackedExp.exp)
+					if (fulfilled.fulfilled) {
+						// The expectation is already fulfilled:
+						this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
+						if (this.handleTriggerByFullfilledIds(trackedExp)) {
+							// Something was triggered, run again ASAP:
+							session.triggerOtherExpectationsAgain = true
+						}
+					} else {
+						const readyToStart = await this.isExpectationReadyToStartWorkingOn(
+							session.assignedWorker.worker,
+							trackedExp
+						)
+						if (readyToStart.ready) {
+							this.updateTrackedExp(trackedExp, TrackedExpectationState.READY, 'Ready to start')
+							session.triggerExpectationAgain = true
+						} else {
+							// Not ready to start
+							this.updateTrackedExp(trackedExp, TrackedExpectationState.WAITING, readyToStart.reason)
+						}
+					}
+				} else {
+					// No worker is available at the moment.
+					// Do nothing, hopefully some will be available at a later iteration
+					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+				}
+			} else if (trackedExp.state === TrackedExpectationState.READY) {
+				// Start working on it:
+
+				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				if (session.assignedWorker) {
+					this.updateTrackedExp(trackedExp, TrackedExpectationState.WORKING, 'Start working')
+
+					// Start working on the Expectation:
+					trackedExp.workInProgress = await session.assignedWorker.worker.workOnExpectation(
+						trackedExp.exp,
+						session.assignedWorker.cost
+					)
+
+					trackedExp.workInProgress.on('progress', (actualVersionHash: string | null, progress: number) => {
+						this.logger.info(
+							`Expectation "${JSON.stringify(trackedExp.exp.statusReport.label)}" progress: ${progress}`
+						)
+
+						this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
+							progress: progress,
+						})
+					})
+					trackedExp.workInProgress.on('error', (err: string) => {
+						if (trackedExp.state === TrackedExpectationState.WORKING) {
+							this.updateTrackedExp(trackedExp, TrackedExpectationState.WAITING, err)
+							this.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
+								status: trackedExp.state,
+								statusReason: trackedExp.reason,
+							})
+						}
+					})
+					trackedExp.workInProgress.on('done', (actualVersionHash: string, reason: string, result: any) => {
+						if (trackedExp.state === TrackedExpectationState.WORKING) {
+							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, reason)
+							this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
+								status: trackedExp.state,
+								statusReason: trackedExp.reason,
+								progress: 1,
+							})
+
+							if (trackedExp.handleResult) {
+								trackedExp.handleResult(result)
+							}
+							if (this.handleTriggerByFullfilledIds(trackedExp)) {
+								// Something was triggered, run again asap.
+							}
+							// We should reevaluate asap, so that any other expectation which might be waiting on this worker could start.
+							this._triggerEvaluateExpectations(true)
+						}
+					})
+				} else {
+					// No worker is available at the moment.
+					// Do nothing, hopefully some will be available at a later iteration
+					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+				}
+			} else if (trackedExp.state === TrackedExpectationState.FULFILLED) {
+				// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore?
+
+				if (timeSinceLastEvaluation > this.FULLFILLED_MONITOR_TIME) {
+					session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+					if (session.assignedWorker) {
+						// Check if it is still fulfilled:
+						const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(trackedExp.exp)
+						if (fulfilled.fulfilled) {
+							// Yes it is still fullfiled
+							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
+						} else {
+							// It appears like it's not fullfilled anymore
+							this.updateTrackedExp(trackedExp, TrackedExpectationState.WAITING, fulfilled.reason)
+							session.triggerExpectationAgain = true
+						}
+					} else {
+						// No worker is available at the moment.
+						// Do nothing, hopefully some will be available at a later iteration
+						this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+					}
+				}
+			} else if (trackedExp.state === TrackedExpectationState.REMOVED) {
+				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				if (session.assignedWorker) {
+					const removed = await session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+					if (removed.removed) {
+						session.expectationCanBeRemoved = true
+
+						this.reportExpectationStatus(trackedExp.id, null, null, {})
+					} else {
+						this.updateTrackedExp(trackedExp, TrackedExpectationState.REMOVED, removed.reason)
+					}
+				} else {
+					// No worker is available at the moment.
+					// Do nothing, hopefully some will be available at a later iteration
+					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+				}
+			}
+		} catch (err) {
+			this.logger.error(err)
+			this.updateTrackedExp(trackedExp, undefined, err.toString())
+		}
+		return session
+	}
+	private updateTrackedExp(
+		trackedExp: TrackedExpectation,
+		state: TrackedExpectationState | undefined,
+		reason: string | undefined
+	) {
+		trackedExp.lastEvaluationTime = Date.now()
+
+		const prevState = trackedExp.state
+		let updatedState = false
+		let updatedReason = false
+		if (state !== undefined && trackedExp.state !== state) {
+			trackedExp.state = state
+			updatedState = true
+		}
+
+		if (trackedExp.reason !== reason) {
+			trackedExp.reason = reason
+			updatedReason = true
+		}
+		// Log and report new states an reasons:
+		if (updatedState) {
+			this.logger.info(
+				`${trackedExp.exp.statusReport.label}: New state: "${prevState}"->"${trackedExp.state}", reason: "${trackedExp.reason}"`
+			)
+			this.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
+				status: trackedExp.state,
+				statusReason: trackedExp.reason,
+			})
+		} else if (updatedReason) {
+			this.logger.info(
+				`${trackedExp.exp.statusReport.label}: State: "${trackedExp.state}", reason: "${trackedExp.reason}"`
+			)
+			this.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
+				status: trackedExp.state,
+				statusReason: trackedExp.reason,
+			})
+		}
+	}
+	private async determineWorker(trackedExp: TrackedExpectation): Promise<WorkerAgentAssignment | undefined> {
+		/** How many requests to send out simultaneously */
+		const batchSize = 10
+		/** How many answers we want to have to be content */
+		const minWorkerCount = batchSize / 2
+
+		const workerCosts: WorkerAgentAssignment[] = []
+
+		for (let i = 0; i < trackedExp.availableWorkers.length; i += batchSize) {
+			const batchOfWorkers = trackedExp.availableWorkers.slice(i, i + batchSize)
+
+			await Promise.all(
+				batchOfWorkers.map(async (workerId) => {
+					const worker = this._workforce.getWorkerAgent(workerId)
+					if (worker) {
+						const cost = await worker.worker.getCostForExpectation(trackedExp.exp)
+
+						if (cost.cost < Number.POSITIVE_INFINITY) {
+							workerCosts.push({
+								worker: worker.worker,
+								cost,
+							})
+						}
+					}
+				})
+			)
+			if (workerCosts.length >= minWorkerCount) break
+		}
+
+		workerCosts.sort((a, b) => {
+			// Lowest cost first
+			const aCost: number = a.cost.startCost + a.cost.cost
+			const bCost: number = b.cost.startCost + b.cost.cost
+			if (aCost > bCost) return 1
+			if (aCost < bCost) return -1
+			return 0
+		})
+
+		const bestWorker = workerCosts[0]
+
+		if (bestWorker) {
+			if (bestWorker.cost.startCost < 10) {
+				// Only allow starting if the job can start in a short while
+				return bestWorker
+			}
+		}
+		return undefined
+	}
 	/**
 	 * To be called when trackedExp.status turns fullfilled.
 	 * Triggers any other expectations that listens to the fullfilled one.
 	 */
 	private handleTriggerByFullfilledIds(trackedExp: TrackedExpectation): boolean {
 		let hasTriggeredSomething = false
-		if (trackedExp.status === TrackedExpectationStatus.FULFILLED) {
+		if (trackedExp.state === TrackedExpectationState.FULFILLED) {
 			const toTriggerIds = this.triggerByFullfilledIds[trackedExp.id] || []
 
 			for (const id of toTriggerIds) {
 				const toTriggerExp = this.tracked[id]
 				if (toTriggerExp) {
-					toTriggerExp.lastOperationTime = 0 // so that it reruns ASAP
+					toTriggerExp.lastEvaluationTime = 0 // so that it reruns ASAP
 					hasTriggeredSomething = true
 				}
 			}
@@ -380,11 +492,12 @@ export class ExpectationManager {
 		ready: boolean
 		reason?: string | undefined
 	}> {
+		// Intercept if
 		if (trackedExp.exp.dependsOnFullfilled?.length) {
 			// Check if those are fullfilled:
 			let waitingFor: TrackedExpectation | undefined = undefined
 			for (const id of trackedExp.exp.dependsOnFullfilled) {
-				if (this.tracked[id].status !== TrackedExpectationStatus.FULFILLED) {
+				if (this.tracked[id].state !== TrackedExpectationState.FULFILLED) {
 					waitingFor = this.tracked[id]
 					break
 				}
@@ -400,9 +513,9 @@ export class ExpectationManager {
 		return await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
 	}
 }
-enum TrackedExpectationStatus {
+export enum TrackedExpectationState {
 	NEW = 'new',
-	NOT_READY = 'not_ready',
+	WAITING = 'waiting',
 	READY = 'ready',
 	WORKING = 'working',
 	FULFILLED = 'fulfilled',
@@ -411,10 +524,26 @@ enum TrackedExpectationStatus {
 interface TrackedExpectation {
 	id: string
 	exp: Expectation.Any
-	status: TrackedExpectationStatus
-	potentialWorkerIds: string[]
-	lastOperationTime: number
+	state: TrackedExpectationState
+	/** List of worker ids that supports this Expectation */
+	availableWorkers: string[]
+	lastEvaluationTime: number
 	reason?: string
 	workInProgress?: IWorkInProgress
 	handleResult?: (result: any) => void
+}
+interface ExpectationStateHandlerSession {
+	/** Set to true if the tracked expectation should be triggered again ASAP */
+	triggerExpectationAgain?: boolean
+	/** Set to true if the other tracked expectations should be triggered again ASAP */
+	triggerOtherExpectationsAgain?: boolean
+	/** Set to true when the tracked expectation can safely be removed */
+	expectationCanBeRemoved?: boolean
+
+	/** The Worker assigned to the Expectation for this evaluation */
+	assignedWorker: WorkerAgentAssignment | undefined
+}
+interface WorkerAgentAssignment {
+	worker: WorkerAgent
+	cost: ExpectationCost
 }

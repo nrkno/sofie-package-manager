@@ -20,6 +20,9 @@ export namespace Expectation {
 		id: string
 		type: Type
 
+		/** Expectation priority. Lower will be handled first */
+		priority: number
+
 		/** A list of which expectedPackages that resultet in this expectation */
 		fromPackages: {
 			/** ExpectedPackage id */

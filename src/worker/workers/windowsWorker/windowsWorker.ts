@@ -27,6 +27,9 @@ export class WindowsWorker extends GenericWorker {
 			}
 		}
 	}
+	getCostFortExpectation(exp: Expectation.Any): Promise<number> {
+		return this.getExpectationHandler(exp).getCostForExpectation(exp, this, this)
+	}
 	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
 		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
 	}

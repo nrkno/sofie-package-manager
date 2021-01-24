@@ -10,6 +10,11 @@ export interface ExpectationWindowsHandler extends ExpectationHandler {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	) => { support: boolean; reason: string }
+	getCostForExpectation: (
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		specificWorker: WindowsWorker
+	) => Promise<number>
 	isExpectationReadyToStartWorkingOn: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,

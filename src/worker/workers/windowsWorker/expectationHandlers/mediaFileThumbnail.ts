@@ -1,8 +1,8 @@
 import { exec, ChildProcess } from 'child_process'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { hashObj } from '../../../lib/lib'
+import { hashObj, prioritizeAccessors } from '../../../lib/lib'
 import { Expectation } from '../../../expectationApi'
-import { compareActualExpectVersions, findPackageContainerWithAccess } from '../lib/lib'
+import { compareActualExpectVersions, findBestPackageContainerWithAccess } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
@@ -13,12 +13,29 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
 		// Check that we have access to the packageContainer
 
-		const accessSource = findPackageContainerWithAccess(genericWorker, exp.startRequirement.sources)
+		const accessSource = findBestPackageContainerWithAccess(genericWorker, exp.startRequirement.sources)
 		if (accessSource) {
 			return { support: true, reason: `Has access to source` }
 		} else {
 			return { support: false, reason: `Doesn't have access to any of the sources` }
 		}
+	},
+	getCostForExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<number> => {
+		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+
+		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
+
+		const accessorTypeCost: { [key: string]: number } = {
+			[Accessor.AccessType.LOCAL_FOLDER]: 1,
+			[Accessor.AccessType.QUANTEL]: 1,
+			[Accessor.AccessType.FILE_SHARE]: 2,
+			[Accessor.AccessType.HTTP]: 3,
+		}
+		const sourceCost = accessSourcePackageContainer
+			? 10 * accessorTypeCost[accessSourcePackageContainer.accessor.type as string] || 5
+			: Number.POSITIVE_INFINITY
+
+		return sourceCost
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
@@ -198,39 +215,37 @@ async function lookupSources(
 	let errorReason: undefined | string = 'No source found'
 
 	// See if the file is available at any of the sources:
-	for (const packageContainer of exp.startRequirement.sources) {
-		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			errorReason = undefined
+	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.startRequirement.sources)) {
+		errorReason = undefined
 
-			const handle = getAccessorHandle<Metadata>(worker, accessor, exp.startRequirement.content)
+		const handle = getAccessorHandle<Metadata>(worker, accessor, exp.startRequirement.content)
 
-			const issueAccessor = handle.checkHandleRead()
-			if (issueAccessor) {
-				errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issueAccessor}`
-				continue // Maybe next source works?
-			}
+		const issueAccessor = handle.checkHandleRead()
+		if (issueAccessor) {
+			errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issueAccessor}`
+			continue // Maybe next source works?
+		}
 
-			const issuePackageContainer = await handle.checkPackageReadAccess()
-			if (issuePackageContainer) {
-				errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issuePackageContainer}`
-				continue // Maybe next source works?
-			}
-			// Check that the file is of the right version:
-			const actualSourceVersion = await handle.getPackageActualVersion()
-			const fileVersionReason = compareActualExpectVersions(actualSourceVersion, exp.startRequirement.version)
-			if (fileVersionReason) {
-				errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${fileVersionReason}`
-				continue // Maybe next source works?
-			}
+		const issuePackageContainer = await handle.checkPackageReadAccess()
+		if (issuePackageContainer) {
+			errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issuePackageContainer}`
+			continue // Maybe next source works?
+		}
+		// Check that the file is of the right version:
+		const actualSourceVersion = await handle.getPackageActualVersion()
+		const fileVersionReason = compareActualExpectVersions(actualSourceVersion, exp.startRequirement.version)
+		if (fileVersionReason) {
+			errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${fileVersionReason}`
+			continue // Maybe next source works?
+		}
 
-			if (!errorReason) {
-				// All good, no need to look further:
-				return {
-					accessor: accessor,
-					handle: handle,
-					ready: true,
-					reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
-				}
+		if (!errorReason) {
+			// All good, no need to look further:
+			return {
+				accessor: accessor,
+				handle: handle,
+				ready: true,
+				reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
 			}
 		}
 	}
@@ -251,26 +266,24 @@ async function lookupTargets(
 	let errorReason: undefined | string = 'No target found'
 
 	// See if the file is available at any of the targets:
-	for (const packageContainer of exp.endRequirement.targets) {
-		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			errorReason = undefined
+	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.endRequirement.targets)) {
+		errorReason = undefined
 
-			const handle = getAccessorHandle<Metadata>(worker, accessor, exp.endRequirement.content)
+		const handle = getAccessorHandle<Metadata>(worker, accessor, exp.endRequirement.content)
 
-			const issueAccessor = handle.checkHandleWrite()
-			if (issueAccessor) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
-				continue // Maybe next source works?
-			}
+		const issueAccessor = handle.checkHandleWrite()
+		if (issueAccessor) {
+			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
+			continue // Maybe next source works?
+		}
 
-			if (!errorReason) {
-				// All good, no need to look further:
-				return {
-					accessor: accessor,
-					handle: handle,
-					ready: true,
-					reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
-				}
+		if (!errorReason) {
+			// All good, no need to look further:
+			return {
+				accessor: accessor,
+				handle: handle,
+				ready: true,
+				reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
 			}
 		}
 	}

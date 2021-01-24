@@ -2,6 +2,7 @@ import { AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/
 import { getAccessorHandle } from '../../../accessorHandlers/accessor'
 import { GenericWorker } from '../../../worker'
 import { Expectation } from '../../../expectationApi'
+import { prioritizeAccessors } from '../../../lib/lib'
 
 export function compareActualExpectVersions(
 	actualVersion: Expectation.Version.Any,
@@ -85,15 +86,13 @@ export interface UniversalVersion {
 export type VersionProperty = { name: string; value: string | number | undefined }
 
 /** Looks through the packageContainers and return the first one we support access to. */
-export function findPackageContainerWithAccess(
+export function findBestPackageContainerWithAccess(
 	worker: GenericWorker,
 	packageContainers: PackageContainerOnPackage[]
 ): { packageContainer: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: string } | undefined {
-	for (const packageContainer of packageContainers) {
-		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			if (getAccessorHandle(worker, accessor, {}).doYouSupportAccess()) {
-				return { packageContainer, accessor, accessorId }
-			}
+	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
+		if (getAccessorHandle(worker, accessor, {}).doYouSupportAccess()) {
+			return { packageContainer, accessor, accessorId }
 		}
 	}
 	return undefined

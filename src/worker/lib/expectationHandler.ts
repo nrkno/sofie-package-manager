@@ -8,6 +8,7 @@ export interface ExpectationHandler {
 		genericWorker: GenericWorker,
 		windowsWorker: any
 	) => { support: boolean; reason: string }
+	getCostForExpectation: (exp: Expectation.Any, genericWorker: GenericWorker, specificWorker: any) => Promise<number>
 	isExpectationReadyToStartWorkingOn: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,

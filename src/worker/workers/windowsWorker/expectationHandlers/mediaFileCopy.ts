@@ -7,10 +7,10 @@ import {
 	compareActualExpectVersions,
 	compareUniversalVersions,
 	makeUniversalVersion,
-	findPackageContainerWithAccess,
+	findBestPackageContainerWithAccess,
 } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { hashObj } from '../../../lib/lib'
+import { prioritizeAccessors, hashObj } from '../../../lib/lib'
 import {
 	getAccessorHandle,
 	isFileShareAccessorHandle,
@@ -24,8 +24,14 @@ import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 export const MediaFileCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
 		// Check that we have access to the packageContainers
-		const accessSourcePackageContainer = findPackageContainerWithAccess(genericWorker, exp.startRequirement.sources)
-		const accessTargetPackageContainer = findPackageContainerWithAccess(genericWorker, exp.endRequirement.targets)
+		const accessSourcePackageContainer = findBestPackageContainerWithAccess(
+			genericWorker,
+			exp.startRequirement.sources
+		)
+		const accessTargetPackageContainer = findBestPackageContainerWithAccess(
+			genericWorker,
+			exp.endRequirement.targets
+		)
 		if (accessSourcePackageContainer) {
 			if (accessTargetPackageContainer) {
 				return {
@@ -38,6 +44,28 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		} else {
 			return { support: false, reason: `Doesn't have access to any of the source packageContainers` }
 		}
+	},
+	getCostForExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<number> => {
+		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+
+		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
+		const accessTargetPackageContainer = findBestPackageContainerWithAccess(worker, exp.endRequirement.targets)
+
+		const accessorTypeCost: { [key: string]: number } = {
+			[Accessor.AccessType.LOCAL_FOLDER]: 1,
+			[Accessor.AccessType.QUANTEL]: 1,
+			[Accessor.AccessType.FILE_SHARE]: 2,
+			[Accessor.AccessType.HTTP]: 3,
+		}
+		const sourceCost = accessSourcePackageContainer
+			? accessorTypeCost[accessSourcePackageContainer.accessor.type as string] || 5
+			: Number.POSITIVE_INFINITY
+
+		const targetCost = accessTargetPackageContainer
+			? accessorTypeCost[accessTargetPackageContainer.accessor.type as string] || 5
+			: Number.POSITIVE_INFINITY
+
+		return 30 * (sourceCost + targetCost)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
@@ -141,13 +169,12 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 				}
 			})
 
-			const copying = roboCopyFile(
-				lookupSource.handle.fullPath,
-				lookupTarget.handle.fullPath,
-				(progress: number) => {
-					workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
-				}
-			)
+			const sourcePath = lookupSource.handle.fullPath
+			const targetPath = lookupTarget.handle.fullPath
+
+			const copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
+				workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
+			})
 
 			copying
 				.then(async () => {
@@ -162,7 +189,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 					)
 				})
 				.catch((err: Error) => {
-					workInProgress._reportError(err)
+					workInProgress._reportError(new Error(err.toString() + ` "${sourcePath}", "${targetPath}"`))
 				})
 			return workInProgress
 		} else if (
@@ -276,41 +303,39 @@ async function lookupSources(worker: GenericWorker, exp: Expectation.MediaFileCo
 	let errorReason: undefined | string = 'No source found'
 
 	// See if the file is available at any of the sources:
-	for (const packageContainer of exp.startRequirement.sources) {
-		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			errorReason = undefined
+	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.startRequirement.sources)) {
+		errorReason = undefined
 
-			const handle = getAccessorHandle<UniversalVersion>(worker, accessor, exp.endRequirement.content)
+		const handle = getAccessorHandle<UniversalVersion>(worker, accessor, exp.endRequirement.content)
 
-			const issueHandle = handle.checkHandleRead()
-			if (issueHandle) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueHandle}`
-				continue // Maybe next source works?
-			}
+		const issueHandle = handle.checkHandleRead()
+		if (issueHandle) {
+			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueHandle}`
+			continue // Maybe next source works?
+		}
 
-			const issueSourcePackage = await handle.checkPackageReadAccess()
-			if (issueSourcePackage) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueSourcePackage}`
-				continue // Maybe next source works?
-			}
+		const issueSourcePackage = await handle.checkPackageReadAccess()
+		if (issueSourcePackage) {
+			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueSourcePackage}`
+			continue // Maybe next source works?
+		}
 
-			const actualSourceVersion = await handle.getPackageActualVersion()
+		const actualSourceVersion = await handle.getPackageActualVersion()
 
-			const issuePackageVersion = compareActualExpectVersions(actualSourceVersion, exp.endRequirement.version)
-			if (issuePackageVersion) {
-				errorReason = `${packageContainer.label}: ${issuePackageVersion}`
-				continue // Maybe next source works?
-			}
+		const issuePackageVersion = compareActualExpectVersions(actualSourceVersion, exp.endRequirement.version)
+		if (issuePackageVersion) {
+			errorReason = `${packageContainer.label}: ${issuePackageVersion}`
+			continue // Maybe next source works?
+		}
 
-			if (!errorReason) {
-				// All good, no need to look further:
-				return {
-					// foundPath: fullPath,
-					accessor: accessor,
-					handle: handle,
-					ready: true,
-					reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
-				}
+		if (!errorReason) {
+			// All good, no need to look further:
+			return {
+				// foundPath: fullPath,
+				accessor: accessor,
+				handle: handle,
+				ready: true,
+				reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
 			}
 		}
 	}
@@ -329,33 +354,31 @@ async function lookupTargets(worker: GenericWorker, exp: Expectation.MediaFileCo
 	let errorReason: undefined | string = 'No target found'
 
 	// See if the file is available at any of the targets:
-	for (const packageContainer of exp.endRequirement.targets) {
-		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
-			errorReason = undefined
+	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.endRequirement.targets)) {
+		errorReason = undefined
 
-			const handle = getAccessorHandle<UniversalVersion>(worker, accessor, exp.endRequirement.content)
+		const handle = getAccessorHandle<UniversalVersion>(worker, accessor, exp.endRequirement.content)
 
-			const issueHandle = handle.checkHandleWrite()
-			if (issueHandle) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueHandle}`
-				continue // Maybe next source works?
-			}
+		const issueHandle = handle.checkHandleWrite()
+		if (issueHandle) {
+			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueHandle}`
+			continue // Maybe next source works?
+		}
 
-			const issuePackage = await handle.checkPackageContainerWriteAccess()
-			if (issuePackage) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackage}`
-				continue // Maybe next source works?
-			}
+		const issuePackage = await handle.checkPackageContainerWriteAccess()
+		if (issuePackage) {
+			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackage}`
+			continue // Maybe next source works?
+		}
 
-			if (!errorReason) {
-				// All good, no need to look further:
-				return {
-					// foundPath: fullPath,
-					accessor: accessor,
-					handle: handle,
-					ready: true,
-					reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
-				}
+		if (!errorReason) {
+			// All good, no need to look further:
+			return {
+				// foundPath: fullPath,
+				accessor: accessor,
+				handle: handle,
+				ready: true,
+				reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
 			}
 		}
 	}

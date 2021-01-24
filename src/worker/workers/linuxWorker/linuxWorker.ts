@@ -19,6 +19,9 @@ export class LinuxWorker extends GenericWorker {
 			reason: `Not implemented yet`,
 		}
 	}
+	getCostFortExpectation(_exp: Expectation.Any): Promise<number> {
+		throw new Error(`Not implemented yet`)
+	}
 	isExpectationReadyToStartWorkingOn(_exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
 		throw new Error(`Not implemented yet`)
 	}

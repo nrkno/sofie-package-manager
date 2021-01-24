@@ -30,6 +30,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 
 			const exp: Expectation.MediaFileCopy = {
 				id: '', // set later
+				priority: 10,
 				fromPackages: [
 					{
 						id: expWrap.expectedPackage._id,
@@ -75,6 +76,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			const content = expWrapQuantelClip.expectedPackage.content
 			const exp: Expectation.QuantelClipCopy = {
 				id: '', // set later
+				priority: 10,
 				type: Expectation.Type.QUANTEL_COPY,
 				fromPackages: [
 					{
@@ -113,13 +115,14 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 		}
 	}
 
-	// Scan files:
+	// Side effects from files:
 	for (const id of Object.keys(expectations)) {
 		const expectation = expectations[id]
 		if (expectation.type === Expectation.Type.MEDIA_FILE_COPY) {
 			// All files that have been copied should also be scanned:
 			const scan: Expectation.MediaFileScan = {
 				id: expectation.id + '_scan',
+				priority: 100,
 				type: Expectation.Type.MEDIA_FILE_SCAN,
 				fromPackages: expectation.fromPackages,
 
@@ -157,6 +160,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 			// All files that have been copied should also get a thumbnail:
 			const thumbnail: Expectation.MediaFileThumbnail = {
 				id: expectation.id + '_thumbnail',
+				priority: 200,
 				type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
 				fromPackages: expectation.fromPackages,
 
@@ -180,7 +184,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 					version: {
 						type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
 						width: 512,
-						// height: auto
+						height: -1, // preserve ratio
 					},
 				},
 				dependsOnFullfilled: [expectation.id],

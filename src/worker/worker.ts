@@ -17,6 +17,10 @@ export abstract class GenericWorker {
 	 */
 	abstract doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }>
 	/**
+	 * Get cost for the Expectation. This is used to determine which worker is going to get the job.
+	 */
+	abstract getCostFortExpectation(exp: Expectation.Any): Promise<number>
+	/**
 	 * A check if it is possible to start working on the Expectation.
 	 */
 	abstract isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason?: string }>
