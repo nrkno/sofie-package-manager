@@ -1,13 +1,13 @@
 import { exec, ChildProcess } from 'child_process'
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { hashObj, prioritizeAccessors } from '../../../lib/lib'
+import { Accessor } from '@sofie-automation/blueprints-integration'
+import { hashObj } from '../../../lib/lib'
 import { Expectation } from '../../../expectationApi'
-import { compareActualExpectVersions, findBestPackageContainerWithAccess } from '../lib/lib'
+import { findBestPackageContainerWithAccess } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
-import { getAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
+import { isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
+import { lookupAccessorHandles, LookupPackageContainer } from './lib'
 
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
@@ -42,9 +42,9 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		worker: GenericWorker
 	): Promise<{ ready: boolean; reason: string }> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupSource = await lookupSources(worker, exp)
+		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready) return lookupSource
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) return lookupTarget
 		return {
 			ready: true,
@@ -57,10 +57,10 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupSources(worker, exp)
+		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready)
 			return { fulfilled: false, reason: `Not able to access source: ${lookupSource.reason}` }
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 
@@ -87,10 +87,10 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 		const startTime = Date.now()
 
-		const lookupSource = await lookupSources(worker, exp)
+		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
 
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
 		let ffMpegProcess: ChildProcess | undefined
@@ -179,7 +179,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		worker: GenericWorker
 	): Promise<{ removed: boolean; reason: string }> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
 		await lookupTarget.handle.removeMetadata()
@@ -192,110 +192,27 @@ function isMediaFileThumbnail(exp: Expectation.Any): exp is Expectation.MediaFil
 	return exp.type === Expectation.Type.MEDIA_FILE_THUMBNAIL
 }
 
-type LookupPackageContainer =
-	| {
-			accessor: AccessorOnPackage.Any
-			handle: GenericAccessorHandle<Metadata>
-			ready: true
-			reason: string
-	  }
-	| {
-			accessor: undefined
-			handle: undefined
-			ready: false
-			reason: string
-	  }
-
-/** Check that we have any access to a Package on an source-packageContainer, then return the packageContainer */
-async function lookupSources(
-	worker: GenericWorker,
-	exp: Expectation.MediaFileThumbnail
-): Promise<LookupPackageContainer> {
-	/** undefined if all good, error string otherwise */
-	let errorReason: undefined | string = 'No source found'
-
-	// See if the file is available at any of the sources:
-	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.startRequirement.sources)) {
-		errorReason = undefined
-
-		const handle = getAccessorHandle<Metadata>(worker, accessor, exp.startRequirement.content)
-
-		const issueAccessor = handle.checkHandleRead()
-		if (issueAccessor) {
-			errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issueAccessor}`
-			continue // Maybe next source works?
-		}
-
-		const issuePackageContainer = await handle.checkPackageReadAccess()
-		if (issuePackageContainer) {
-			errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${issuePackageContainer}`
-			continue // Maybe next source works?
-		}
-		// Check that the file is of the right version:
-		const actualSourceVersion = await handle.getPackageActualVersion()
-		const fileVersionReason = compareActualExpectVersions(actualSourceVersion, exp.startRequirement.version)
-		if (fileVersionReason) {
-			errorReason = `${packageContainer.label}: lookupSources: Accessor "${accessorId}": ${fileVersionReason}`
-			continue // Maybe next source works?
-		}
-
-		if (!errorReason) {
-			// All good, no need to look further:
-			return {
-				accessor: accessor,
-				handle: handle,
-				ready: true,
-				reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
-			}
-		}
-	}
-	return {
-		accessor: undefined,
-		handle: undefined,
-		ready: false,
-		reason: errorReason,
-	}
-}
-
-/** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
-async function lookupTargets(
-	worker: GenericWorker,
-	exp: Expectation.MediaFileThumbnail
-): Promise<LookupPackageContainer> {
-	/** undefined if all good, error string otherwise */
-	let errorReason: undefined | string = 'No target found'
-
-	// See if the file is available at any of the targets:
-	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.endRequirement.targets)) {
-		errorReason = undefined
-
-		const handle = getAccessorHandle<Metadata>(worker, accessor, exp.endRequirement.content)
-
-		const issueAccessor = handle.checkHandleWrite()
-		if (issueAccessor) {
-			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueAccessor}`
-			continue // Maybe next source works?
-		}
-
-		if (!errorReason) {
-			// All good, no need to look further:
-			return {
-				accessor: accessor,
-				handle: handle,
-				ready: true,
-				reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
-			}
-		}
-	}
-	return {
-		accessor: undefined,
-		handle: undefined,
-		ready: false,
-		reason: errorReason,
-	}
-}
-
 interface Metadata {
 	sourceVersionHash: string
 	version: Expectation.Version.MediaFileThumbnail
+}
+
+function lookupThumbnailSources(
+	worker: GenericWorker,
+	exp: Expectation.MediaFileThumbnail
+): Promise<LookupPackageContainer<Metadata>> {
+	return lookupAccessorHandles<Metadata>(worker, exp.startRequirement.sources, exp.startRequirement.content, {
+		read: true,
+		readPackage: true,
+		packageVersion: exp.startRequirement.version,
+	})
+}
+function lookupThumbnailTargets(
+	worker: GenericWorker,
+	exp: Expectation.MediaFileThumbnail
+): Promise<LookupPackageContainer<Metadata>> {
+	return lookupAccessorHandles<Metadata>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
+		write: true,
+		writePackageContainer: true,
+	})
 }

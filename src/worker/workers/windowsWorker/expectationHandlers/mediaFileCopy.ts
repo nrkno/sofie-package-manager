@@ -1,25 +1,23 @@
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
+import { Accessor } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '../../../expectationApi'
 import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 import {
 	UniversalVersion,
-	compareActualExpectVersions,
 	compareUniversalVersions,
 	makeUniversalVersion,
 	findBestPackageContainerWithAccess,
 } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { prioritizeAccessors, hashObj } from '../../../lib/lib'
+import { hashObj } from '../../../lib/lib'
 import {
-	getAccessorHandle,
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
 	isLocalFolderHandle,
 } from '../../../accessorHandlers/accessor'
-import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
+import { lookupAccessorHandles, LookupPackageContainer } from './lib'
 
 export const MediaFileCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
@@ -73,14 +71,14 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 	): Promise<{ ready: boolean; reason: string }> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupSources(worker, exp)
+		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) {
 			return {
 				ready: lookupSource.ready,
 				reason: lookupSource.reason,
 			}
 		}
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) {
 			return {
 				ready: lookupTarget.ready,
@@ -99,7 +97,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 
@@ -112,7 +110,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		const actualTargetVersion = await lookupTarget.handle.fetchMetadata()
 		if (!actualTargetVersion) return { fulfilled: false, reason: `Metadata missing` }
 
-		const lookupSource = await lookupSources(worker, exp)
+		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
@@ -133,10 +131,10 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 
 		const startTime = Date.now()
 
-		const lookupSource = await lookupSources(worker, exp)
+		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
 
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
@@ -265,7 +263,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
-		const lookupTarget = await lookupTargets(worker, exp)
+		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) {
 			return { removed: false, reason: `No access to target: ${lookupTarget.reason}` }
 		}
@@ -283,109 +281,24 @@ function isMediaFileCopy(exp: Expectation.Any): exp is Expectation.MediaFileCopy
 	return exp.type === Expectation.Type.MEDIA_FILE_COPY
 }
 
-type LookupPackageContainer =
-	| {
-			accessor: AccessorOnPackage.Any
-			handle: GenericAccessorHandle<UniversalVersion>
-			ready: true
-			reason: string
-	  }
-	| {
-			accessor: undefined
-			handle: undefined
-			ready: false
-			reason: string
-	  }
-
-/** Check that we have any access to a Package on an source-packageContainer, then return the packageContainer */
-async function lookupSources(worker: GenericWorker, exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
-	/** undefined if all good, error string otherwise */
-	let errorReason: undefined | string = 'No source found'
-
-	// See if the file is available at any of the sources:
-	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.startRequirement.sources)) {
-		errorReason = undefined
-
-		const handle = getAccessorHandle<UniversalVersion>(worker, accessor, exp.endRequirement.content)
-
-		const issueHandle = handle.checkHandleRead()
-		if (issueHandle) {
-			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueHandle}`
-			continue // Maybe next source works?
-		}
-
-		const issueSourcePackage = await handle.checkPackageReadAccess()
-		if (issueSourcePackage) {
-			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueSourcePackage}`
-			continue // Maybe next source works?
-		}
-
-		const actualSourceVersion = await handle.getPackageActualVersion()
-
-		const issuePackageVersion = compareActualExpectVersions(actualSourceVersion, exp.endRequirement.version)
-		if (issuePackageVersion) {
-			errorReason = `${packageContainer.label}: ${issuePackageVersion}`
-			continue // Maybe next source works?
-		}
-
-		if (!errorReason) {
-			// All good, no need to look further:
-			return {
-				// foundPath: fullPath,
-				accessor: accessor,
-				handle: handle,
-				ready: true,
-				reason: `Can access source "${packageContainer.label}" through accessor "${accessorId}"`,
-			}
-		}
-	}
-	return {
-		// foundPath: undefined,
-		accessor: undefined,
-		handle: undefined,
-		ready: false,
-		reason: errorReason,
-	}
-}
-
 /** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
-async function lookupTargets(worker: GenericWorker, exp: Expectation.MediaFileCopy): Promise<LookupPackageContainer> {
-	/** undefined if all good, error string otherwise */
-	let errorReason: undefined | string = 'No target found'
 
-	// See if the file is available at any of the targets:
-	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(exp.endRequirement.targets)) {
-		errorReason = undefined
-
-		const handle = getAccessorHandle<UniversalVersion>(worker, accessor, exp.endRequirement.content)
-
-		const issueHandle = handle.checkHandleWrite()
-		if (issueHandle) {
-			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueHandle}`
-			continue // Maybe next source works?
-		}
-
-		const issuePackage = await handle.checkPackageContainerWriteAccess()
-		if (issuePackage) {
-			errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackage}`
-			continue // Maybe next source works?
-		}
-
-		if (!errorReason) {
-			// All good, no need to look further:
-			return {
-				// foundPath: fullPath,
-				accessor: accessor,
-				handle: handle,
-				ready: true,
-				reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
-			}
-		}
-	}
-	return {
-		accessor: undefined,
-		handle: undefined,
-		ready: false,
-		reason: errorReason,
-	}
+function lookupCopySources(
+	worker: GenericWorker,
+	exp: Expectation.MediaFileCopy
+): Promise<LookupPackageContainer<UniversalVersion>> {
+	return lookupAccessorHandles<UniversalVersion>(worker, exp.startRequirement.sources, exp.endRequirement.content, {
+		read: true,
+		readPackage: true,
+		packageVersion: exp.endRequirement.version,
+	})
+}
+function lookupCopyTargets(
+	worker: GenericWorker,
+	exp: Expectation.MediaFileCopy
+): Promise<LookupPackageContainer<UniversalVersion>> {
+	return lookupAccessorHandles<UniversalVersion>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
+		write: true,
+		writePackageContainer: true,
+	})
 }
