@@ -14,6 +14,7 @@ const fsAccess = promisify(fs.access)
 const fsUnlink = promisify(fs.unlink)
 const fsReaddir = promisify(fs.readdir)
 const fsLstat = promisify(fs.lstat)
+const fsWriteFile = promisify(fs.writeFile)
 
 export class FileStorage extends Storage {
 	constructor(private config: Config) {
@@ -91,21 +92,27 @@ export class FileStorage extends Storage {
 		const exists = await this.exists(fullPath)
 		if (exists) await fsUnlink(fullPath)
 
-		if (!ctx.request.files?.length) {
+		if (ctx.request.body?.text) {
+			// store plain text into file
+			await fsWriteFile(fullPath, ctx.request.body.text)
+
+			return true
+		} else if (ctx.request.files?.length) {
+			const file = ctx.request.files[0] as any
+			const stream = file.stream as fs.ReadStream
+
+			// todo: I have no idea what I'm doing, this should be implemented properly:
+			stream
+				.pipe(fs.createWriteStream(fullPath))
+				.on('open', () => console.log('open WriteStream'))
+				.on('close', () => console.log('close WriteStream'))
+
+			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+
+			return true
+		} else {
 			return { code: 400, reason: 'No files provided' }
 		}
-		const file = ctx.request.files[0] as any
-		const stream = file.stream as fs.ReadStream
-
-		// todo: I have no idea what I'm doing, this should be implemented properly:
-		stream
-			.pipe(fs.createWriteStream(fullPath))
-			.on('open', () => console.log('open WriteStream'))
-			.on('close', () => console.log('close WriteStream'))
-
-		ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
-
-		return true
 	}
 	async deletePackage(paramPath: string, ctx: CTXPost): Promise<true | BadResponse> {
 		const fullPath = path.join(this.config.proxyServer.basePath, paramPath)
