@@ -20,27 +20,6 @@ export class FileStorage extends Storage {
 		super()
 	}
 
-	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
-		const fullPath = path.join(this.config.proxyServer.basePath, paramPath)
-
-		if (!(await this.exists(fullPath))) {
-			return { code: 404, reason: 'Not found' }
-		}
-		const mimeType = mime.lookup(fullPath)
-		if (!mimeType) {
-			return { code: 501, reason: 'Unknown / unsupported file format' }
-		}
-
-		const stat = await fsStat(fullPath)
-
-		ctx.type = mimeType // or use mime.contentType(fullPath) ?
-		const readStream = fs.createReadStream(fullPath)
-		ctx.body = readStream
-
-		ctx.length = stat.size
-
-		return true
-	}
 	async listPackages(ctx: CTX): Promise<true | BadResponse> {
 		type PackageInfo = {
 			path: string
@@ -80,6 +59,27 @@ export class FileStorage extends Storage {
 		})
 
 		ctx.body = { packages: packages }
+
+		return true
+	}
+	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+		const fullPath = path.join(this.config.proxyServer.basePath, paramPath)
+
+		if (!(await this.exists(fullPath))) {
+			return { code: 404, reason: 'Not found' }
+		}
+		const mimeType = mime.lookup(fullPath)
+		if (!mimeType) {
+			return { code: 501, reason: 'Unknown / unsupported file format' }
+		}
+
+		const stat = await fsStat(fullPath)
+
+		ctx.type = mimeType // or use mime.contentType(fullPath) ?
+		const readStream = fs.createReadStream(fullPath)
+		ctx.body = readStream
+
+		ctx.length = stat.size
 
 		return true
 	}

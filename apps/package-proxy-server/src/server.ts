@@ -9,8 +9,9 @@ import * as multer from '@koa/multer'
 import * as bodyParser from 'koa-bodyparser'
 
 import { Config } from './config'
-import { Storage } from './storage/storage'
+import { BadResponse, Storage } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
+import { CTX } from './lib'
 
 const fsReadFile = promisify(fs.readFile)
 
@@ -67,69 +68,18 @@ export class PackageProxyServer {
 			ctx.body = 'Api key "?apiKey=API_KEY" missing or is invalid.'
 		})
 
-		this.router.get('/package/:path+', async (ctx) => {
-			try {
-				const result = await this.storage.getPackage(ctx.params.path, ctx)
-				if (result === true) {
-					// await next()
-				} else {
-					ctx.response.status = result.code
-					ctx.body = result.reason
-				}
-			} catch (err) {
-				this.logger.error(err)
-				this.logger.error(err.stack)
-				ctx.response.status = 500
-				ctx.body = 'Internal server error'
-			}
-		})
 		this.router.get('/packages', async (ctx) => {
-			try {
-				const result = await this.storage.listPackages(ctx)
-				if (result === true) {
-					// await next()
-				} else {
-					ctx.response.status = result.code
-					ctx.body = result.reason
-				}
-			} catch (err) {
-				this.logger.error(err)
-				this.logger.error(err.stack)
-				ctx.response.status = 500
-				ctx.body = 'Internal server error'
-			}
+			await this.handleStorage(ctx, () => this.storage.listPackages(ctx))
+		})
+		this.router.get('/package/:path+', async (ctx) => {
+			await this.handleStorage(ctx, () => this.storage.getPackage(ctx.params.path, ctx))
 		})
 		this.router.post('/package/:path+', async (ctx) => {
-			try {
-				const result = await this.storage.postPackage(ctx.params.path, ctx)
-				if (result === true) {
-					// await next()
-				} else {
-					ctx.response.status = result.code
-					ctx.body = result.reason
-				}
-			} catch (err) {
-				this.logger.error(err)
-				this.logger.error(err.stack)
-				ctx.response.status = 500
-				ctx.body = 'Internal server error'
-			}
+			console.log('post', ctx)
+			await this.handleStorage(ctx, () => this.storage.postPackage(ctx.params.path, ctx))
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
-			try {
-				const result = await this.storage.deletePackage(ctx.params.path, ctx)
-				if (result === true) {
-					// await next()
-				} else {
-					ctx.response.status = result.code
-					ctx.body = result.reason
-				}
-			} catch (err) {
-				this.logger.error(err)
-				this.logger.error(err.stack)
-				ctx.response.status = 500
-				ctx.body = 'Internal server error'
-			}
+			await this.handleStorage(ctx, () => this.storage.deletePackage(ctx.params.path, ctx))
 		})
 
 		// Convenient pages:
@@ -157,5 +107,19 @@ export class PackageProxyServer {
 				reject('No port provided')
 			}
 		})
+	}
+	private async handleStorage(ctx: CTX, storageFcn: () => Promise<true | BadResponse>) {
+		try {
+			const result = await storageFcn()
+			if (result !== true) {
+				ctx.response.status = result.code
+				ctx.body = result.reason
+			}
+		} catch (err) {
+			this.logger.error(err)
+			this.logger.error(err.stack)
+			ctx.response.status = 500
+			ctx.body = 'Internal server error'
+		}
 	}
 }
