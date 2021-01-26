@@ -6,6 +6,7 @@ import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
 import { MessageFromWorker } from '../../../workerAgent'
 import { IWorkInProgress } from '../../lib/workInProgress'
+import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -50,6 +51,8 @@ export class WindowsWorker extends GenericWorker {
 				return MediaFileScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
 				return MediaFileThumbnail
+			case Expectation.Type.MEDIA_FILE_PREVIEW:
+				return MediaFilePreview
 			default:
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}

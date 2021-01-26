@@ -191,6 +191,97 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 				triggerByFullfilledIds: [expectation.id],
 			}
 			expectations[thumbnail.id] = thumbnail
+
+			// All files that have been copied should also get a preview:
+			const preview: Expectation.MediaFilePreview = {
+				id: expectation.id + '_preview',
+				priority: 200,
+				type: Expectation.Type.MEDIA_FILE_PREVIEW,
+				fromPackages: expectation.fromPackages,
+
+				statusReport: {
+					label: `Generate preview for ${expectation.statusReport.label}`,
+					description: `Preview is used in Sofie GUI`,
+					requiredForPlayout: false,
+					displayRank: 12,
+				},
+
+				startRequirement: {
+					sources: expectation.endRequirement.targets,
+					content: expectation.endRequirement.content,
+					version: expectation.endRequirement.version,
+				},
+				endRequirement: {
+					// targets: expectation.endRequirement.targets,
+					targets: [
+						{
+							label: 'local http',
+							accessors: {
+								http: {
+									type: Accessor.AccessType.HTTP,
+									baseUrl: 'http://localhost:8080/package/',
+									url: expectation.endRequirement.content.filePath,
+									allowRead: true,
+									allowWrite: true,
+								},
+							},
+						},
+					],
+					content: {
+						filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.webm'),
+					},
+					version: {
+						type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
+						// width: 512,
+						// height: -1, // preserve ratio
+					},
+				},
+				dependsOnFullfilled: [expectation.id],
+				triggerByFullfilledIds: [expectation.id],
+			}
+			expectations[preview.id] = preview
+
+			// Copy previews to HTTP: (TMP!)
+			// const tmpCopy: Expectation.MediaFileCopy = {
+			// 	id: preview.id + '_preview',
+			// 	priority: preview.priority + 1,
+			// 	type: Expectation.Type.MEDIA_FILE_COPY,
+			// 	fromPackages: preview.fromPackages,
+
+			// 	statusReport: {
+			// 		label: `TMP: preview to http for ${expectation.statusReport.label}`,
+			// 		description: ``,
+			// 		requiredForPlayout: false,
+			// 		displayRank: 12,
+			// 	},
+
+			// 	startRequirement: {
+			// 		sources: preview.endRequirement.targets,
+			// 	},
+			// 	endRequirement: {
+			// 		targets: [
+			// 			{
+			// 				label: 'local http',
+			// 				accessors: {
+			// 					http: {
+			// 						type: Accessor.AccessType.HTTP,
+			// 						baseUrl: 'http://localhost:8080/package/',
+			// 						url: preview.endRequirement.content.filePath,
+			// 						allowRead: true,
+			// 						allowWrite: true,
+			// 					},
+			// 				},
+			// 			},
+			// 		],
+			// 		content: preview.endRequirement.content,
+			// 		version: {
+			// 			type: Expectation.Version.Type.MEDIA_FILE,
+			// 		},
+			// 	},
+			// 	dependsOnFullfilled: [expectation.id],
+			// 	triggerByFullfilledIds: [expectation.id],
+			// }
+			// expectations[preview.id] = tmpCopy
 		}
 	}
 

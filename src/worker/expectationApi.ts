@@ -6,12 +6,13 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expectation {
-	export type Any = MediaFileCopy | MediaFileScan | MediaFileThumbnail | QuantelClipCopy
+	export type Any = MediaFileCopy | MediaFileScan | MediaFileThumbnail | MediaFilePreview | QuantelClipCopy
 
 	export enum Type {
 		MEDIA_FILE_COPY = 'media_file_copy',
 		MEDIA_FILE_SCAN = 'media_file_scan',
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
+		MEDIA_FILE_PREVIEW = 'media_file_preview',
 
 		QUANTEL_COPY = 'quantel_copy',
 	}
@@ -111,6 +112,22 @@ export namespace Expectation {
 			version: Version.ExpectedMediaFileThumbnail
 		}
 	}
+	export interface MediaFilePreview extends Base {
+		type: Type.MEDIA_FILE_PREVIEW
+
+		startRequirement: {
+			sources: MediaFileCopy['endRequirement']['targets']
+			content: MediaFileCopy['endRequirement']['content']
+			version: MediaFileCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: PackageContainerOnPackageFile[]
+			content: {
+				filePath: string
+			}
+			version: Version.ExpectedMediaFilePreview
+		}
+	}
 
 	export interface QuantelClipCopy extends Base {
 		type: Type.QUANTEL_COPY
@@ -133,6 +150,7 @@ export namespace Expectation {
 		}
 	}
 
+	/** Version defines properties to use for determining the version of a Package */
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace Version {
 		export type ExpectAny = ExpectedMediaFile | MediaFileThumbnail | ExpectedCorePackageInfo | ExpectedHTTPFile
@@ -143,6 +161,7 @@ export namespace Expectation {
 		export enum Type {
 			MEDIA_FILE = 'media_file',
 			MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
+			MEDIA_FILE_PREVIEW = 'media_file_preview',
 			CORE_PACKAGE_INFO = 'core_package_info',
 			HTTP_FILE = 'http_file',
 		}
@@ -150,7 +169,8 @@ export namespace Expectation {
 		export type ExpectedMediaFile = ExpectedType<MediaFile>
 		export interface MediaFile extends Base {
 			type: Type.MEDIA_FILE
-			fileSize: number // in bytes
+			/** File size in bytes */
+			fileSize: number
 			modifiedDate: number // timestamp (ms)?: number
 
 			// Not implemented (yet?)
@@ -160,6 +180,13 @@ export namespace Expectation {
 		export type ExpectedMediaFileThumbnail = ExpectedType<MediaFileThumbnail>
 		export interface MediaFileThumbnail extends Base {
 			type: Type.MEDIA_FILE_THUMBNAIL
+			width: number
+			height: number
+		}
+		export type ExpectedMediaFilePreview = ExpectedType<MediaFilePreview>
+		export interface MediaFilePreview extends Base {
+			type: Type.MEDIA_FILE_PREVIEW
+			bitrate: string // default: '40k'
 			width: number
 			height: number
 		}
