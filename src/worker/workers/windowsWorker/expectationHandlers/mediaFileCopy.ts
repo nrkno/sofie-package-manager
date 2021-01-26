@@ -17,31 +17,16 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
+
+// import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 
 export const MediaFileCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
-		// Check that we have access to the packageContainers
-		const accessSourcePackageContainer = findBestPackageContainerWithAccess(
-			genericWorker,
-			exp.startRequirement.sources
-		)
-		const accessTargetPackageContainer = findBestPackageContainerWithAccess(
-			genericWorker,
-			exp.endRequirement.targets
-		)
-		if (accessSourcePackageContainer) {
-			if (accessTargetPackageContainer) {
-				return {
-					support: true,
-					reason: `Has access to source "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}" and target "${accessTargetPackageContainer.packageContainer.label}" through accessor "${accessTargetPackageContainer.accessorId}"`,
-				}
-			} else {
-				return { support: false, reason: `Doesn't have access to any of the target packageContainers` }
-			}
-		} else {
-			return { support: false, reason: `Doesn't have access to any of the source packageContainers` }
-		}
+		return checkWorkerHasAccessToPackageContainers(genericWorker, {
+			sources: exp.startRequirement.sources,
+			targets: exp.endRequirement.targets,
+		})
 	},
 	getCostForExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<number> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
@@ -72,19 +57,9 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) {
-			return {
-				ready: lookupSource.ready,
-				reason: lookupSource.reason,
-			}
-		}
+		if (!lookupSource.ready) return { ready: lookupSource.ready, reason: lookupSource.reason }
 		const lookupTarget = await lookupCopyTargets(worker, exp)
-		if (!lookupTarget.ready) {
-			return {
-				ready: lookupTarget.ready,
-				reason: lookupTarget.reason,
-			}
-		}
+		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
 		return {
 			ready: true,
@@ -156,7 +131,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 				throw new Error('Unable to copy: source and Target file paths are the same!')
 			}
 
-			const workInProgress = new WorkInProgress(async () => {
+			const workInProgress = new WorkInProgress('Copying', async () => {
 				// on cancel
 				copying.cancel()
 				// todo: should we remove the target file?
@@ -198,7 +173,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			if (!isHTTPAccessorHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!isLocalFolderHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
 
-			const workInProgress = new WorkInProgress(async () => {
+			const workInProgress = new WorkInProgress('Copying', async () => {
 				// on cancel work
 
 				writeStream.once('close', () => {
@@ -206,6 +181,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 					lookupTarget.handle.removePackage()
 				})
 				sourceStream.cancel()
+				writeStream.abort()
 			})
 
 			const fileSize: number =
@@ -229,7 +205,70 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			writeStream.on('error', (err) => {
 				workInProgress._reportError(err)
 			})
-			sourceStream.readStream.on('end', () => {
+			writeStream.once('close', () => {
+				setImmediate(() => {
+					// Copying is done
+					const duration = Date.now() - startTime
+
+					lookupTarget.handle
+						.updateMetadata(actualSourceUVersion)
+						.then(() => {
+							workInProgress._reportComplete(
+								actualSourceVersionHash,
+								`Copy completed in ${Math.round(duration / 100) / 10}s`,
+								undefined
+							)
+						})
+						.catch((err) => {
+							workInProgress._reportError(err)
+						})
+				})
+			})
+
+			return workInProgress
+		} else if (
+			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
+			lookupTarget.accessor.type === Accessor.AccessType.HTTP
+		) {
+			// We can upload
+			if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isHTTPAccessorHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
+
+			// const handle = lookupSource.handle as LocalFolderAccessorHandle<UniversalVersion>
+
+			const workInProgress = new WorkInProgress('Uploading', async () => {
+				// on cancel work
+				writeStream.once('close', () => {
+					console.log('http upload close!')
+					lookupTarget.handle.removePackage()
+				})
+				sourceStream.cancel()
+				writeStream.abort()
+			})
+
+			// const fileSize: number =
+			// 	typeof actualSourceUVersion.fileSize.value === 'number'
+			// 		? actualSourceUVersion.fileSize.value
+			// 		: parseInt(actualSourceUVersion.fileSize.value || '0', 10)
+
+			// const byteCounter = new ByteCounter()
+			// byteCounter.on('progress', (bytes: number) => {
+			// 	if (fileSize) {
+			// 		workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
+			// 	}
+			// })
+
+			const sourceStream = await lookupSource.handle.getPackageReadStream()
+			// const writeStream = await lookupTarget.handle.pipePackageStream(sourceStream.readStream.pipe(byteCounter))
+			const writeStream = await lookupTarget.handle.pipePackageStream(sourceStream.readStream)
+
+			sourceStream.readStream.on('error', (err) => {
+				workInProgress._reportError(err)
+			})
+			writeStream.on('error', (err) => {
+				workInProgress._reportError(err)
+			})
+			writeStream.once('close', () => {
 				setImmediate(() => {
 					// Copying is done
 					const duration = Date.now() - startTime
@@ -280,8 +319,6 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 function isMediaFileCopy(exp: Expectation.Any): exp is Expectation.MediaFileCopy {
 	return exp.type === Expectation.Type.MEDIA_FILE_COPY
 }
-
-/** Check that we have any access to a Package on an target-packageContainer, then return the packageContainer */
 
 function lookupCopySources(
 	worker: GenericWorker,

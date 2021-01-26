@@ -1,8 +1,9 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle } from './genericHandle'
+import { GenericAccessorHandle, PackageWriteStreamWrapper } from './genericHandle'
 import { Expectation } from '../expectationApi'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
+import * as FormData from 'form-data'
 import AbortController from 'abort-controller'
 
 /** Accessor handle for accessing files in a local folder */
@@ -115,18 +116,62 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			},
 		}
 	}
-	async pipePackageStream(_sourceStream: NodeJS.ReadableStream): Promise<NodeJS.WritableStream> {
-		throw new Error('HTTP.pipePackageStream: Not implemented')
+	async pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<PackageWriteStreamWrapper> {
+		const formData = new FormData()
+		formData.append('file', sourceStream)
+
+		const controller = new AbortController()
+
+		const streamHandler: PackageWriteStreamWrapper = new PackageWriteStreamWrapper(() => {
+			controller.abort()
+		})
+
+		fetch(this.fullUrl, {
+			method: 'POST',
+			body: formData, // sourceStream.readStream,
+			signal: controller.signal,
+		})
+			.then((result) => {
+				if (result.status >= 400) {
+					throw new Error(`Upload file: Bad response: [${result.status}]: ${result.statusText}`)
+				}
+			})
+			.then(() => {
+				streamHandler.emit('close')
+			})
+			.catch((error) => {
+				streamHandler.emit('error', error)
+			})
+
+		return streamHandler
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
-		throw new Error('HTTP.fetchMetadata: Not implemented')
+		const result = await fetch(this.fullUrl + '_metadata.json')
+		if (result.status === 404) return undefined
+
+		if (result.status >= 400)
+			throw new Error(`fetchMetadata: Bad response: [${result.status}]: ${result.statusText}`)
+
+		return result.json()
 	}
-	async updateMetadata(_metadata: Metadata): Promise<void> {
-		throw new Error('HTTP.updateMetadata: Not implemented')
+	async updateMetadata(metadata: Metadata): Promise<void> {
+		const formData = new FormData()
+		formData.append('text', JSON.stringify(metadata))
+		const result = await fetch(this.fullUrl + '_metadata.json', {
+			method: 'POST',
+			body: formData,
+		})
+		if (result.status >= 400)
+			throw new Error(`updateMetadata: Bad response: [${result.status}]: ${result.statusText}`)
 	}
 	async removeMetadata(): Promise<void> {
-		throw new Error('HTTP.removeMetadata: Not implemented')
+		const result = await fetch(this.fullUrl + '_metadata.json', {
+			method: 'DELETE',
+		})
+		if (result.status === 404) return undefined // that's ok
+		if (result.status >= 400)
+			throw new Error(`removeMetadata: Bad response: [${result.status}]: ${result.statusText}`)
 	}
 }
 interface HTTPHeaders {

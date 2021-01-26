@@ -59,7 +59,7 @@
 		"release": "Clean, build, test, and prepare release (a one-step publish process)"
 	},
 	"engines": {
-		"node": ">=12"
+		"node": ">=12.3.0"
 	},
 	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
 	"husky": {
@@ -109,6 +109,7 @@
 		"@sofie-automation/server-core-integration": "file:../Core/packages/server-core-integration",
 		"abort-controller": "^3.0.0",
 		"fast-clone": "^1.5.13",
+		"form-data": "^3.0.0",
 		"node-fetch": "^2.6.1",
 		"tslib": "^2.0.3",
 		"underscore": "^1.12.0",

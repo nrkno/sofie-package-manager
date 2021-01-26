@@ -3,7 +3,50 @@ import { getAccessorHandle } from '../../../accessorHandlers/accessor'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
-import { compareActualExpectVersions } from '../lib/lib'
+import { compareActualExpectVersions, findBestPackageContainerWithAccess } from '../lib/lib'
+
+/** Check that a worker has access to the packageContainers through its accessors */
+export function checkWorkerHasAccessToPackageContainers(
+	genericWorker: GenericWorker,
+	checks: {
+		sources?: PackageContainerOnPackage[]
+		targets?: PackageContainerOnPackage[]
+	}
+): { support: boolean; reason: string } {
+	let accessSourcePackageContainer: ReturnType<typeof findBestPackageContainerWithAccess>
+	// Check that we have access to the packageContainers
+	if (checks.sources !== undefined) {
+		accessSourcePackageContainer = findBestPackageContainerWithAccess(genericWorker, checks.sources)
+		if (!accessSourcePackageContainer) {
+			return { support: false, reason: `Doesn't have access to any of the source packageContainers` }
+		}
+	}
+
+	let accessTargetPackageContainer: ReturnType<typeof findBestPackageContainerWithAccess>
+	if (checks.targets !== undefined) {
+		accessTargetPackageContainer = findBestPackageContainerWithAccess(genericWorker, checks.targets)
+		if (!accessTargetPackageContainer) {
+			return { support: false, reason: `Doesn't have access to any of the target packageContainers` }
+		}
+	}
+
+	const hasAccessTo: string[] = []
+	if (accessSourcePackageContainer) {
+		hasAccessTo.push(
+			`source "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}"`
+		)
+	}
+	if (accessTargetPackageContainer) {
+		hasAccessTo.push(
+			`target "${accessTargetPackageContainer.packageContainer.label}" through accessor "${accessTargetPackageContainer.accessorId}"`
+		)
+	}
+
+	return {
+		support: true,
+		reason: `Has access to ${hasAccessTo.join(' and ')}`,
+	}
+}
 
 export type LookupPackageContainer<Metadata> =
 	| {

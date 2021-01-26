@@ -285,12 +285,17 @@ export class ExpectationManager {
 
 				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
 				if (session.assignedWorker) {
-					this.updateTrackedExp(trackedExp, TrackedExpectationState.WORKING, 'Start working')
+					this.updateTrackedExp(trackedExp, TrackedExpectationState.WORKING, 'Working')
 
 					// Start working on the Expectation:
 					trackedExp.workInProgress = await session.assignedWorker.worker.workOnExpectation(
 						trackedExp.exp,
 						session.assignedWorker.cost
+					)
+					this.updateTrackedExp(
+						trackedExp,
+						TrackedExpectationState.WORKING,
+						trackedExp.workInProgress.workLabel
 					)
 
 					trackedExp.workInProgress.on('progress', (actualVersionHash: string | null, progress: number) => {
@@ -404,14 +409,13 @@ export class ExpectationManager {
 			this.logger.info(
 				`${trackedExp.exp.statusReport.label}: New state: "${prevState}"->"${trackedExp.state}", reason: "${trackedExp.reason}"`
 			)
-			this.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
-				status: trackedExp.state,
-				statusReason: trackedExp.reason,
-			})
 		} else if (updatedReason) {
 			this.logger.info(
 				`${trackedExp.exp.statusReport.label}: State: "${trackedExp.state}", reason: "${trackedExp.reason}"`
 			)
+		}
+
+		if (updatedState || updatedReason) {
 			this.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
 				status: trackedExp.state,
 				statusReason: trackedExp.reason,

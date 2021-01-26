@@ -7,6 +7,8 @@ export interface WorkInProgressEvents {
 	error: (actualVersionHash: string, error: string) => void
 }
 export declare interface IWorkInProgress {
+	workLabel: string
+
 	on<U extends keyof WorkInProgressEvents>(event: U, listener: WorkInProgressEvents[U]): this
 
 	emit<U extends keyof WorkInProgressEvents>(event: U, ...args: Parameters<WorkInProgressEvents[U]>): boolean
@@ -19,7 +21,7 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	private _progress = 0
 	private _actualVersionHash: string | null = null
 
-	constructor(private _onCancel: () => Promise<void>) {
+	constructor(public workLabel: string, private _onCancel: () => Promise<void>) {
 		super()
 	}
 	cancel(): Promise<void> {
@@ -39,7 +41,7 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 			this._reportProgressTimeout = setTimeout(() => {
 				this._reportProgressTimeout = undefined
 				this.emit('progress', this._actualVersionHash, this._progress)
-			}, 300) // Rate-limit
+			}, 500) // Rate-limit
 		}
 	}
 	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -48,5 +50,18 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	}
 	_reportError(err: Error): void {
 		this.emit('error', err.toString() + err.stack)
+	}
+	/** Convenience function which calls the function that performs the work */
+	do(fcn: () => Promise<void> | void): WorkInProgress {
+		setTimeout(() => {
+			try {
+				Promise.resolve(fcn()).catch((err) => {
+					this._reportError(err)
+				})
+			} catch (err) {
+				this._reportError(err)
+			}
+		}, 1)
+		return this
 	}
 }

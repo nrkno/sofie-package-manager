@@ -2,7 +2,7 @@ import * as path from 'path'
 import { promisify } from 'util'
 import * as fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle } from './genericHandle'
+import { GenericAccessorHandle, PackageWriteStreamWrapper } from './genericHandle'
 import { Expectation } from '../expectationApi'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
@@ -153,11 +153,20 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			},
 		}
 	}
-	async pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<NodeJS.WritableStream> {
+	async pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<PackageWriteStreamWrapper> {
 		await this.prepareFileAccess()
-		const writeStream = fs.createWriteStream(this.fullPath)
 
-		return sourceStream.pipe(writeStream)
+		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
+
+		const streamWrapper: PackageWriteStreamWrapper = new PackageWriteStreamWrapper(() => {
+			// can't really abort the write stream
+		})
+
+		// Pipe any events from the writeStream right into the wrapper:
+		writeStream.on('error', (err) => streamWrapper.emit('error', err))
+		writeStream.on('close', () => streamWrapper.emit('close'))
+
+		return streamWrapper
 	}
 
 	// Note: We handle metadata by storing a metadata json-file to the side of the file.

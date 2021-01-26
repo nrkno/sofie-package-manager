@@ -1,4 +1,5 @@
 import { AccessorOnPackage } from '@sofie-automation/blueprints-integration'
+import { EventEmitter } from 'events'
 import { Expectation } from '../expectationApi'
 import { GenericWorker } from '../worker'
 
@@ -61,5 +62,18 @@ export abstract class GenericAccessorHandle<Metadata> {
 	abstract removeMetadata(): Promise<void>
 
 	abstract getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }>
-	abstract pipePackageStream(sourceStream: NodeJS.ReadStream): Promise<NodeJS.WritableStream>
+	abstract pipePackageStream(sourceStream: NodeJS.ReadStream): Promise<PackageWriteStreamWrapper>
+}
+
+/**
+ * A wrapper around a WriteStream-like return-value from pipePackageStream
+ * Users of this class are encouraged to emit the events 'error' and 'close'
+ */
+export class PackageWriteStreamWrapper extends EventEmitter {
+	constructor(private onAbort: () => void) {
+		super()
+	}
+	public abort(): void {
+		return this.onAbort()
+	}
 }
