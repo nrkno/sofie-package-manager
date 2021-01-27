@@ -113,7 +113,6 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 				expectations[exp.id] = exp
 			}
 		}
-		break
 	}
 
 	// Side effects from files:
