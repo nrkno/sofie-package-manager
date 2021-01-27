@@ -156,6 +156,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					'-deadline realtime',
 				]
 
+				/** If  */
 				let pipeStdOut = false
 				if (isLocalFolderHandle(lookupTarget.handle)) {
 					args.push(`"${lookupTarget.handle.fullPath}"`)
@@ -173,18 +174,42 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					shell: true,
 				})
 
+				let FFMpegIsDone = false
+				let uploadIsDone = false
+				/** To be called when done */
+				const onDone = () => {
+					if (FFMpegIsDone && uploadIsDone) {
+						lookupTarget.handle
+							.updateMetadata(metadata)
+							.then(() => {
+								const duration = Date.now() - startTime
+								workInProgress._reportComplete(
+									actualSourceVersionHash,
+									`Preview generation completed in ${Math.round(duration / 100) / 10}s`,
+									undefined
+								)
+							})
+							.catch((err) => {
+								workInProgress._reportError(err)
+							})
+					}
+				}
+
 				if (pipeStdOut) {
 					if (!ffMpegProcess.stdout) {
 						throw new Error('No stdout stream available')
 					}
 
-					// TODO: I didn't get this one to work properly:
 					const writeStream = await lookupTarget.handle.pipePackageStream(ffMpegProcess.stdout)
-					// const writeStream = ffMpegProcess.stdout.pipe(fs.createWriteStream('C:\\tmp\\test.mp4')) // this works
 					writeStream.on('error', (err) => {
 						workInProgress._reportError(err)
 					})
-					// TODO: perhaps we should use the writeStream.once('close') when uploading?
+					writeStream.once('close', () => {
+						uploadIsDone = true
+						onDone()
+					})
+				} else {
+					uploadIsDone = true // no upload
 				}
 				let fileDuration: number | undefined = undefined
 				ffMpegProcess.stderr?.on('data', (data) => {
@@ -206,28 +231,19 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 								const ss = m2[3]
 
 								const progress = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
-								workInProgress._reportProgress(actualSourceVersionHash, progress / fileDuration)
+								workInProgress._reportProgress(
+									actualSourceVersionHash,
+									((uploadIsDone ? 1 : 0.9) * progress) / fileDuration
+								)
 							}
 						}
 					}
-					// console.log(`preview: stderr`, data.toString())
 				})
 				ffMpegProcess.on('close', (code) => {
 					ffMpegProcess = undefined
 					if (code === 0) {
-						lookupTarget.handle
-							.updateMetadata(metadata)
-							.then(() => {
-								const duration = Date.now() - startTime
-								workInProgress._reportComplete(
-									actualSourceVersionHash,
-									`Preview generation completed in ${Math.round(duration / 100) / 10}s`,
-									undefined
-								)
-							})
-							.catch((err) => {
-								workInProgress._reportError(err)
-							})
+						FFMpegIsDone = true
+						onDone()
 					} else {
 						workInProgress._reportError(new Error(`Code ${code}`))
 					}

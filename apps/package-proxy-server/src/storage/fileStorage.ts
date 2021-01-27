@@ -96,19 +96,18 @@ export class FileStorage extends Storage {
 			// store plain text into file
 			await fsWriteFile(fullPath, ctx.request.body.text)
 
+			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
 			return true
 		} else if (ctx.request.files?.length) {
 			const file = ctx.request.files[0] as any
 			const stream = file.stream as fs.ReadStream
 
 			// todo: I have no idea what I'm doing, this should be implemented properly:
-			stream
-				.pipe(fs.createWriteStream(fullPath))
-				.on('open', () => console.log('open WriteStream'))
-				.on('close', () => console.log('close WriteStream'))
+			stream.pipe(fs.createWriteStream(fullPath))
+			// .on('open', () => console.log('open WriteStream'))
+			// .on('close', () => console.log('close WriteStream'))
 
 			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
-
 			return true
 		} else {
 			return { code: 400, reason: 'No files provided' }

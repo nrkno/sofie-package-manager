@@ -75,7 +75,6 @@ export class PackageProxyServer {
 			await this.handleStorage(ctx, () => this.storage.getPackage(ctx.params.path, ctx))
 		})
 		this.router.post('/package/:path+', async (ctx) => {
-			console.log('post', ctx)
 			await this.handleStorage(ctx, () => this.storage.postPackage(ctx.params.path, ctx))
 		})
 		this.router.delete('/package/:path+', async (ctx) => {

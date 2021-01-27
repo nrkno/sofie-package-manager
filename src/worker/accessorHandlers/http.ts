@@ -147,31 +147,39 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
-		const result = await fetch(this.fullUrl + '_metadata.json')
+		const url = this.fullUrl + '_metadata.json'
+		const result = await fetch(url)
 		if (result.status === 404) return undefined
-
-		if (result.status >= 400)
-			throw new Error(`fetchMetadata: Bad response: [${result.status}]: ${result.statusText}`)
+		if (result.status >= 400) {
+			const text = await result.text()
+			throw new Error(`fetchMetadata: Bad response: [${result.status}]: ${result.statusText}, ${url}, ${text}`)
+		}
 
 		return result.json()
 	}
 	async updateMetadata(metadata: Metadata): Promise<void> {
 		const formData = new FormData()
 		formData.append('text', JSON.stringify(metadata))
-		const result = await fetch(this.fullUrl + '_metadata.json', {
+		const url = this.fullUrl + '_metadata.json'
+		const result = await fetch(url, {
 			method: 'POST',
 			body: formData,
 		})
-		if (result.status >= 400)
-			throw new Error(`updateMetadata: Bad response: [${result.status}]: ${result.statusText}`)
+		if (result.status >= 400) {
+			const text = await result.text()
+			throw new Error(`updateMetadata: Bad response: [${result.status}]: ${result.statusText}, ${url}, ${text}`)
+		}
 	}
 	async removeMetadata(): Promise<void> {
-		const result = await fetch(this.fullUrl + '_metadata.json', {
+		const url = this.fullUrl + '_metadata.json'
+		const result = await fetch(url, {
 			method: 'DELETE',
 		})
 		if (result.status === 404) return undefined // that's ok
-		if (result.status >= 400)
-			throw new Error(`removeMetadata: Bad response: [${result.status}]: ${result.statusText}`)
+		if (result.status >= 400) {
+			const text = await result.text()
+			throw new Error(`removeMetadata: Bad response: [${result.status}]: ${result.statusText}, ${url}, ${text}`)
+		}
 	}
 }
 interface HTTPHeaders {

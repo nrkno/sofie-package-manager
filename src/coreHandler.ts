@@ -280,8 +280,6 @@ export class CoreHandler {
 
 			if (cmd.deviceId === this.core.deviceId) {
 				this.executeFunction(cmd)
-			} else {
-				// console.log('not mine', cmd.deviceId, this.core.deviceId)
 			}
 		}
 		observer.added = (id: string) => {

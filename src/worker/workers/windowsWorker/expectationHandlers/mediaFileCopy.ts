@@ -177,7 +177,6 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 				// on cancel work
 
 				writeStream.once('close', () => {
-					console.log('writeStream close!')
 					lookupTarget.handle.removePackage()
 				})
 				sourceStream.cancel()
@@ -239,7 +238,6 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			const workInProgress = new WorkInProgress('Uploading', async () => {
 				// on cancel work
 				writeStream.once('close', () => {
-					console.log('http upload close!')
 					lookupTarget.handle.removePackage()
 				})
 				sourceStream.cancel()

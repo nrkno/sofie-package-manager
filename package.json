@@ -109,7 +109,7 @@
 		"@sofie-automation/server-core-integration": "file:../Core/packages/server-core-integration",
 		"abort-controller": "^3.0.0",
 		"fast-clone": "^1.5.13",
-		"form-data": "^3.0.0",
+		"form-data": "git+https://github.com/wxt2005/form-data/#e705c0a1fdaf90d21501f56460b93e43a18bd435",
 		"node-fetch": "^2.6.1",
 		"tslib": "^2.0.3",
 		"underscore": "^1.12.0",
