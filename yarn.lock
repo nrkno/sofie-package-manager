@@ -530,11 +530,13 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@sofie-automation/blueprints-integration@file:../Core/packages/blueprints-integration":
-  version "1.17.0-in-development-R29.0"
+"@sofie-automation/blueprints-integration@1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0":
+  version "1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0.tgz#4f0d23e851dd272eb5a88d8c3f0eff045145faa5"
+  integrity sha512-9dXQcHuNRcz+026ojFf+pw18fSmnEl4leLm2wU+0IglgbbQG5e8h7gOKN/iRnDw676xnBFQpWYVhfwYAqM67dw==
   dependencies:
     moment "2.29.1"
-    timeline-state-resolver-types "5.3.0-nightly-release29-20210104-122313-8763a79d.0"
+    timeline-state-resolver-types "5.3.0-nightly-release29-20210113-080756-7bae1d378.0"
     tslib "^2.0.3"
     underscore "1.12.0"
 
@@ -557,8 +559,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@file:../Core/packages/server-core-integration":
-  version "1.17.0-in-development-R29.0"
+"@sofie-automation/server-core-integration@1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0":
+  version "1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0.tgz#c54b68454e75a4193a7ec5c97f4e090f7ce7687d"
+  integrity sha512-34yGDMshS2UUwZU8Ad3Kr3dIVXAk59mH6WJgWLyTeNij1hzsvUnBPl1tfSWWvb51WRps8S+L3YNVVDpWj8Dtmw==
   dependencies:
     data-store "3.1.0"
     ejson "^2.2.0"
@@ -5823,10 +5827,10 @@ through@2, "through@>=2.2.7 <3", through@^2.3.8:
   resolved "https://registry.yarnpkg.com/through/-/through-2.3.8.tgz#0dd4c9ffaabc357960b1b724115d7e0e86a2e1f5"
   integrity sha1-DdTJ/6q8NXlgsbckEV1+Doai4fU=
 
-timeline-state-resolver-types@5.3.0-nightly-release29-20210104-122313-8763a79d.0:
-  version "5.3.0-nightly-release29-20210104-122313-8763a79d.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.3.0-nightly-release29-20210104-122313-8763a79d.0.tgz#1ef1c5533fff51b678d10fe926014ab475006428"
-  integrity sha512-bGd3AOVr9aYmx5bU70G4tcsIJ3eS9sCoUFseCKSP69Xxkh1J9QycO63ybdPTDjdNiydLQaGUk+uW82ENhtU46A==
+timeline-state-resolver-types@5.3.0-nightly-release29-20210113-080756-7bae1d378.0:
+  version "5.3.0-nightly-release29-20210113-080756-7bae1d378.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.3.0-nightly-release29-20210113-080756-7bae1d378.0.tgz#52a0b1f078e7a088af71ae7646fd31d96cef38a2"
+  integrity sha512-f8wCWhYtDPLK+UErQ7+3nTJEDekBepS3sazNmL2W39OKJjKI5BxMSaXzx7POWr8GPc1x/32SqDlLN4d3mR9K4Q==
   dependencies:
     tslib "^1.13.0"
 
