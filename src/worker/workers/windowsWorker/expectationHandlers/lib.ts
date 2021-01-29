@@ -18,7 +18,12 @@ export function checkWorkerHasAccessToPackageContainers(
 	if (checks.sources !== undefined) {
 		accessSourcePackageContainer = findBestPackageContainerWithAccess(genericWorker, checks.sources)
 		if (!accessSourcePackageContainer) {
-			return { support: false, reason: `Doesn't have access to any of the source packageContainers` }
+			return {
+				support: false,
+				reason: `Doesn't have access to any of the source packageContainers (${checks.sources
+					.map((o) => o.containerId)
+					.join(', ')})`,
+			}
 		}
 	}
 
@@ -26,7 +31,12 @@ export function checkWorkerHasAccessToPackageContainers(
 	if (checks.targets !== undefined) {
 		accessTargetPackageContainer = findBestPackageContainerWithAccess(genericWorker, checks.targets)
 		if (!accessTargetPackageContainer) {
-			return { support: false, reason: `Doesn't have access to any of the target packageContainers` }
+			return {
+				support: false,
+				reason: `Doesn't have access to any of the target packageContainers (${checks.targets
+					.map((o) => o.containerId)
+					.join(', ')})`,
+			}
 		}
 	}
 

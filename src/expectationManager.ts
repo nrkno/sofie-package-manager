@@ -4,6 +4,7 @@ import { Workforce } from './workforce'
 import { Expectation } from './worker/expectationApi'
 import { IWorkInProgress } from './worker/lib/workInProgress'
 import { ExpectationCost, MessageFromWorker, WorkerAgent } from './workerAgent'
+import { PackageContainerPackageStatus, PackageContainerPackageStatusStatus } from './packageManager'
 
 export class ExpectationManager {
 	private readonly EVALUATE_INTERVAL = 10 * 1000
@@ -32,6 +33,11 @@ export class ExpectationManager {
 				progress?: number
 				statusReason?: string
 			}
+		) => void,
+		private reportPackageContainerPackageStatus: (
+			containerId: string,
+			packageId: string,
+			packageStatus: PackageContainerPackageStatus | null
 		) => void,
 		private onMessageFromWorker: MessageFromWorker
 	) {
@@ -166,6 +172,7 @@ export class ExpectationManager {
 					state: TrackedExpectationState.NEW,
 					availableWorkers: [],
 					lastEvaluationTime: 0,
+					reason: 'N/A',
 				}
 			}
 		}
@@ -299,13 +306,22 @@ export class ExpectationManager {
 					)
 
 					trackedExp.workInProgress.on('progress', (actualVersionHash: string | null, progress: number) => {
-						this.logger.info(
-							`Expectation "${JSON.stringify(trackedExp.exp.statusReport.label)}" progress: ${progress}`
-						)
+						if (trackedExp.state === TrackedExpectationState.WORKING) {
+							trackedExp.actualVersionHash = actualVersionHash
+							trackedExp.progress = progress
 
-						this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
-							progress: progress,
-						})
+							this.logger.info(
+								`Expectation "${JSON.stringify(
+									trackedExp.exp.statusReport.label
+								)}" progress: ${progress}`
+							)
+
+							this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
+								progress: progress,
+							})
+						} else {
+							// ignore
+						}
 					})
 					trackedExp.workInProgress.on('error', (err: string) => {
 						if (trackedExp.state === TrackedExpectationState.WORKING) {
@@ -314,10 +330,13 @@ export class ExpectationManager {
 								status: trackedExp.state,
 								statusReason: trackedExp.reason,
 							})
+						} else {
+							// ignore
 						}
 					})
 					trackedExp.workInProgress.on('done', (actualVersionHash: string, reason: string, result: any) => {
 						if (trackedExp.state === TrackedExpectationState.WORKING) {
+							trackedExp.actualVersionHash = actualVersionHash
 							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, reason)
 							this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
 								status: trackedExp.state,
@@ -333,6 +352,8 @@ export class ExpectationManager {
 							}
 							// We should reevaluate asap, so that any other expectation which might be waiting on this worker could start.
 							this._triggerEvaluateExpectations(true)
+						} else {
+							// ignore
 						}
 					})
 				} else {
@@ -353,6 +374,8 @@ export class ExpectationManager {
 							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
 						} else {
 							// It appears like it's not fullfilled anymore
+							trackedExp.actualVersionHash = undefined
+							trackedExp.progress = undefined
 							this.updateTrackedExp(trackedExp, TrackedExpectationState.WAITING, fulfilled.reason)
 							session.triggerExpectationAgain = true
 						}
@@ -401,7 +424,7 @@ export class ExpectationManager {
 		}
 
 		if (trackedExp.reason !== reason) {
-			trackedExp.reason = reason
+			trackedExp.reason = reason || 'N/A'
 			updatedReason = true
 		}
 		// Log and report new states an reasons:
@@ -420,6 +443,33 @@ export class ExpectationManager {
 				status: trackedExp.state,
 				statusReason: trackedExp.reason,
 			})
+
+			this.updatePackageContainerPackageStatus(trackedExp)
+		}
+	}
+	private updatePackageContainerPackageStatus(trackedExp: TrackedExpectation) {
+		if (trackedExp.state === TrackedExpectationState.FULFILLED) {
+			for (const fromPackage of trackedExp.exp.fromPackages) {
+				// TODO: this is probably not eh right thing to do:
+				for (const packageContainer of trackedExp.exp.endRequirement.targets) {
+					//
+
+					console.log('updatePackageContainerPackageStatus')
+
+					this.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
+						contentVersionHash: trackedExp.actualVersionHash || '',
+						progress: trackedExp.progress || 0,
+						status:
+							trackedExp.state === TrackedExpectationState.FULFILLED
+								? PackageContainerPackageStatusStatus.READY
+								: trackedExp.state === TrackedExpectationState.WORKING
+								? PackageContainerPackageStatusStatus.TRANSFERRING
+								: PackageContainerPackageStatusStatus.NOT_READY,
+						statusReason: trackedExp.reason,
+					})
+				}
+			}
+			// [0].containerId
 		}
 	}
 	private async determineWorker(trackedExp: TrackedExpectation): Promise<WorkerAgentAssignment | undefined> {
@@ -532,9 +582,11 @@ interface TrackedExpectation {
 	/** List of worker ids that supports this Expectation */
 	availableWorkers: string[]
 	lastEvaluationTime: number
-	reason?: string
+	reason: string
 	workInProgress?: IWorkInProgress
 	handleResult?: (result: any) => void
+	actualVersionHash?: string | null
+	progress?: number
 }
 interface ExpectationStateHandlerSession {
 	/** Set to true if the tracked expectation should be triggered again ASAP */

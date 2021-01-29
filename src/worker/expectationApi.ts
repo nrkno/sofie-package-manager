@@ -6,11 +6,18 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expectation {
-	export type Any = MediaFileCopy | MediaFileScan | MediaFileThumbnail | MediaFilePreview | QuantelClipCopy
+	export type Any =
+		| MediaFileCopy
+		| MediaFileScan
+		| MediaFileDeepScan
+		| MediaFileThumbnail
+		| MediaFilePreview
+		| QuantelClipCopy
 
 	export enum Type {
 		MEDIA_FILE_COPY = 'media_file_copy',
 		MEDIA_FILE_SCAN = 'media_file_scan',
+		MEDIA_FILE_DEEP_SCAN = 'media_file_deep_scan',
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 		MEDIA_FILE_PREVIEW = 'media_file_preview',
 
@@ -62,7 +69,7 @@ export namespace Expectation {
 			sources: PackageContainerOnPackageFile[]
 		}
 		endRequirement: {
-			targets: PackageContainerOnPackageFile[]
+			targets: [PackageContainerOnPackageFile]
 			content: {
 				filePath: string
 			}
@@ -89,6 +96,48 @@ export namespace Expectation {
 				filePath: string
 			}
 			version: null
+		}
+	}
+	export interface MediaFileDeepScan extends Base {
+		type: Type.MEDIA_FILE_DEEP_SCAN
+
+		startRequirement: {
+			sources: MediaFileCopy['endRequirement']['targets']
+			content: MediaFileCopy['endRequirement']['content']
+			version: MediaFileCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: [PackageContainerOnPackageCorePackage]
+			content: {
+				filePath: string
+			}
+			version: {
+				/** Enable field order detection. An expensive chcek that decodes the start of the video */
+				fieldOrder?: boolean
+				/** Number of frames to scan to determine files order. Neede sufficient motion, i.e. beyong title card */
+				fieldOrderScanDuration?: number
+
+				/** Enable scene change detection */
+				scenes?: boolean
+				/** Likelihood frame introduces new scene (`0.0` to `1.0`). Defaults to `0.4` */
+				sceneThreshold?: number
+
+				/** Enable freeze frame detection */
+				freezeDetection?: boolean
+				/** Noise tolerance - difference ratio between `0.0` to `1.0`. Default is `0.001` */
+				freezeNoise?: number
+				/** Duration of freeze before notification. Default is `2s` */
+				freezeDuration?: string
+
+				/** Enable black frame detection */
+				blackDetection?: boolean
+				/** Duration of black until notified. Default `2.0` */
+				blackDuration?: string
+				/** Ratio of black pixels per frame before frame is black. Value between `0.0` and `1.0` defaulting to `0.98` */
+				blackRatio?: number
+				/** Luminance threshold for a single pixel to be considered black. Default is `0.1` */
+				blackThreshold?: number
+			}
 		}
 	}
 	export interface PackageContainerOnPackageCorePackage extends PackageContainerOnPackage {

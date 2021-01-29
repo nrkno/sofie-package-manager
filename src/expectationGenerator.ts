@@ -1,11 +1,12 @@
-import { Accessor, ExpectedPackage } from '@sofie-automation/blueprints-integration'
-import { ExpectedPackageWrap } from './packageManager'
+import { Accessor, ExpectedPackage, PackageContainer } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageWrap, PackageContainers } from './packageManager'
 import { Expectation } from './worker/expectationApi'
 import { hashObj } from './worker/lib/lib'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
 	sources: {
+		containerId: string
 		label: string
 		accessors: ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']
 	}[]
@@ -13,13 +14,23 @@ export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageQuantelClip
 	sources: {
+		containerId: string
 		label: string
 		accessors: ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']
 	}[]
 }
 
-export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): { [id: string]: Expectation.Any } {
-	const expectations: { [id: string]: Expectation.Any } = {}
+type GenerateExpectation = Expectation.Base & {
+	sideEffect?: {
+		previewContainerId?: string
+		thumbnailContainerId?: string
+	}
+}
+export function generateExpectations(
+	packageContainers: PackageContainers,
+	expectedPackages: ExpectedPackageWrap[]
+): { [id: string]: Expectation.Any } {
+	const expectations: { [id: string]: GenerateExpectation } = {}
 
 	// Note: All of this is a preliminary implementation!
 	// A blueprint-like plug-in architecture might be a future idea
@@ -54,7 +65,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 				},
 
 				endRequirement: {
-					targets: expWrapMediaFile.targets as Expectation.PackageContainerOnPackageFile[],
+					targets: expWrapMediaFile.targets as [Expectation.PackageContainerOnPackageFile],
 					content: expWrapMediaFile.expectedPackage.content,
 					version: {
 						type: Expectation.Version.Type.MEDIA_FILE,
@@ -68,7 +79,10 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 				// There is already an expectation pointing at the same place.
 				expectations[exp.id].fromPackages.push(exp.fromPackages[0])
 			} else {
-				expectations[exp.id] = exp
+				expectations[exp.id] = {
+					...exp,
+					sideEffect: expWrap.expectedPackage.sideEffect,
+				}
 			}
 		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
 			const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
@@ -110,15 +124,19 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 				// There is already an expectation pointing at the same place.
 				expectations[exp.id].fromPackages.push(exp.fromPackages[0])
 			} else {
-				expectations[exp.id] = exp
+				expectations[exp.id] = {
+					...exp,
+					sideEffect: expWrap.expectedPackage.sideEffect,
+				}
 			}
 		}
+		break
 	}
 
 	// Side effects from files:
-	for (const id of Object.keys(expectations)) {
-		const expectation = expectations[id]
-		if (expectation.type === Expectation.Type.MEDIA_FILE_COPY) {
+	for (const expectation0 of Object.values(expectations)) {
+		if (expectation0.type === Expectation.Type.MEDIA_FILE_COPY) {
+			const expectation = expectation0 as Expectation.MediaFileCopy
 			// All files that have been copied should also be scanned:
 			const scan: Expectation.MediaFileScan = {
 				id: expectation.id + '_scan',
@@ -141,6 +159,7 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 				endRequirement: {
 					targets: [
 						{
+							containerId: '__corePackageInfo',
 							label: 'Core package info',
 							accessors: {
 								coreCollection: {
@@ -150,25 +169,24 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 						},
 					],
 					content: expectation.endRequirement.content,
-					version: null, // expectation.endRequirement.version,
+					version: null,
 				},
 				dependsOnFullfilled: [expectation.id],
 				triggerByFullfilledIds: [expectation.id],
 			}
 			expectations[scan.id] = scan
 
-			// All files that have been copied should also get a thumbnail:
-			const thumbnail: Expectation.MediaFileThumbnail = {
-				id: expectation.id + '_thumbnail',
-				priority: 200,
-				type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
+			const deepScan: Expectation.MediaFileDeepScan = {
+				id: expectation.id + '_deepscan',
+				priority: 201,
+				type: Expectation.Type.MEDIA_FILE_DEEP_SCAN,
 				fromPackages: expectation.fromPackages,
 
 				statusReport: {
-					label: `Generate thumbnail for ${expectation.statusReport.label}`,
-					description: `Thumbnail is used in Sofie GUI`,
+					label: `Deep Scan ${expectation.statusReport.label}`,
+					description: `Deep scanning includes scene-detection, black/freeze frames etc.`,
 					requiredForPlayout: false,
-					displayRank: 11,
+					displayRank: 10,
 				},
 
 				startRequirement: {
@@ -177,69 +195,116 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 					version: expectation.endRequirement.version,
 				},
 				endRequirement: {
-					targets: expectation.endRequirement.targets,
-					content: {
-						filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.png'),
-					},
-					version: {
-						type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
-						width: 512,
-						height: -1, // preserve ratio
-					},
-				},
-				dependsOnFullfilled: [expectation.id],
-				triggerByFullfilledIds: [expectation.id],
-			}
-			expectations[thumbnail.id] = thumbnail
-
-			// All files that have been copied should also get a preview:
-			const preview: Expectation.MediaFilePreview = {
-				id: expectation.id + '_preview',
-				priority: 200,
-				type: Expectation.Type.MEDIA_FILE_PREVIEW,
-				fromPackages: expectation.fromPackages,
-
-				statusReport: {
-					label: `Generate preview for ${expectation.statusReport.label}`,
-					description: `Preview is used in Sofie GUI`,
-					requiredForPlayout: false,
-					displayRank: 12,
-				},
-
-				startRequirement: {
-					sources: expectation.endRequirement.targets,
-					content: expectation.endRequirement.content,
-					version: expectation.endRequirement.version,
-				},
-				endRequirement: {
-					// targets: expectation.endRequirement.targets,
 					targets: [
 						{
-							label: 'local http',
+							containerId: '__corePackageInfo',
+							label: 'Core package info',
 							accessors: {
-								http: {
-									type: Accessor.AccessType.HTTP,
-									baseUrl: 'http://localhost:8080/package/',
-									url: expectation.endRequirement.content.filePath,
-									allowRead: true,
-									allowWrite: true,
+								coreCollection: {
+									type: Accessor.AccessType.CORE_PACKAGE_INFO,
 								},
 							},
 						},
 					],
-					content: {
-						filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.webm'),
-					},
+					content: expectation.endRequirement.content,
 					version: {
-						type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
-						// width: 512,
-						// height: -1, // preserve ratio
+						fieldOrder: true,
+						scenes: true,
+						freezeDetection: true,
+						blackDetection: true,
 					},
 				},
 				dependsOnFullfilled: [expectation.id],
 				triggerByFullfilledIds: [expectation.id],
 			}
-			expectations[preview.id] = preview
+			expectations[deepScan.id] = deepScan
+
+			if (expectation0.sideEffect?.thumbnailContainerId) {
+				const packageContainer: PackageContainer =
+					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+
+				const thumbnail: Expectation.MediaFileThumbnail = {
+					id: expectation.id + '_thumbnail',
+					priority: 200,
+					type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
+					fromPackages: expectation.fromPackages,
+
+					statusReport: {
+						label: `Generate thumbnail for ${expectation.statusReport.label}`,
+						description: `Thumbnail is used in Sofie GUI`,
+						requiredForPlayout: false,
+						displayRank: 11,
+					},
+
+					startRequirement: {
+						sources: expectation.endRequirement.targets,
+						content: expectation.endRequirement.content,
+						version: expectation.endRequirement.version,
+					},
+					endRequirement: {
+						targets: [
+							{
+								...(packageContainer as any),
+								containerId: expectation0.sideEffect.thumbnailContainerId,
+							},
+						],
+						content: {
+							filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.png'),
+						},
+						version: {
+							type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
+							width: 512,
+							height: -1, // preserve ratio
+						},
+					},
+					dependsOnFullfilled: [expectation.id],
+					triggerByFullfilledIds: [expectation.id],
+				}
+				expectations[thumbnail.id] = thumbnail
+			}
+
+			if (expectation0.sideEffect?.previewContainerId) {
+				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+
+				const preview: Expectation.MediaFilePreview = {
+					id: expectation.id + '_preview',
+					priority: 200,
+					type: Expectation.Type.MEDIA_FILE_PREVIEW,
+					fromPackages: expectation.fromPackages,
+
+					statusReport: {
+						label: `Generate preview for ${expectation.statusReport.label}`,
+						description: `Preview is used in Sofie GUI`,
+						requiredForPlayout: false,
+						displayRank: 12,
+					},
+
+					startRequirement: {
+						sources: expectation.endRequirement.targets,
+						content: expectation.endRequirement.content,
+						version: expectation.endRequirement.version,
+					},
+					endRequirement: {
+						targets: [
+							{
+								...(packageContainer as any),
+								containerId: expectation0.sideEffect.thumbnailContainerId,
+							},
+						],
+						content: {
+							filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.webm'), // replace file extension with webm
+						},
+						version: {
+							type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
+							// width: 512,
+							// height: -1, // preserve ratio
+						},
+					},
+					dependsOnFullfilled: [expectation.id],
+					triggerByFullfilledIds: [expectation.id],
+				}
+				expectations[preview.id] = preview
+			}
 
 			// Copy previews to HTTP: (TMP!)
 			// const tmpCopy: Expectation.MediaFileCopy = {
@@ -285,5 +350,10 @@ export function generateExpectations(expectedPackages: ExpectedPackageWrap[]): {
 		}
 	}
 
-	return expectations
+	const returnExpectations: { [id: string]: Expectation.Any } = {}
+	for (const [id, exp] of Object.entries(expectations)) {
+		returnExpectations[id] = exp as any
+	}
+
+	return returnExpectations
 }

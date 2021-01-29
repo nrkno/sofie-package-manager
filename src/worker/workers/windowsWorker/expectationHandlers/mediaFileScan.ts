@@ -8,6 +8,7 @@ import { hashObj } from '../../../lib/lib'
 import { isCorePackageInfoAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 
 export const MediaFileScan: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
@@ -66,10 +67,11 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
-			'ffprobe',
+			'scan',
 			exp,
 			exp.startRequirement.content,
-			actualSourceVersion
+			actualSourceVersion,
+			exp.endRequirement.version
 		)
 		if (packageInfoSynced.needsUpdate) {
 			return { fulfilled: false, reason: packageInfoSynced.reason }
@@ -88,11 +90,13 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupScanTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
-		let ffProbeProcess: ChildProcess | undefined
+		const currentProcess: {
+			abort?: () => void
+		} = {}
 		const workInProgress = new WorkInProgress('Scanning file', async () => {
 			// On cancel
-			if (ffProbeProcess) {
-				ffProbeProcess.kill() // todo: signal?
+			if (currentProcess.abort) {
+				currentProcess.abort()
 			}
 		}).do(async () => {
 			if (
@@ -112,33 +116,26 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 					const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 					const sourceVersionHash = hashObj(actualSourceVersion)
 
-					// Use FFProbe to scan the file:
-					const args = [
-						process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
-						'-hide_banner',
-						`-i "${lookupSource.handle.fullPath}"`,
-						'-show_streams',
-						'-show_format',
-						'-print_format',
-						'json',
-					]
-					// Report back an initial status, because it looks nice:
-					workInProgress._reportProgress(sourceVersionHash, 0.1)
+					try {
+						workInProgress._reportProgress(sourceVersionHash, 0.1)
 
-					ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
-						// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-						ffProbeProcess = undefined
-						if (err) {
-							workInProgress._reportError(err)
-							return
-						}
-						const json: any = JSON.parse(stdout)
-						if (!json.streams || !json.streams[0]) {
-							workInProgress._reportError(new Error(`File doesn't seem to be a media file`))
-							return
-						}
+						// Scan with FFProbe:
+						const ffProbe = scanWithFFProbe(lookupSource.handle)
+						currentProcess.abort = ffProbe.abort
+						const json = await ffProbe.promise
+						workInProgress._reportProgress(sourceVersionHash, 0.33)
+						currentProcess.abort = undefined
+
+						// all done:
 						targetHandle
-							.updatePackageInfo('ffprobe', exp, exp.startRequirement.content, actualSourceVersion, json)
+							.updatePackageInfo(
+								'scan',
+								exp,
+								exp.startRequirement.content,
+								actualSourceVersion,
+								exp.endRequirement.version,
+								json
+							)
 							.then(
 								() => {
 									const duration = Date.now() - startTime
@@ -152,7 +149,9 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 									workInProgress._reportError(err)
 								}
 							)
-					})
+					} catch (err) {
+						workInProgress._reportError(err)
+					}
 				}
 			} else {
 				throw new Error(
@@ -172,7 +171,7 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready) return { removed: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
-		await lookupTarget.handle.removePackageInfo('ffprobe', exp)
+		await lookupTarget.handle.removePackageInfo('scan', exp)
 
 		return { removed: true, reason: 'Removed scan info from Store' }
 	},
@@ -200,4 +199,45 @@ function lookupScanTargets(
 		write: true,
 		writePackageContainer: true,
 	})
+}
+
+export function scanWithFFProbe(
+	sourceHandle: LocalFolderAccessorHandle<any>
+): { promise: Promise<any>; abort: () => void } {
+	// Use FFProbe to scan the file:
+	const args = [
+		process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
+		'-hide_banner',
+		`-i "${sourceHandle.fullPath}"`,
+		'-show_streams',
+		'-show_format',
+		'-print_format',
+		'json',
+	]
+	let ffProbeProcess: ChildProcess | undefined = undefined
+
+	const promise = new Promise((resolve, reject) => {
+		ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
+			// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+			ffProbeProcess = undefined
+			if (err) {
+				reject(err)
+				return
+			}
+			const json: any = JSON.parse(stdout)
+			if (!json.streams || !json.streams[0]) {
+				reject(new Error(`File doesn't seem to be a media file`))
+				return
+			}
+			resolve(json)
+		})
+	})
+	return {
+		promise,
+		abort: () => {
+			if (ffProbeProcess) {
+				ffProbeProcess.kill() // todo: signal?
+			}
+		},
+	}
 }

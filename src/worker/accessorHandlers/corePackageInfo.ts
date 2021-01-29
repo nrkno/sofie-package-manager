@@ -72,9 +72,14 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		infoType: string,
 		exp: Expectation.Any,
 		content: unknown,
-		actualVersionOfPayload: Expectation.Version.Any
+		actualSourceVersion: Expectation.Version.Any,
+		expectTargetVersion: unknown
 	): Promise<{ needsUpdate: boolean; reason: string }> {
-		const actualContentVersionHash = this.getActualContentVersionHash(content, actualVersionOfPayload)
+		const actualContentVersionHash = this.getActualContentVersionHash(
+			content,
+			actualSourceVersion,
+			expectTargetVersion
+		)
 		const packageInfos = (await this.worker.sendMessageToManager({
 			type: 'fetchPackageInfoMetadata',
 			arguments: [infoType, exp.fromPackages.map((p) => p.id)],
@@ -107,10 +112,15 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		infoType: string,
 		exp: Expectation.Any,
 		content: unknown,
-		actualVersionOfPayload: Expectation.Version.Any,
+		actualSourceVersion: Expectation.Version.Any,
+		expectTargetVersion: unknown,
 		payload: unknown
 	): Promise<void> {
-		const actualContentVersionHash = this.getActualContentVersionHash(content, actualVersionOfPayload)
+		const actualContentVersionHash = this.getActualContentVersionHash(
+			content,
+			actualSourceVersion,
+			expectTargetVersion
+		)
 
 		const ps: Promise<any>[] = []
 		for (const fromPackage of exp.fromPackages) {
@@ -144,7 +154,11 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		await Promise.all(ps)
 	}
 	/** Returns a hash that changes whenever the package content+version changes */
-	private getActualContentVersionHash(content: unknown, actualVersion: Expectation.Version.Any) {
-		return hashObj({ content, actualVersion })
+	private getActualContentVersionHash(
+		content: unknown,
+		actualSourceVersion: Expectation.Version.Any,
+		expectTargetVersion: unknown
+	) {
+		return hashObj({ content, sourceVersion: actualSourceVersion, targetVersion: expectTargetVersion })
 	}
 }

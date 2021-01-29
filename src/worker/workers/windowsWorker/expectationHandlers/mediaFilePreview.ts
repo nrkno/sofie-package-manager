@@ -141,22 +141,18 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 				const args = [
 					'-hide_banner',
-					'-y',
-					'-threads 1',
-					`-i "${lookupSource.handle.fullPath}"`,
-					'-f',
-					'webm',
-					'-an',
-					'-c:v',
-					'libvpx',
-					'-b:v',
-					metadata.version.bitrate || '40k',
+					'-y', // Overwrite output files without asking.
+					'-threads 1', // Number of threads to use
+					`-i "${lookupSource.handle.fullPath}"`, // Input file path
+					'-f webm', // format: webm
+					'-an', // blocks all audio streams
+					'-c:v libvpx', // encoder for video
+					`-b:v ${metadata.version.bitrate || '40k'}`,
 					'-auto-alt-ref 0',
-					`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`,
-					'-deadline realtime',
+					`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
+					'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
 				]
 
-				/** If  */
 				let pipeStdOut = false
 				if (isLocalFolderHandle(lookupTarget.handle)) {
 					args.push(`"${lookupTarget.handle.fullPath}"`)
@@ -224,7 +220,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 						fileDuration = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
 					} else {
 						if (fileDuration) {
-							const m2 = str.match(/time=\s?(\d+):(\d+):(\d+).(\d+)/)
+							const m2 = str.match(/time=\s?(\d+):(\d+):([\d.]+)/)
 							if (m2) {
 								const hh = m2[1]
 								const mm = m2[2]

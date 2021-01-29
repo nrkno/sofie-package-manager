@@ -72,7 +72,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	get fullUrl(): string {
 		return [
-			this.baseUrl.replace(/\/$/, ''), // trim triling slash
+			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
 			this.filePath.replace(/^\//, ''), // trim leading slash
 		].join('/')
 	}
@@ -133,7 +133,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		})
 			.then((result) => {
 				if (result.status >= 400) {
-					throw new Error(`Upload file: Bad response: [${result.status}]: ${result.statusText}`)
+					throw new Error(
+						`Upload file: Bad response: [${result.status}]: ${result.statusText} POST "${this.fullUrl}"`
+					)
 				}
 			})
 			.then(() => {
@@ -152,7 +154,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (result.status === 404) return undefined
 		if (result.status >= 400) {
 			const text = await result.text()
-			throw new Error(`fetchMetadata: Bad response: [${result.status}]: ${result.statusText}, ${url}, ${text}`)
+			throw new Error(
+				`fetchMetadata: Bad response: [${result.status}]: ${result.statusText}, GET ${url}, ${text}`
+			)
 		}
 
 		return result.json()
@@ -167,7 +171,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		})
 		if (result.status >= 400) {
 			const text = await result.text()
-			throw new Error(`updateMetadata: Bad response: [${result.status}]: ${result.statusText}, ${url}, ${text}`)
+			throw new Error(
+				`updateMetadata: Bad response: [${result.status}]: ${result.statusText}, POST ${url}, ${text}`
+			)
 		}
 	}
 	async removeMetadata(): Promise<void> {
@@ -178,7 +184,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (result.status === 404) return undefined // that's ok
 		if (result.status >= 400) {
 			const text = await result.text()
-			throw new Error(`removeMetadata: Bad response: [${result.status}]: ${result.statusText}, ${url}, ${text}`)
+			throw new Error(
+				`removeMetadata: Bad response: [${result.status}]: ${result.statusText}, DELETE ${url}, ${text}`
+			)
 		}
 	}
 }

@@ -5,6 +5,7 @@ import { LoggerInstance } from './index'
 import {
 	ExpectedPackage,
 	ExpectedPackageStatusAPI,
+	PackageContainer,
 	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
 import { generateExpectations } from './expectationGenerator'
@@ -20,9 +21,16 @@ export class PackageManagerHandler {
 	private _observers: Array<any> = []
 
 	private _expectationManager: ExpectationManager
+
 	private expectedPackageCache: { [id: string]: ExpectedPackageWrap } = {}
-	private toReportStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
+	private packageContainersCache: PackageContainers = {}
+
+	private toReportExpectationStatus: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 	private sendUpdateExpectationStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
+
+	private toReportPackageStatus: { [id: string]: PackageContainerPackageStatus } = {}
+	private sendUpdatePackageContainerPackageStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
+
 	private reportedStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 
 	constructor(logger: LoggerInstance) {
@@ -39,6 +47,8 @@ export class PackageManagerHandler {
 					statusReason?: string
 				}
 			) => this.updateExpectationStatus(expectationId, expectaction, actualVersionHash, statusInfo),
+			(containerId: string, packageId: string, packageStatus: PackageContainerPackageStatus | null) =>
+				this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
 			(message: MessageFromWorkerPayload) => this.onMessageFromWorker(message)
 		)
 	}
@@ -107,14 +117,16 @@ export class PackageManagerHandler {
 			return
 		}
 		const expectedPackages = expectedPackageObj.expectedPackages as ExpectedPackageWrap[]
+		const packageContainers = expectedPackageObj.packageContainers as PackageContainers
 		// const settings = {} // TODO
 
-		this.handleExpectedPackages(expectedPackages)
+		this.handleExpectedPackages(packageContainers, expectedPackages)
 	}
 
-	private handleExpectedPackages(expectedPackages: ExpectedPackageWrap[]) {
+	private handleExpectedPackages(packageContainers: PackageContainers, expectedPackages: ExpectedPackageWrap[]) {
 		// Step 0: Save local cache:
 		this.expectedPackageCache = {}
+		this.packageContainersCache = packageContainers
 		for (const exp of expectedPackages) {
 			this.expectedPackageCache[exp.expectedPackage._id] = exp
 		}
@@ -123,7 +135,7 @@ export class PackageManagerHandler {
 		this.logger.info(JSON.stringify(expectedPackages, null, 2))
 
 		// Step 1: Generate expectations:
-		const expectations = generateExpectations(expectedPackages)
+		const expectations = generateExpectations(this.packageContainersCache, expectedPackages)
 		this.logger.info('expectations:')
 		this.logger.info(JSON.stringify(expectations, null, 2))
 
@@ -141,7 +153,7 @@ export class PackageManagerHandler {
 		}
 	): void {
 		if (!expectaction) {
-			delete this.toReportStatuses[expectationId]
+			delete this.toReportExpectationStatus[expectationId]
 		} else {
 			const packageStatus: ExpectedPackageStatusAPI.WorkStatus = {
 				// Default properties:
@@ -151,13 +163,13 @@ export class PackageManagerHandler {
 					statusReason: '',
 				},
 				// Previous properties:
-				...(((this.toReportStatuses[expectationId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in const packageStatus more strict
+				...(((this.toReportExpectationStatus[expectationId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in const packageStatus more strict
 				// Updated porperties:
 				...expectaction.statusReport,
 				...statusInfo,
 
 				fromPackages: expectaction.fromPackages.map((fromPackage) => {
-					const prevPromPackage = this.toReportStatuses[expectationId]?.fromPackages.find(
+					const prevPromPackage = this.toReportExpectationStatus[expectationId]?.fromPackages.find(
 						(p) => p.id === fromPackage.id
 					)
 					return {
@@ -168,7 +180,7 @@ export class PackageManagerHandler {
 				}),
 			}
 
-			this.toReportStatuses[expectationId] = packageStatus
+			this.toReportExpectationStatus[expectationId] = packageStatus
 		}
 		this.triggerSendUpdateExpectationStatus(expectationId)
 	}
@@ -181,7 +193,7 @@ export class PackageManagerHandler {
 		}
 	}
 	private sendUpdateExpectationStatus(expectationId: string) {
-		const toReportStatus = this.toReportStatuses[expectationId]
+		const toReportStatus = this.toReportExpectationStatus[expectationId]
 
 		if (!toReportStatus && this.reportedStatuses[expectationId]) {
 			this._coreHandler.core
@@ -247,6 +259,62 @@ export class PackageManagerHandler {
 			[]
 		)
 	}
+	public updatePackageContainerPackageStatus(
+		containerId: string,
+		packageId: string,
+		packageStatus: PackageContainerPackageStatus | null
+	): void {
+		const packageContainerPackageId = `${containerId}_${packageId}`
+		if (!packageStatus) {
+			delete this.toReportPackageStatus[packageContainerPackageId]
+		} else {
+			const o: PackageContainerPackageStatus = {
+				// Default properties:
+				...{
+					status: PackageContainerPackageStatusStatus.NOT_READY,
+					progress: 0,
+					statusReason: '',
+				},
+				// Previous properties:
+				...(((this.toReportPackageStatus[packageContainerPackageId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in const packageStatus more strict
+				// Updated porperties:
+				...packageStatus,
+			}
+
+			this.toReportPackageStatus[packageContainerPackageId] = o
+		}
+		this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId)
+	}
+	private triggerSendUpdatePackageContainerPackageStatus(containerId: string, packageId: string): void {
+		const packageContainerPackageId = `${containerId}_${packageId}`
+		if (!this.sendUpdatePackageContainerPackageStatusTimeouts[packageContainerPackageId]) {
+			this.sendUpdatePackageContainerPackageStatusTimeouts[packageContainerPackageId] = setTimeout(() => {
+				delete this.sendUpdatePackageContainerPackageStatusTimeouts[packageContainerPackageId]
+				this.sendUpdatePackageContainerPackageStatus(containerId, packageId)
+			}, 300)
+		}
+	}
+	public sendUpdatePackageContainerPackageStatus(containerId: string, packageId: string): void {
+		const packageContainerPackageId = `${containerId}_${packageId}`
+
+		const toReportPackageStatus: PackageContainerPackageStatus | null =
+			this.toReportPackageStatus[packageContainerPackageId] || null
+
+		// console.log('containerId', containerId)
+		// console.log('packageId', packageId)
+		// console.log('toReportPackageStatus', toReportPackageStatus)
+
+		this._coreHandler.core
+			.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerPackageStatus, [
+				containerId,
+				packageId,
+				toReportPackageStatus,
+			])
+			.catch((err) => {
+				this.logger.error('Error when calling method removeExpectedPackageStatus:')
+				this.logger.error(err)
+			})
+	}
 	private async onMessageFromWorker(message: MessageFromWorkerPayload): Promise<any> {
 		switch (message.type) {
 			case 'updatePackageContainerPackageStatus':
@@ -284,3 +352,23 @@ interface ResultingExpectedPackage {
 	// playoutLocation: any // todo?
 }
 export type ExpectedPackageWrap = ResultingExpectedPackage
+export interface PackageContainerPackageStatus extends Omit<ExpectedPackageStatusAPI.WorkStatusInfo, 'status'> {
+	// This is copied from Core
+	status: PackageContainerPackageStatusStatus
+
+	contentVersionHash: string
+
+	/* Progress (0-1), used when status = TRANSFERRING */
+	progress: number
+	/** Calculated time left, used when status = TRANSFERRING */
+	expectedLeft?: number
+
+	/** Longer reason as to why the status is what it is */
+	statusReason: string
+}
+export enum PackageContainerPackageStatusStatus {
+	NOT_READY = 'not_ready',
+	TRANSFERRING = 'transferring',
+	READY = 'ready',
+}
+export type PackageContainers = { [containerId: string]: PackageContainer }

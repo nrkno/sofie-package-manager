@@ -7,7 +7,9 @@ export function literal<T>(o: T): T {
 }
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function hashObj(obj: any): string {
-	if (_.isArray(obj)) {
+	if (!obj) {
+		return ''
+	} else if (_.isArray(obj)) {
 		const strs: string[] = []
 		for (const value of obj) {
 			strs.push(hashObj(value))

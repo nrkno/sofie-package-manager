@@ -1,11 +1,11 @@
-import { exec, ChildProcess } from 'child_process'
+import { ChildProcess, spawn } from 'child_process'
 import { Accessor } from '@sofie-automation/blueprints-integration'
 import { hashObj } from '../../../lib/lib'
 import { Expectation } from '../../../expectationApi'
 import { findBestPackageContainerWithAccess } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { isLocalFolderHandle } from '../../../accessorHandlers/accessor'
+import { isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
 
@@ -99,10 +99,12 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		}).do(async () => {
 			if (
 				lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
-				lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER
+				(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+					lookupTarget.accessor.type === Accessor.AccessType.HTTP)
 			) {
 				if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
-				if (!isLocalFolderHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
+				if (!isLocalFolderHandle(lookupTarget.handle) && !isHTTPAccessorHandle(lookupTarget.handle))
+					throw new Error(`Target AccessHandler type is wrong`)
 
 				const issueReadPackage = await lookupSource.handle.checkPackageReadAccess()
 				if (issueReadPackage) {
@@ -129,38 +131,105 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 					// Use FFMpeg to generate the thumbnail:
 					const args = [
-						process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
+						// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
 						'-hide_banner',
 						`-i "${lookupSource.handle.fullPath}"`,
+						`-f image2`,
 						'-frames:v 1',
 						`-vf thumbnail,scale=${metadata.version.width}:` + `${metadata.version.height}`,
 						'-threads 1',
-						`"${lookupTarget.handle.fullPath}"`,
 					]
-					// Report back an initial status, because it looks nice:
-					workInProgress._reportProgress(sourceVersionHash, 0.1)
 
-					ffMpegProcess = exec(args.join(' '), (err, _stdout, _stderr) => {
-						ffMpegProcess = undefined
-						if (err) {
-							workInProgress._reportError(err)
-							return
+					let pipeStdOut = false
+					if (isLocalFolderHandle(lookupTarget.handle)) {
+						args.push(`"${lookupTarget.handle.fullPath}"`)
+					} else if (isHTTPAccessorHandle(lookupTarget.handle)) {
+						pipeStdOut = true
+						args.push('pipe:1') // pipe output to stdout
+					} else {
+						throw new Error(`Unsupported Target AccessHandler`)
+					}
+
+					// Report back an initial status, because it looks nice:
+					workInProgress._reportProgress(sourceVersionHash, 0)
+
+					ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
+						shell: true,
+					})
+
+					let FFMpegIsDone = false
+					let uploadIsDone = false
+					/** To be called when done */
+					const onDone = () => {
+						if (FFMpegIsDone && uploadIsDone) {
+							lookupTarget.handle
+								.updateMetadata(metadata)
+								.then(() => {
+									const duration = Date.now() - startTime
+									workInProgress._reportComplete(
+										sourceVersionHash,
+										`Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+										undefined
+									)
+								})
+								.catch((err) => {
+									workInProgress._reportError(err)
+								})
+						}
+					}
+
+					if (pipeStdOut) {
+						if (!ffMpegProcess.stdout) {
+							throw new Error('No stdout stream available')
 						}
 
-						lookupTarget.handle
-							.updateMetadata(metadata)
-							.then(() => {
-								const duration = Date.now() - startTime
-								workInProgress._reportComplete(
-									sourceVersionHash,
-									`Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
-									undefined
-								)
-							})
-							.catch((err) => {
-								workInProgress._reportError(err)
-							})
+						const writeStream = await lookupTarget.handle.pipePackageStream(ffMpegProcess.stdout)
+						writeStream.on('error', (err) => {
+							workInProgress._reportError(err)
+						})
+						writeStream.once('close', () => {
+							uploadIsDone = true
+							onDone()
+						})
+					} else {
+						uploadIsDone = true // no upload
+					}
+					let stdErr = ''
+					ffMpegProcess.stderr?.on('data', (data) => {
+						stdErr += data.toString()
 					})
+
+					ffMpegProcess.on('close', (code) => {
+						ffMpegProcess = undefined
+						if (code === 0) {
+							FFMpegIsDone = true
+							onDone()
+						} else {
+							workInProgress._reportError(new Error(`Code ${code} ${stdErr}`))
+						}
+					})
+
+					// ffMpegProcess = exec(args.join(' '), (err, _stdout, _stderr) => {
+					// 	ffMpegProcess = undefined
+					// 	if (err) {
+					// 		workInProgress._reportError(err)
+					// 		return
+					// 	}
+
+					// 	lookupTarget.handle
+					// 		.updateMetadata(metadata)
+					// 		.then(() => {
+					// 			const duration = Date.now() - startTime
+					// 			workInProgress._reportComplete(
+					// 				sourceVersionHash,
+					// 				`Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+					// 				undefined
+					// 			)
+					// 		})
+					// 		.catch((err) => {
+					// 			workInProgress._reportError(err)
+					// 		})
+					// })
 				}
 			} else {
 				throw new Error(

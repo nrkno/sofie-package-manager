@@ -2,6 +2,7 @@ import { Expectation } from '../../expectationApi'
 import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker'
 import { MediaFileCopy } from './expectationHandlers/mediaFileCopy'
 import { MediaFileScan } from './expectationHandlers/mediaFileScan'
+import { MediaFileDeepScan } from './expectationHandlers/mediaFileDeepScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
 import { MessageFromWorker } from '../../../workerAgent'
@@ -49,6 +50,8 @@ export class WindowsWorker extends GenericWorker {
 				return MediaFileCopy
 			case Expectation.Type.MEDIA_FILE_SCAN:
 				return MediaFileScan
+			case Expectation.Type.MEDIA_FILE_DEEP_SCAN:
+				return MediaFileDeepScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
 				return MediaFileThumbnail
 			case Expectation.Type.MEDIA_FILE_PREVIEW:
