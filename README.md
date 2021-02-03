@@ -22,7 +22,6 @@ The Worker receives work orders from the `Package Manager` and executes them.
 
 The Worker can be compiled for windows (`apps/worker/app-windows/` and ((soon) linux `apps/worker/app-linux/`).
 
-
 ## For Developers
 
 Note: Applications are located under `apps/` and libraries are located under `shared/`.
