@@ -1,0 +1,29 @@
+{
+    "name": "@shared/worker",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "license": "MIT",
+    "scripts": {
+        "build": "rimraf dist && yarn build:main",
+        "build:main": "tsc -p tsconfig.json",
+        "test": "jest"
+    },
+    "engines": {
+        "node": ">=12.3.0"
+    },
+    "devDependencies": {
+        "@types/node-fetch": "^2.5.8"
+    },
+    "dependencies": {
+        "@shared/api": "*",
+        "abort-controller": "^3.0.0",
+        "form-data": "git+https://github.com/wxt2005/form-data/#e705c0a1fdaf90d21501f56460b93e43a18bd435",
+        "node-fetch": "^2.6.1",
+        "windows-network-drive": "^3.0.1"
+    },
+    "peerDependencies": {
+        "@sofie-automation/blueprints-integration": "*"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json"
+}

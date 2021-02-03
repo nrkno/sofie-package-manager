@@ -1,16 +1,36 @@
 {
-	"extends": "@sofie-automation/code-standard-preset/ts/tsconfig.bin",
-	"include": ["src/**/*.ts"],
-	"exclude": ["node_modules/**", "src/**/*spec.ts", "src/**/__tests__/*", "src/**/__mocks__/*"],
 	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es2018",
+		"noImplicitAny": true,
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"declaration": true,
+		"importHelpers": true,
+		"listFiles": false,
+		"traceResolution": false,
+		"pretty": true,
+		"lib": [
+			"es2018"
+		],
+		"types": [
+			"node",
+			"jest"
+		],
+		"strict": true,
+		"alwaysStrict": false,
+		"forceConsistentCasingInFileNames": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 		"outDir": "./dist",
 		"baseUrl": "./",
-		"paths": {
-			"*": ["./node_modules/*"],
-			"tv-automation-package-manager": ["./src/index.ts"]
-		},
-		"types": ["node"],
-		// TSR throws some typings issues
-		"skipLibCheck": true
-	}
+	},
+	"compileOnSave": false,
+	"exclude": [
+		"**/__tests__/**/*",
+		"node_modules",
+		"**/dist/**/*"
+	],
 }

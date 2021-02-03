@@ -1,119 +1,65 @@
 {
-	"name": "package-manager",
-	"version": "0.0.1",
-	"private": true,
-	"description": "Connect to Core, handle packages (media etc)",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/nrkno/tv-automation-package-manager"
-	},
-	"bugs": {
-		"url": "https://github.com/nrkno/tv-automation-package-manager/issues"
-	},
-	"homepage": "https://github.com/nrkno/tv-automation-package-manager",
-	"author": {
-		"name": "Johan Nyman",
-		"email": "johan@superfly.tv",
-		"url": "http://superfly.tv"
-	},
-	"contributors": [],
-	"scripts": {
-		"info": "npm-scripts-info",
-		"build": "rimraf dist && yarn build:main",
-		"buildstart": "yarn build && yarn start",
-		"buildinspect": "yarn build && yarn inspect",
-		"build:main": "tsc -p tsconfig.build.json",
-		"lint": "eslint . --ext .ts --ext .js --ignore-pattern dist",
-		"lint-fix": "yarn lint --fix",
-		"unit": "jest",
-		"test": "yarn lint && yarn unit",
-		"test:integration": "yarn lint && jest --config=jest-integration.config.js",
-		"watch": "jest --watch",
-		"cov": "jest; open-cli coverage/lcov-report/index.html",
-		"cov-open": "open-cli coverage/lcov-report/index.html",
-		"send-coverage": "jest && codecov",
-		"changelog": "standard-version",
-		"release": "yarn reset && yarn test && yarn changelog",
-		"reset": "git clean -dfx && git reset --hard && yarn",
-		"ci": "yarn test",
-		"inspect": "node --inspect dist/index.js",
-		"start": "node dist/index.js",
-		"unlinkall": "yarn unlink @sofie-automation/server-core-integration timeline-state-resolver && yarn --check-files",
-		"validate:dependencies": "yarn audit --groups dependencies && yarn license-validate",
-		"validate:dev-dependencies": "yarn audit --groups devDependencies",
-		"license-validate": "yarn sofie-licensecheck --allowPackages cycle@1.0.3",
-		"prepareChangelog": "standard-version --prerelease",
-		"upd": "yarn upgrade @sofie-automation/blueprints-integration @sofie-automation/server-core-integration"
-	},
-	"scripts-info": {
-		"info": "Display information about the scripts",
-		"build": "(Trash and re)build the library",
-		"lint": "Lint all typescript source files",
-		"unit": "Build the library and run unit tests",
-		"test": "Lint, build, and test the library",
-		"watch": "Watch source files, rebuild library on changes, rerun relevant tests",
-		"cov": "Run tests, generate the HTML coverage report, and open it in a browser",
-		"changelog": "Bump package.json version, update CHANGELOG.md, tag a release",
-		"reset": "Delete all untracked files and reset the repo to the last commit",
-		"release": "Clean, build, test, and prepare release (a one-step publish process)"
-	},
-	"engines": {
-		"node": ">=12.3.0"
-	},
-	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-	"husky": {
-		"hooks": {
-			"pre-commit": "lint-staged"
-		}
-	},
-	"lint-staged": {
-		"*.{js,css,json,md,scss}": [
-			"prettier --write"
-		],
-		"*.{ts,tsx}": [
-			"yarn lint-fix"
-		]
-	},
-	"devDependencies": {
-		"@sofie-automation/code-standard-preset": "^0.2.1",
-		"@types/jest": "^26.0.19",
-		"@types/node": "^12.19.9",
-		"@types/node-fetch": "^2.5.8",
-		"@types/underscore": "^1.10.24",
-		"@types/winston": "^2.3.9",
-		"codecov": "^3.8.1",
-		"jest": "^26.6.3",
-		"npm-scripts-info": "^0.3.9",
-		"open-cli": "^6.0.1",
-		"rimraf": "^3.0.2",
-		"standard-version": "^9.0.0",
-		"ts-jest": "^26.4.4",
-		"typescript": "~4.0.5"
-	},
-	"keywords": [
-		"broadcast",
-		"socket",
-		"typescript",
-		"javascript",
-		"open",
-		"source",
-		"automation",
-		"ncs",
-		"nrcs",
-		"rundown",
-		"production"
-	],
-	"dependencies": {
-		"@sofie-automation/blueprints-integration": "1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0",
-		"@sofie-automation/server-core-integration": "1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0",
-		"abort-controller": "^3.0.0",
-		"fast-clone": "^1.5.13",
-		"form-data": "git+https://github.com/wxt2005/form-data/#e705c0a1fdaf90d21501f56460b93e43a18bd435",
-		"node-fetch": "^2.6.1",
-		"tslib": "^2.0.3",
-		"underscore": "^1.12.0",
-		"windows-network-drive": "^3.0.1",
-		"winston": "^2.4.2"
-	}
+    "name": "package-manager-monorepo",
+    "version": "1.0.0",
+    "repository": "https://github.com/nrkno/tv-automation-package-manager",
+    "private": true,
+    "workspaces": [
+        "shared/**",
+        "apps/**"
+    ],
+    "scripts": {
+        "ci": "yarn install && yarn build && yarn lint && yarn test",
+        "setup": "lerna bootstrap",
+        "build": "lerna run build --stream",
+        "build:changed": "lerna run --since origin/master --include-dependents build",
+        "lint": "lerna exec -- eslint . --ext .ts,.tsx",
+        "lintfix": "yarn lint --fix",
+        "lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
+        "test": "lerna run test",
+        "test:changed": "lerna run --since origin/master --include-dependents test",
+        "test:update": "lerna run test -- -u",
+        "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
+        "typecheck": "lerna exec -- tsc --noEmit",
+        "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
+        "build-win32": "lerna run build-win32"
+    },
+    "devDependencies": {
+        "@sofie-automation/code-standard-preset": "^0.2.2",
+        "@types/jest": "^26.0.20",
+        "eslint-plugin-prettier": "^3.3.1",
+        "eslint": "7.19.0",
+        "husky": "^4.3.8",
+        "jest": "^26.6.3",
+        "lerna": "^3.22.1",
+        "lint-staged": "^10.5.3",
+        "prettier": "^2.2.1",
+        "rimraf": "^3.0.2",
+        "ts-jest": "^26.5.0",
+        "typescript": "^4.0.0",
+        "trash": "^7.1.0",
+        "mkdirp": "^1.0.4",
+        "find": "^0.3.0",
+        "fs-extra": "^9.1.0"
+    },
+    "engines": {
+        "node": ">=12.3.0"
+    },
+    "dependencies": {
+        "@sofie-automation/blueprints-integration": "1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0",
+        "@sofie-automation/server-core-integration": "1.18.0-nightly-feat-package-management-20210129-221921-a5e050e.0"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json1",
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged"
+        }
+    },
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier --write"
+        ],
+        "*.{ts,tsx}": [
+            "yarn lint-fix"
+        ]
+    }
 }
