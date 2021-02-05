@@ -69,9 +69,11 @@ export class FileStorage extends Storage {
 		if (!(await this.exists(fullPath))) {
 			return { code: 404, reason: 'Not found' }
 		}
-		const mimeType = mime.lookup(fullPath)
+		let mimeType = mime.lookup(fullPath)
 		if (!mimeType) {
-			return { code: 501, reason: 'Unknown / unsupported file format' }
+			// Fallback to "unknown binary":
+			mimeType = 'application/octet-stream'
+			// return { code: 501, reason: 'Unknown / unsupported file format' }
 		}
 
 		const stat = await fsStat(fullPath)
@@ -102,10 +104,7 @@ export class FileStorage extends Storage {
 			const file = ctx.request.files[0] as any
 			const stream = file.stream as fs.ReadStream
 
-			// todo: I have no idea what I'm doing, this should be implemented properly:
 			stream.pipe(fs.createWriteStream(fullPath))
-			// .on('open', () => console.log('open WriteStream'))
-			// .on('close', () => console.log('close WriteStream'))
 
 			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
 			return true
