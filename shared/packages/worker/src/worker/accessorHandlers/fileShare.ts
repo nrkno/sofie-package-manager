@@ -225,7 +225,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
 			const windowsWorker = this.worker as WindowsWorker
 
-			// First we chack if the drive letter has already been assigned in the cache:
+			// First we check if the drive letter has already been assigned in our cache:
 			let foundMappedDriveLetter: string | null = null
 			for (const [driveLetter, mountedPath] of Object.entries(this.mappedDriveLetters)) {
 				if (mountedPath === folderPath) {
@@ -245,24 +245,25 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 				this.actualFolderPath = `${foundMappedDriveLetter}:\\`
 				return
 			} else {
-				// Find a free drive letter:
+				// Update our cache of mounted drive letters:
+				for (const [driveLetter, mountedPath] of Object.entries(await this.getMountedDriveLetters())) {
+					this.mappedDriveLetters[driveLetter] = mountedPath
+					// If the mounted path is the one we want, we don't have to mount a new one:
+					if (mountedPath === folderPath) {
+						foundMappedDriveLetter = driveLetter
+					}
+				}
+				if (foundMappedDriveLetter) {
+					this.actualFolderPath = `${foundMappedDriveLetter}:\\`
+					return
+				}
+
+				// Find next free drive letter:
 				const freeDriveLetter = windowsWorker.config.allowedMappedDriveLetters.find(
 					(driveLetter) => !this.mappedDriveLetters[driveLetter]
 				)
 
 				if (freeDriveLetter) {
-					// Before we mount it, do a final check if it is already mounted:
-					for (const [driveLetter, mountedPath] of Object.entries(await this.getMountedDriveLetters())) {
-						if (mountedPath === folderPath) {
-							foundMappedDriveLetter = driveLetter
-						}
-					}
-					if (foundMappedDriveLetter) {
-						this.mappedDriveLetters[freeDriveLetter] = folderPath
-						this.actualFolderPath = `${freeDriveLetter}:\\`
-						return
-					}
-
 					// Try to map the remote share onto a drive:
 					await networkDrive.mount(
 						folderPath,
