@@ -100,7 +100,9 @@ export async function lookupAccessorHandles<Metadata>(
 			// Check that the accessor-handle supports reading:
 			const issueHandleRead = handle.checkHandleRead()
 			if (issueHandleRead) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issueHandleRead}`
+				errorReason = `${packageContainer.label}: Accessor "${
+					accessor.label || accessorId
+				}": ${issueHandleRead}`
 				continue // Maybe next accessor works?
 			}
 		}
@@ -109,7 +111,9 @@ export async function lookupAccessorHandles<Metadata>(
 			// Check that the Package can be read:
 			const issuePackageReadAccess = await handle.checkPackageReadAccess()
 			if (issuePackageReadAccess) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackageReadAccess}`
+				errorReason = `${packageContainer.label}: Accessor "${
+					accessor.label || accessorId
+				}": ${issuePackageReadAccess}`
 				continue // Maybe next accessor works?
 			}
 		}
@@ -119,7 +123,9 @@ export async function lookupAccessorHandles<Metadata>(
 
 			const issuePackageVersion = compareActualExpectVersions(actualSourceVersion, checks.packageVersion)
 			if (issuePackageVersion) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackageVersion}`
+				errorReason = `${packageContainer.label}: Accessor "${
+					accessor.label || accessorId
+				}": ${issuePackageVersion}`
 				continue // Maybe next accessor works?
 			}
 		}
@@ -128,14 +134,16 @@ export async function lookupAccessorHandles<Metadata>(
 			// Check that the accessor-handle supports writing:
 			const issueHandleWrite = handle.checkHandleWrite()
 			if (issueHandleWrite) {
-				errorReason = `${packageContainer.label}: lookupTargets: Accessor "${accessorId}": ${issueHandleWrite}`
+				errorReason = `${packageContainer.label}: lookupTargets: Accessor "${
+					accessor.label || accessorId
+				}": ${issueHandleWrite}`
 				continue // Maybe next accessor works?
 			}
 		}
 		if (checks.writePackageContainer) {
 			const issuePackage = await handle.checkPackageContainerWriteAccess()
 			if (issuePackage) {
-				errorReason = `${packageContainer.label}: Accessor "${accessorId}": ${issuePackage}`
+				errorReason = `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${issuePackage}`
 				continue // Maybe next accessor works?
 			}
 		}
@@ -146,7 +154,9 @@ export async function lookupAccessorHandles<Metadata>(
 				accessor: accessor,
 				handle: handle,
 				ready: true,
-				reason: `Can access target "${packageContainer.label}" through accessor "${accessorId}"`,
+				reason: `Can access target "${packageContainer.label}" through accessor "${
+					accessor.label || accessorId
+				}"`,
 			}
 		}
 	}

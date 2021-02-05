@@ -453,10 +453,6 @@ export class ExpectationManager {
 			for (const fromPackage of trackedExp.exp.fromPackages) {
 				// TODO: this is probably not eh right thing to do:
 				for (const packageContainer of trackedExp.exp.endRequirement.targets) {
-					//
-
-					console.log('updatePackageContainerPackageStatus')
-
 					this.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
 						contentVersionHash: trackedExp.actualVersionHash || '',
 						progress: trackedExp.progress || 0,

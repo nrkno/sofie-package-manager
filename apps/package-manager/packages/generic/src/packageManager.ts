@@ -300,10 +300,6 @@ export class PackageManagerHandler {
 		const toReportPackageStatus: PackageContainerPackageStatus | null =
 			this.toReportPackageStatus[packageContainerPackageId] || null
 
-		// console.log('containerId', containerId)
-		// console.log('packageId', packageId)
-		// console.log('toReportPackageStatus', toReportPackageStatus)
-
 		this._coreHandler.core
 			.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerPackageStatus, [
 				containerId,

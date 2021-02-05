@@ -13,10 +13,11 @@
         "node": ">=12.3.0"
     },
     "devDependencies": {
-        "@types/node-fetch": "^2.5.8"
         "@types/deep-diff": "^1.0.0",
+        "@types/node-fetch": "^2.5.8",
     },
     "dependencies": {
+        "deep-diff": "^1.0.2",
         "@shared/api": "*",
         "abort-controller": "^3.0.0",
         "form-data": "git+https://github.com/wxt2005/form-data/#e705c0a1fdaf90d21501f56460b93e43a18bd435",
