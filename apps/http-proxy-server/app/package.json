@@ -9,7 +9,8 @@
         "test": "jest",
         "start": "node dist/index.js",
         "watch-server": "nodemon -e ts -w ./src -x yarn watch:serve --",
-        "watch:serve": "ts-node src/index.ts"
+        "watch:serve": "ts-node src/index.ts",
+        "precommit": "lint-staged"
     },
     "devDependencies": {
         "@sofie-automation/code-standard-preset": "^0.2.1",
@@ -26,7 +27,8 @@
         "@types/underscore": "^1.10.24",
         "@types/winston": "^2.3.9",
         "@types/yargs": "^15.0.12",
-        "nexe": "^3.3.7"
+        "nexe": "^3.3.7",
+        "lint-staged": "^7.2.0"
     },
     "dependencies": {
         "@koa/cors": "^3.0.0",
@@ -44,6 +46,19 @@
         "winston": "^2.4.2",
         "yargs": "^16.2.0"
     },
-    "peerDependencies": {},
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json"
+    "peerDependencies": {
+        "@sofie-automation/blueprints-integration": "*"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "engines": {
+        "node": ">=12.3.0"
+    },
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    }
 }

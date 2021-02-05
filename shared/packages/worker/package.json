@@ -7,14 +7,16 @@
     "scripts": {
         "build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "test": "jest"
+        "test": "jest",
+        "precommit": "lint-staged"
     },
     "engines": {
         "node": ">=12.3.0"
     },
     "devDependencies": {
         "@types/deep-diff": "^1.0.0",
-        "@types/node-fetch": "^2.5.8"
+        "@types/node-fetch": "^2.5.8",
+        "lint-staged": "^7.2.0"
     },
     "dependencies": {
         "deep-diff": "^1.0.2",
@@ -27,5 +29,13 @@
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"
     },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json"
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    }
 }
