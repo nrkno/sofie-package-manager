@@ -159,6 +159,7 @@ export class ExpectationManager {
 
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.workInProgress) {
+						this.logger.info(`Cancelling ${trackedExp.id} due to update`)
 						await trackedExp.workInProgress.cancel()
 					}
 				}
@@ -186,6 +187,7 @@ export class ExpectationManager {
 
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.workInProgress) {
+						this.logger.info(`Cancelling ${trackedExp.id} due to removed`)
 						await trackedExp.workInProgress.cancel()
 					}
 				}

@@ -146,7 +146,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
 		const streamWrapper: PackageWriteStreamWrapper = new PackageWriteStreamWrapper(() => {
-			// can't really abort the write stream
+			writeStream.destroy()
 		})
 
 		// Pipe any events from the writeStream right into the wrapper:

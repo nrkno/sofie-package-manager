@@ -70,7 +70,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 	abstract removeMetadata(): Promise<void>
 
 	abstract getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }>
-	abstract pipePackageStream(sourceStream: NodeJS.ReadStream): Promise<PackageWriteStreamWrapper>
+	abstract pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<PackageWriteStreamWrapper>
 }
 
 /**

@@ -167,15 +167,18 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 				throw new Error('Unable to copy: source and Target file paths are the same!')
 			}
 
-			const workInProgress = new WorkInProgress('Copying', async () => {
+			let wasCancelled = false
+			const workInProgress = new WorkInProgress('Copying, using Robocopy', async () => {
 				// on cancel
+				wasCancelled = true
 				copying.cancel()
-				// todo: should we remove the target file?
-				try {
-					lookupTarget.handle.removePackage()
-				} catch (err) {
-					// todo: what to do if it fails at this point?
-				}
+
+				// Wait a bit to allow freeing up of resources:
+				await waitTime(1000)
+
+				// Remove target files
+				await lookupTarget.handle.removePackage()
+				await lookupTarget.handle.removeMetadata()
 			})
 
 			const sourcePath = lookupSource.handle.fullPath
@@ -187,6 +190,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 
 			copying
 				.then(async () => {
+					if (wasCancelled) return // ignore
 					const duration = Date.now() - startTime
 
 					await lookupTarget.handle.updateMetadata(actualSourceUVersion)
@@ -202,21 +206,42 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 				})
 			return workInProgress
 		} else if (
-			lookupSource.accessor.type === Accessor.AccessType.HTTP &&
-			lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER
+			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+				lookupSource.accessor.type === Accessor.AccessType.HTTP) &&
+			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP)
 		) {
 			// We can copy by using file streams
-			if (!isHTTPAccessorHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
-			if (!isLocalFolderHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (
+				!isLocalFolderHandle(lookupSource.handle) &&
+				!isFileShareAccessorHandle(lookupSource.handle) &&
+				!isHTTPAccessorHandle(lookupSource.handle)
+			)
+				throw new Error(`Source AccessHandler type is wrong`)
+			if (
+				!isLocalFolderHandle(lookupTarget.handle) &&
+				!isFileShareAccessorHandle(lookupTarget.handle) &&
+				!isHTTPAccessorHandle(lookupTarget.handle)
+			)
+				throw new Error(`Source AccessHandler type is wrong`)
 
-			const workInProgress = new WorkInProgress('Copying', async () => {
+			let wasCancelled = false
+			const workInProgress = new WorkInProgress('Copying, using streams', async () => {
 				// on cancel work
-
-				writeStream.once('close', () => {
-					lookupTarget.handle.removePackage()
+				wasCancelled = true
+				await new Promise<void>((resolve, reject) => {
+					writeStream.once('close', () => {
+						lookupTarget.handle
+							.removePackage()
+							.then(() => lookupTarget.handle.removeMetadata())
+							.then(() => resolve())
+							.catch((err) => reject(err))
+					})
+					sourceStream.cancel()
+					writeStream.abort()
 				})
-				sourceStream.cancel()
-				writeStream.abort()
 			})
 
 			const fileSize: number =
@@ -241,6 +266,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 				workInProgress._reportError(err)
 			})
 			writeStream.once('close', () => {
+				if (wasCancelled) return // ignore
 				setImmediate(() => {
 					// Copying is done
 					const duration = Date.now() - startTime
@@ -343,6 +369,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 
 		try {
 			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removeMetadata()
 		} catch (err) {
 			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
 		}
