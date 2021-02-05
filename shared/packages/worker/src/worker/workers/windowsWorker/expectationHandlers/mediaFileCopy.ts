@@ -287,68 +287,6 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			})
 
 			return workInProgress
-		} else if (
-			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
-			lookupTarget.accessor.type === Accessor.AccessType.HTTP
-		) {
-			// We can upload
-			if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
-			if (!isHTTPAccessorHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
-
-			// const handle = lookupSource.handle as LocalFolderAccessorHandle<UniversalVersion>
-
-			const workInProgress = new WorkInProgress('Uploading', async () => {
-				// on cancel work
-				writeStream.once('close', () => {
-					lookupTarget.handle.removePackage()
-				})
-				sourceStream.cancel()
-				writeStream.abort()
-			})
-
-			// const fileSize: number =
-			// 	typeof actualSourceUVersion.fileSize.value === 'number'
-			// 		? actualSourceUVersion.fileSize.value
-			// 		: parseInt(actualSourceUVersion.fileSize.value || '0', 10)
-
-			// const byteCounter = new ByteCounter()
-			// byteCounter.on('progress', (bytes: number) => {
-			// 	if (fileSize) {
-			// 		workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
-			// 	}
-			// })
-
-			const sourceStream = await lookupSource.handle.getPackageReadStream()
-			// const writeStream = await lookupTarget.handle.pipePackageStream(sourceStream.readStream.pipe(byteCounter))
-			const writeStream = await lookupTarget.handle.pipePackageStream(sourceStream.readStream)
-
-			sourceStream.readStream.on('error', (err) => {
-				workInProgress._reportError(err)
-			})
-			writeStream.on('error', (err) => {
-				workInProgress._reportError(err)
-			})
-			writeStream.once('close', () => {
-				setImmediate(() => {
-					// Copying is done
-					const duration = Date.now() - startTime
-
-					lookupTarget.handle
-						.updateMetadata(actualSourceUVersion)
-						.then(() => {
-							workInProgress._reportComplete(
-								actualSourceVersionHash,
-								`Copy completed in ${Math.round(duration / 100) / 10}s`,
-								undefined
-							)
-						})
-						.catch((err) => {
-							workInProgress._reportError(err)
-						})
-				})
-			})
-
-			return workInProgress
 		} else {
 			throw new Error(
 				`MediaFileCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
