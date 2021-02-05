@@ -49,6 +49,9 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupPreviewTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
+		const issueReading = await lookupSource.handle.tryPackageRead()
+		if (issueReading) return { ready: false, reason: issueReading }
+
 		return {
 			ready: true,
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,

@@ -28,10 +28,18 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 */
 	abstract checkHandleWrite(): string | undefined
 	/**
-	 * Checks if the Package can be read from
+	 * Checks if Accesor has access to the Package, for reading.
+	 * Errors from this method are related to access/permission issues, or that the package doesn't exist.
 	 * @returns undefined if all is OK / string with error message
 	 */
 	abstract checkPackageReadAccess(): Promise<string | undefined>
+
+	/**
+	 * Do a check if it actually is possible to access the package.
+	 * Errors from this method are related to the actual access of the package (such as resource is busy).
+	 * @returns undefined if all is OK / string with error message
+	 */
+	abstract tryPackageRead(): Promise<string | undefined>
 	/**
 	 * Checks if the PackageContainer can be written to
 	 * @returns undefined if all is OK / string with error message

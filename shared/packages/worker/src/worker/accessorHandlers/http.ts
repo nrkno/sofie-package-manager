@@ -48,6 +48,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 		return undefined // all good
 	}
+	async tryPackageRead(): Promise<string | undefined> {
+		// TODO: how to do this?
+		return undefined
+	}
 	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
 		// todo: how to check this?
 		return undefined // all good

@@ -11,6 +11,8 @@ import { exec } from 'child_process'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
+const fsOpen = promisify(fs.open)
+const fsClose = promisify(fs.close)
 const fsUnlink = promisify(fs.unlink)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
@@ -67,6 +69,26 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 					// Try now:
 					return this._checkPackageReadAccess()
 				}
+			} else {
+				return readIssue
+			}
+		}
+		return undefined // all good
+	}
+	async tryPackageRead(): Promise<string | undefined> {
+		try {
+			// Check if we can open the file for reading:
+			const fd = await fsOpen(this.fullPath, 'r+')
+
+			// If that worked, we seem to have read access.
+			fsClose(fd)
+		} catch (err) {
+			if (err && err.code === 'EBUSY') {
+				return `Not able to read file (busy)`
+			} else if (err && err.code === 'ENOENT') {
+				return `File does not exist (ENOENT)`
+			} else {
+				return `Not able to read file: ${err.toString()}`
 			}
 		}
 		return undefined // all good

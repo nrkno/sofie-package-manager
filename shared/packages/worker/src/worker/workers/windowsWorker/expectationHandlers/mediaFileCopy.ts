@@ -2,6 +2,7 @@ import { Accessor } from '@sofie-automation/blueprints-integration'
 import { Expectation } from '@shared/api'
 import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
+import { diff } from 'deep-diff'
 import {
 	UniversalVersion,
 	compareUniversalVersions,
@@ -17,7 +18,13 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import {
+	checkWorkerHasAccessToPackageContainers,
+	lookupAccessorHandles,
+	LookupPackageContainer,
+	userReadableDiff,
+	waitTime,
+} from './lib'
 
 // import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 
@@ -60,6 +67,35 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		if (!lookupSource.ready) return { ready: lookupSource.ready, reason: lookupSource.reason }
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+
+		// Also check that the source is stable (such as that the file size hasn't changed), to not start working on growing files.
+		// This is similar to chokidars' awaitWriteFinish.stabilityThreshold feature.
+		{
+			const actualSourceVersion0 = await lookupSource.handle.getPackageActualVersion()
+
+			const STABILITY_THRESHOLD = 4000 // ms
+			await waitTime(STABILITY_THRESHOLD)
+
+			const actualSourceVersion1 = await lookupSource.handle.getPackageActualVersion()
+
+			// Note for posterity:
+			// In local tests with a file share this doesn't seem to work that well
+			// as the fs.stats doesn't seem to update during file copy in Windows.
+			// Maybe there is a better way to detect growing files?
+
+			const versionDiff = diff(actualSourceVersion0, actualSourceVersion1)
+
+			if (versionDiff) {
+				return {
+					ready: false,
+					reason: `Source is not stable (${userReadableDiff(versionDiff)})`,
+				}
+			}
+		}
+
+		// Also check if we actually can read from the package:
+		const issueReading = await lookupSource.handle.tryPackageRead()
+		if (issueReading) return { ready: false, reason: issueReading }
 
 		return {
 			ready: true,

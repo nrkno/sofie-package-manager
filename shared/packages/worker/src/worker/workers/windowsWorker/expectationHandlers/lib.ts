@@ -4,6 +4,7 @@ import { prioritizeAccessors } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccess } from '../lib/lib'
+import { Diff } from 'deep-diff'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainers(
@@ -155,4 +156,30 @@ export async function lookupAccessorHandles<Metadata>(
 		ready: false,
 		reason: errorReason,
 	}
+}
+export function waitTime(duration: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, duration)
+	})
+}
+/** Converts a diff to some kind of user-readable string */
+export function userReadableDiff<T>(diffs: Diff<T, T>[]): string {
+	const strs: string[] = []
+	for (const diff of diffs) {
+		if (diff.kind === 'A') {
+			// array
+			// todo: deep explanation for arrays?
+			strs.push((diff.path ? diff.path?.join('.') : '??') + `[${diff.index}]:` + '>>Array differs<<')
+		} else if (diff.kind === 'E') {
+			// edited
+			strs.push((diff.path ? diff.path?.join('.') : '??') + `:"${diff.lhs}" not equal to "${diff.rhs}"`)
+		} else if (diff.kind === 'D') {
+			// deleted
+			strs.push((diff.path ? diff.path?.join('.') : '??') + `:deleted`)
+		} else if (diff.kind === 'N') {
+			// new
+			strs.push((diff.path ? diff.path?.join('.') : '??') + `:added`)
+		}
+	}
+	return strs.join(', ')
 }

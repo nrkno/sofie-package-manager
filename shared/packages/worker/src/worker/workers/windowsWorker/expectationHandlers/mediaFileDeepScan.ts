@@ -45,6 +45,10 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 		if (!lookupSource.ready) return { ready: lookupSource.ready, reason: lookupSource.reason }
 		const lookupTarget = await lookupDeepScanSources(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+
+		const issueReading = await lookupSource.handle.tryPackageRead()
+		if (issueReading) return { ready: false, reason: issueReading }
+
 		return {
 			ready: true,
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,

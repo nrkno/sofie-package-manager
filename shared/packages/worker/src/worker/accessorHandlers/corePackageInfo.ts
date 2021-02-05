@@ -36,6 +36,10 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		// todo: add a check here?
 		return undefined // all good
 	}
+	async tryPackageRead(): Promise<string | undefined> {
+		// not needed
+		return undefined
+	}
 	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
 		// todo: add a check here?
 		return undefined // all good
