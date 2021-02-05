@@ -153,6 +153,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
 		if (
+			process.platform === 'win32' && // Robocopy is a windows-only feature
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE) &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
