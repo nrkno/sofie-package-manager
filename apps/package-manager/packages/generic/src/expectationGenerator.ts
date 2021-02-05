@@ -305,39 +305,40 @@ export function generateExpectations(
 				expectations[preview.id] = preview
 			}
 
-			// Copy previews to HTTP: (TMP!)
+			// Copy file to HTTP: (TMP!)
 			// const tmpCopy: Expectation.MediaFileCopy = {
-			// 	id: preview.id + '_preview',
-			// 	priority: preview.priority + 1,
+			// 	id: expectation.id + '_tmpCopy',
+			// 	priority: expectation.priority + 1,
 			// 	type: Expectation.Type.MEDIA_FILE_COPY,
-			// 	fromPackages: preview.fromPackages,
+			// 	fromPackages: expectation.fromPackages,
 
 			// 	statusReport: {
-			// 		label: `TMP: preview to http for ${expectation.statusReport.label}`,
+			// 		label: `TMP: copy to http for ${expectation.statusReport.label}`,
 			// 		description: ``,
 			// 		requiredForPlayout: false,
 			// 		displayRank: 12,
 			// 	},
 
 			// 	startRequirement: {
-			// 		sources: preview.endRequirement.targets,
+			// 		sources: expectation.endRequirement.targets,
 			// 	},
 			// 	endRequirement: {
 			// 		targets: [
 			// 			{
 			// 				label: 'local http',
+			// 				containerId: 'proxy1',
 			// 				accessors: {
 			// 					http: {
 			// 						type: Accessor.AccessType.HTTP,
 			// 						baseUrl: 'http://localhost:8080/package/',
-			// 						url: preview.endRequirement.content.filePath,
+			// 						url: expectation.endRequirement.content.filePath,
 			// 						allowRead: true,
 			// 						allowWrite: true,
 			// 					},
 			// 				},
 			// 			},
 			// 		],
-			// 		content: preview.endRequirement.content,
+			// 		content: expectation.endRequirement.content,
 			// 		version: {
 			// 			type: Expectation.Version.Type.MEDIA_FILE,
 			// 		},
@@ -345,7 +346,7 @@ export function generateExpectations(
 			// 	dependsOnFullfilled: [expectation.id],
 			// 	triggerByFullfilledIds: [expectation.id],
 			// }
-			// expectations[preview.id] = tmpCopy
+			// expectations[tmpCopy.id] = tmpCopy
 		}
 	}
 
