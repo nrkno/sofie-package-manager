@@ -45,7 +45,23 @@ export function generateExpectations(
 		if (exp) {
 			if (expectations[exp.id]) {
 				// There is already an expectation pointing at the same place.
-				expectations[exp.id].fromPackages.push(exp.fromPackages[0])
+
+				const existingPackage = expectations[exp.id].fromPackages[0]
+				const newPackage = exp.fromPackages[0]
+
+				if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
+					// log warning:
+					console.log(
+						`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`
+					)
+					console.log(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
+					console.log(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
+					console.log(`${JSON.stringify(exp.startRequirement)}`)
+
+					// TODO: log better warnings!
+				} else {
+					expectations[exp.id].fromPackages.push(exp.fromPackages[0])
+				}
 			} else {
 				expectations[exp.id] = {
 					...exp,
