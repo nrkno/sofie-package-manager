@@ -20,10 +20,7 @@ export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 }
 
 type GenerateExpectation = Expectation.Base & {
-	sideEffect?: {
-		previewContainerId?: string
-		thumbnailContainerId?: string
-	}
+	sideEffect?: ExpectedPackage.Base['sideEffect']
 }
 export function generateExpectations(
 	packageContainers: PackageContainers,
@@ -84,24 +81,26 @@ export function generateExpectations(
 			const deepScan = generateMediaFileDeepScan(expectation)
 			expectations[deepScan.id] = deepScan
 
-			if (expectation0.sideEffect?.thumbnailContainerId) {
+			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
 				const packageContainer: PackageContainer =
 					packageContainers[expectation0.sideEffect.thumbnailContainerId]
 
 				const thumbnail = generateMediaFileThumbnail(
 					expectation,
 					expectation0.sideEffect.thumbnailContainerId,
+					expectation0.sideEffect.thumbnailPackageSettings.path,
 					packageContainer
 				)
 				expectations[thumbnail.id] = thumbnail
 			}
 
-			if (expectation0.sideEffect?.previewContainerId) {
+			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
 				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
 
 				const preview = generateMediaFilePreview(
 					expectation,
 					expectation0.sideEffect.previewContainerId,
+					expectation0.sideEffect.previewPackageSettings.path,
 					packageContainer
 				)
 				expectations[preview.id] = preview
@@ -285,6 +284,7 @@ function generateMediaFileDeepScan(expectation: Expectation.MediaFileCopy): Expe
 function generateMediaFileThumbnail(
 	expectation: Expectation.MediaFileCopy,
 	packageContainerId: string,
+	packageFilePath: string,
 	packageContainer: PackageContainer
 ): Expectation.MediaFileThumbnail {
 	const thumbnail: Expectation.MediaFileThumbnail = {
@@ -313,7 +313,7 @@ function generateMediaFileThumbnail(
 				},
 			],
 			content: {
-				filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.png'),
+				filePath: packageFilePath,
 			},
 			version: {
 				type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
@@ -330,6 +330,7 @@ function generateMediaFileThumbnail(
 function generateMediaFilePreview(
 	expectation: Expectation.MediaFileCopy,
 	packageContainerId: string,
+	packageFilePath: string,
 	packageContainer: PackageContainer
 ): Expectation.MediaFilePreview {
 	const preview: Expectation.MediaFilePreview = {
@@ -358,7 +359,7 @@ function generateMediaFilePreview(
 				},
 			],
 			content: {
-				filePath: expectation.endRequirement.content.filePath.replace(/(\.[^.]+$)/, '.webm'), // replace file extension with webm
+				filePath: packageFilePath,
 			},
 			version: {
 				type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
