@@ -193,3 +193,23 @@ export function userReadableDiff<T>(diffs: Diff<T, T>[]): string {
 	}
 	return strs.join(', ')
 }
+function padTime(time: number, pad: number): string {
+	return time.toString().padStart(pad, '0')
+}
+/** Formats a duration (in milliseconds) to a timecode ("00:00:00.000") */
+export function formatTimeCode(duration: number) {
+	const SECOND = 1000
+	const MINUTE = 60 * SECOND
+	const HOUR = 60 * MINUTE
+
+	const hours = Math.floor(duration / HOUR)
+	duration -= hours * HOUR
+
+	const minutes = Math.floor(duration / MINUTE)
+	duration -= minutes * MINUTE
+
+	const seconds = Math.floor(duration / SECOND)
+	duration -= seconds * SECOND
+
+	return `${padTime(hours, 2)}:${padTime(minutes, 2)}:${padTime(seconds, 2)}.${padTime(duration, 3)}`
+}

@@ -7,7 +7,12 @@ import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import {
+	checkWorkerHasAccessToPackageContainers,
+	formatTimeCode,
+	lookupAccessorHandles,
+	LookupPackageContainer,
+} from './lib'
 
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
@@ -125,6 +130,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 								type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
 								width: 256,
 								height: -1,
+								seekTime: 0,
 							},
 							...exp.endRequirement.version,
 						},
@@ -133,14 +139,21 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 					await lookupTarget.handle.removeMetadata()
 					await lookupTarget.handle.removePackage()
 
+					const seekTime = exp.endRequirement.version.seekTime
+
+					const seekTimeCode: string | undefined =
+						seekTime !== undefined ? formatTimeCode(seekTime) : undefined
+
 					// Use FFMpeg to generate the thumbnail:
-					const args = [
+					const args: string[] = [
 						// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
 						'-hide_banner',
+						seekTimeCode ? `-ss ${seekTimeCode}` : '',
 						`-i "${lookupSource.handle.fullPath}"`,
 						`-f image2`,
 						'-frames:v 1',
-						`-vf thumbnail,scale=${metadata.version.width}:` + `${metadata.version.height}`,
+						`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:` +
+							`${metadata.version.height}`,
 						'-threads 1',
 					]
 

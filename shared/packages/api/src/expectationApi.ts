@@ -233,6 +233,8 @@ export namespace Expectation {
 			width: number
 			/** Heigth of the thumbnail, -1=preserve ratio */
 			height: number
+			/** At what time to pick the thumbnail from [ms] */
+			seekTime: number
 		}
 		export type ExpectedMediaFilePreview = ExpectedType<MediaFilePreview>
 		export interface MediaFilePreview extends Base {

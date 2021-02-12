@@ -319,6 +319,7 @@ function generateMediaFileThumbnail(
 				type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
 				width: 512,
 				height: -1, // preserve ratio
+				seekTime: settings.seekTime || 0,
 			},
 		},
 		dependsOnFullfilled: [expectation.id],
