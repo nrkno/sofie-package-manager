@@ -53,6 +53,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	},
 	isExpectationFullfilled: async (
 		exp: Expectation.Any,
+		_wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)

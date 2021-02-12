@@ -56,6 +56,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 	},
 	isExpectationFullfilled: async (
 		exp: Expectation.Any,
+		wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
@@ -79,6 +80,10 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 			exp.endRequirement.version
 		)
 		if (packageInfoSynced.needsUpdate) {
+			if (wasFullfilled) {
+				// Remove the outdated scan result:
+				await lookupTarget.handle.removePackageInfo('deepScan', exp)
+			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
 			return { fulfilled: true, reason: packageInfoSynced.reason }

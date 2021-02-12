@@ -25,7 +25,10 @@ export class LinuxWorker extends GenericWorker {
 	isExpectationReadyToStartWorkingOn(_exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
 		throw new Error(`Not implemented yet`)
 	}
-	isExpectationFullfilled(_exp: Expectation.Any): Promise<{ fulfilled: boolean; reason: string }> {
+	isExpectationFullfilled(
+		_exp: Expectation.Any,
+		_wasFullfilled: boolean
+	): Promise<{ fulfilled: boolean; reason: string }> {
 		throw new Error(`Not implemented yet`)
 	}
 	workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {

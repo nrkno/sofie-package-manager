@@ -16,6 +16,7 @@ export interface ExpectationHandler {
 	) => Promise<{ ready: boolean; reason: string }>
 	isExpectationFullfilled: (
 		exp: Expectation.Any,
+		wasFullfilled: boolean,
 		genericWorker: GenericWorker,
 		specificWorker: any
 	) => Promise<{ fulfilled: boolean; reason: string }>

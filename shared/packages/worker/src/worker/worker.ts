@@ -28,7 +28,10 @@ export abstract class GenericWorker {
 	 * A check if the Expectation is fullfilled.
 	 * If this is true, the Expectation needs not to be started working on.
 	 */
-	abstract isExpectationFullfilled(exp: Expectation.Any): Promise<{ fulfilled: boolean; reason?: string }>
+	abstract isExpectationFullfilled(
+		exp: Expectation.Any,
+		wasFullfilled: boolean
+	): Promise<{ fulfilled: boolean; reason?: string }>
 	/**
 	 * Tells the Worker to start working on fullfilling the Expectation.
 	 */

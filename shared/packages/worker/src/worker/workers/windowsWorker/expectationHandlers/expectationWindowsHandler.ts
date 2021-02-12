@@ -22,6 +22,7 @@ export interface ExpectationWindowsHandler extends ExpectationHandler {
 	) => Promise<{ ready: boolean; reason: string }>
 	isExpectationFullfilled: (
 		exp: Expectation.Any,
+		wasFullfilled: boolean,
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	) => Promise<{ fulfilled: boolean; reason: string }>

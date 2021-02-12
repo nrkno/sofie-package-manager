@@ -104,6 +104,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 	},
 	isExpectationFullfilled: async (
 		exp: Expectation.Any,
+		_wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)

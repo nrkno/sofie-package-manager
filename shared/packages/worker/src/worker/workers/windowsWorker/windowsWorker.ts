@@ -35,8 +35,11 @@ export class WindowsWorker extends GenericWorker {
 	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
 		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
 	}
-	isExpectationFullfilled(exp: Expectation.Any): Promise<{ fulfilled: boolean; reason: string }> {
-		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, this, this)
+	isExpectationFullfilled(
+		exp: Expectation.Any,
+		wasFullfilled: boolean
+	): Promise<{ fulfilled: boolean; reason: string }> {
+		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, wasFullfilled, this, this)
 	}
 	workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
 		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this)

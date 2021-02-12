@@ -55,6 +55,7 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 	},
 	isExpectationFullfilled: async (
 		exp: Expectation.Any,
+		wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<{ fulfilled: boolean; reason: string }> => {
 		if (!isMediaFileScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
@@ -78,6 +79,10 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 			exp.endRequirement.version
 		)
 		if (packageInfoSynced.needsUpdate) {
+			if (wasFullfilled) {
+				// Remove the outdated scan result:
+				await lookupTarget.handle.removePackageInfo('scan', exp)
+			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
 			return { fulfilled: true, reason: packageInfoSynced.reason }

@@ -262,7 +262,7 @@ export class ExpectationManager {
 				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
 				if (session.assignedWorker) {
 					// First, check if it is already fulfilled:
-					const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(trackedExp.exp)
+					const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(trackedExp.exp, false)
 					if (fulfilled.fulfilled) {
 						// The expectation is already fulfilled:
 						this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
@@ -369,7 +369,10 @@ export class ExpectationManager {
 					session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
 					if (session.assignedWorker) {
 						// Check if it is still fulfilled:
-						const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(trackedExp.exp)
+						const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(
+							trackedExp.exp,
+							true
+						)
 						if (fulfilled.fulfilled) {
 							// Yes it is still fullfiled
 							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)

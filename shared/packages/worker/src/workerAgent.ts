@@ -49,8 +49,11 @@ export class WorkerAgent {
 	async isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason?: string }> {
 		return this._worker.isExpectationReadyToStartWorkingOn(exp)
 	}
-	async isExpectationFullfilled(exp: Expectation.Any): Promise<{ fulfilled: boolean; reason?: string }> {
-		return this._worker.isExpectationFullfilled(exp)
+	async isExpectationFullfilled(
+		exp: Expectation.Any,
+		wasFullfilled: boolean
+	): Promise<{ fulfilled: boolean; reason?: string }> {
+		return this._worker.isExpectationFullfilled(exp, wasFullfilled)
 	}
 	async workOnExpectation(exp: Expectation.Any, cost: ExpectationCost): Promise<IWorkInProgress> {
 		const currentjob = {
