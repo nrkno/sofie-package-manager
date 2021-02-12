@@ -229,7 +229,9 @@ export namespace Expectation {
 		export type ExpectedMediaFileThumbnail = ExpectedType<MediaFileThumbnail>
 		export interface MediaFileThumbnail extends Base {
 			type: Type.MEDIA_FILE_THUMBNAIL
+			/** Width of the thumbnail */
 			width: number
+			/** Heigth of the thumbnail, -1=preserve ratio */
 			height: number
 		}
 		export type ExpectedMediaFilePreview = ExpectedType<MediaFilePreview>

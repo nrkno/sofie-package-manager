@@ -212,28 +212,6 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 							workInProgress._reportError(new Error(`Code ${code} ${stdErr}`))
 						}
 					})
-
-					// ffMpegProcess = exec(args.join(' '), (err, _stdout, _stderr) => {
-					// 	ffMpegProcess = undefined
-					// 	if (err) {
-					// 		workInProgress._reportError(err)
-					// 		return
-					// 	}
-
-					// 	lookupTarget.handle
-					// 		.updateMetadata(metadata)
-					// 		.then(() => {
-					// 			const duration = Date.now() - startTime
-					// 			workInProgress._reportComplete(
-					// 				sourceVersionHash,
-					// 				`Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
-					// 				undefined
-					// 			)
-					// 		})
-					// 		.catch((err) => {
-					// 			workInProgress._reportError(err)
-					// 		})
-					// })
 				}
 			} else {
 				throw new Error(

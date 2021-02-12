@@ -88,7 +88,7 @@ export function generateExpectations(
 				const thumbnail = generateMediaFileThumbnail(
 					expectation,
 					expectation0.sideEffect.thumbnailContainerId,
-					expectation0.sideEffect.thumbnailPackageSettings.path,
+					expectation0.sideEffect.thumbnailPackageSettings,
 					packageContainer
 				)
 				expectations[thumbnail.id] = thumbnail
@@ -100,7 +100,7 @@ export function generateExpectations(
 				const preview = generateMediaFilePreview(
 					expectation,
 					expectation0.sideEffect.previewContainerId,
-					expectation0.sideEffect.previewPackageSettings.path,
+					expectation0.sideEffect.previewPackageSettings,
 					packageContainer
 				)
 				expectations[preview.id] = preview
@@ -284,7 +284,7 @@ function generateMediaFileDeepScan(expectation: Expectation.MediaFileCopy): Expe
 function generateMediaFileThumbnail(
 	expectation: Expectation.MediaFileCopy,
 	packageContainerId: string,
-	packageFilePath: string,
+	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFileThumbnail {
 	const thumbnail: Expectation.MediaFileThumbnail = {
@@ -313,7 +313,7 @@ function generateMediaFileThumbnail(
 				},
 			],
 			content: {
-				filePath: packageFilePath,
+				filePath: settings.path,
 			},
 			version: {
 				type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
@@ -330,7 +330,7 @@ function generateMediaFileThumbnail(
 function generateMediaFilePreview(
 	expectation: Expectation.MediaFileCopy,
 	packageContainerId: string,
-	packageFilePath: string,
+	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFilePreview {
 	const preview: Expectation.MediaFilePreview = {
@@ -359,7 +359,7 @@ function generateMediaFilePreview(
 				},
 			],
 			content: {
-				filePath: packageFilePath,
+				filePath: settings.path,
 			},
 			version: {
 				type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
