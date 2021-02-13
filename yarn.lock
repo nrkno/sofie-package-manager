@@ -1468,10 +1468,10 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@sofie-automation/blueprints-integration@1.19.0-nightly-feat-package-management-20210212-084005-cb3a600.0":
-  version "1.19.0-nightly-feat-package-management-20210212-084005-cb3a600.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.19.0-nightly-feat-package-management-20210212-084005-cb3a600.0.tgz#76f6e22a2395370511061e6e896f82f0ef46f92f"
-  integrity sha512-YHBG2pOGhZ/Vn/mj2HrgtSV2GeoPP5TCCEvjbkrNBThu+mfxRCCAYI1r8LdjAOQsIJZMy7ZkDwdXfzEqLPh+Mg==
+"@sofie-automation/blueprints-integration@1.19.0-nightly-feat-package-management-20210213-123211-669d116.0":
+  version "1.19.0-nightly-feat-package-management-20210213-123211-669d116.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.19.0-nightly-feat-package-management-20210213-123211-669d116.0.tgz#98c7ab5276cc0582293a9d644543691c422dacdd"
+  integrity sha512-ql+xAXYT20OOAVCoi6KXtNOkWJVfdfgukpNGDYR1WaCOBwI/wy91IKisH3fV12cnOoYUc0rhuY/ZOQuvP53Vlw==
   dependencies:
     moment "2.29.1"
     timeline-state-resolver-types "5.5.2"
@@ -1497,10 +1497,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.19.0-nightly-feat-package-management-20210212-084005-cb3a600.0":
-  version "1.19.0-nightly-feat-package-management-20210212-084005-cb3a600.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.19.0-nightly-feat-package-management-20210212-084005-cb3a600.0.tgz#1a97bf0cecb40ab634cdf791b84a3bdb16d72d37"
-  integrity sha512-+6fjk2Z5kWRwgyYxZ2vQGqmMiOA6oJ2pbyxZdBgtqpwBVS/aziRmY5nYuwoKNet9KgLI8SgNFv3W8Oq9IFORrg==
+"@sofie-automation/server-core-integration@1.19.0-nightly-feat-package-management-20210213-123211-669d116.0":
+  version "1.19.0-nightly-feat-package-management-20210213-123211-669d116.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.19.0-nightly-feat-package-management-20210213-123211-669d116.0.tgz#4f95983a154df51a53b52c11d2290e28d2691511"
+  integrity sha512-xvgmUSD4FGO64WweEcxf9Q8hwXN/Qpc78AfAD+2uvUYZJ8bBGx8vYb68Mcm9t38Xf5r+BUH5zjfWGf4JOzHsig==
   dependencies:
     data-store "3.1.0"
     ejson "^2.2.0"
