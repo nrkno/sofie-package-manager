@@ -62,7 +62,16 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return this.convertHeadersToVersion(header.headers)
 	}
 	async removePackage(): Promise<void> {
-		// TODO: send DELETE request
+		const result = await fetch(this.fullUrl, {
+			method: 'DELETE',
+		})
+		if (result.status === 404) return undefined // that's ok
+		if (result.status >= 400) {
+			const text = await result.text()
+			throw new Error(
+				`removePackage: Bad response: [${result.status}]: ${result.statusText}, DELETE ${this.fullUrl}, ${text}`
+			)
+		}
 	}
 
 	get baseUrl(): string {
