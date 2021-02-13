@@ -1,22 +1,32 @@
 import { Accessor } from '@sofie-automation/blueprints-integration'
-import { Expectation } from '@shared/api'
 import { GenericWorker } from '../../../worker'
 import { findBestPackageContainerWithAccess } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { hashObj } from '@shared/api'
+import {
+	hashObj,
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { ChildProcess, spawn } from 'child_process'
 
 export const MediaFilePreview: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainers(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
 		})
 	},
-	getCostForExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<number> => {
+	getCostForExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
@@ -41,7 +51,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
-	): Promise<{ ready: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
@@ -61,7 +71,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		_wasFullfilled: boolean,
 		worker: GenericWorker
-	): Promise<{ fulfilled: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationFullfilled> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
@@ -257,10 +267,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			)
 		}
 	},
-	removeExpectation: async (
-		exp: Expectation.Any,
-		worker: GenericWorker
-	): Promise<{ removed: boolean; reason: string }> => {
+	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 

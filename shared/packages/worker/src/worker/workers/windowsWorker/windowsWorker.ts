@@ -1,4 +1,11 @@
-import { Expectation } from '@shared/api'
+import {
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker'
 import { MediaFileCopy } from './expectationHandlers/mediaFileCopy'
 import { MediaFileScan } from './expectationHandlers/mediaFileScan'
@@ -18,7 +25,7 @@ export class WindowsWorker extends GenericWorker {
 	) {
 		super(config, location, sendMessageToManager, 'windowsWorker')
 	}
-	async doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }> {
+	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		try {
 			return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
 		} catch (err) {
@@ -29,22 +36,19 @@ export class WindowsWorker extends GenericWorker {
 			}
 		}
 	}
-	getCostFortExpectation(exp: Expectation.Any): Promise<number> {
+	getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		return this.getExpectationHandler(exp).getCostForExpectation(exp, this, this)
 	}
-	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
+	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
 	}
-	isExpectationFullfilled(
-		exp: Expectation.Any,
-		wasFullfilled: boolean
-	): Promise<{ fulfilled: boolean; reason: string }> {
+	isExpectationFullfilled(exp: Expectation.Any, wasFullfilled: boolean): Promise<ReturnTypeIsExpectationFullfilled> {
 		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, wasFullfilled, this, this)
 	}
 	workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
 		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this)
 	}
-	removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason: string }> {
+	removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		return this.getExpectationHandler(exp).removeExpectation(exp, this, this)
 	}
 	private getExpectationHandler(exp: Expectation.Any): ExpectationHandler {

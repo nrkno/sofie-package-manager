@@ -1,5 +1,4 @@
 import { Accessor } from '@sofie-automation/blueprints-integration'
-import { Expectation } from '@shared/api'
 import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 import { diff } from 'deep-diff'
@@ -10,7 +9,15 @@ import {
 	findBestPackageContainerWithAccess,
 } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { hashObj } from '@shared/api'
+import {
+	hashObj,
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
@@ -29,13 +36,16 @@ import {
 // import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 
 export const MediaFileCopy: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainers(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
 		})
 	},
-	getCostForExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<number> => {
+	getCostForExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
@@ -60,7 +70,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
-	): Promise<{ ready: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
@@ -106,7 +116,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		_wasFullfilled: boolean,
 		worker: GenericWorker
-	): Promise<{ fulfilled: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationFullfilled> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
@@ -295,10 +305,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			)
 		}
 	},
-	removeExpectation: async (
-		exp: Expectation.Any,
-		worker: GenericWorker
-	): Promise<{ removed: boolean; reason: string }> => {
+	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 

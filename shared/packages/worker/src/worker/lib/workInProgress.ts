@@ -6,8 +6,12 @@ export interface WorkInProgressEvents {
 	done: (actualVersionHash: string, reason: string, result: any) => void
 	error: (actualVersionHash: string, error: string) => void
 }
-export declare interface IWorkInProgress {
+export interface WorkInProgressProperties {
 	workLabel: string
+	targetCanBeUsedWhileTransferring?: boolean
+}
+export declare interface IWorkInProgress {
+	status: WorkInProgressProperties
 
 	on<U extends keyof WorkInProgressEvents>(event: U, listener: WorkInProgressEvents[U]): this
 
@@ -21,7 +25,7 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	private _progress = 0
 	private _actualVersionHash: string | null = null
 
-	constructor(public workLabel: string, private _onCancel: () => Promise<void>) {
+	constructor(public status: WorkInProgressProperties, private _onCancel: () => Promise<void>) {
 		super()
 	}
 	cancel(): Promise<void> {

@@ -1,4 +1,11 @@
-import { Expectation } from '@shared/api'
+import {
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { GenericWorker } from '../worker'
 import { IWorkInProgress } from './workInProgress'
 
@@ -7,19 +14,23 @@ export interface ExpectationHandler {
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
 		windowsWorker: any
-	) => { support: boolean; reason: string }
-	getCostForExpectation: (exp: Expectation.Any, genericWorker: GenericWorker, specificWorker: any) => Promise<number>
+	) => ReturnTypeDoYouSupportExpectation
+	getCostForExpectation: (
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		specificWorker: any
+	) => Promise<ReturnTypeGetCostFortExpectation>
 	isExpectationReadyToStartWorkingOn: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
 		specificWorker: any
-	) => Promise<{ ready: boolean; reason: string }>
+	) => Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
 	isExpectationFullfilled: (
 		exp: Expectation.Any,
 		wasFullfilled: boolean,
 		genericWorker: GenericWorker,
 		specificWorker: any
-	) => Promise<{ fulfilled: boolean; reason: string }>
+	) => Promise<ReturnTypeIsExpectationFullfilled>
 	workOnExpectation: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
@@ -29,5 +40,5 @@ export interface ExpectationHandler {
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
 		specificWorker: any
-	) => Promise<{ removed: boolean; reason: string }>
+	) => Promise<ReturnTypeRemoveExpectation>
 }

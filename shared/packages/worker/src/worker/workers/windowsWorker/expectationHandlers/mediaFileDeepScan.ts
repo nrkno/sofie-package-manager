@@ -1,10 +1,17 @@
 import { exec, ChildProcess, spawn } from 'child_process'
 import { Accessor } from '@sofie-automation/blueprints-integration'
-import { Expectation } from '@shared/api'
 import { findBestPackageContainerWithAccess } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { hashObj } from '@shared/api'
+import {
+	hashObj,
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { isCorePackageInfoAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
@@ -12,12 +19,15 @@ import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder
 import { scanWithFFProbe } from './mediaFileScan'
 
 export const MediaFileDeepScan: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainers(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
 	},
-	getCostForExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<number> => {
+	getCostForExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
@@ -38,7 +48,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
-	): Promise<{ ready: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isMediaFileDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
@@ -58,7 +68,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		wasFullfilled: boolean,
 		worker: GenericWorker
-	): Promise<{ fulfilled: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationFullfilled> => {
 		if (!isMediaFileDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
@@ -198,10 +208,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 
 		return workInProgress
 	},
-	removeExpectation: async (
-		exp: Expectation.Any,
-		worker: GenericWorker
-	): Promise<{ removed: boolean; reason: string }> => {
+	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFileDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupDeepScanTargets(worker, exp)
 		if (!lookupTarget.ready) return { removed: false, reason: `Not able to access target: ${lookupTarget.reason}` }

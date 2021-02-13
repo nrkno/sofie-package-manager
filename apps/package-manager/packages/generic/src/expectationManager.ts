@@ -1,6 +1,6 @@
 import * as _ from 'underscore'
 import { LoggerInstance } from './index'
-import { Expectation } from '@shared/api'
+import { Expectation, ReturnTypeIsExpectationReadyToStartWorkingOn } from '@shared/api'
 import { Workforce, IWorkInProgress, ExpectationCost, MessageFromWorker, WorkerAgent } from '@shared/worker'
 
 import { PackageContainerPackageStatus, PackageContainerPackageStatusStatus } from './packageManager'

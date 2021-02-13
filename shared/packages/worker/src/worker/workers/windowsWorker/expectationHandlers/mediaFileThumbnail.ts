@@ -1,7 +1,14 @@
 import { ChildProcess, spawn } from 'child_process'
 import { Accessor } from '@sofie-automation/blueprints-integration'
-import { hashObj } from '@shared/api'
-import { Expectation } from '@shared/api'
+import {
+	hashObj,
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { findBestPackageContainerWithAccess } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
@@ -15,12 +22,15 @@ import {
 } from './lib'
 
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): { support: boolean; reason: string } {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainers(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
 	},
-	getCostForExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<number> => {
+	getCostForExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker
+	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
@@ -40,7 +50,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
-	): Promise<{ ready: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
@@ -60,7 +70,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		_wasFullfilled: boolean,
 		worker: GenericWorker
-	): Promise<{ fulfilled: boolean; reason: string }> => {
+	): Promise<ReturnTypeIsExpectationFullfilled> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
@@ -235,10 +245,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 		return workInProgress
 	},
-	removeExpectation: async (
-		exp: Expectation.Any,
-		worker: GenericWorker
-	): Promise<{ removed: boolean; reason: string }> => {
+	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)

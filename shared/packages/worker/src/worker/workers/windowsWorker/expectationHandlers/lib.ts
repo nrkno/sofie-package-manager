@@ -5,6 +5,7 @@ import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccess } from '../lib/lib'
 import { Diff } from 'deep-diff'
+import { ReturnTypeDoYouSupportExpectation } from '@shared/api'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainers(
@@ -13,7 +14,7 @@ export function checkWorkerHasAccessToPackageContainers(
 		sources?: PackageContainerOnPackage[]
 		targets?: PackageContainerOnPackage[]
 	}
-): { support: boolean; reason: string } {
+): ReturnTypeDoYouSupportExpectation {
 	let accessSourcePackageContainer: ReturnType<typeof findBestPackageContainerWithAccess>
 	// Check that we have access to the packageContainers
 	if (checks.sources !== undefined) {

@@ -1,5 +1,12 @@
 import { MessageFromWorker } from '../workerAgent'
-import { Expectation } from '@shared/api'
+import {
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { IWorkInProgress } from './lib/workInProgress'
 
 /**
@@ -15,15 +22,17 @@ export abstract class GenericWorker {
 	/**
 	 * A check if the worker supports fulfilling the Expectation at all
 	 */
-	abstract doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }>
+	abstract doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation>
 	/**
 	 * Get cost for the Expectation. This is used to determine which worker is going to get the job.
 	 */
-	abstract getCostFortExpectation(exp: Expectation.Any): Promise<number>
+	abstract getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation>
 	/**
 	 * A check if it is possible to start working on the Expectation.
 	 */
-	abstract isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason?: string }>
+	abstract isExpectationReadyToStartWorkingOn(
+		exp: Expectation.Any
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
 	/**
 	 * A check if the Expectation is fullfilled.
 	 * If this is true, the Expectation needs not to be started working on.
@@ -31,15 +40,16 @@ export abstract class GenericWorker {
 	abstract isExpectationFullfilled(
 		exp: Expectation.Any,
 		wasFullfilled: boolean
-	): Promise<{ fulfilled: boolean; reason?: string }>
+	): Promise<ReturnTypeIsExpectationFullfilled>
 	/**
 	 * Tells the Worker to start working on fullfilling the Expectation.
 	 */
 	abstract workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress>
 	/**
 	 * Tells the Worker that an Expectation has been removed
+	 * Returns { removed: true } if the artifacts have successfully been dealt with
 	 */
-	abstract removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason?: string }>
+	abstract removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation>
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface GenericWorkerConfig {

@@ -1,4 +1,10 @@
-import { Expectation } from '@shared/api'
+import {
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { IWorkInProgress } from './worker/lib/workInProgress'
 import { GenericWorker } from './worker/worker'
 import { WindowsWorker } from './worker/workers/windowsWorker/windowsWorker'
@@ -35,7 +41,7 @@ export class WorkerAgent {
 			}
 		)
 	}
-	async doYouSupportExpectation(exp: Expectation.Any): Promise<{ support: boolean; reason: string }> {
+	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return await this._worker.doYouSupportExpectation(exp)
 	}
 	async getCostForExpectation(exp: Expectation.Any): Promise<ExpectationCost> {
@@ -46,13 +52,15 @@ export class WorkerAgent {
 			startCost: this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0),
 		}
 	}
-	async isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<{ ready: boolean; reason?: string }> {
+	async isExpectationReadyToStartWorkingOn(
+		exp: Expectation.Any
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		return this._worker.isExpectationReadyToStartWorkingOn(exp)
 	}
 	async isExpectationFullfilled(
 		exp: Expectation.Any,
 		wasFullfilled: boolean
-	): Promise<{ fulfilled: boolean; reason?: string }> {
+	): Promise<ReturnTypeIsExpectationFullfilled> {
 		return this._worker.isExpectationFullfilled(exp, wasFullfilled)
 	}
 	async workOnExpectation(exp: Expectation.Any, cost: ExpectationCost): Promise<IWorkInProgress> {
@@ -77,7 +85,7 @@ export class WorkerAgent {
 
 		return workInProgress
 	}
-	async removeExpectation(exp: Expectation.Any): Promise<{ removed: boolean; reason?: string }> {
+	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		return this._worker.removeExpectation(exp)
 	}
 	/** Keep track of the promise retorned by fcn and when it's resolved, to determine how busy we are */

@@ -1,5 +1,12 @@
 import { ExpectationHandler } from '../../../lib/expectationHandler'
-import { Expectation } from '@shared/api'
+import {
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 import { GenericWorker } from '../../../worker'
 import { WindowsWorker } from '../windowsWorker'
 import { IWorkInProgress } from '../../../lib/workInProgress'
@@ -9,23 +16,23 @@ export interface ExpectationWindowsHandler extends ExpectationHandler {
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
-	) => { support: boolean; reason: string }
+	) => ReturnTypeDoYouSupportExpectation
 	getCostForExpectation: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
 		specificWorker: WindowsWorker
-	) => Promise<number>
+	) => Promise<ReturnTypeGetCostFortExpectation>
 	isExpectationReadyToStartWorkingOn: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
-	) => Promise<{ ready: boolean; reason: string }>
+	) => Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
 	isExpectationFullfilled: (
 		exp: Expectation.Any,
 		wasFullfilled: boolean,
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
-	) => Promise<{ fulfilled: boolean; reason: string }>
+	) => Promise<ReturnTypeIsExpectationFullfilled>
 	workOnExpectation: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
@@ -35,5 +42,5 @@ export interface ExpectationWindowsHandler extends ExpectationHandler {
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
-	) => Promise<{ removed: boolean; reason: string }>
+	) => Promise<ReturnTypeRemoveExpectation>
 }

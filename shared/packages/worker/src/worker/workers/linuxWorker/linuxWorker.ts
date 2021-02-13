@@ -1,6 +1,13 @@
 import { IWorkInProgress } from '../../lib/workInProgress'
 import { MessageFromWorker } from '../../../workerAgent'
-import { Expectation } from '@shared/api'
+import {
+	Expectation,
+	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeGetCostFortExpectation,
+	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	ReturnTypeRemoveExpectation,
+} from '@shared/api'
 
 import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker'
 
@@ -13,28 +20,28 @@ export class LinuxWorker extends GenericWorker {
 	) {
 		super(config, location, sendMessageToManager, 'linuxWorker')
 	}
-	async doYouSupportExpectation(_exp: Expectation.Any): Promise<{ support: boolean; reason: string }> {
+	async doYouSupportExpectation(_exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return {
 			support: false,
 			reason: `Not implemented yet`,
 		}
 	}
-	getCostFortExpectation(_exp: Expectation.Any): Promise<number> {
+	getCostFortExpectation(_exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		throw new Error(`Not implemented yet`)
 	}
-	isExpectationReadyToStartWorkingOn(_exp: Expectation.Any): Promise<{ ready: boolean; reason: string }> {
+	isExpectationReadyToStartWorkingOn(_exp: Expectation.Any): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		throw new Error(`Not implemented yet`)
 	}
 	isExpectationFullfilled(
 		_exp: Expectation.Any,
 		_wasFullfilled: boolean
-	): Promise<{ fulfilled: boolean; reason: string }> {
+	): Promise<ReturnTypeIsExpectationFullfilled> {
 		throw new Error(`Not implemented yet`)
 	}
 	workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {
 		throw new Error(`Not implemented yet`)
 	}
-	removeExpectation(_exp: Expectation.Any): Promise<{ removed: boolean; reason: string }> {
+	removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		throw new Error(`Not implemented yet`)
 	}
 }
