@@ -340,6 +340,18 @@ export class PackageManagerHandler {
 				throw new Error(`Unsupported message type "${message.type}"`)
 		}
 	}
+	public restartExpectation(workId: string): void {
+		// This method can be called from core
+		this._expectationManager.restartExpectation(workId)
+	}
+	public restartAllExpectations(): void {
+		// This method can be called from core
+		this._expectationManager.restartAllExpectations()
+	}
+	public abortExpectation(workId: string): void {
+		// This method can be called from core
+		this._expectationManager.abortExpectation(workId)
+	}
 }
 
 interface ResultingExpectedPackage {

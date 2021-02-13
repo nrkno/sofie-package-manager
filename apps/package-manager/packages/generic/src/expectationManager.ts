@@ -4,18 +4,31 @@ import { Expectation, ReturnTypeIsExpectationReadyToStartWorkingOn } from '@shar
 import { Workforce, IWorkInProgress, ExpectationCost, MessageFromWorker, WorkerAgent } from '@shared/worker'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 
+/**
+ * The Expectation Manager is responsible for tracking the state of the Expectations,
+ * and communicate with the Workers to progress them.
+ */
+
 export class ExpectationManager {
-	private readonly EVALUATE_INTERVAL = 10 * 1000
+	private readonly EVALUATE_INTERVAL = 10 * 1000 // ms
 	private readonly FULLFILLED_MONITOR_TIME = 10 * 1000 // ms
 	private readonly ALLOW_SKIPPING_QUEUE_TIME = 30 * 1000 // ms
 
 	private _workforce: Workforce = new Workforce(this.onMessageFromWorker)
 
-	private receivedExpectations: { [id: string]: Expectation.Any } = {}
+	/** Set to true when there are (external) updates to the expectations available */
 	private receivedExpectationsHasBeenUpdated = false
+	/** Store for incoming expectations */
+	private receivedExpectations: { [id: string]: Expectation.Any } = {}
+	private receivedRestartExpectations: { [id: string]: true } = {}
+	private receivedAbortExpectations: { [id: string]: true } = {}
+	private receivedRestartAllExpectations = false
 
+	/** This is the main store of all Tracked Expectations */
 	private tracked: { [id: string]: TrackedExpectation } = {}
-	private triggerByFullfilledIds: { [fullfilledId: string]: string[] } = {}
+	/** key-value store of which expectations are triggered when another is fullfilled */
+	private _triggerByFullfilledIds: { [fullfilledId: string]: string[] } = {}
+
 	private _evaluateExpectationsTimeout: NodeJS.Timeout | undefined = undefined
 	private _evaluateExpectationsIsBusy = false
 	private _evaluateExpectationsRunAsap = false
@@ -46,10 +59,27 @@ export class ExpectationManager {
 		await this._workforce.init()
 	}
 
+	/** Called when there is an updated set of expectations */
 	updateExpectations(expectations: { [id: string]: Expectation.Any }): void {
+		// We store the incoming expectations in this temporary
 		this.receivedExpectations = expectations
 		this.receivedExpectationsHasBeenUpdated = true
 
+		this._triggerEvaluateExpectations(true)
+	}
+	restartExpectation(expectationId: string): void {
+		this.receivedRestartExpectations[expectationId] = true
+		this.receivedExpectationsHasBeenUpdated = true
+		this._triggerEvaluateExpectations(true)
+	}
+	restartAllExpectations(): void {
+		this.receivedRestartAllExpectations = true
+		this.receivedExpectationsHasBeenUpdated = true
+		this._triggerEvaluateExpectations(true)
+	}
+	abortExpectation(expectationId: string): void {
+		this.receivedAbortExpectations[expectationId] = true
+		this.receivedExpectationsHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
 	private _triggerEvaluateExpectations(asap?: boolean) {
@@ -197,7 +227,47 @@ export class ExpectationManager {
 			}
 		}
 
-		this.triggerByFullfilledIds = {}
+		// Restarted:
+		if (this.receivedRestartAllExpectations) {
+			for (const id of Object.keys(this.tracked)) {
+				this.receivedRestartExpectations[id] = true
+			}
+		}
+		this.receivedRestartAllExpectations = false
+
+		for (const id of Object.keys(this.receivedRestartExpectations)) {
+			const trackedExp = this.tracked[id]
+			if (trackedExp) {
+				if (trackedExp.state == TrackedExpectationState.WORKING) {
+					if (trackedExp.status.workInProgress) {
+						this.logger.info(`Cancelling ${trackedExp.id} due to restart`)
+						await trackedExp.status.workInProgress.cancel()
+					}
+				}
+
+				trackedExp.state = TrackedExpectationState.RESTARTED
+				trackedExp.lastEvaluationTime = 0 // To rerun ASAP
+			}
+		}
+		this.receivedRestartExpectations = {}
+
+		// Aborted:
+		for (const id of Object.keys(this.receivedAbortExpectations)) {
+			const trackedExp = this.tracked[id]
+			if (trackedExp) {
+				if (trackedExp.state == TrackedExpectationState.WORKING) {
+					if (trackedExp.status.workInProgress) {
+						this.logger.info(`Cancelling ${trackedExp.id} due to abort`)
+						await trackedExp.status.workInProgress.cancel()
+					}
+				}
+
+				trackedExp.state = TrackedExpectationState.ABORTED
+			}
+		}
+		this.receivedAbortExpectations = {}
+
+		this._triggerByFullfilledIds = {}
 		for (const id of Object.keys(this.tracked)) {
 			const trackedExp = this.tracked[id]
 			if (trackedExp.exp.triggerByFullfilledIds) {
@@ -206,10 +276,10 @@ export class ExpectationManager {
 						throw new Error(`triggerByFullfilledIds not allowed to contain it's own id: "${id}"`)
 					}
 
-					if (!this.triggerByFullfilledIds[triggerByFullfilledId]) {
-						this.triggerByFullfilledIds[triggerByFullfilledId] = []
+					if (!this._triggerByFullfilledIds[triggerByFullfilledId]) {
+						this._triggerByFullfilledIds[triggerByFullfilledId] = []
 					}
-					this.triggerByFullfilledIds[triggerByFullfilledId].push(trackedExp.id)
+					this._triggerByFullfilledIds[triggerByFullfilledId].push(trackedExp.id)
 				}
 			}
 		}
@@ -229,7 +299,10 @@ export class ExpectationManager {
 			if (trackedExp.state === TrackedExpectationState.NEW) {
 				// Check which workers might want to handle it:
 
+				// Reset properties:
 				trackedExp.availableWorkers = []
+				trackedExp.status = {}
+
 				let notSupportReason = 'No workers registered'
 				await Promise.all(
 					this._workforce.getAllWorkerAgents().map(async (workerAgent) => {
@@ -426,6 +499,38 @@ export class ExpectationManager {
 					// Do nothing, hopefully some will be available at a later iteration
 					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
 				}
+			} else if (trackedExp.state === TrackedExpectationState.RESTARTED) {
+				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				if (session.assignedWorker) {
+					// Start by removing the expectation
+					const removed = await session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+					if (removed.removed) {
+						this.updateTrackedExp(trackedExp, TrackedExpectationState.NEW, 'Ready to start')
+						session.triggerExpectationAgain = true
+					} else {
+						this.updateTrackedExp(trackedExp, TrackedExpectationState.RESTARTED, removed.reason)
+					}
+				} else {
+					// No worker is available at the moment.
+					// Do nothing, hopefully some will be available at a later iteration
+					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+				}
+			} else if (trackedExp.state === TrackedExpectationState.ABORTED) {
+				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				if (session.assignedWorker) {
+					// Start by removing the expectation
+					const removed = await session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+					if (removed.removed) {
+						// This will cause the expectation to be intentionally stuck in the ABORTED state.
+						this.updateTrackedExp(trackedExp, TrackedExpectationState.ABORTED, 'Aborted')
+					} else {
+						this.updateTrackedExp(trackedExp, TrackedExpectationState.ABORTED, removed.reason)
+					}
+				} else {
+					// No worker is available at the moment.
+					// Do nothing, hopefully some will be available at a later iteration
+					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+				}
 			}
 		} catch (err) {
 			this.logger.error(err)
@@ -571,7 +676,7 @@ export class ExpectationManager {
 	private handleTriggerByFullfilledIds(trackedExp: TrackedExpectation): boolean {
 		let hasTriggeredSomething = false
 		if (trackedExp.state === TrackedExpectationState.FULFILLED) {
-			const toTriggerIds = this.triggerByFullfilledIds[trackedExp.id] || []
+			const toTriggerIds = this._triggerByFullfilledIds[trackedExp.id] || []
 
 			for (const id of toTriggerIds) {
 				const toTriggerExp = this.tracked[id]
@@ -608,6 +713,7 @@ export class ExpectationManager {
 		return await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
 	}
 }
+/** Denotes the various states of a Tracked Expectation */
 export enum TrackedExpectationState {
 	NEW = 'new',
 	WAITING = 'waiting',
@@ -615,6 +721,10 @@ export enum TrackedExpectationState {
 	WORKING = 'working',
 	FULFILLED = 'fulfilled',
 	REMOVED = 'removed',
+
+	// Triggered from Core:
+	RESTARTED = 'restarted',
+	ABORTED = 'aborted',
 }
 interface TrackedExpectation {
 	id: string

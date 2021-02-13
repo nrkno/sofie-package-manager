@@ -381,4 +381,14 @@ export class CoreHandler {
 		}
 		return versions
 	}
+
+	restartExpectation(workId: string): void {
+		return this._packageManagerHandler?.restartExpectation(workId)
+	}
+	restartAllExpectations(): void {
+		return this._packageManagerHandler?.restartAllExpectations()
+	}
+	abortExpectation(workId: string): void {
+		return this._packageManagerHandler?.abortExpectation(workId)
+	}
 }

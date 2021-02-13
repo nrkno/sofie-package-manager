@@ -198,7 +198,7 @@ function padTime(time: number, pad: number): string {
 	return time.toString().padStart(pad, '0')
 }
 /** Formats a duration (in milliseconds) to a timecode ("00:00:00.000") */
-export function formatTimeCode(duration: number) {
+export function formatTimeCode(duration: number): string {
 	const SECOND = 1000
 	const MINUTE = 60 * SECOND
 	const HOUR = 60 * MINUTE
