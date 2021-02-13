@@ -28,7 +28,7 @@ export class PackageManagerHandler {
 	private toReportExpectationStatus: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 	private sendUpdateExpectationStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
 
-	private toReportPackageStatus: { [id: string]: PackageContainerPackageStatus } = {}
+	private toReportPackageStatus: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
 	private sendUpdatePackageContainerPackageStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
 
 	private reportedStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
@@ -47,8 +47,11 @@ export class PackageManagerHandler {
 					statusReason?: string
 				}
 			) => this.updateExpectationStatus(expectationId, expectaction, actualVersionHash, statusInfo),
-			(containerId: string, packageId: string, packageStatus: PackageContainerPackageStatus | null) =>
-				this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
+			(
+				containerId: string,
+				packageId: string,
+				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+			) => this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
 			(message: MessageFromWorkerPayload) => this.onMessageFromWorker(message)
 		)
 	}
@@ -262,16 +265,16 @@ export class PackageManagerHandler {
 	public updatePackageContainerPackageStatus(
 		containerId: string,
 		packageId: string,
-		packageStatus: PackageContainerPackageStatus | null
+		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 	): void {
 		const packageContainerPackageId = `${containerId}_${packageId}`
 		if (!packageStatus) {
 			delete this.toReportPackageStatus[packageContainerPackageId]
 		} else {
-			const o: PackageContainerPackageStatus = {
+			const o: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
 				// Default properties:
 				...{
-					status: PackageContainerPackageStatusStatus.NOT_READY,
+					status: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY,
 					progress: 0,
 					statusReason: '',
 				},
@@ -297,7 +300,7 @@ export class PackageManagerHandler {
 	public sendUpdatePackageContainerPackageStatus(containerId: string, packageId: string): void {
 		const packageContainerPackageId = `${containerId}_${packageId}`
 
-		const toReportPackageStatus: PackageContainerPackageStatus | null =
+		const toReportPackageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null =
 			this.toReportPackageStatus[packageContainerPackageId] || null
 
 		this._coreHandler.core
@@ -348,23 +351,5 @@ interface ResultingExpectedPackage {
 	// playoutLocation: any // todo?
 }
 export type ExpectedPackageWrap = ResultingExpectedPackage
-export interface PackageContainerPackageStatus extends Omit<ExpectedPackageStatusAPI.WorkStatusInfo, 'status'> {
-	// This is copied from Core
-	status: PackageContainerPackageStatusStatus
 
-	contentVersionHash: string
-
-	/* Progress (0-1), used when status = TRANSFERRING */
-	progress: number
-	/** Calculated time left, used when status = TRANSFERRING */
-	expectedLeft?: number
-
-	/** Longer reason as to why the status is what it is */
-	statusReason: string
-}
-export enum PackageContainerPackageStatusStatus {
-	NOT_READY = 'not_ready',
-	TRANSFERRING = 'transferring',
-	READY = 'ready',
-}
 export type PackageContainers = { [containerId: string]: PackageContainer }

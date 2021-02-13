@@ -55,7 +55,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, reason: lookupSource.reason }
+		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
 		const lookupTarget = await lookupPreviewTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
@@ -64,6 +64,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
+			sourceExists: true,
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
@@ -121,7 +122,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				throw new Error(`Target AccessHandler type is wrong`)
 
 			let ffMpegProcess: ChildProcess | undefined
-			const workInProgress = new WorkInProgress('Generating preview', async () => {
+			const workInProgress = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
 				// On cancel
 				if (ffMpegProcess) {
 					ffMpegProcess.kill() // todo: signal?

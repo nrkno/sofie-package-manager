@@ -52,7 +52,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 		if (!isMediaFileDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, reason: lookupSource.reason }
+		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
 		const lookupTarget = await lookupDeepScanSources(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
@@ -61,6 +61,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
+			sourceExists: true,
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
@@ -113,7 +114,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 		const currentProcess: {
 			abort?: () => void
 		} = {}
-		const workInProgress = new WorkInProgress('Scanning file', async () => {
+		const workInProgress = new WorkInProgress({ workLabel: 'Scanning file' }, async () => {
 			// On cancel
 			if (currentProcess.abort) {
 				currentProcess.abort()

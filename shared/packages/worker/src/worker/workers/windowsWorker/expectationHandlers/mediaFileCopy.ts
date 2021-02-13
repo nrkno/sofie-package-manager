@@ -74,7 +74,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, reason: lookupSource.reason }
+		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
@@ -98,6 +98,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			if (versionDiff) {
 				return {
 					ready: false,
+					sourceExists: true,
 					reason: `Source is not stable (${userReadableDiff(versionDiff)})`,
 				}
 			}
@@ -109,6 +110,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
+			sourceExists: true,
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
@@ -180,7 +182,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 			}
 
 			let wasCancelled = false
-			const workInProgress = new WorkInProgress('Copying, using Robocopy', async () => {
+			const workInProgress = new WorkInProgress({ workLabel: 'Copying, using Robocopy' }, async () => {
 				// on cancel
 				wasCancelled = true
 				copying.cancel()
@@ -240,7 +242,7 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 				throw new Error(`Source AccessHandler type is wrong`)
 
 			let wasCancelled = false
-			const workInProgress = new WorkInProgress('Copying, using streams', async () => {
+			const workInProgress = new WorkInProgress({ workLabel: 'Copying, using streams' }, async () => {
 				// on cancel work
 				wasCancelled = true
 				await new Promise<void>((resolve, reject) => {

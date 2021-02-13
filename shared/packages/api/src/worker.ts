@@ -5,6 +5,7 @@ export interface ReturnTypeDoYouSupportExpectation {
 export type ReturnTypeGetCostFortExpectation = number
 export interface ReturnTypeIsExpectationReadyToStartWorkingOn {
 	ready: boolean
+	sourceExists?: boolean
 	reason?: string
 }
 export interface ReturnTypeIsExpectationFullfilled {

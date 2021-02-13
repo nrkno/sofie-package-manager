@@ -54,7 +54,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, reason: lookupSource.reason }
+		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
@@ -63,6 +63,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
+			sourceExists: true,
 			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
@@ -110,7 +111,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
 		let ffMpegProcess: ChildProcess | undefined
-		const workInProgress = new WorkInProgress('Generating thumbnail', async () => {
+		const workInProgress = new WorkInProgress({ workLabel: 'Generating thumbnail' }, async () => {
 			// On cancel
 			if (ffMpegProcess) {
 				ffMpegProcess.kill() // todo: signal?

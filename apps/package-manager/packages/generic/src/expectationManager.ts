@@ -2,8 +2,7 @@ import * as _ from 'underscore'
 import { LoggerInstance } from './index'
 import { Expectation, ReturnTypeIsExpectationReadyToStartWorkingOn } from '@shared/api'
 import { Workforce, IWorkInProgress, ExpectationCost, MessageFromWorker, WorkerAgent } from '@shared/worker'
-
-import { PackageContainerPackageStatus, PackageContainerPackageStatusStatus } from './packageManager'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 
 export class ExpectationManager {
 	private readonly EVALUATE_INTERVAL = 10 * 1000
@@ -36,7 +35,7 @@ export class ExpectationManager {
 		private reportPackageContainerPackageStatus: (
 			containerId: string,
 			packageId: string,
-			packageStatus: PackageContainerPackageStatus | null
+			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 		) => void,
 		private onMessageFromWorker: MessageFromWorker
 	) {
@@ -158,9 +157,9 @@ export class ExpectationManager {
 				const trackedExp = this.tracked[id]
 
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
-					if (trackedExp.workInProgress) {
+					if (trackedExp.status.workInProgress) {
 						this.logger.info(`Cancelling ${trackedExp.id} due to update`)
-						await trackedExp.workInProgress.cancel()
+						await trackedExp.status.workInProgress.cancel()
 					}
 				}
 				doUpdate = true
@@ -173,6 +172,7 @@ export class ExpectationManager {
 					availableWorkers: [],
 					lastEvaluationTime: 0,
 					reason: 'N/A',
+					status: {},
 				}
 			}
 		}
@@ -186,9 +186,9 @@ export class ExpectationManager {
 				const trackedExp = this.tracked[id]
 
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
-					if (trackedExp.workInProgress) {
+					if (trackedExp.status.workInProgress) {
 						this.logger.info(`Cancelling ${trackedExp.id} due to removed`)
-						await trackedExp.workInProgress.cancel()
+						await trackedExp.status.workInProgress.cancel()
 					}
 				}
 
@@ -275,12 +275,26 @@ export class ExpectationManager {
 							session.assignedWorker.worker,
 							trackedExp
 						)
+
+						const newStatus: Partial<TrackedExpectation['status']> = {}
+						if (readyToStart.sourceExists !== undefined) newStatus.sourceExists = readyToStart.sourceExists
+
 						if (readyToStart.ready) {
-							this.updateTrackedExp(trackedExp, TrackedExpectationState.READY, 'Ready to start')
+							this.updateTrackedExp(
+								trackedExp,
+								TrackedExpectationState.READY,
+								'Ready to start',
+								newStatus
+							)
 							session.triggerExpectationAgain = true
 						} else {
 							// Not ready to start
-							this.updateTrackedExp(trackedExp, TrackedExpectationState.WAITING, readyToStart.reason)
+							this.updateTrackedExp(
+								trackedExp,
+								TrackedExpectationState.WAITING,
+								readyToStart.reason,
+								newStatus
+							)
 						}
 					}
 				} else {
@@ -296,35 +310,39 @@ export class ExpectationManager {
 					this.updateTrackedExp(trackedExp, TrackedExpectationState.WORKING, 'Working')
 
 					// Start working on the Expectation:
-					trackedExp.workInProgress = await session.assignedWorker.worker.workOnExpectation(
+					trackedExp.status.workInProgress = await session.assignedWorker.worker.workOnExpectation(
 						trackedExp.exp,
 						session.assignedWorker.cost
 					)
 					this.updateTrackedExp(
 						trackedExp,
 						TrackedExpectationState.WORKING,
-						trackedExp.workInProgress.workLabel
+						undefined,
+						trackedExp.status.workInProgress.status
 					)
 
-					trackedExp.workInProgress.on('progress', (actualVersionHash: string | null, progress: number) => {
-						if (trackedExp.state === TrackedExpectationState.WORKING) {
-							trackedExp.actualVersionHash = actualVersionHash
-							trackedExp.progress = progress
+					trackedExp.status.workInProgress.on(
+						'progress',
+						(actualVersionHash: string | null, progress: number) => {
+							if (trackedExp.state === TrackedExpectationState.WORKING) {
+								trackedExp.status.actualVersionHash = actualVersionHash
+								trackedExp.status.workProgress = progress
 
-							this.logger.info(
-								`Expectation "${JSON.stringify(
-									trackedExp.exp.statusReport.label
-								)}" progress: ${progress}`
-							)
+								this.logger.info(
+									`Expectation "${JSON.stringify(
+										trackedExp.exp.statusReport.label
+									)}" progress: ${progress}`
+								)
 
-							this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
-								progress: progress,
-							})
-						} else {
-							// ignore
+								this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
+									progress: progress,
+								})
+							} else {
+								// ignore
+							}
 						}
-					})
-					trackedExp.workInProgress.on('error', (err: string) => {
+					)
+					trackedExp.status.workInProgress.on('error', (err: string) => {
 						if (trackedExp.state === TrackedExpectationState.WORKING) {
 							this.updateTrackedExp(trackedExp, TrackedExpectationState.WAITING, err)
 							this.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
@@ -335,28 +353,31 @@ export class ExpectationManager {
 							// ignore
 						}
 					})
-					trackedExp.workInProgress.on('done', (actualVersionHash: string, reason: string, result: any) => {
-						if (trackedExp.state === TrackedExpectationState.WORKING) {
-							trackedExp.actualVersionHash = actualVersionHash
-							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, reason)
-							this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
-								status: trackedExp.state,
-								statusReason: trackedExp.reason,
-								progress: 1,
-							})
+					trackedExp.status.workInProgress.on(
+						'done',
+						(actualVersionHash: string, reason: string, result: any) => {
+							if (trackedExp.state === TrackedExpectationState.WORKING) {
+								trackedExp.status.actualVersionHash = actualVersionHash
+								this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, reason)
+								this.reportExpectationStatus(trackedExp.id, trackedExp.exp, actualVersionHash, {
+									status: trackedExp.state,
+									statusReason: trackedExp.reason,
+									progress: 1,
+								})
 
-							if (trackedExp.handleResult) {
-								trackedExp.handleResult(result)
+								if (trackedExp.handleResult) {
+									trackedExp.handleResult(result)
+								}
+								if (this.handleTriggerByFullfilledIds(trackedExp)) {
+									// Something was triggered, run again asap.
+								}
+								// We should reevaluate asap, so that any other expectation which might be waiting on this worker could start.
+								this._triggerEvaluateExpectations(true)
+							} else {
+								// ignore
 							}
-							if (this.handleTriggerByFullfilledIds(trackedExp)) {
-								// Something was triggered, run again asap.
-							}
-							// We should reevaluate asap, so that any other expectation which might be waiting on this worker could start.
-							this._triggerEvaluateExpectations(true)
-						} else {
-							// ignore
 						}
-					})
+					)
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
@@ -378,8 +399,8 @@ export class ExpectationManager {
 							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
 						} else {
 							// It appears like it's not fullfilled anymore
-							trackedExp.actualVersionHash = undefined
-							trackedExp.progress = undefined
+							trackedExp.status.actualVersionHash = undefined
+							trackedExp.status.workProgress = undefined
 							this.updateTrackedExp(trackedExp, TrackedExpectationState.WAITING, fulfilled.reason)
 							session.triggerExpectationAgain = true
 						}
@@ -415,13 +436,18 @@ export class ExpectationManager {
 	private updateTrackedExp(
 		trackedExp: TrackedExpectation,
 		state: TrackedExpectationState | undefined,
-		reason: string | undefined
+		reason: string | undefined,
+		newStatus?: Partial<TrackedExpectation['status']>
 	) {
 		trackedExp.lastEvaluationTime = Date.now()
 
 		const prevState = trackedExp.state
+		const prevStatus = trackedExp.status
+
 		let updatedState = false
 		let updatedReason = false
+		let updatedStatus = false
+
 		if (state !== undefined && trackedExp.state !== state) {
 			trackedExp.state = state
 			updatedState = true
@@ -430,6 +456,11 @@ export class ExpectationManager {
 		if (trackedExp.reason !== reason) {
 			trackedExp.reason = reason || 'N/A'
 			updatedReason = true
+		}
+		const status = Object.assign({}, trackedExp.status, newStatus) // extend with new values
+		if (!_.isEqual(prevStatus, status)) {
+			Object.assign(trackedExp.status, newStatus)
+			updatedStatus = true
 		}
 		// Log and report new states an reasons:
 		if (updatedState) {
@@ -447,7 +478,8 @@ export class ExpectationManager {
 				status: trackedExp.state,
 				statusReason: trackedExp.reason,
 			})
-
+		}
+		if (updatedState || updatedReason || updatedStatus) {
 			this.updatePackageContainerPackageStatus(trackedExp)
 		}
 	}
@@ -457,19 +489,31 @@ export class ExpectationManager {
 				// TODO: this is probably not eh right thing to do:
 				for (const packageContainer of trackedExp.exp.endRequirement.targets) {
 					this.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
-						contentVersionHash: trackedExp.actualVersionHash || '',
-						progress: trackedExp.progress || 0,
-						status:
-							trackedExp.state === TrackedExpectationState.FULFILLED
-								? PackageContainerPackageStatusStatus.READY
-								: trackedExp.state === TrackedExpectationState.WORKING
-								? PackageContainerPackageStatusStatus.TRANSFERRING
-								: PackageContainerPackageStatusStatus.NOT_READY,
+						contentVersionHash: trackedExp.status.actualVersionHash || '',
+						progress: trackedExp.status.workProgress || 0,
+						status: this.getPackageStatus(trackedExp),
 						statusReason: trackedExp.reason,
+
+						isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
 					})
 				}
 			}
-			// [0].containerId
+		}
+	}
+	/** Convert expectation status to ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus */
+	private getPackageStatus(
+		trackedExp: TrackedExpectation
+	): ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus {
+		if (trackedExp.state === TrackedExpectationState.FULFILLED) {
+			return ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+		} else if (trackedExp.state === TrackedExpectationState.WORKING) {
+			return trackedExp.status.targetCanBeUsedWhileTransferring
+				? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_READY
+				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_NOT_READY
+		} else {
+			return trackedExp.status.sourceExists
+				? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY
+				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 		}
 	}
 	private async determineWorker(trackedExp: TrackedExpectation): Promise<WorkerAgentAssignment | undefined> {
@@ -542,10 +586,7 @@ export class ExpectationManager {
 	private async isExpectationReadyToStartWorkingOn(
 		workerAgent: WorkerAgent,
 		trackedExp: TrackedExpectation
-	): Promise<{
-		ready: boolean
-		reason?: string | undefined
-	}> {
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		// Intercept if
 		if (trackedExp.exp.dependsOnFullfilled?.length) {
 			// Check if those are fullfilled:
@@ -578,15 +619,25 @@ export enum TrackedExpectationState {
 interface TrackedExpectation {
 	id: string
 	exp: Expectation.Any
+
 	state: TrackedExpectationState
+	reason: string
+
 	/** List of worker ids that supports this Expectation */
 	availableWorkers: string[]
 	lastEvaluationTime: number
-	reason: string
-	workInProgress?: IWorkInProgress
 	handleResult?: (result: any) => void
-	actualVersionHash?: string | null
-	progress?: number
+
+	/** These statuses are sent from the workers */
+	status: {
+		workProgress?: number
+		workInProgress?: IWorkInProgress
+		actualVersionHash?: string | null
+
+		sourceExists?: boolean
+		targetCanBeUsedWhileTransferring?: boolean
+		sourceIsPlaceholder?: boolean // todo: to be implemented (quantel)
+	}
 }
 interface ExpectationStateHandlerSession {
 	/** Set to true if the tracked expectation should be triggered again ASAP */
