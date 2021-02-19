@@ -1,0 +1,37 @@
+{
+    "name": "@shared/workforce",
+    "version": "1.0.0",
+    "main": "dist/index",
+    "types": "dist/index",
+    "files": [
+        "dist"
+    ],
+    "license": "MIT",
+    "scripts": {
+        "build": "rimraf dist && yarn build:main",
+        "build:main": "tsc -p tsconfig.json",
+        "test": "jest",
+        "precommit": "lint-staged"
+    },
+    "peerDependencies": {
+        "@sofie-automation/blueprints-integration": "*"
+    },
+    "devDependencies": {
+        "lint-staged": "^7.2.0"
+    },
+    "dependencies": {
+        "@shared/api": "*"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "engines": {
+        "node": ">=12.3.0"
+    },
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    }
+}

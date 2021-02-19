@@ -9,7 +9,7 @@ import {
 import { DeviceConfig } from './connector'
 
 import * as fs from 'fs'
-import { LoggerInstance } from './index'
+import { LoggerInstance, PackageManagerConfig } from '@shared/api'
 
 import { Process } from './process'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
@@ -62,10 +62,15 @@ export class CoreHandler {
 		this._deviceOptions = deviceOptions
 	}
 
-	async init(config: CoreConfig, process: Process): Promise<void> {
+	async init(config: PackageManagerConfig, process: Process): Promise<void> {
 		// this.logger.info('========')
 		this._statusInitialized = false
-		this._coreConfig = config
+		this._coreConfig = {
+			host: config.packageManager.coreHost,
+			port: config.packageManager.corePort,
+			watchdog: config.packageManager.disableWatchdog,
+		}
+
 		this._process = process
 
 		this.core = new CoreConnection(this.getCoreConnectionOptions('Package manager', 'PackageManager'))
@@ -85,8 +90,8 @@ export class CoreHandler {
 		})
 
 		const ddpConfig: DDPConnectorOptions = {
-			host: config.host,
-			port: config.port,
+			host: this._coreConfig.host,
+			port: this._coreConfig.port,
 		}
 		if (this._process && this._process.certificates.length) {
 			ddpConfig.tlsOpts = {

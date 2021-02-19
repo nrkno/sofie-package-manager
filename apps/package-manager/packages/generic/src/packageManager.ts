@@ -1,7 +1,6 @@
 import * as _ from 'underscore'
 import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
-import { LoggerInstance } from './index'
 import {
 	ExpectedPackage,
 	ExpectedPackageStatusAPI,
@@ -9,14 +8,17 @@ import {
 	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
 import { generateExpectations } from './expectationGenerator'
-import { ExpectationManager } from './expectationManager'
-import { Expectation } from '@shared/api'
-import { MessageFromWorkerPayload } from '@shared/worker'
+import { ExpectationManager } from '@shared/expectation-manager'
+import {
+	ClientConnectionOptions,
+	Expectation,
+	ServerConnectionOptions,
+	ExpectationManagerWorkerAgent,
+	PackageManagerConfig,
+	LoggerInstance,
+} from '@shared/api'
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface PackageManagerConfig {}
 export class PackageManagerHandler {
-	logger: LoggerInstance
 	private _coreHandler!: CoreHandler
 	private _observers: Array<any> = []
 
@@ -33,10 +35,19 @@ export class PackageManagerHandler {
 
 	private reportedStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 
-	constructor(logger: LoggerInstance) {
-		this.logger = logger
+	constructor(
+		public logger: LoggerInstance,
+		private managerId: string,
+		private serverConnectionOptions: ServerConnectionOptions,
+		private serverAccessUrl: string | undefined,
+		private workForceConnectionOptions: ClientConnectionOptions
+	) {
 		this._expectationManager = new ExpectationManager(
 			this.logger,
+			this.managerId,
+			this.serverConnectionOptions,
+			this.serverAccessUrl,
+			this.workForceConnectionOptions,
 			(
 				expectationId: string,
 				expectaction: Expectation.Any | null,
@@ -52,7 +63,7 @@ export class PackageManagerHandler {
 				packageId: string,
 				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 			) => this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
-			(message: MessageFromWorkerPayload) => this.onMessageFromWorker(message)
+			(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload) => this.onMessageFromWorker(message)
 		)
 	}
 
@@ -62,10 +73,6 @@ export class PackageManagerHandler {
 		this._coreHandler.setPackageManagerHandler(this)
 
 		this.logger.info('PackageManagerHandler init')
-
-		await this.cleanReportedExpectations()
-
-		await this._expectationManager.init()
 
 		// const peripheralDevice = await coreHandler.core.getPeripheralDevice()
 		// const settings: TSRSettings = peripheralDevice.settings || {}
@@ -78,10 +85,16 @@ export class PackageManagerHandler {
 		this.onSettingsChanged()
 		this._triggerUpdatedExpectedPackages()
 
-		this.logger.info('PackageManagerHandler Done')
+		await this.cleanReportedExpectations()
+		await this._expectationManager.init()
+
+		this.logger.info('PackageManagerHandler initialized')
 	}
 	onSettingsChanged(): void {
 		// todo
+	}
+	getExpectationManager(): ExpectationManager {
+		return this._expectationManager
 	}
 	private setupObservers(): void {
 		if (this._observers.length) {
@@ -110,7 +123,7 @@ export class PackageManagerHandler {
 
 		const objs = this._coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
 
-		this.logger.info(JSON.stringify(objs, null, 2))
+		// this.logger.info(JSON.stringify(objs, null, 2))
 
 		const expectedPackageObj = objs.find((o) => o.type === 'expected_packages')
 		// const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
@@ -138,7 +151,11 @@ export class PackageManagerHandler {
 		this.logger.info(JSON.stringify(expectedPackages, null, 2))
 
 		// Step 1: Generate expectations:
-		const expectations = generateExpectations(this.packageContainersCache, expectedPackages)
+		const expectations = generateExpectations(
+			this._expectationManager.managerId,
+			this.packageContainersCache,
+			expectedPackages
+		)
 		this.logger.info('expectations:')
 		this.logger.info(JSON.stringify(expectations, null, 2))
 
@@ -314,7 +331,7 @@ export class PackageManagerHandler {
 				this.logger.error(err)
 			})
 	}
-	private async onMessageFromWorker(message: MessageFromWorkerPayload): Promise<any> {
+	private async onMessageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload): Promise<any> {
 		switch (message.type) {
 			case 'updatePackageContainerPackageStatus':
 				return await this._coreHandler.core.callMethod(

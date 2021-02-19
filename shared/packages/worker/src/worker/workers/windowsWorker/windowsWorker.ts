@@ -1,5 +1,6 @@
 import {
 	Expectation,
+	ExpectationManagerWorkerAgent,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
 	ReturnTypeIsExpectationFullfilled,
@@ -12,7 +13,6 @@ import { MediaFileScan } from './expectationHandlers/mediaFileScan'
 import { MediaFileDeepScan } from './expectationHandlers/mediaFileDeepScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
-import { MessageFromWorker } from '../../../workerAgent'
 import { IWorkInProgress } from '../../lib/workInProgress'
 import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
 
@@ -20,7 +20,7 @@ import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
 export class WindowsWorker extends GenericWorker {
 	constructor(
 		public readonly config: WindowsWorkerConfig,
-		sendMessageToManager: MessageFromWorker,
+		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
 		super(config, location, sendMessageToManager, 'windowsWorker')

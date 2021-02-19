@@ -1468,6 +1468,16 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
+"@sofie-automation/blueprints-integration@*":
+  version "1.17.1"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.17.1.tgz#458caf5fa515693361e776c593939164875fd8ca"
+  integrity sha512-t+IVPje3+EVuSiYq6xkc2FYwEuaktOutxtgAP1jRhYYtPvVgJY7vQ6ae2Q+aLZpe3mCHDbXWYxATnr7OFIMjJg==
+  dependencies:
+    moment "2.29.1"
+    timeline-state-resolver-types "5.5.1"
+    tslib "^2.0.3"
+    underscore "1.12.0"
+
 "@sofie-automation/blueprints-integration@1.19.0-nightly-feat-package-management-20210213-123211-669d116.0":
   version "1.19.0-nightly-feat-package-management-20210213-123211-669d116.0"
   resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.19.0-nightly-feat-package-management-20210213-123211-669d116.0.tgz#98c7ab5276cc0582293a9d644543691c422dacdd"
@@ -1863,6 +1873,13 @@
   integrity sha512-BVGCztsypW8EYwJ+Hq+QNYiT/MUyCif0ouBH+flrY66O5W+KIXAMML6E/0fJpm7VjIzgangahl5S03bJJQGrZw==
   dependencies:
     winston "*"
+
+"@types/ws@^7.4.0":
+  version "7.4.0"
+  resolved "https://registry.yarnpkg.com/@types/ws/-/ws-7.4.0.tgz#499690ea08736e05a8186113dac37769ab251a0e"
+  integrity sha512-Y29uQ3Uy+58bZrFLhX36hcI3Np37nqWE7ky5tjiDoy1GDZnIwVxS0CgF+s+1bXMzjKBFy+fqaRfb708iNzdinw==
+  dependencies:
+    "@types/node" "*"
 
 "@types/yargs-parser@*":
   version "20.2.0"
@@ -4449,9 +4466,19 @@ forever-agent@~0.6.1:
   resolved "https://registry.yarnpkg.com/forever-agent/-/forever-agent-0.6.1.tgz#fbc71f0c41adeb37f96c577ad1ed42d8fdacca91"
   integrity sha1-+8cfDEGt6zf5bFd60e1C2P2sypE=
 
-form-data@^3.0.0, "form-data@git+https://github.com/wxt2005/form-data/#e705c0a1fdaf90d21501f56460b93e43a18bd435":
-  version "3.0.0"
-  resolved "git+https://github.com/wxt2005/form-data/#e705c0a1fdaf90d21501f56460b93e43a18bd435"
+form-data@^3.0.0:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/form-data/-/form-data-3.0.1.tgz#ebd53791b78356a99af9a300d4282c4d5eb9755f"
+  integrity sha512-RHkBKtLWUVwd7SqRIvCZMEvAMoGUp0XU+seQiZejj0COz3RI3hWP4sCv3gZWWLjJTd7rGwcsF5eKZGii0r/hbg==
+  dependencies:
+    asynckit "^0.4.0"
+    combined-stream "^1.0.8"
+    mime-types "^2.1.12"
+
+form-data@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/form-data/-/form-data-4.0.0.tgz#93919daeaf361ee529584b9b31664dc12c9fa452"
+  integrity sha512-ETEklSGi5t0QMZuiXoA/Q6vcnxcLQP5vdugSpuAyi6SVGi2clPPp+xgEhuMaHC+zGgn31Kd235W35f7Hykkaww==
   dependencies:
     asynckit "^0.4.0"
     combined-stream "^1.0.8"
@@ -9541,6 +9568,13 @@ timed-out@^4.0.1:
   resolved "https://registry.yarnpkg.com/timed-out/-/timed-out-4.0.1.tgz#f32eacac5a175bea25d7fab565ab3ed8741ef56f"
   integrity sha1-8y6srFoXW+ol1/q1Zas+2HQe9W8=
 
+timeline-state-resolver-types@5.5.1:
+  version "5.5.1"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.5.1.tgz#c93e6bccc56e71f7247f33a86c6be6e5a3dfb275"
+  integrity sha512-UdFx8t5CYbXWzZxVsllW1+u2noKzh3hDN/EDf7avm/RU4x9Wni5u89hXGOjWShMEBwQOSM8ZHaSURtPWWo+ttg==
+  dependencies:
+    tslib "^1.13.0"
+
 timeline-state-resolver-types@5.5.2:
   version "5.5.2"
   resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.5.2.tgz#c13b2cd84fd5deb57a37f41c4ecf2a1a6a014c46"
@@ -10297,7 +10331,7 @@ write-pkg@^3.1.0:
     sort-keys "^2.0.0"
     write-json-file "^2.2.0"
 
-ws@^7.2.3:
+ws@^7.2.3, ws@^7.4.3:
   version "7.4.3"
   resolved "https://registry.yarnpkg.com/ws/-/ws-7.4.3.tgz#1f9643de34a543b8edb124bdcbc457ae55a6e5cd"
   integrity sha512-hr6vCR76GsossIRsr8OLR9acVVm1jyfEWvhbNjtgPOrfvAlKzvyeg/P6r8RuDjRyrcQoPQT7K0DGEPc7Ae6jzA==

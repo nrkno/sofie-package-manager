@@ -17,9 +17,15 @@
         "@sofie-automation/blueprints-integration": "*"
     },
     "devDependencies": {
+        "@types/ws": "^7.4.0",
         "lint-staged": "^7.2.0"
     },
-    "dependencies": {},
+    "dependencies": {
+        "underscore": "^1.12.0",
+        "yargs": "^16.2.0",
+        "ws": "^7.4.3",
+        "winston": "^3.3.3"
+    },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
         "node": ">=12.3.0"

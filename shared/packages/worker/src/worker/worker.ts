@@ -1,6 +1,6 @@
-import { MessageFromWorker } from '../workerAgent'
 import {
 	Expectation,
+	ExpectationManagerWorkerAgent,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
 	ReturnTypeIsExpectationFullfilled,
@@ -16,7 +16,7 @@ export abstract class GenericWorker {
 	constructor(
 		_config: GenericWorkerConfig,
 		public readonly location: WorkerLocation,
-		public sendMessageToManager: MessageFromWorker,
+		public sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		public type: string
 	) {}
 	/**

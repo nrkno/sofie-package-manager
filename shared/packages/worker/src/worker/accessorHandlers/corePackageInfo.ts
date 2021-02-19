@@ -86,7 +86,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 			actualSourceVersion,
 			expectTargetVersion
 		)
-		const packageInfos = (await this.worker.sendMessageToManager({
+		const packageInfos = (await this.worker.sendMessageToManager(exp.managerId, {
 			type: 'fetchPackageInfoMetadata',
 			arguments: [infoType, exp.fromPackages.map((p) => p.id)],
 		})) as {
@@ -138,7 +138,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		const ps: Promise<any>[] = []
 		for (const fromPackage of exp.fromPackages) {
 			ps.push(
-				this.worker.sendMessageToManager({
+				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'updatePackageInfo',
 					arguments: [
 						infoType,
@@ -158,7 +158,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		const ps: Promise<any>[] = []
 		for (const fromPackage of exp.fromPackages) {
 			ps.push(
-				this.worker.sendMessageToManager({
+				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'removePackageInfo',
 					arguments: [infoType, fromPackage.id],
 				})

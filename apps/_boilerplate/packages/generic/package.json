@@ -1,0 +1,32 @@
+{
+    "name": "@boilerplate/generic",
+    "version": "1.0.0",
+    "private": true,
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "rimraf dist && yarn build:main",
+        "build:main": "tsc -p tsconfig.json",
+        "test": "jest",
+        "precommit": "lint-staged"
+    },
+    "peerDependencies": {
+        "@sofie-automation/blueprints-integration": "*"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "lint-staged": "^7.2.0"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "engines": {
+        "node": ">=12.3.0"
+    },
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    }
+}

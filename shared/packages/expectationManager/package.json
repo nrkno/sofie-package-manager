@@ -1,0 +1,38 @@
+{
+    "name": "@shared/expectation-manager",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "license": "MIT",
+    "scripts": {
+        "build": "rimraf dist && yarn build:main",
+        "build:main": "tsc -p tsconfig.json",
+        "test": "jest",
+        "precommit": "lint-staged"
+    },
+    "engines": {
+        "node": ">=12.3.0"
+    },
+    "devDependencies": {
+        "lint-staged": "^7.2.0"
+    },
+    "dependencies": {
+        "@shared/api": "*",
+        "@shared/worker": "*",
+        "@sofie-automation/blueprints-integration": "*",
+        "underscore": "^1.12.0",
+        "winston": "^2.4.2"
+    },
+    "peerDependencies": {
+        "@sofie-automation/blueprints-integration": "*"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    }
+}

@@ -23,6 +23,7 @@ type GenerateExpectation = Expectation.Base & {
 	sideEffect?: ExpectedPackage.Base['sideEffect']
 }
 export function generateExpectations(
+	managerId: string,
 	packageContainers: PackageContainers,
 	expectedPackages: ExpectedPackageWrap[]
 ): { [id: string]: Expectation.Any } {
@@ -35,9 +36,9 @@ export function generateExpectations(
 		let exp: Expectation.Any | undefined = undefined
 
 		if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-			exp = generateMediaFileCopy(expWrap)
+			exp = generateMediaFileCopy(managerId, expWrap)
 		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
-			exp = generateQuantelCopy(expWrap)
+			exp = generateQuantelCopy(managerId, expWrap)
 		}
 		if (exp) {
 			if (expectations[exp.id]) {
@@ -119,12 +120,13 @@ export function generateExpectations(
 	return returnExpectations
 }
 
-function generateMediaFileCopy(expWrap: ExpectedPackageWrap): Expectation.MediaFileCopy {
+function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap): Expectation.MediaFileCopy {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapMediaFile
 
 	const exp: Expectation.MediaFileCopy = {
 		id: '', // set later
 		priority: 10,
+		managerId: managerId,
 		fromPackages: [
 			{
 				id: expWrap.expectedPackage._id,
@@ -157,13 +159,14 @@ function generateMediaFileCopy(expWrap: ExpectedPackageWrap): Expectation.MediaF
 	exp.id = hashObj(exp.endRequirement)
 	return exp
 }
-function generateQuantelCopy(expWrap: ExpectedPackageWrap): Expectation.QuantelClipCopy {
+function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): Expectation.QuantelClipCopy {
 	const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
 	const content = expWrapQuantelClip.expectedPackage.content
 	const exp: Expectation.QuantelClipCopy = {
 		id: '', // set later
 		priority: 10,
+		managerId: managerId,
 		type: Expectation.Type.QUANTEL_COPY,
 		fromPackages: [
 			{
@@ -199,6 +202,7 @@ function generateMediaFileScan(expectation: Expectation.MediaFileCopy): Expectat
 	const scan: Expectation.MediaFileScan = {
 		id: expectation.id + '_scan',
 		priority: 100,
+		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_SCAN,
 		fromPackages: expectation.fromPackages,
 
@@ -239,6 +243,7 @@ function generateMediaFileDeepScan(expectation: Expectation.MediaFileCopy): Expe
 	const deepScan: Expectation.MediaFileDeepScan = {
 		id: expectation.id + '_deepscan',
 		priority: 201,
+		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_DEEP_SCAN,
 		fromPackages: expectation.fromPackages,
 
@@ -290,6 +295,7 @@ function generateMediaFileThumbnail(
 	const thumbnail: Expectation.MediaFileThumbnail = {
 		id: expectation.id + '_thumbnail',
 		priority: 200,
+		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
 		fromPackages: expectation.fromPackages,
 
@@ -337,6 +343,7 @@ function generateMediaFilePreview(
 	const preview: Expectation.MediaFilePreview = {
 		id: expectation.id + '_preview',
 		priority: 200,
+		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_PREVIEW,
 		fromPackages: expectation.fromPackages,
 
@@ -379,6 +386,7 @@ function generateMediaFilePreview(
 // 	const tmpCopy: Expectation.MediaFileCopy = {
 // 		id: expectation.id + '_tmpCopy',
 // 		priority: expectation.priority + 1,
+//		managerId: expectation.managerId,
 // 		type: Expectation.Type.MEDIA_FILE_COPY,
 // 		fromPackages: expectation.fromPackages,
 

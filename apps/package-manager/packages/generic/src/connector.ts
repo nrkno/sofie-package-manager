@@ -1,6 +1,7 @@
+import { ClientConnectionOptions, ServerConnectionOptions, LoggerInstance, PackageManagerConfig } from '@shared/api'
+import { ExpectationManager } from '@shared/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
-import { LoggerInstance } from './index'
-import { PackageManagerConfig, PackageManagerHandler } from './packageManager'
+import { PackageManagerHandler } from './packageManager'
 import { Process } from './process'
 // import {Conductor, DeviceType} from 'timeline-state-resolver'
 
@@ -21,30 +22,49 @@ export interface DeviceConfig {
 	deviceToken: string
 }
 export class Connector {
-	private packageManagerHandler: PackageManagerHandler | undefined
-	private coreHandler: CoreHandler | undefined
-	private _logger: LoggerInstance
-	private _process: Process | undefined
+	private packageManagerHandler: PackageManagerHandler
+	private coreHandler: CoreHandler
+	private _process: Process
 
-	constructor(logger: LoggerInstance) {
-		this._logger = logger
+	constructor(private _logger: LoggerInstance, private config: PackageManagerConfig) {
+		this._process = new Process(this._logger)
+		this.coreHandler = new CoreHandler(this._logger, this.config.packageManager)
+
+		const serverConnectionOptions: ServerConnectionOptions = config.packageManager.port
+			? {
+					type: 'websocket',
+					port: config.packageManager.port,
+			  }
+			: { type: 'internal' }
+
+		const workForceConnectionOptions: ClientConnectionOptions = config.packageManager.workforceURL
+			? {
+					type: 'websocket',
+					url: config.packageManager.workforceURL,
+			  }
+			: { type: 'internal' }
+
+		this.packageManagerHandler = new PackageManagerHandler(
+			this._logger,
+			config.packageManager.deviceId || 'manager0',
+			serverConnectionOptions,
+			config.packageManager.accessUrl || undefined,
+			workForceConnectionOptions
+		)
 	}
 
-	public async init(config: Config): Promise<void> {
+	public async init(): Promise<void> {
 		try {
 			this._logger.info('Initializing Process...')
-			this._process = new Process(this._logger)
-			this._process.init(config.process)
+			this._process.init(this.config.process)
 			this._logger.info('Process initialized')
 
 			this._logger.info('Initializing Core...')
-			this.coreHandler = new CoreHandler(this._logger, config.device)
-			await this.coreHandler.init(config.core, this._process)
+			await this.coreHandler.init(this.config, this._process)
 			this._logger.info('Core initialized')
 
 			this._logger.info('Initializing PackageManager...')
-			this.packageManagerHandler = new PackageManagerHandler(this._logger)
-			await this.packageManagerHandler.init(config.packageManager, this.coreHandler)
+			await this.packageManagerHandler.init(this.config, this.coreHandler)
 			this._logger.info('PackageManager initialized')
 
 			this._logger.info('Initialization done')
@@ -72,5 +92,8 @@ export class Connector {
 			}, 10 * 1000)
 			return
 		}
+	}
+	getExpectationManager(): ExpectationManager {
+		return this.packageManagerHandler.getExpectationManager()
 	}
 }

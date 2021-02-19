@@ -81,7 +81,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			const fd = await fsOpen(this.fullPath, 'r+')
 
 			// If that worked, we seem to have read access.
-			fsClose(fd)
+			await fsClose(fd)
 		} catch (err) {
 			if (err && err.code === 'EBUSY') {
 				return `Not able to read file (busy)`

@@ -1,17 +1,14 @@
 import { EventEmitter } from 'events'
+import { ExpectationManagerWorkerAgent } from '@shared/api'
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
 	progress: (actualVersionHash: string | null, progress: number) => void
 	done: (actualVersionHash: string, reason: string, result: any) => void
-	error: (actualVersionHash: string, error: string) => void
-}
-export interface WorkInProgressProperties {
-	workLabel: string
-	targetCanBeUsedWhileTransferring?: boolean
+	error: (error: string) => void
 }
 export declare interface IWorkInProgress {
-	status: WorkInProgressProperties
+	properties: ExpectationManagerWorkerAgent.WorkInProgressProperties
 
 	on<U extends keyof WorkInProgressEvents>(event: U, listener: WorkInProgressEvents[U]): this
 
@@ -25,7 +22,10 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	private _progress = 0
 	private _actualVersionHash: string | null = null
 
-	constructor(public status: WorkInProgressProperties, private _onCancel: () => Promise<void>) {
+	constructor(
+		public properties: ExpectationManagerWorkerAgent.WorkInProgressProperties,
+		private _onCancel: () => Promise<void>
+	) {
 		super()
 	}
 	cancel(): Promise<void> {

@@ -28,6 +28,9 @@ export namespace Expectation {
 		id: string
 		type: Type
 
+		/** Id of the ExpectationManager the expectation was created from */
+		managerId: string
+
 		/** Expectation priority. Lower will be handled first */
 		priority: number
 

@@ -1,7 +1,7 @@
 import { IWorkInProgress } from '../../lib/workInProgress'
-import { MessageFromWorker } from '../../../workerAgent'
 import {
 	Expectation,
+	ExpectationManagerWorkerAgent,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
 	ReturnTypeIsExpectationFullfilled,
@@ -15,7 +15,7 @@ import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker
 export class LinuxWorker extends GenericWorker {
 	constructor(
 		public readonly config: LinuxWorkerConfig,
-		sendMessageToManager: MessageFromWorker,
+		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
 		super(config, location, sendMessageToManager, 'linuxWorker')
