@@ -24,7 +24,7 @@ const workforceArguments = defineArguments({
 	},
 })
 const httpServerArguments = defineArguments({
-	port: {
+	httpServerPort: {
 		type: 'number',
 		default: parseInt(process.env.HTTP_SERVER_PORT || '', 10) || 8080,
 		describe: 'The port number to use for the HTTP server',
@@ -97,6 +97,28 @@ const workerArguments = defineArguments({
 		default: process.env.WORKFORCE_URL || 'ws://localhost:8070',
 		describe: 'The URL to the Workforce',
 	},
+	windowsDriveLetters: {
+		type: 'string',
+		default: process.env.WORKER_WINDOWS_DRIVE_LETTERS || 'X;Y;Z',
+		describe: 'Which Windows Drive letters can be used to map shares. ("X;Y;Z") ',
+	},
+	resourceId: {
+		type: 'string',
+		default: process.env.WORKER_NETWORK_ID || 'default',
+		describe: 'Identifier of the local resource/computer this worker runs on',
+	},
+	networkIds: {
+		type: 'string',
+		default: process.env.WORKER_NETWORK_ID || 'default',
+		describe: 'Identifier of the local networks this worker has access to ("networkA;networkB")',
+	},
+})
+const singleAppArguments = defineArguments({
+	workerCount: {
+		type: 'number',
+		default: parseInt(process.env.WORKER_COUNT || '', 10) || 1,
+		describe: 'How many workers to spin up',
+	},
 })
 
 export interface ProcessConfig {
@@ -158,7 +180,7 @@ export function getHTTPServerConfig(): HTTPServerConfig {
 	return {
 		process: getProcessConfig(argv),
 		httpServer: {
-			port: argv.port,
+			port: argv.httpServerPort,
 			basePath: argv.basePath,
 			apiKeyRead: argv.apiKeyRead,
 			apiKeyWrite: argv.apiKeyWrite,
@@ -207,6 +229,9 @@ export interface WorkerConfig {
 	worker: {
 		workerId: string
 		workforceURL: string | null
+		windowsDriveLetters: string[]
+		resourceId: string
+		networkIds: string[]
 	}
 }
 export function getWorkerConfig(): WorkerConfig {
@@ -220,6 +245,9 @@ export function getWorkerConfig(): WorkerConfig {
 		worker: {
 			workerId: argv.workerId,
 			workforceURL: argv.workforceURL,
+			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
+			resourceId: argv.resourceId,
+			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
 		},
 	}
 }
@@ -227,7 +255,7 @@ export function getWorkerConfig(): WorkerConfig {
 // Configuration for the Single-app Application: ------------------------------
 export interface SingleAppConfig extends WorkforceConfig, HTTPServerConfig, PackageManagerConfig, WorkerConfig {
 	singleApp: {
-		// nothing more
+		workerCount: number
 	}
 }
 
@@ -238,8 +266,9 @@ export function getSingleAppConfig(): SingleAppConfig {
 		...packageManagerArguments,
 		...workerArguments,
 		...processOptions,
+		...singleAppArguments,
 	}
-	// Remove some that are not used in the Single-App:
+	// Remove some that are not used in the Single-App, so that they won't show up when running '--help':
 
 	// @ts-expect-error not optional
 	delete options.corePort
@@ -258,7 +287,9 @@ export function getSingleAppConfig(): SingleAppConfig {
 		httpServer: getHTTPServerConfig().httpServer,
 		packageManager: getPackageManagerConfig().packageManager,
 		worker: getWorkerConfig().worker,
-		singleApp: {},
+		singleApp: {
+			workerCount: argv.workerCount || 1,
+		},
 	}
 }
 

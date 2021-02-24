@@ -38,11 +38,22 @@ const logger = setupLogging(config)
 	expectationManager.hookToWorkforce(workforce.getExpectationManagerHook())
 	await connector.init()
 
-	logger.info('Initializing worker')
-	const workerAgent = new Worker.WorkerAgent(logger, config)
-	workerAgent.hookToWorkforce(workforce.getWorkerAgentHook())
-	workerAgent.hookToExpectationManager(expectationManager.managerId, expectationManager.getWorkerAgentHook())
-	await workerAgent.init()
+	const workerAgents: any[] = []
+	for (let i = 0; i < config.singleApp.workerCount; i++) {
+		logger.info('Initializing worker')
+		const workerAgent = new Worker.WorkerAgent(logger, {
+			...config,
+			worker: {
+				...config.worker,
+				workerId: config.worker.workerId + '_' + i,
+			},
+		})
+		workerAgents.push(workerAgent)
+
+		workerAgent.hookToWorkforce(workforce.getWorkerAgentHook())
+		workerAgent.hookToExpectationManager(expectationManager.managerId, expectationManager.getWorkerAgentHook())
+		await workerAgent.init()
+	}
 
 	logger.info('------------------------------------------------------------------')
 	logger.info('Initialization complete')
