@@ -21,6 +21,10 @@ export class FileStorage extends Storage {
 		super()
 	}
 
+	async init(): Promise<void> {
+		await mkdirp(path.dirname(this.config.httpServer.basePath))
+	}
+
 	async listPackages(ctx: CTX): Promise<true | BadResponse> {
 		type PackageInfo = {
 			path: string

@@ -38,6 +38,8 @@ export class PackageProxyServer {
 	async init(): Promise<void> {
 		this.logger.info('Initializing server')
 
+		await this.storage.init()
+
 		await this._setUpRoutes()
 	}
 	private _setUpRoutes(): Promise<void> {
