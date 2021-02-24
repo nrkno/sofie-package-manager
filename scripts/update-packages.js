@@ -3,6 +3,7 @@ const globOrg = require("glob")
 const deepExtend = require('deep-extend');
 const fs = require('fs')
 const path = require('path')
+const _ = require('underscore')
 
 const glob = promisify(globOrg)
 const fsReadFile = promisify(fs.readFile)
@@ -33,10 +34,12 @@ into package.json of each of the packages.
                     const packageJsonStr = await fsReadFile(packageJsonPath)
                     const packageJson = JSON.parse(packageJsonStr)
 
-                    deepExtend(packageJson, extendPackage)
+                    const newPackageJson = deepExtend({}, packageJson, extendPackage)
 
-                    await fsWriteFile(packageJsonPath, JSON.stringify(packageJson, undefined, 4))
-                    count++
+                    if (!_.isEqual(newPackageJson, packageJson)) {
+                        await fsWriteFile(packageJsonPath, JSON.stringify(newPackageJson, undefined, 4))
+                        count++
+                    }
                 }
             } catch (err) {
                 console.error(`Error when processing ${packageJsonPath}`)
@@ -45,5 +48,8 @@ into package.json of each of the packages.
         }
     }
 
-    console.log(`Updated package.json of ${count} packages`)
+    if (count) {
+        console.log(`Updated package.json of ${count} packages`)
+        console.log(`You should commit these changes and run yarn install again.`)
+    }
 })().catch(console.error)

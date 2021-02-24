@@ -28,7 +28,7 @@
         "start:package-manager": "lerna run start --stream --scope @package-manager/app",
         "start:worker": "lerna run start --stream --scope @worker/app",
         "start:single-app": "lerna run start --stream --scope @single-app/app",
-        "preinstall": "node scripts/update-packages.js"
+        "postinstall": "node scripts/update-packages.js"
     },
     "devDependencies": {
         "@sofie-automation/code-standard-preset": "^0.2.2",
