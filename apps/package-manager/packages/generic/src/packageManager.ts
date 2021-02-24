@@ -123,13 +123,15 @@ export class PackageManagerHandler {
 
 		const objs = this._coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
 
-		// this.logger.info(JSON.stringify(objs, null, 2))
+		// this.logger.info('ExpectedPackages', JSON.stringify(objs, null, 2))
+		// this.logger.info('ExpectedPackages', objs)
 
 		const expectedPackageObj = objs.find((o) => o.type === 'expected_packages')
 		// const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
 
 		if (!expectedPackageObj) {
 			this.logger.warn(`Collection object expected_packages not found`)
+			this.logger.info(`objs in deviceExpectedPackages:`, objs)
 			return
 		}
 		const expectedPackages = expectedPackageObj.expectedPackages as ExpectedPackageWrap[]
@@ -147,8 +149,8 @@ export class PackageManagerHandler {
 			this.expectedPackageCache[exp.expectedPackage._id] = exp
 		}
 
-		this.logger.info('expectedPackages')
-		this.logger.info(JSON.stringify(expectedPackages, null, 2))
+		this.logger.info('expectedPackages', expectedPackages)
+		// this.logger.info(JSON.stringify(expectedPackages, null, 2))
 
 		// Step 1: Generate expectations:
 		const expectations = generateExpectations(
@@ -156,8 +158,8 @@ export class PackageManagerHandler {
 			this.packageContainersCache,
 			expectedPackages
 		)
-		this.logger.info('expectations:')
-		this.logger.info(JSON.stringify(expectations, null, 2))
+		this.logger.info('expectations:', expectations)
+		// this.logger.info(JSON.stringify(expectations, null, 2))
 
 		// Step 2: Track and handle new expectations:
 		this._expectationManager.updateExpectations(expectations)
