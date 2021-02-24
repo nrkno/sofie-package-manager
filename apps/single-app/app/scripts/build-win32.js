@@ -18,7 +18,7 @@ const packageJson = require('../package.json')
     copying the packages into node_modules, so that nexe will include them.
 */
 
-const outputPath = 'C:\\Users\\johan\\Desktop\\New folder\\'
+const outputPath = './deploy/'
 
 
 ;(async () => {
