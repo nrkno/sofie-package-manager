@@ -1,4 +1,4 @@
-import { LoggerInstance } from 'winston'
+import { LoggerInstance } from '@shared/api'
 import * as fs from 'fs'
 import { ProcessConfig } from './connector'
 

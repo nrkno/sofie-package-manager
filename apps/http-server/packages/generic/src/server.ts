@@ -1,5 +1,4 @@
 import { promisify } from 'util'
-import { LoggerInstance } from 'winston'
 
 import * as fs from 'fs'
 import * as Koa from 'koa'
@@ -8,7 +7,7 @@ import * as cors from '@koa/cors'
 import * as multer from '@koa/multer'
 import * as bodyParser from 'koa-bodyparser'
 
-import { HTTPServerConfig } from '@shared/api'
+import { HTTPServerConfig, LoggerInstance } from '@shared/api'
 import { BadResponse, Storage } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
 import { CTX } from './lib'
