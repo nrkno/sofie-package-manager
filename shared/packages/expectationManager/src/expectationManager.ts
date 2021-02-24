@@ -21,7 +21,9 @@ import { WorkerAgentAPI } from './workerAgentApi'
  */
 
 export class ExpectationManager {
+	/** Time between iterations of the expectation queue */
 	private readonly EVALUATE_INTERVAL = 10 * 1000 // ms
+	/** Minimum time between re-evaluating fulfilled expectations */
 	private readonly FULLFILLED_MONITOR_TIME = 10 * 1000 // ms
 	private readonly ALLOW_SKIPPING_QUEUE_TIME = 30 * 1000 // ms
 
@@ -297,6 +299,7 @@ export class ExpectationManager {
 		let runAgainASAP = false
 		const removeIds: string[] = []
 
+		// Report statuses for newly added expectations
 		for (const trackedExp of tracked) {
 			let assignedWorker: WorkerAgentAssignment | undefined
 			let runAgain = true
@@ -343,10 +346,12 @@ export class ExpectationManager {
 		for (const id of Object.keys(this.receivedExpectations)) {
 			const exp = this.receivedExpectations[id]
 
+			let isNew = false
 			let doUpdate = false
 			if (!this.tracked[id]) {
 				// new
 				doUpdate = true
+				isNew = true
 			} else if (!_.isEqual(this.tracked[id].exp, exp)) {
 				const trackedExp = this.tracked[id]
 
@@ -359,7 +364,7 @@ export class ExpectationManager {
 				doUpdate = true
 			}
 			if (doUpdate) {
-				this.tracked[id] = {
+				const trackedExp: TrackedExpectation = {
 					id: id,
 					exp: exp,
 					state: TrackedExpectationState.NEW,
@@ -367,6 +372,12 @@ export class ExpectationManager {
 					lastEvaluationTime: 0,
 					reason: 'N/A',
 					status: {},
+				}
+				this.tracked[id] = trackedExp
+				if (isNew) {
+					this.updateTrackedExp(trackedExp, undefined, 'Added just now')
+				} else {
+					this.updateTrackedExp(trackedExp, undefined, 'Updated just now')
 				}
 			}
 		}
@@ -496,7 +507,8 @@ export class ExpectationManager {
 			} else if (trackedExp.state === TrackedExpectationState.WAITING) {
 				// Check if the expectation is ready to start:
 
-				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				await this.assignWorkerToSession(session, trackedExp)
+
 				if (session.assignedWorker) {
 					// First, check if it is already fulfilled:
 					const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(trackedExp.exp, false)
@@ -537,12 +549,12 @@ export class ExpectationManager {
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+					this.updateTrackedExp(trackedExp, undefined, session.noAssignedWorkerReason || 'Unknown reason')
 				}
 			} else if (trackedExp.state === TrackedExpectationState.READY) {
 				// Start working on it:
 
-				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				await this.assignWorkerToSession(session, trackedExp)
 				if (session.assignedWorker) {
 					this.updateTrackedExp(trackedExp, TrackedExpectationState.WORKING, 'Working')
 
@@ -625,13 +637,13 @@ export class ExpectationManager {
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+					this.updateTrackedExp(trackedExp, undefined, session.noAssignedWorkerReason || 'Unknown reason')
 				}
 			} else if (trackedExp.state === TrackedExpectationState.FULFILLED) {
 				// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore?
 
 				if (timeSinceLastEvaluation > this.FULLFILLED_MONITOR_TIME) {
-					session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+					await this.assignWorkerToSession(session, trackedExp)
 					if (session.assignedWorker) {
 						// Check if it is still fulfilled:
 						const fulfilled = await session.assignedWorker.worker.isExpectationFullfilled(
@@ -651,11 +663,13 @@ export class ExpectationManager {
 					} else {
 						// No worker is available at the moment.
 						// Do nothing, hopefully some will be available at a later iteration
-						this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+						this.updateTrackedExp(trackedExp, undefined, session.noAssignedWorkerReason || 'Unknown reason')
 					}
+				} else {
+					// Do nothing
 				}
 			} else if (trackedExp.state === TrackedExpectationState.REMOVED) {
-				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				await this.assignWorkerToSession(session, trackedExp)
 				if (session.assignedWorker) {
 					const removed = await session.assignedWorker.worker.removeExpectation(trackedExp.exp)
 					if (removed.removed) {
@@ -668,10 +682,10 @@ export class ExpectationManager {
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+					this.updateTrackedExp(trackedExp, undefined, session.noAssignedWorkerReason || 'Unknown reason')
 				}
 			} else if (trackedExp.state === TrackedExpectationState.RESTARTED) {
-				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				await this.assignWorkerToSession(session, trackedExp)
 				if (session.assignedWorker) {
 					// Start by removing the expectation
 					const removed = await session.assignedWorker.worker.removeExpectation(trackedExp.exp)
@@ -684,10 +698,10 @@ export class ExpectationManager {
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+					this.updateTrackedExp(trackedExp, undefined, session.noAssignedWorkerReason || 'Unknown reason')
 				}
 			} else if (trackedExp.state === TrackedExpectationState.ABORTED) {
-				session.assignedWorker = session.assignedWorker || (await this.determineWorker(trackedExp))
+				await this.assignWorkerToSession(session, trackedExp)
 				if (session.assignedWorker) {
 					// Start by removing the expectation
 					const removed = await session.assignedWorker.worker.removeExpectation(trackedExp.exp)
@@ -700,7 +714,7 @@ export class ExpectationManager {
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExp(trackedExp, undefined, 'No workers available')
+					this.updateTrackedExp(trackedExp, undefined, session.noAssignedWorkerReason || 'Unknown reason')
 				}
 			}
 		} catch (err) {
@@ -792,11 +806,20 @@ export class ExpectationManager {
 				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 		}
 	}
-	private async determineWorker(trackedExp: TrackedExpectation): Promise<WorkerAgentAssignment | undefined> {
+	private async assignWorkerToSession(
+		session: ExpectationStateHandlerSession,
+		trackedExp: TrackedExpectation
+	): Promise<void> {
+		if (session.assignedWorker) return // A worker has already been assigned
+
 		/** How many requests to send out simultaneously */
 		const batchSize = 10
 		/** How many answers we want to have to be content */
 		const minWorkerCount = batchSize / 2
+
+		if (!trackedExp.availableWorkers.length) {
+			session.noAssignedWorkerReason = 'No workers available'
+		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
 
@@ -833,13 +856,12 @@ export class ExpectationManager {
 
 		const bestWorker = workerCosts[0]
 
-		if (bestWorker) {
-			if (bestWorker.cost.startCost < 10) {
-				// Only allow starting if the job can start in a short while
-				return bestWorker
-			}
+		if (bestWorker && bestWorker.cost.startCost < 10) {
+			// Only allow starting if the job can start in a short while
+			session.assignedWorker = bestWorker
+		} else {
+			session.noAssignedWorkerReason = `Waiting for a free worker (${trackedExp.availableWorkers.length} busy)`
 		}
-		return undefined
 	}
 	/**
 	 * To be called when trackedExp.status turns fullfilled.
@@ -932,6 +954,7 @@ interface ExpectationStateHandlerSession {
 
 	/** The Worker assigned to the Expectation for this evaluation */
 	assignedWorker: WorkerAgentAssignment | undefined
+	noAssignedWorkerReason?: string
 }
 interface WorkerAgentAssignment {
 	worker: WorkerAgentAPI
