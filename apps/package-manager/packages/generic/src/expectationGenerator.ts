@@ -1,5 +1,5 @@
 import { Accessor, ExpectedPackage, PackageContainer } from '@sofie-automation/blueprints-integration'
-import { ExpectedPackageWrap, PackageContainers } from './packageManager'
+import { ActivePlaylist, ActiveRundown, ExpectedPackageWrap, PackageContainers } from './packageManager'
 import { Expectation, hashObj } from '@shared/api'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
@@ -25,12 +25,27 @@ type GenerateExpectation = Expectation.Base & {
 export function generateExpectations(
 	managerId: string,
 	packageContainers: PackageContainers,
+	_activePlaylist: ActivePlaylist,
+	activeRundowns: ActiveRundown[],
 	expectedPackages: ExpectedPackageWrap[]
 ): { [id: string]: Expectation.Any } {
 	const expectations: { [id: string]: GenerateExpectation } = {}
 
 	// Note: All of this is a preliminary implementation!
 	// A blueprint-like plug-in architecture might be a future idea
+
+	// Sort, so that we handle the high-prio first:
+	expectedPackages.sort((a, b) => {
+		// Lowest first: (lower is better)
+		if (a.priority > b.priority) return 1
+		if (a.priority < b.priority) return -1
+		return 0
+	})
+	// Prepare:
+	const activeRundownMap = new Map<string, ActiveRundown>()
+	for (const activeRundown of activeRundowns) {
+		activeRundownMap.set(activeRundown._id, activeRundown)
+	}
 
 	for (const expWrap of expectedPackages) {
 		let exp: Expectation.Any | undefined = undefined
@@ -41,10 +56,30 @@ export function generateExpectations(
 			exp = generateQuantelCopy(managerId, expWrap)
 		}
 		if (exp) {
-			if (expectations[exp.id]) {
+			// Prioritize
+			/*
+			0: Things that are to be played out like RIGHT NOW
+			10: Things that are to be played out pretty soon (things that could be cued anytime now)
+			100: Other things that affect users (GUI things)
+			1000+: Other things that can be played out
+			*/
+
+			let prioAdd = 1000
+			const activeRundown =
+				expWrap.expectedPackage.rundownId && activeRundownMap.get(expWrap.expectedPackage.rundownId)
+			if (activeRundown) {
+				// The expected package is in an active rundown
+				prioAdd = 0 + activeRundown._rank // Earlier rundowns should have higher priority
+			}
+			exp.priority += prioAdd
+
+			const existingExp = expectations[exp.id]
+			if (existingExp) {
 				// There is already an expectation pointing at the same place.
 
-				const existingPackage = expectations[exp.id].fromPackages[0]
+				existingExp.priority = Math.min(existingExp.priority, exp.priority)
+
+				const existingPackage = existingExp.fromPackages[0]
 				const newPackage = exp.fromPackages[0]
 
 				if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
@@ -58,7 +93,7 @@ export function generateExpectations(
 
 					// TODO: log better warnings!
 				} else {
-					expectations[exp.id].fromPackages.push(exp.fromPackages[0])
+					existingExp.fromPackages.push(exp.fromPackages[0])
 				}
 			} else {
 				expectations[exp.id] = {
@@ -125,7 +160,7 @@ function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap):
 
 	const exp: Expectation.MediaFileCopy = {
 		id: '', // set later
-		priority: 10,
+		priority: expWrap.priority * 10 || 0,
 		managerId: managerId,
 		fromPackages: [
 			{
@@ -165,7 +200,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	const content = expWrapQuantelClip.expectedPackage.content
 	const exp: Expectation.QuantelClipCopy = {
 		id: '', // set later
-		priority: 10,
+		priority: expWrap.priority * 10 || 0,
 		managerId: managerId,
 		type: Expectation.Type.QUANTEL_COPY,
 		fromPackages: [
@@ -201,7 +236,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 function generateMediaFileScan(expectation: Expectation.MediaFileCopy): Expectation.MediaFileScan {
 	const scan: Expectation.MediaFileScan = {
 		id: expectation.id + '_scan',
-		priority: 100,
+		priority: expectation.priority + 100,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_SCAN,
 		fromPackages: expectation.fromPackages,
@@ -242,7 +277,7 @@ function generateMediaFileScan(expectation: Expectation.MediaFileCopy): Expectat
 function generateMediaFileDeepScan(expectation: Expectation.MediaFileCopy): Expectation.MediaFileDeepScan {
 	const deepScan: Expectation.MediaFileDeepScan = {
 		id: expectation.id + '_deepscan',
-		priority: 201,
+		priority: expectation.priority + 1001,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_DEEP_SCAN,
 		fromPackages: expectation.fromPackages,
@@ -294,7 +329,7 @@ function generateMediaFileThumbnail(
 ): Expectation.MediaFileThumbnail {
 	const thumbnail: Expectation.MediaFileThumbnail = {
 		id: expectation.id + '_thumbnail',
-		priority: 200,
+		priority: expectation.priority + 1002,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
 		fromPackages: expectation.fromPackages,
@@ -342,7 +377,7 @@ function generateMediaFilePreview(
 ): Expectation.MediaFilePreview {
 	const preview: Expectation.MediaFilePreview = {
 		id: expectation.id + '_preview',
-		priority: 200,
+		priority: expectation.priority + 1003,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_PREVIEW,
 		fromPackages: expectation.fromPackages,
@@ -385,7 +420,7 @@ function generateMediaFilePreview(
 // 	// Copy file to HTTP: (TMP!)
 // 	const tmpCopy: Expectation.MediaFileCopy = {
 // 		id: expectation.id + '_tmpCopy',
-// 		priority: expectation.priority + 1,
+// 		priority: expectation.priority + 5,
 //		managerId: expectation.managerId,
 // 		type: Expectation.Type.MEDIA_FILE_COPY,
 // 		fromPackages: expectation.fromPackages,

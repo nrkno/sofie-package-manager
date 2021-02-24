@@ -123,25 +123,48 @@ export class PackageManagerHandler {
 
 		const objs = this._coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
 
-		// this.logger.info('ExpectedPackages', JSON.stringify(objs, null, 2))
-		// this.logger.info('ExpectedPackages', objs)
+		const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
 
-		const expectedPackageObj = objs.find((o) => o.type === 'expected_packages')
-		// const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
-
-		if (!expectedPackageObj) {
-			this.logger.warn(`Collection object expected_packages not found`)
+		if (!expectedPackageObjs.length) {
+			this.logger.warn(`Collection objects expected_packages not found`)
 			this.logger.info(`objs in deviceExpectedPackages:`, objs)
 			return
 		}
-		const expectedPackages = expectedPackageObj.expectedPackages as ExpectedPackageWrap[]
-		const packageContainers = expectedPackageObj.packageContainers as PackageContainers
-		// const settings = {} // TODO
 
-		this.handleExpectedPackages(packageContainers, expectedPackages)
+		let expectedPackages: ExpectedPackageWrap[] = []
+		for (const expectedPackageObj of expectedPackageObjs) {
+			expectedPackageObj
+			expectedPackages = expectedPackages.concat(...expectedPackageObj.expectedPackages)
+		}
+
+		const packageContainerObj = objs.find((o) => o.type === 'package_containers')
+		if (!packageContainerObj) {
+			this.logger.warn(`Collection objects package_containers not found`)
+			this.logger.info(`objs in deviceExpectedPackages:`, objs)
+			return
+		}
+		const packageContainers = packageContainerObj.packageContainers as PackageContainers
+
+		const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
+		if (!activePlaylistObj) {
+			this.logger.warn(`Collection objects active_playlist not found`)
+			this.logger.info(`objs in deviceExpectedPackages:`, objs)
+			return
+		}
+
+		const activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
+		const activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
+
+		this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
 	}
 
-	private handleExpectedPackages(packageContainers: PackageContainers, expectedPackages: ExpectedPackageWrap[]) {
+	private handleExpectedPackages(
+		packageContainers: PackageContainers,
+		activePlaylist: ActivePlaylist,
+		activeRundowns: ActiveRundown[],
+
+		expectedPackages: ExpectedPackageWrap[]
+	) {
 		// Step 0: Save local cache:
 		this.expectedPackageCache = {}
 		this.packageContainersCache = packageContainers
@@ -156,6 +179,8 @@ export class PackageManagerHandler {
 		const expectations = generateExpectations(
 			this._expectationManager.managerId,
 			this.packageContainersCache,
+			activePlaylist,
+			activeRundowns,
 			expectedPackages
 		)
 		this.logger.info('expectations:', expectations)
@@ -374,8 +399,11 @@ export class PackageManagerHandler {
 }
 
 interface ResultingExpectedPackage {
-	// This is copied from Core
-	expectedPackage: ExpectedPackage.Base
+	// This interface is copied from Core
+
+	expectedPackage: ExpectedPackage.Base & { rundownId?: string }
+	/** Lower should be done first */
+	priority: number
 	sources: PackageContainerOnPackage[]
 	targets: PackageContainerOnPackage[]
 	playoutDeviceId: string
@@ -384,3 +412,13 @@ interface ResultingExpectedPackage {
 export type ExpectedPackageWrap = ResultingExpectedPackage
 
 export type PackageContainers = { [containerId: string]: PackageContainer }
+
+export interface ActivePlaylist {
+	_id: string
+	active: boolean
+	rehearsal: boolean
+}
+export interface ActiveRundown {
+	_id: string
+	_rank: number
+}
