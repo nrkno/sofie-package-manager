@@ -104,6 +104,17 @@ export class CoreHandler {
 		await this.setupObserversAndSubscriptions()
 		this._statusInitialized = true
 		await this.updateCoreStatus()
+
+		const peripheralDevice = await this.core.getPeripheralDevice()
+		this.logger.info(`Device studioId: "${peripheralDevice.studioId}"`)
+		if (!peripheralDevice.studioId) {
+			this.logger.warn('------------------------------------------------------')
+			this.logger.warn('Not setup yet, exiting process!')
+			this.logger.warn('To setup, go into Core and add this device to a Studio')
+			this.logger.warn('------------------------------------------------------')
+			process.exit(1) // eslint-disable-line no-process-exit
+			return
+		}
 	}
 	setPackageManagerHandler(handler: PackageManagerHandler): void {
 		this._packageManagerHandler = handler
