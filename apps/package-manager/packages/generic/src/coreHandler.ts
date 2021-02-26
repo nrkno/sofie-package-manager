@@ -11,7 +11,7 @@ import { DeviceConfig } from './connector'
 import * as fs from 'fs'
 import { LoggerInstance, PackageManagerConfig } from '@shared/api'
 
-import { Process } from './process'
+import { ProcessHandler } from './process'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
@@ -52,7 +52,7 @@ export class CoreHandler {
 	private _executedFunctions: { [id: string]: boolean } = {}
 	private _packageManagerHandler?: PackageManagerHandler
 	private _coreConfig?: CoreConfig
-	private _process?: Process
+	private processHandler?: ProcessHandler
 
 	private _statusInitialized = false
 	private _statusDestroyed = false
@@ -62,7 +62,7 @@ export class CoreHandler {
 		this._deviceOptions = deviceOptions
 	}
 
-	async init(config: PackageManagerConfig, process: Process): Promise<void> {
+	async init(config: PackageManagerConfig, processHandler: ProcessHandler): Promise<void> {
 		// this.logger.info('========')
 		this._statusInitialized = false
 		this._coreConfig = {
@@ -71,7 +71,7 @@ export class CoreHandler {
 			watchdog: config.packageManager.disableWatchdog,
 		}
 
-		this._process = process
+		this.processHandler = processHandler
 
 		this.core = new CoreConnection(this.getCoreConnectionOptions('Package manager', 'PackageManager'))
 
@@ -93,14 +93,14 @@ export class CoreHandler {
 			host: this._coreConfig.host,
 			port: this._coreConfig.port,
 		}
-		if (this._process && this._process.certificates.length) {
+		if (this.processHandler && this.processHandler.certificates.length) {
 			ddpConfig.tlsOpts = {
-				ca: this._process.certificates,
+				ca: this.processHandler.certificates,
 			}
 		}
 
 		await this.core.init(ddpConfig)
-		this.logger.info('Core id: ' + this.core.deviceId)
+		this.logger.info(`Core id:: ${this.core.deviceId}`)
 		await this.setupObserversAndSubscriptions()
 		this._statusInitialized = true
 		await this.updateCoreStatus()

@@ -2,7 +2,7 @@ import { ClientConnectionOptions, ServerConnectionOptions, LoggerInstance, Packa
 import { ExpectationManager } from '@shared/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageManagerHandler } from './packageManager'
-import { Process } from './process'
+import { ProcessHandler } from './process'
 // import {Conductor, DeviceType} from 'timeline-state-resolver'
 
 export interface Config {
@@ -24,10 +24,10 @@ export interface DeviceConfig {
 export class Connector {
 	private packageManagerHandler: PackageManagerHandler
 	private coreHandler: CoreHandler
-	private _process: Process
+	private _process: ProcessHandler
 
 	constructor(private _logger: LoggerInstance, private config: PackageManagerConfig) {
-		this._process = new Process(this._logger)
+		this._process = new ProcessHandler(this._logger)
 		this.coreHandler = new CoreHandler(this._logger, this.config.packageManager)
 
 		const serverConnectionOptions: ServerConnectionOptions = config.packageManager.port

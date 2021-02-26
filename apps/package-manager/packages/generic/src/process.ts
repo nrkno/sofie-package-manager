@@ -2,7 +2,7 @@ import { LoggerInstance } from '@shared/api'
 import * as fs from 'fs'
 import { ProcessConfig } from './connector'
 
-export class Process {
+export class ProcessHandler {
 	logger: LoggerInstance
 
 	public certificates: Buffer[] = []
