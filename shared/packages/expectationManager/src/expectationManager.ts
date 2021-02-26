@@ -110,8 +110,6 @@ export class ExpectationManager {
 		} else {
 			// todo: handle direct connections
 		}
-
-		this._triggerEvaluateExpectations(true)
 	}
 
 	async init(): Promise<void> {
@@ -123,6 +121,8 @@ export class ExpectationManager {
 		if (!serverAccessUrl) throw new Error(`ExpectationManager.serverAccessUrl not set!`)
 
 		await this.workforceAPI.registerExpectationManager(this.managerId, serverAccessUrl)
+
+		this._triggerEvaluateExpectations(true)
 	}
 	hookToWorkforce(
 		hook: Hook<WorkForceExpectationManager.WorkForce, WorkForceExpectationManager.ExpectationManager>
