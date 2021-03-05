@@ -63,7 +63,7 @@ export class PackageManagerHandler {
 				packageId: string,
 				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 			) => this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
-			(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload) => this.onMessageFromWorker(message)
+			(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => this.onMessageFromWorker(message)
 		)
 	}
 
@@ -358,13 +358,10 @@ export class PackageManagerHandler {
 				this.logger.error(err)
 			})
 	}
-	private async onMessageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload): Promise<any> {
+	private async onMessageFromWorker(
+		message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any
+	): Promise<any> {
 		switch (message.type) {
-			case 'updatePackageContainerPackageStatus':
-				return await this._coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.updatePackageContainerPackageStatus,
-					message.arguments
-				)
 			case 'fetchPackageInfoMetadata':
 				return await this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
@@ -381,6 +378,7 @@ export class PackageManagerHandler {
 					message.arguments
 				)
 			default:
+				// @ts-expect-error message.type is never
 				throw new Error(`Unsupported message type "${message.type}"`)
 		}
 	}

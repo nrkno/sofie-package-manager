@@ -7,7 +7,7 @@ export class ExpectationManagerAPI
 	constructor() {
 		super('workerAgent')
 	}
-	async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload): Promise<any> {
+	async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		return await this._sendMessage('messageFromWorker', message)
 	}
 	async wipEventProgress(wipId: number, actualVersionHash: string | null, progress: number): Promise<void> {

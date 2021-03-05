@@ -51,7 +51,7 @@ export namespace ExpectationManagerWorkerAgent {
 	}
 	/** Methods on ExpectedManager, called by WorkerAgent */
 	export interface ExpectationManager {
-		messageFromWorker: (message: MessageFromWorkerPayload) => Promise<any>
+		messageFromWorker: (message: MessageFromWorkerPayload.Any) => Promise<any>
 
 		// Events emitted from a workInProgress:
 		wipEventProgress: (wipId: number, actualVersionHash: string | null, progress: number) => Promise<void>
@@ -73,11 +73,41 @@ export namespace ExpectationManagerWorkerAgent {
 		/** Cost "in queue" until working on the Expectation can start */
 		startCost: number
 	}
-	export type MessageFromWorker = (managerId: string, message: MessageFromWorkerPayload) => Promise<any>
-	export type MessageFromWorkerSerialized = (message: MessageFromWorkerPayload) => Promise<ReplyToWorker>
-	export interface MessageFromWorkerPayload {
-		type: string
-		arguments: any[]
+	export type MessageFromWorker = (managerId: string, message: MessageFromWorkerPayload.Any) => Promise<any>
+	export type MessageFromWorkerSerialized = (message: MessageFromWorkerPayload.Any) => Promise<ReplyToWorker>
+
+	// eslint-disable-next-line @typescript-eslint/no-namespace
+	export namespace MessageFromWorkerPayload {
+		export type Any = FetchPackageInfoMetadata | UpdatePackageInfo | RemovePackageInfo
+		export interface Base {
+			type: string
+			arguments: any[]
+		}
+		// Note: These interfaces are based on the methods exposed by Sofie Core
+		export interface FetchPackageInfoMetadata extends Base {
+			type: 'fetchPackageInfoMetadata'
+			arguments: [
+				string, // type
+				string[] // packageIds
+			]
+		}
+		export interface UpdatePackageInfo extends Base {
+			type: 'updatePackageInfo'
+			arguments: [
+				string, // type
+				string, // packageId
+				string, // expectedContentVersionHash
+				string, // actualContentVersionHash
+				any // payload
+			]
+		}
+		export interface RemovePackageInfo extends Base {
+			type: 'removePackageInfo'
+			arguments: [
+				string, // type
+				string // packageId
+			]
+		}
 	}
 
 	export interface ReplyToWorker {

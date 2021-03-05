@@ -70,21 +70,8 @@ export class ExpectationManager {
 		/** At what url the ExpectationManager can be reached on */
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
-		private reportExpectationStatus: (
-			expectationId: string,
-			expectaction: Expectation.Any | null,
-			actualVersionHash: string | null,
-			statusInfo: {
-				status?: string
-				progress?: number
-				statusReason?: string
-			}
-		) => void,
-		private reportPackageContainerPackageStatus: (
-			containerId: string,
-			packageId: string,
-			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-		) => void,
+		private reportExpectationStatus: ReportExpectationStatus,
+		private reportPackageContainerPackageStatus: ReportPackageContainerPackageStatus,
 		private onMessageFromWorker: MessageFromWorker
 	) {
 		if (this.serverConnectionOptions.type === 'websocket') {
@@ -202,7 +189,7 @@ export class ExpectationManager {
 	private getWorkerAgentAPI(clientId: string): ExpectationManagerWorkerAgent.ExpectationManager {
 		return {
 			messageFromWorker: async (
-				message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload
+				message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any
 			): Promise<any> => {
 				return this.onMessageFromWorker(message)
 			},
@@ -925,4 +912,20 @@ interface WorkerAgentAssignment {
 	id: string
 	cost: ExpectationManagerWorkerAgent.ExpectationCost
 }
-export type MessageFromWorker = (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload) => Promise<any>
+export type MessageFromWorker = (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => Promise<any>
+
+export type ReportExpectationStatus = (
+	expectationId: string,
+	expectaction: Expectation.Any | null,
+	actualVersionHash: string | null,
+	statusInfo: {
+		status?: string
+		progress?: number
+		statusReason?: string
+	}
+) => void
+export type ReportPackageContainerPackageStatus = (
+	containerId: string,
+	packageId: string,
+	packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+) => void

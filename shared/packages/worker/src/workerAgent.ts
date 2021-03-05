@@ -59,7 +59,7 @@ export class WorkerAgent {
 			{
 				allowedMappedDriveLetters: this.config.worker.windowsDriveLetters as any,
 			},
-			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload) => {
+			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 				// Forward the message to the expectationManager:
 
 				const manager = this.expectationManagers[managerId]
