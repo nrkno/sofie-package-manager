@@ -51,5 +51,6 @@ into package.json of each of the packages.
     if (count) {
         console.log(`Updated package.json of ${count} packages`)
         console.log(`You should commit these changes and run yarn install again.`)
+        process.exit(1)
     }
 })().catch(console.error)
