@@ -40,6 +40,11 @@ export class WebsocketServer {
 			})
 		})
 	}
+
+	terminate(): void {
+		this.clients.forEach((client) => client.close())
+		this.wss.close()
+	}
 }
 
 export class ClientConnection extends WebsocketConnection {
@@ -93,6 +98,9 @@ export class ClientConnection extends WebsocketConnection {
 	_onLostConnection(): void {
 		clearTimeout(this.pingInterval)
 		this.emit('close')
+	}
+	close() {
+		this.ws?.close()
 	}
 }
 

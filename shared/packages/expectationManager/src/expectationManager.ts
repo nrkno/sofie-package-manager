@@ -50,6 +50,8 @@ export class ExpectationManager {
 	private _evaluateExpectationsIsBusy = false
 	private _evaluateExpectationsRunAsap = false
 
+	private websocketServer?: WebsocketServer
+
 	private workerAgents: {
 		[workerId: string]: {
 			api: WorkerAgentAPI
@@ -62,6 +64,7 @@ export class ExpectationManager {
 			worker: WorkerAgentAPI
 		}
 	} = {}
+	private terminating = false
 
 	constructor(
 		private logger: LoggerInstance,
@@ -76,24 +79,27 @@ export class ExpectationManager {
 	) {
 		if (this.serverConnectionOptions.type === 'websocket') {
 			this.logger.info(`Expectation Manager on port ${this.serverConnectionOptions.port}`)
-			new WebsocketServer(this.serverConnectionOptions.port, (client: ClientConnection) => {
-				// A new client has connected
+			this.websocketServer = new WebsocketServer(
+				this.serverConnectionOptions.port,
+				(client: ClientConnection) => {
+					// A new client has connected
 
-				this.logger.info(`New ${client.clientType} connected, id "${client.clientId}"`)
+					this.logger.info(`New ${client.clientType} connected, id "${client.clientId}"`)
 
-				if (client.clientType === 'workerAgent') {
-					const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
+					if (client.clientType === 'workerAgent') {
+						const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
 
-					const api = new WorkerAgentAPI(expectationManagerMethods, {
-						type: 'websocket',
-						clientConnection: client,
-					})
+						const api = new WorkerAgentAPI(expectationManagerMethods, {
+							type: 'websocket',
+							clientConnection: client,
+						})
 
-					this.workerAgents[client.clientId] = { api }
-				} else {
-					throw new Error(`Unknown clientType "${client.clientType}"`)
+						this.workerAgents[client.clientId] = { api }
+					} else {
+						throw new Error(`Unknown clientType "${client.clientType}"`)
+					}
 				}
-			})
+			)
 		} else {
 			// todo: handle direct connections
 		}
@@ -115,6 +121,12 @@ export class ExpectationManager {
 		hook: Hook<WorkForceExpectationManager.WorkForce, WorkForceExpectationManager.ExpectationManager>
 	): void {
 		this.workforceAPI.hook(hook)
+	}
+	terminate(): void {
+		this.terminating = true
+		if (this.websocketServer) {
+			this.websocketServer.terminate()
+		}
 	}
 	getWorkerAgentHook(): Hook<
 		ExpectationManagerWorkerAgent.ExpectationManager,
@@ -166,8 +178,12 @@ export class ExpectationManager {
 			this._evaluateExpectationsTimeout = undefined
 		}
 
+		if (this.terminating) return
+
 		this._evaluateExpectationsTimeout = setTimeout(
 			() => {
+				if (this.terminating) return
+
 				this._evaluateExpectationsRunAsap = false
 				this._evaluateExpectationsIsBusy = true
 				this._evaluateExpectations()

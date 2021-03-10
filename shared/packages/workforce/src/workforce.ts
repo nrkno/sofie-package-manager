@@ -23,10 +23,11 @@ export class Workforce {
 			url?: string
 		}
 	} = {}
+	private websocketServer?: WebsocketServer
 
 	constructor(private logger: LoggerInstance, config: WorkforceConfig) {
 		if (config.workforce.port) {
-			new WebsocketServer(config.workforce.port, (client: ClientConnection) => {
+			this.websocketServer = new WebsocketServer(config.workforce.port, (client: ClientConnection) => {
 				// A new client has connected
 
 				this.logger.info(`New ${client.clientType} connected, id "${client.clientId}"`)
@@ -54,6 +55,9 @@ export class Workforce {
 
 	async init(): Promise<void> {
 		// Nothing to do here at the moment
+	}
+	terminate(): void {
+		this.websocketServer?.terminate()
 	}
 	getWorkerAgentHook(): Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent> {
 		return (clientId: string, clientMethods: WorkForceWorkerAgent.WorkerAgent) => {

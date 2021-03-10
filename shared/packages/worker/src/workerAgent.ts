@@ -80,6 +80,11 @@ export class WorkerAgent {
 		const list = await this.workforceAPI.getExpectationManagerList()
 		await this.updateListOfExpectationManagers(list)
 	}
+	terminate(): void {
+		this.workforceAPI.terminate()
+		Object.values(this.expectationManagers).forEach((expectationManager) => expectationManager.api.terminate())
+		// this._worker.terminate()
+	}
 	hookToWorkforce(hook: Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>): void {
 		this.workforceAPI.hook(hook)
 	}
