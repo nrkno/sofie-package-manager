@@ -99,7 +99,7 @@ export class ClientConnection extends WebsocketConnection {
 		clearTimeout(this.pingInterval)
 		this.emit('close')
 	}
-	close() {
+	close(): void {
 		this.ws?.close()
 	}
 }
