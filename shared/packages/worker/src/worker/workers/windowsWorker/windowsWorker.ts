@@ -9,7 +9,7 @@ import {
 	WorkerAgentConfig,
 } from '@shared/api'
 import { GenericWorker, WorkerLocation } from '../../worker'
-import { MediaFileCopy } from './expectationHandlers/mediaFileCopy'
+import { FileCopy } from './expectationHandlers/fileCopy'
 import { MediaFileScan } from './expectationHandlers/mediaFileScan'
 import { MediaFileDeepScan } from './expectationHandlers/mediaFileDeepScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
@@ -54,8 +54,8 @@ export class WindowsWorker extends GenericWorker {
 	}
 	private getExpectationHandler(exp: Expectation.Any): ExpectationHandler {
 		switch (exp.type) {
-			case Expectation.Type.MEDIA_FILE_COPY:
-				return MediaFileCopy
+			case Expectation.Type.FILE_COPY:
+				return FileCopy
 			case Expectation.Type.MEDIA_FILE_SCAN:
 				return MediaFileScan
 			case Expectation.Type.MEDIA_FILE_DEEP_SCAN:

@@ -106,8 +106,8 @@ export function generateExpectations(
 
 	// Side effects from files:
 	for (const expectation0 of Object.values(expectations)) {
-		if (expectation0.type === Expectation.Type.MEDIA_FILE_COPY) {
-			const expectation = expectation0 as Expectation.MediaFileCopy
+		if (expectation0.type === Expectation.Type.FILE_COPY) {
+			const expectation = expectation0 as Expectation.FileCopy
 
 			// All files that have been copied should also be scanned:
 			const scan = generateMediaFileScan(expectation)
@@ -155,10 +155,10 @@ export function generateExpectations(
 	return returnExpectations
 }
 
-function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap): Expectation.MediaFileCopy {
+function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap): Expectation.FileCopy {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapMediaFile
 
-	const exp: Expectation.MediaFileCopy = {
+	const exp: Expectation.FileCopy = {
 		id: '', // set later
 		priority: expWrap.priority * 10 || 0,
 		managerId: managerId,
@@ -168,7 +168,7 @@ function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap):
 				expectedContentVersionHash: expWrap.expectedPackage.contentVersionHash,
 			},
 		],
-		type: Expectation.Type.MEDIA_FILE_COPY,
+		type: Expectation.Type.FILE_COPY,
 		statusReport: {
 			label: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
 			description: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}" to the playout-device "${
@@ -186,7 +186,7 @@ function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap):
 			targets: expWrapMediaFile.targets as [Expectation.PackageContainerOnPackageFile],
 			content: expWrapMediaFile.expectedPackage.content,
 			version: {
-				type: Expectation.Version.Type.MEDIA_FILE,
+				type: Expectation.Version.Type.FILE_ON_DISK,
 				...expWrapMediaFile.expectedPackage.version,
 			},
 		},
@@ -202,7 +202,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 		id: '', // set later
 		priority: expWrap.priority * 10 || 0,
 		managerId: managerId,
-		type: Expectation.Type.QUANTEL_COPY,
+		type: Expectation.Type.QUANTEL_CLIP_COPY,
 		fromPackages: [
 			{
 				id: expWrap.expectedPackage._id,
@@ -233,7 +233,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 
 	return exp
 }
-function generateMediaFileScan(expectation: Expectation.MediaFileCopy): Expectation.MediaFileScan {
+function generateMediaFileScan(expectation: Expectation.FileCopy): Expectation.MediaFileScan {
 	const scan: Expectation.MediaFileScan = {
 		id: expectation.id + '_scan',
 		priority: expectation.priority + 100,
@@ -274,7 +274,7 @@ function generateMediaFileScan(expectation: Expectation.MediaFileCopy): Expectat
 
 	return scan
 }
-function generateMediaFileDeepScan(expectation: Expectation.MediaFileCopy): Expectation.MediaFileDeepScan {
+function generateMediaFileDeepScan(expectation: Expectation.FileCopy): Expectation.MediaFileDeepScan {
 	const deepScan: Expectation.MediaFileDeepScan = {
 		id: expectation.id + '_deepscan',
 		priority: expectation.priority + 1001,
@@ -322,7 +322,7 @@ function generateMediaFileDeepScan(expectation: Expectation.MediaFileCopy): Expe
 }
 
 function generateMediaFileThumbnail(
-	expectation: Expectation.MediaFileCopy,
+	expectation: Expectation.FileCopy,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
@@ -370,7 +370,7 @@ function generateMediaFileThumbnail(
 	return thumbnail
 }
 function generateMediaFilePreview(
-	expectation: Expectation.MediaFileCopy,
+	expectation: Expectation.FileCopy,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
@@ -416,9 +416,9 @@ function generateMediaFilePreview(
 	return preview
 }
 
-// function generateMediaFileHTTPCopy(expectation: Expectation.MediaFileCopy): Expectation.MediaFileCopy {
+// function generateMediaFileHTTPCopy(expectation: Expectation.FileCopy): Expectation.FileCopy {
 // 	// Copy file to HTTP: (TMP!)
-// 	const tmpCopy: Expectation.MediaFileCopy = {
+// 	const tmpCopy: Expectation.FileCopy = {
 // 		id: expectation.id + '_tmpCopy',
 // 		priority: expectation.priority + 5,
 //		managerId: expectation.managerId,
@@ -453,7 +453,7 @@ function generateMediaFilePreview(
 // 			],
 // 			content: expectation.endRequirement.content,
 // 			version: {
-// 				type: Expectation.Version.Type.MEDIA_FILE,
+// 				type: Expectation.Version.Type.FILE_ON_DISK,
 // 			},
 // 		},
 // 		dependsOnFullfilled: [expectation.id],

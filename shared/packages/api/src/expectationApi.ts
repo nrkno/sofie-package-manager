@@ -7,7 +7,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expectation {
 	export type Any =
-		| MediaFileCopy
+		| FileCopy
 		| MediaFileScan
 		| MediaFileDeepScan
 		| MediaFileThumbnail
@@ -15,13 +15,13 @@ export namespace Expectation {
 		| QuantelClipCopy
 
 	export enum Type {
-		MEDIA_FILE_COPY = 'media_file_copy',
+		FILE_COPY = 'file_copy',
 		MEDIA_FILE_SCAN = 'media_file_scan',
 		MEDIA_FILE_DEEP_SCAN = 'media_file_deep_scan',
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 		MEDIA_FILE_PREVIEW = 'media_file_preview',
 
-		QUANTEL_COPY = 'quantel_copy',
+		QUANTEL_CLIP_COPY = 'quantel_clip_copy',
 	}
 
 	export interface Base {
@@ -65,8 +65,8 @@ export namespace Expectation {
 		triggerByFullfilledIds?: string[]
 	}
 
-	export interface MediaFileCopy extends Base {
-		type: Type.MEDIA_FILE_COPY
+	export interface FileCopy extends Base {
+		type: Type.FILE_COPY
 
 		startRequirement: {
 			sources: PackageContainerOnPackageFile[]
@@ -76,7 +76,7 @@ export namespace Expectation {
 			content: {
 				filePath: string
 			}
-			version: Version.ExpectedMediaFile
+			version: Version.ExpectedFileOnDisk
 		}
 	}
 	export interface PackageContainerOnPackageFile extends PackageContainerOnPackage {
@@ -89,9 +89,9 @@ export namespace Expectation {
 		type: Type.MEDIA_FILE_SCAN
 
 		startRequirement: {
-			sources: MediaFileCopy['endRequirement']['targets']
-			content: MediaFileCopy['endRequirement']['content']
-			version: MediaFileCopy['endRequirement']['version']
+			sources: FileCopy['endRequirement']['targets']
+			content: FileCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
 			targets: [PackageContainerOnPackageCorePackage]
@@ -105,9 +105,9 @@ export namespace Expectation {
 		type: Type.MEDIA_FILE_DEEP_SCAN
 
 		startRequirement: {
-			sources: MediaFileCopy['endRequirement']['targets']
-			content: MediaFileCopy['endRequirement']['content']
-			version: MediaFileCopy['endRequirement']['version']
+			sources: FileCopy['endRequirement']['targets']
+			content: FileCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
 			targets: [PackageContainerOnPackageCorePackage]
@@ -152,9 +152,9 @@ export namespace Expectation {
 		type: Type.MEDIA_FILE_THUMBNAIL
 
 		startRequirement: {
-			sources: MediaFileCopy['endRequirement']['targets']
-			content: MediaFileCopy['endRequirement']['content']
-			version: MediaFileCopy['endRequirement']['version']
+			sources: FileCopy['endRequirement']['targets']
+			content: FileCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
 			targets: PackageContainerOnPackageFile[]
@@ -168,9 +168,9 @@ export namespace Expectation {
 		type: Type.MEDIA_FILE_PREVIEW
 
 		startRequirement: {
-			sources: MediaFileCopy['endRequirement']['targets']
-			content: MediaFileCopy['endRequirement']['content']
-			version: MediaFileCopy['endRequirement']['version']
+			sources: FileCopy['endRequirement']['targets']
+			content: FileCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
 			targets: PackageContainerOnPackageFile[]
@@ -182,7 +182,7 @@ export namespace Expectation {
 	}
 
 	export interface QuantelClipCopy extends Base {
-		type: Type.QUANTEL_COPY
+		type: Type.QUANTEL_CLIP_COPY
 
 		startRequirement: {
 			sources: PackageContainerOnPackageQuantel[]
@@ -205,22 +205,22 @@ export namespace Expectation {
 	/** Version defines properties to use for determining the version of a Package */
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace Version {
-		export type ExpectAny = ExpectedMediaFile | MediaFileThumbnail | ExpectedCorePackageInfo | ExpectedHTTPFile
-		export type Any = MediaFile | MediaFileThumbnail | CorePackageInfo | HTTPFile
+		export type ExpectAny = ExpectedFileOnDisk | MediaFileThumbnail | ExpectedCorePackageInfo | ExpectedHTTPFile
+		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile
 		export interface Base {
 			type: Type
 		}
 		export enum Type {
-			MEDIA_FILE = 'media_file',
+			FILE_ON_DISK = 'file_on_disk',
 			MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 			MEDIA_FILE_PREVIEW = 'media_file_preview',
 			CORE_PACKAGE_INFO = 'core_package_info',
 			HTTP_FILE = 'http_file',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
-		export type ExpectedMediaFile = ExpectedType<MediaFile>
-		export interface MediaFile extends Base {
-			type: Type.MEDIA_FILE
+		export type ExpectedFileOnDisk = ExpectedType<FileOnDisk>
+		export interface FileOnDisk extends Base {
+			type: Type.FILE_ON_DISK
 			/** File size in bytes */
 			fileSize: number
 			modifiedDate: number // timestamp (ms)?: number

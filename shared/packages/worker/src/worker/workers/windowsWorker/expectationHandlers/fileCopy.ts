@@ -33,9 +33,7 @@ import {
 	waitTime,
 } from './lib'
 
-// import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
-
-export const MediaFileCopy: ExpectationWindowsHandler = {
+export const FileCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainers(genericWorker, {
 			sources: exp.startRequirement.sources,
@@ -326,13 +324,13 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from location` }
 	},
 }
-function isMediaFileCopy(exp: Expectation.Any): exp is Expectation.MediaFileCopy {
-	return exp.type === Expectation.Type.MEDIA_FILE_COPY
+function isMediaFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {
+	return exp.type === Expectation.Type.FILE_COPY
 }
 
 function lookupCopySources(
 	worker: GenericWorker,
-	exp: Expectation.MediaFileCopy
+	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
 	return lookupAccessorHandles<UniversalVersion>(worker, exp.startRequirement.sources, exp.endRequirement.content, {
 		read: true,
@@ -342,7 +340,7 @@ function lookupCopySources(
 }
 function lookupCopyTargets(
 	worker: GenericWorker,
-	exp: Expectation.MediaFileCopy
+	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
 	return lookupAccessorHandles<UniversalVersion>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
 		write: true,

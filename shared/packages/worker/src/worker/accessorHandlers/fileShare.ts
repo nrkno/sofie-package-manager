@@ -116,7 +116,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 		return undefined // all good
 	}
-	async getPackageActualVersion(): Promise<Expectation.Version.MediaFile> {
+	async getPackageActualVersion(): Promise<Expectation.Version.FileOnDisk> {
 		await this.prepareFileAccess()
 		const stat = await fsStat(this.fullPath)
 		return this.convertStatToVersion(stat)
@@ -138,9 +138,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	get fullPath(): string {
 		return path.join(this.folderPath, this.filePath)
 	}
-	private convertStatToVersion(stat: fs.Stats): Expectation.Version.MediaFile {
+	private convertStatToVersion(stat: fs.Stats): Expectation.Version.FileOnDisk {
 		return {
-			type: Expectation.Version.Type.MEDIA_FILE,
+			type: Expectation.Version.Type.FILE_ON_DISK,
 			fileSize: stat.size,
 			modifiedDate: stat.mtimeMs * 1000,
 			// checksum?: string

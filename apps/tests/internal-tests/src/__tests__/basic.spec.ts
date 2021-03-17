@@ -48,7 +48,7 @@ describe('Basic', () => {
 					priority: 0,
 					managerId: 'manager0',
 					fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
-					type: Expectation.Type.MEDIA_FILE_COPY,
+					type: Expectation.Type.FILE_COPY,
 					statusReport: {
 						label: `Copy file0`,
 						description: `Copy file0 because test`,
@@ -63,7 +63,7 @@ describe('Basic', () => {
 						content: {
 							filePath: 'file0Target.mp4',
 						},
-						version: { type: Expectation.Version.Type.MEDIA_FILE },
+						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
 				},
 			})
@@ -114,7 +114,7 @@ describe('Basic', () => {
 						content: {
 							filePath: 'subFolder0/file0Target.mp4',
 						},
-						version: { type: Expectation.Version.Type.MEDIA_FILE },
+						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
 				},
 			})

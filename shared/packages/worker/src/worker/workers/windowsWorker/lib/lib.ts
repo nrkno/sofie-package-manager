@@ -40,7 +40,7 @@ export function compareUniversalVersions(
 export function makeUniversalVersion(
 	version: Expectation.Version.Any | Expectation.Version.ExpectAny
 ): UniversalVersion {
-	if (![Expectation.Version.Type.MEDIA_FILE, Expectation.Version.Type.HTTP_FILE].includes(version.type)) {
+	if (![Expectation.Version.Type.FILE_ON_DISK, Expectation.Version.Type.HTTP_FILE].includes(version.type)) {
 		throw new Error(`getAllVersionProperties: Unsupported types "${version.type}"-"${version.type}"`)
 	}
 
@@ -50,7 +50,7 @@ export function makeUniversalVersion(
 		fileSize: {
 			name: 'File size',
 			value:
-				version.type === Expectation.Version.Type.MEDIA_FILE
+				version.type === Expectation.Version.Type.FILE_ON_DISK
 					? version.fileSize
 					: version.type === Expectation.Version.Type.HTTP_FILE
 					? version.contentLength
@@ -60,7 +60,7 @@ export function makeUniversalVersion(
 		modified: {
 			name: 'Modified date',
 			value:
-				version.type === Expectation.Version.Type.MEDIA_FILE
+				version.type === Expectation.Version.Type.FILE_ON_DISK
 					? version.modifiedDate
 					: version.type === Expectation.Version.Type.HTTP_FILE
 					? version.modified
