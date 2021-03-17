@@ -78,20 +78,20 @@ export const MediaFileCopy: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
-		// Also check that the source is stable (such as that the file size hasn't changed), to not start working on growing files.
-		// This is similar to chokidars' awaitWriteFinish.stabilityThreshold feature.
-		{
+		const sourcePackageStabilityThreshold: number = worker.genericConfig.sourcePackageStabilityThreshold ?? 4000 // Defaults to 4000 ms
+		if (sourcePackageStabilityThreshold !== 0) {
+			// Also check that the source is stable (such as that the file size hasn't changed), to not start working on growing files.
+			// This is similar to chokidars' awaitWriteFinish.stabilityThreshold feature.
+
 			const actualSourceVersion0 = await lookupSource.handle.getPackageActualVersion()
 
-			const STABILITY_THRESHOLD = 4000 // ms
-			await waitTime(STABILITY_THRESHOLD)
+			await waitTime(sourcePackageStabilityThreshold)
 
 			const actualSourceVersion1 = await lookupSource.handle.getPackageActualVersion()
 
 			// Note for posterity:
 			// In local tests with a file share this doesn't seem to work that well
 			// as the fs.stats doesn't seem to update during file copy in Windows.
-			// Maybe there is a better way to detect growing files?
 
 			const versionDiff = diff(actualSourceVersion0, actualSourceVersion1)
 

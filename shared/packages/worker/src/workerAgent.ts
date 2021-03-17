@@ -56,9 +56,7 @@ export class WorkerAgent {
 
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
-			{
-				allowedMappedDriveLetters: this.config.worker.windowsDriveLetters as any,
-			},
+			this.config.worker,
 			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 				// Forward the message to the expectationManager:
 

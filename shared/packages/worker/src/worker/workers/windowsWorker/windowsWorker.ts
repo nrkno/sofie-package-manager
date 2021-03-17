@@ -6,8 +6,9 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	WorkerAgentConfig,
 } from '@shared/api'
-import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker'
+import { GenericWorker, WorkerLocation } from '../../worker'
 import { MediaFileCopy } from './expectationHandlers/mediaFileCopy'
 import { MediaFileScan } from './expectationHandlers/mediaFileScan'
 import { MediaFileDeepScan } from './expectationHandlers/mediaFileDeepScan'
@@ -19,7 +20,7 @@ import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
 	constructor(
-		public readonly config: WindowsWorkerConfig,
+		public readonly config: WorkerAgentConfig,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
@@ -67,29 +68,4 @@ export class WindowsWorker extends GenericWorker {
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
 	}
-}
-export interface WindowsWorkerConfig extends GenericWorkerConfig {
-	allowedMappedDriveLetters: (
-		| 'F'
-		| 'G'
-		| 'H'
-		| 'I'
-		| 'J'
-		| 'K'
-		| 'L'
-		| 'M'
-		| 'N'
-		| 'O'
-		| 'P'
-		| 'Q'
-		| 'R'
-		| 's'
-		| 'T'
-		| 'U'
-		| 'V'
-		| 'W'
-		| 'X'
-		| 'Y'
-		| 'Z'
-	)[]
 }

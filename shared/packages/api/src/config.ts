@@ -1,6 +1,7 @@
 import { Options } from 'yargs'
 import yargs = require('yargs/yargs')
 import * as _ from 'underscore'
+import { WorkerAgentConfig } from './worker'
 
 function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
 	return opts
@@ -229,10 +230,9 @@ export interface WorkerConfig {
 	worker: {
 		workerId: string
 		workforceURL: string | null
-		windowsDriveLetters: string[]
 		resourceId: string
 		networkIds: string[]
-	}
+	} & WorkerAgentConfig
 }
 export function getWorkerConfig(): WorkerConfig {
 	const argv = yargs(process.argv.slice(2)).options({

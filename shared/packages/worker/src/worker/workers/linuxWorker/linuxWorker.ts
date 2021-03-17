@@ -7,14 +7,15 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	WorkerAgentConfig,
 } from '@shared/api'
 
-import { GenericWorker, GenericWorkerConfig, WorkerLocation } from '../../worker'
+import { GenericWorker, WorkerLocation } from '../../worker'
 
 /** This is a type of worker that runs on a linux machine */
 export class LinuxWorker extends GenericWorker {
 	constructor(
-		public readonly config: LinuxWorkerConfig,
+		public readonly config: WorkerAgentConfig,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
@@ -44,8 +45,4 @@ export class LinuxWorker extends GenericWorker {
 	removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		throw new Error(`Not implemented yet`)
 	}
-}
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface LinuxWorkerConfig extends GenericWorkerConfig {
-	// TBD
 }

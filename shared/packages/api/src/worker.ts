@@ -16,3 +16,20 @@ export interface ReturnTypeRemoveExpectation {
 	removed: boolean
 	reason?: string
 }
+
+/** Configurations for any of the workers */
+export interface WorkerAgentConfig {
+	/**
+	 * The time to wait when determining if the source package is stable or not (this is used to wait for growing files)
+	 * Set to 0 to disable the stability check.
+	 * Default: 4000 ms
+	 */
+	sourcePackageStabilityThreshold?: number
+
+	/**
+	 * A list of which drive letters a Windows-worker can use to map network shares onto.
+	 * A mapped network share increases performance in various ways, compared to accessing the network share directly.
+	 * Example: ['X', 'Y', 'Z']
+	 */
+	windowsDriveLetters?: string[]
+}

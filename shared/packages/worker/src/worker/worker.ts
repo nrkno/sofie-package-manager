@@ -6,6 +6,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	WorkerAgentConfig,
 } from '@shared/api'
 import { IWorkInProgress } from './lib/workInProgress'
 
@@ -14,7 +15,7 @@ import { IWorkInProgress } from './lib/workInProgress'
  */
 export abstract class GenericWorker {
 	constructor(
-		_config: GenericWorkerConfig,
+		public readonly genericConfig: WorkerAgentConfig,
 		public readonly location: WorkerLocation,
 		public sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		public type: string
@@ -50,10 +51,6 @@ export abstract class GenericWorker {
 	 * Returns { removed: true } if the artifacts have successfully been dealt with
 	 */
 	abstract removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation>
-}
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface GenericWorkerConfig {
-	// empty?
 }
 export interface WorkerLocation {
 	/** The name/identifier of the computer that this runs on */

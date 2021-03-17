@@ -259,7 +259,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 				}
 
 				// Find next free drive letter:
-				const freeDriveLetter = windowsWorker.config.allowedMappedDriveLetters.find(
+				const freeDriveLetter = windowsWorker.config.windowsDriveLetters?.find(
 					(driveLetter) => !this.mappedDriveLetters[driveLetter]
 				)
 
