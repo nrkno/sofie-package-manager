@@ -11,7 +11,7 @@ import {
 import { IWorkInProgress } from './lib/workInProgress'
 
 /**
- * A Worker runs static stateless/lamda functions.
+ * A Worker runs static stateless/lambda functions.
  */
 export abstract class GenericWorker {
 	constructor(
@@ -21,34 +21,40 @@ export abstract class GenericWorker {
 		public type: string
 	) {}
 	/**
-	 * A check if the worker supports fulfilling the Expectation at all
+	 * Does the worker supports this expectation?
+	 * This includes things like:
+	 * * Being able to access/read/write to the sources and targets
 	 */
 	abstract doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation>
 	/**
-	 * Get cost for the Expectation. This is used to determine which worker is going to get the job.
+	 * Estimate the cost for fulfilling an expectation.
+	 * The returned cost is later used to determine which worker is going to get the job.
+	 * (lower cost = cheaper/quicker)
 	 */
 	abstract getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation>
 	/**
-	 * A check if it is possible to start working on the Expectation.
+	 * Check if we the start requirements are in place for work on an expectation to start.
+	 * If Yes, workOnExpectation() will be called shortly after.
 	 */
 	abstract isExpectationReadyToStartWorkingOn(
 		exp: Expectation.Any
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
 	/**
-	 * A check if the Expectation is fullfilled.
-	 * If this is true, the Expectation needs not to be started working on.
+	 * Check if the expectation is fulfilled or not.
+	 * (If the exopectation is already fullfilled, theres no need to workOnExpectation().)
 	 */
 	abstract isExpectationFullfilled(
 		exp: Expectation.Any,
 		wasFullfilled: boolean
 	): Promise<ReturnTypeIsExpectationFullfilled>
 	/**
-	 * Tells the Worker to start working on fullfilling the Expectation.
+	 * Start working on fullfilling an expectation.
+	 * @returns a WorkInProgress, upon beginning of the work. WorkInProgress then handles signalling of the work progress.
 	 */
 	abstract workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress>
 	/**
-	 * Tells the Worker that an Expectation has been removed
-	 * Returns { removed: true } if the artifacts have successfully been dealt with
+	 * "Make an expectation un-fullfilled"
+	 * This is called when an expectation has been removed.
 	 */
 	abstract removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation>
 }
