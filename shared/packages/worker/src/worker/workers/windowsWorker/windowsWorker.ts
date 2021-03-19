@@ -16,6 +16,7 @@ import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
 import { IWorkInProgress } from '../../lib/workInProgress'
 import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
+import { QuantelClipCopy } from './expectationHandlers/quantelClipCopy'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -64,7 +65,10 @@ export class WindowsWorker extends GenericWorker {
 				return MediaFileThumbnail
 			case Expectation.Type.MEDIA_FILE_PREVIEW:
 				return MediaFilePreview
+			case Expectation.Type.QUANTEL_CLIP_COPY:
+				return QuantelClipCopy
 			default:
+				// @ts-expect-error exp.type is never
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
 	}

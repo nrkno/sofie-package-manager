@@ -14,6 +14,9 @@ import { IWorkInProgress } from './lib/workInProgress'
  * A Worker runs static stateless/lambda functions.
  */
 export abstract class GenericWorker {
+	/** A space where the AccessorHandlers can store various things, such as persistant connections, etc.. */
+	public accessorCache: { [accessorType: string]: unknown } = {}
+
 	constructor(
 		public readonly genericConfig: WorkerAgentConfig,
 		public readonly location: WorkerLocation,

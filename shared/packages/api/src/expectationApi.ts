@@ -205,8 +205,13 @@ export namespace Expectation {
 	/** Version defines properties to use for determining the version of a Package */
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace Version {
-		export type ExpectAny = ExpectedFileOnDisk | MediaFileThumbnail | ExpectedCorePackageInfo | ExpectedHTTPFile
-		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile
+		export type ExpectAny =
+			| ExpectedFileOnDisk
+			| MediaFileThumbnail
+			| ExpectedCorePackageInfo
+			| ExpectedHTTPFile
+			| ExpectedQuantelClip
+		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip
 		export interface Base {
 			type: Type
 		}
@@ -216,6 +221,7 @@ export namespace Expectation {
 			MEDIA_FILE_PREVIEW = 'media_file_preview',
 			CORE_PACKAGE_INFO = 'core_package_info',
 			HTTP_FILE = 'http_file',
+			QUANTEL_CLIP = 'quantel_clip',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
 		export type ExpectedFileOnDisk = ExpectedType<FileOnDisk>
@@ -258,6 +264,15 @@ export namespace Expectation {
 			contentLength: number
 			modified: number
 			etags: string[]
+		}
+		export type ExpectedQuantelClip = ExpectedType<QuantelClip>
+		export interface QuantelClip extends Base {
+			type: Type.QUANTEL_CLIP
+
+			cloneId: number
+			created: string
+
+			frames: number // since this can grow during transfer, don't use it for comparing for fullfillment
 		}
 	}
 }

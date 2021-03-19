@@ -40,13 +40,19 @@ export function compareUniversalVersions(
 export function makeUniversalVersion(
 	version: Expectation.Version.Any | Expectation.Version.ExpectAny
 ): UniversalVersion {
-	if (![Expectation.Version.Type.FILE_ON_DISK, Expectation.Version.Type.HTTP_FILE].includes(version.type)) {
-		throw new Error(`getAllVersionProperties: Unsupported types "${version.type}"-"${version.type}"`)
+	if (
+		![
+			Expectation.Version.Type.FILE_ON_DISK,
+			Expectation.Version.Type.HTTP_FILE,
+			Expectation.Version.Type.QUANTEL_CLIP,
+		].includes(version.type)
+	) {
+		throw new Error(`getAllVersionProperties: Unsupported type "${version.type}"`)
 	}
 
 	// Note: When having added a new type below, add it to the list of supported types above to enable support for it
 
-	return {
+	const uVersion: UniversalVersion = {
 		fileSize: {
 			name: 'File size',
 			value:
@@ -75,6 +81,13 @@ export function makeUniversalVersion(
 			value: version.type === Expectation.Version.Type.HTTP_FILE ? version.contentType : undefined,
 		},
 	}
+	if (version.type === Expectation.Version.Type.QUANTEL_CLIP) {
+		uVersion['quantel_cloneId'] = {
+			name: 'Clip.cloneID',
+			value: version.cloneId,
+		}
+	}
+	return uVersion
 }
 export interface UniversalVersion {
 	fileSize: VersionProperty

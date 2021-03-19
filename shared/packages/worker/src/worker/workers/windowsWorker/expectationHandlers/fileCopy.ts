@@ -44,7 +44,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		worker: GenericWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
-		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
 		const accessTargetPackageContainer = findBestPackageContainerWithAccess(worker, exp.endRequirement.targets)
@@ -69,7 +69,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		worker: GenericWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
-		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
@@ -117,7 +117,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 		_wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<ReturnTypeIsExpectationFullfilled> => {
-		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -144,11 +144,11 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		return {
 			fulfilled: true,
-			reason: `File "${exp.endRequirement.content.filePath}" already exists on location`,
+			reason: `File "${exp.endRequirement.content.filePath}" already exists on target`,
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
-		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
 		const startTime = Date.now()
@@ -301,12 +301,12 @@ export const FileCopy: ExpectationWindowsHandler = {
 			return workInProgress
 		} else {
 			throw new Error(
-				`MediaFileCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+				`FileCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
 			)
 		}
 	},
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
-		if (!isMediaFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
@@ -321,10 +321,10 @@ export const FileCopy: ExpectationWindowsHandler = {
 			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
 		}
 
-		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from location` }
+		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from target` }
 	},
 }
-function isMediaFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {
+function isFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {
 	return exp.type === Expectation.Type.FILE_COPY
 }
 
