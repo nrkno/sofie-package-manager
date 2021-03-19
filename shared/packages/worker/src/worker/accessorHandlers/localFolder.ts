@@ -2,7 +2,7 @@ import * as path from 'path'
 import { promisify } from 'util'
 import * as fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageWriteStreamWrapper } from './genericHandle'
+import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
 import { Expectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 
@@ -142,10 +142,10 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 			},
 		}
 	}
-	async pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<PackageWriteStreamWrapper> {
+	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
-		const streamWrapper: PackageWriteStreamWrapper = new PackageWriteStreamWrapper(() => {
+		const streamWrapper: PutPackageHandler = new PutPackageHandler(() => {
 			writeStream.destroy()
 		})
 
@@ -154,6 +154,12 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		writeStream.on('close', () => streamWrapper.emit('close'))
 
 		return streamWrapper
+	}
+	async getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }> {
+		throw new Error('LocalFolder.getPackageReadInfo: Not supported')
+	}
+	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
+		throw new Error('LocalFolder.putPackageInfo: Not supported')
 	}
 
 	// Note: We handle metadata by storing a metadata json-file to the side of the file.

@@ -46,7 +46,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 */
 	abstract checkPackageContainerWriteAccess(): Promise<string | undefined>
 	/**
-	 * Extrants and returns the version from the package
+	 * Extracts and returns the version from the package
 	 * @returns the vesion of the package
 	 */
 	abstract getPackageActualVersion(): Promise<Expectation.Version.Any>
@@ -69,19 +69,40 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 */
 	abstract removeMetadata(): Promise<void>
 
+	/** For accessors that supports Streams: Obtain a binary read-stream that can be piped into putPackageStream() */
 	abstract getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }>
-	abstract pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<PackageWriteStreamWrapper>
+	/** For accessors that supports Streams: Pipe in a stream (obtained from getPackageReadStream) */
+	abstract putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler>
+
+	/** For accessors that supports readInfo: Obtain info for reading a package, sent into putPackageInfo() */
+	abstract getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }>
+	/** For accessors that supports readInfo: Pipe info about a package source (obtained from getPackageReadInfo()) */
+	abstract putPackageInfo(readInfo: PackageReadInfo): Promise<PutPackageHandler>
 }
 
 /**
- * A wrapper around a WriteStream-like return-value from pipePackageStream
- * Users of this class are encouraged to emit the events 'error' and 'close'
+ * A class emitted from putPackageStream() and putPackageInfo(), used to signal the progression of an ongoing write operation.
+ * Users of this class are required to emit the events 'error' on error and 'close' upon completion
  */
-export class PackageWriteStreamWrapper extends EventEmitter {
+export class PutPackageHandler extends EventEmitter {
 	constructor(private onAbort: () => void) {
 		super()
 	}
 	public abort(): void {
 		return this.onAbort()
 	}
+}
+
+export type PackageReadInfo = PackageReadInfoQuantelClip
+
+export interface PackageReadInfoBase {
+	type: PackageReadInfoBaseType
+}
+export enum PackageReadInfoBaseType {
+	QUANTEL_CLIP = 'quantel_clip',
+}
+export interface PackageReadInfoQuantelClip extends PackageReadInfoBase {
+	type: PackageReadInfoBaseType.QUANTEL_CLIP
+	version: Expectation.Version.QuantelClip
+	clipId: number
 }

@@ -211,7 +211,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 						throw new Error('No stdout stream available')
 					}
 
-					const writeStream = await lookupTarget.handle.pipePackageStream(ffMpegProcess.stdout)
+					const writeStream = await lookupTarget.handle.putPackageStream(ffMpegProcess.stdout)
 					writeStream.on('error', (err) => {
 						workInProgress._reportError(err)
 					})
@@ -283,7 +283,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
 		}
 
-		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from location` }
+		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from target` }
 	},
 }
 function isMediaFilePreview(exp: Expectation.Any): exp is Expectation.MediaFilePreview {

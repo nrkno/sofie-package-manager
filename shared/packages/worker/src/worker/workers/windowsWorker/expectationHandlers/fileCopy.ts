@@ -269,7 +269,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			})
 
 			const sourceStream = await lookupSource.handle.getPackageReadStream()
-			const writeStream = await lookupTarget.handle.pipePackageStream(sourceStream.readStream.pipe(byteCounter))
+			const writeStream = await lookupTarget.handle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
 
 			sourceStream.readStream.on('error', (err) => {
 				workInProgress._reportError(err)

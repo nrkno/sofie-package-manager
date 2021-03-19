@@ -1,5 +1,5 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageWriteStreamWrapper } from './genericHandle'
+import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
 import { hashObj, Expectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 
@@ -58,10 +58,17 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		readStream: NodeJS.ReadableStream
 		cancel: () => void
 	}> {
-		throw new Error('CorePackageInfo.getPackageReadStream: Not supported by CorePackageInfo')
+		throw new Error('CorePackageInfo.getPackageReadStream: Not supported')
 	}
-	async pipePackageStream(_sourceStream: NodeJS.ReadableStream): Promise<PackageWriteStreamWrapper> {
-		throw new Error('CorePackageInfo.pipePackageStream: Not supported by CorePackageInfo')
+	async putPackageStream(_sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
+		throw new Error('CorePackageInfo.pipePackageStream: Not supported')
+	}
+
+	async getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }> {
+		throw new Error('CorePackageInfo.getPackageReadInfo: Not supported')
+	}
+	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
+		throw new Error('CorePackageInfo.putPackageInfo: Not supported')
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {

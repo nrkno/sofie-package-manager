@@ -211,7 +211,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 							throw new Error('No stdout stream available')
 						}
 
-						const writeStream = await lookupTarget.handle.pipePackageStream(ffMpegProcess.stdout)
+						const writeStream = await lookupTarget.handle.putPackageStream(ffMpegProcess.stdout)
 						writeStream.on('error', (err) => {
 							workInProgress._reportError(err)
 						})

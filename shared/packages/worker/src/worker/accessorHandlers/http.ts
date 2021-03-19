@@ -1,5 +1,5 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageWriteStreamWrapper } from './genericHandle'
+import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
 import { Expectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
@@ -129,13 +129,13 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			},
 		}
 	}
-	async pipePackageStream(sourceStream: NodeJS.ReadableStream): Promise<PackageWriteStreamWrapper> {
+	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
 		const formData = new FormData()
 		formData.append('file', sourceStream)
 
 		const controller = new AbortController()
 
-		const streamHandler: PackageWriteStreamWrapper = new PackageWriteStreamWrapper(() => {
+		const streamHandler: PutPackageHandler = new PutPackageHandler(() => {
 			controller.abort()
 		})
 
@@ -159,6 +159,12 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			})
 
 		return streamHandler
+	}
+	async getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }> {
+		throw new Error('HTTP.getPackageReadInfo: Not supported')
+	}
+	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
+		throw new Error('HTTP.putPackageInfo: Not supported')
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
