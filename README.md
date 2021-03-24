@@ -4,19 +4,21 @@ _Note: This is a mono-repo._
 
 ## File structure
 
-This is a mono-repo.
-All packages resides in [shared/packages](shared/packages) and [apps/](apps/).
-The packages in [shared/packages](shared/packages) are helper libraries, used by the packages in [apps/](apps/), which can be run as individual processes.
+This is a mono-repo, all packages resides in [shared/packages](shared/packages) and [apps/](apps/).
+
+The packages in [shared/packages](shared/packages) are helper libraries, used by the packages in [apps/](apps/).
+
+The packages in [apps/](apps/) can be run as individual applications.
 
 ### Applications
 
-| Name                | Location                                             | Description                                                                                                                                                                                                                      |
-| ------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Workforce**       | [apps/workforce/app](apps/workforce/app)             | Mediates connections between the Workers and the Package Managers. _(Later: Will handle spin-up/down of workers according to the current need.)_                                                                                 |
+| Name  | Location | Description |
+| ----- | -------- | ----------- |
+| **Workforce**       | [apps/workforce/app](apps/workforce/app)             | Mediates connections between the Workers and the Package Managers. _(Later: Will handle spin-up/down of workers according to the current need.)_  |
 | **Package Manager** | [apps/package-manager/app](apps/package-manager/app) | The Package Manager receives `expectedPackages` from a [Sofie Core](https://github.com/nrkno/tv-automation-server-core), converts them into `Expectations`. Keeps track of work statues and distributes the work to the Workers. |
-| **Worker**          | [apps/worker/app](apps/worker/app)                   | Executes work orders from the Package Manager                                                                                                                                                                                    |
-| **HTTP-server**     | [apps/http-server/app](apps/http-server/app)         | A simple HTTP server, where files can be uploaded to and served from. (Often used for thumbnails & previews)                                                                                                                     |
-| **Single-app**      | [apps/single-app/app](apps/single-app/app)           | Runs one of each of the above in a single application.                                                                                                                                                                           |
+| **Worker**          | [apps/worker/app](apps/worker/app)                   | Executes work orders from the Package Manager |
+| **HTTP-server**     | [apps/http-server/app](apps/http-server/app)         | A simple HTTP server, where files can be uploaded to and served from. (Often used for thumbnails & previews) |
+| **Single-app**      | [apps/single-app/app](apps/single-app/app)           | Runs one of each of the above in a single application. |
 
 ### Packages (Libraries)
 
@@ -54,8 +56,8 @@ yarn start:worker
 yarn start:http-server
 yarn start:single-app
 
-# Build all apps for Windows
-yarn build-win32
+# (Windows only) Compile all apps into executables, and put into the deploy/ folder.
+yarn do:build-win32
 
 # Gather all built executables in a single folder
 yarn gather-built
