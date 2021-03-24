@@ -2,6 +2,8 @@ import * as _ from 'underscore'
 import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
 import {
+	Accessor,
+	AccessorOnPackage,
 	ExpectedPackage,
 	ExpectedPackageStatusAPI,
 	PackageContainer,
@@ -17,6 +19,8 @@ import {
 	PackageManagerConfig,
 	LoggerInstance,
 } from '@shared/api'
+import * as deepExtend from 'deep-extend'
+import clone = require('fast-clone')
 
 export class PackageManagerHandler {
 	private _coreHandler!: CoreHandler
@@ -34,6 +38,11 @@ export class PackageManagerHandler {
 	private sendUpdatePackageContainerPackageStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
 
 	private reportedStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
+	private externalData: { packageContainers: PackageContainers; expectedPackages: ExpectedPackageWrap[] } = {
+		packageContainers: {},
+		expectedPackages: [],
+	}
+	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
 
 	constructor(
 		public logger: LoggerInstance,
@@ -96,6 +105,85 @@ export class PackageManagerHandler {
 	getExpectationManager(): ExpectationManager {
 		return this._expectationManager
 	}
+	setExternalData(packageContainers: PackageContainers, expectedPackages: ExpectedPackage.Any[]): void {
+		const expectedPackagesWraps: ExpectedPackageWrap[] = []
+
+		for (const expectedPackage of expectedPackages) {
+			const combinedSources: PackageContainerOnPackage[] = []
+			for (const packageSource of expectedPackage.sources) {
+				const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
+				if (lookedUpSource) {
+					// We're going to combine the accessor attributes set on the Package with the ones defined on the source:
+					const combinedSource: PackageContainerOnPackage = {
+						...omit(clone(lookedUpSource), 'accessors'),
+						accessors: {},
+						containerId: packageSource.containerId,
+					}
+
+					const accessorIds = _.uniq(
+						Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors))
+					)
+
+					for (const accessorId of accessorIds) {
+						const sourceAccessor = lookedUpSource.accessors[accessorId] as Accessor.Any | undefined
+
+						const packageAccessor = packageSource.accessors[accessorId] as AccessorOnPackage.Any | undefined
+
+						if (packageAccessor && sourceAccessor && packageAccessor.type === sourceAccessor.type) {
+							combinedSource.accessors[accessorId] = deepExtend({}, sourceAccessor, packageAccessor)
+						} else if (packageAccessor) {
+							combinedSource.accessors[accessorId] = clone<AccessorOnPackage.Any>(packageAccessor)
+						} else if (sourceAccessor) {
+							combinedSource.accessors[accessorId] = clone<Accessor.Any>(
+								sourceAccessor
+							) as AccessorOnPackage.Any
+						}
+					}
+					combinedSources.push(combinedSource)
+				}
+			}
+			// Lookup Package targets:
+			const combinedTargets: PackageContainerOnPackage[] = []
+
+			for (const layer of expectedPackage.layers) {
+				// Hack: we use the layer name as a 1-to-1 relation to a target containerId
+				const packageContainerId: string = layer
+
+				if (packageContainerId) {
+					const lookedUpTarget = packageContainers[packageContainerId]
+					if (lookedUpTarget) {
+						// Todo: should the be any combination of properties here?
+						combinedTargets.push({
+							...omit(clone(lookedUpTarget), 'accessors'),
+							accessors: lookedUpTarget.accessors as {
+								[accessorId: string]: AccessorOnPackage.Any
+							},
+							containerId: packageContainerId,
+						})
+					}
+				}
+			}
+
+			if (combinedSources.length) {
+				if (combinedTargets.length) {
+					expectedPackagesWraps.push({
+						expectedPackage: expectedPackage,
+						priority: 999,
+						sources: combinedSources,
+						targets: combinedTargets,
+						playoutDeviceId: '',
+						external: true,
+					})
+				}
+			}
+		}
+
+		this.externalData = {
+			packageContainers: packageContainers,
+			expectedPackages: expectedPackagesWraps,
+		}
+		this._triggerUpdatedExpectedPackages()
+	}
 	private setupObservers(): void {
 		if (this._observers.length) {
 			this.logger.debug('Clearing observers..')
@@ -121,41 +209,63 @@ export class PackageManagerHandler {
 	private _triggerUpdatedExpectedPackages() {
 		this.logger.info('_triggerUpdatedExpectedPackages')
 
-		const objs = this._coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
-
-		const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
-
-		if (!expectedPackageObjs.length) {
-			this.logger.warn(`Collection objects expected_packages not found`)
-			this.logger.info(`objs in deviceExpectedPackages:`, objs)
-			return
+		if (this._triggerUpdatedExpectedPackagesTimeout) {
+			clearTimeout(this._triggerUpdatedExpectedPackagesTimeout)
+			this._triggerUpdatedExpectedPackagesTimeout = null
 		}
 
-		let expectedPackages: ExpectedPackageWrap[] = []
-		for (const expectedPackageObj of expectedPackageObjs) {
-			expectedPackageObj
-			expectedPackages = expectedPackages.concat(...expectedPackageObj.expectedPackages)
-		}
+		this._triggerUpdatedExpectedPackagesTimeout = setTimeout(() => {
+			this._triggerUpdatedExpectedPackagesTimeout = null
+			this.logger.info('_triggerUpdatedExpectedPackages inner')
 
-		const packageContainerObj = objs.find((o) => o.type === 'package_containers')
-		if (!packageContainerObj) {
-			this.logger.warn(`Collection objects package_containers not found`)
-			this.logger.info(`objs in deviceExpectedPackages:`, objs)
-			return
-		}
-		const packageContainers = packageContainerObj.packageContainers as PackageContainers
+			const expectedPackages: ExpectedPackageWrap[] = []
+			const packageContainers: PackageContainers = {}
 
-		const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
-		if (!activePlaylistObj) {
-			this.logger.warn(`Collection objects active_playlist not found`)
-			this.logger.info(`objs in deviceExpectedPackages:`, objs)
-			return
-		}
+			const objs = this._coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
 
-		const activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
-		const activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
+			const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
+			if (!activePlaylistObj) {
+				this.logger.warn(`Collection objects active_playlist not found`)
+				this.logger.info(`objs in deviceExpectedPackages:`, objs)
+				return
+			}
+			const activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
+			const activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
 
-		this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
+			// Add from external data:
+			{
+				for (const expectedPackage of this.externalData.expectedPackages) {
+					expectedPackages.push(expectedPackage)
+				}
+				Object.assign(packageContainers, this.externalData.packageContainers)
+			}
+
+			// Add from Core collections:
+			{
+				const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
+
+				if (!expectedPackageObjs.length) {
+					this.logger.warn(`Collection objects expected_packages not found`)
+					this.logger.info(`objs in deviceExpectedPackages:`, objs)
+					return
+				}
+				for (const expectedPackageObj of expectedPackageObjs) {
+					for (const expectedPackage of expectedPackageObj.expectedPackages) {
+						expectedPackages.push(expectedPackage)
+					}
+				}
+
+				const packageContainerObj = objs.find((o) => o.type === 'package_containers')
+				if (!packageContainerObj) {
+					this.logger.warn(`Collection objects package_containers not found`)
+					this.logger.info(`objs in deviceExpectedPackages:`, objs)
+					return
+				}
+				Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
+			}
+
+			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
+		}, 300)
 	}
 
 	private handleExpectedPackages(
@@ -202,6 +312,8 @@ export class PackageManagerHandler {
 		if (!expectaction) {
 			delete this.toReportExpectationStatus[expectationId]
 		} else {
+			if (!expectaction.statusReport.sendReport) return // Don't report the status
+
 			const packageStatus: ExpectedPackageStatusAPI.WorkStatus = {
 				// Default properties:
 				...{
@@ -395,6 +507,9 @@ export class PackageManagerHandler {
 		this._expectationManager.abortExpectation(workId)
 	}
 }
+export function omit<T, P extends keyof T>(obj: T, ...props: P[]): Omit<T, P> {
+	return _.omit(obj, ...(props as string[])) as any
+}
 
 interface ResultingExpectedPackage {
 	// This interface is copied from Core
@@ -405,6 +520,8 @@ interface ResultingExpectedPackage {
 	sources: PackageContainerOnPackage[]
 	targets: PackageContainerOnPackage[]
 	playoutDeviceId: string
+	/** If set to true, this doesn't come from Core */
+	external?: boolean
 	// playoutLocation: any // todo?
 }
 export type ExpectedPackageWrap = ResultingExpectedPackage

@@ -3,7 +3,12 @@ import { ExpectationManager } from '@shared/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageManagerHandler } from './packageManager'
 import { ProcessHandler } from './process'
-// import {Conductor, DeviceType} from 'timeline-state-resolver'
+import * as chokidar from 'chokidar'
+import * as fs from 'fs'
+import { promisify } from 'util'
+
+const fsAccess = promisify(fs.access)
+const fsReadFile = promisify(fs.readFile)
 
 export interface Config {
 	process: ProcessConfig
@@ -67,6 +72,12 @@ export class Connector {
 			await this.packageManagerHandler.init(this.config, this.coreHandler)
 			this._logger.info('PackageManager initialized')
 
+			if (this.config.packageManager.watchFiles) {
+				this._logger.info('Initializing file watcher...')
+				await this.initFileWatcher(this.packageManagerHandler)
+				this._logger.info('file watcher initialized')
+			}
+
 			this._logger.info('Initialization done')
 			return
 		} catch (e) {
@@ -74,15 +85,8 @@ export class Connector {
 			this._logger.error(e)
 			this._logger.error(e.stack)
 
-			try {
-				if (this.coreHandler) {
-					this.coreHandler.destroy().catch(this._logger.error)
-				}
-				// if (this.tsrHandler) {
-				// 	this.tsrHandler.destroy().catch(this._logger.error)
-				// }
-			} catch (e) {
-				this._logger.error(e)
+			if (this.coreHandler) {
+				this.coreHandler.destroy().catch(this._logger.error)
 			}
 
 			this._logger.info('Shutting down in 10 seconds!')
@@ -91,6 +95,42 @@ export class Connector {
 				process.exit(0)
 			}, 10 * 1000)
 			return
+		}
+	}
+
+	private async initFileWatcher(packageManagerHandler: PackageManagerHandler): Promise<void> {
+		const fileName = './expectedPackages.json'
+		const watcher = chokidar.watch(fileName, { persistent: true })
+
+		watcher
+			.on('add', () => {
+				reloadInput().catch((error) => this._logger.error(error.toString()))
+			})
+			.on('change', () => {
+				reloadInput().catch((error) => this._logger.error(error.toString()))
+			})
+			.on('unlink', () => {
+				reloadInput().catch((error) => this._logger.error(error.toString()))
+			})
+			.on('error', (error) => {
+				this._logger.error(error.toString())
+			})
+		const reloadInput = async () => {
+			this._logger.info(`Change detected in ${fileName}`)
+			// Check that the file exists:
+			try {
+				await fsAccess(fileName)
+			} catch (_err) {
+				// ignore
+				return
+			}
+
+			const str = await fsReadFile(fileName, { encoding: 'utf-8' })
+			const o = JSON.parse(str)
+
+			if (o.packageContainers && o.expectedPackages) {
+				packageManagerHandler.setExternalData(o.packageContainers, o.expectedPackages)
+			}
 		}
 	}
 	getExpectationManager(): ExpectationManager {

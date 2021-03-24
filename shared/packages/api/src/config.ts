@@ -90,6 +90,11 @@ const packageManagerArguments = defineArguments({
 		default: process.env.WORKFORCE_URL || 'ws://localhost:8070',
 		describe: 'The URL to the Workforce',
 	},
+	watchFiles: {
+		type: 'boolean',
+		default: process.env.WATCH_FILES === '1',
+		describe: 'If true, will watch the file "expectedPackages.json" as an additional source of expected packages.',
+	},
 })
 const workerArguments = defineArguments({
 	workerId: { type: 'string', default: process.env.WORKER_ID || 'worker0', describe: 'Unique id of the worker' },
@@ -201,6 +206,8 @@ export interface PackageManagerConfig {
 		port: number | null
 		accessUrl: string | null
 		workforceURL: string | null
+
+		watchFiles: boolean
 	}
 }
 export function getPackageManagerConfig(): PackageManagerConfig {
@@ -221,6 +228,8 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 			port: argv.port,
 			accessUrl: argv.accessUrl,
 			workforceURL: argv.workforceURL,
+
+			watchFiles: argv.watchFiles,
 		},
 	}
 }

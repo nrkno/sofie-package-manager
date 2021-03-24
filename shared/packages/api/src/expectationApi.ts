@@ -42,8 +42,8 @@ export namespace Expectation {
 			expectedContentVersionHash: string
 		}[]
 
-		/** Contains info for reporting back status to Core */
-		statusReport: Omit<ExpectedPackageStatusAPI.WorkBaseInfo, 'fromPackages'>
+		/** Contains info for reporting back status to Core. null = don't report back */
+		statusReport: Omit<ExpectedPackageStatusAPI.WorkBaseInfo, 'fromPackages'> & { sendReport: boolean }
 
 		/** Contains info for determining that work can start (and is used to perform the work) */
 		startRequirement: {

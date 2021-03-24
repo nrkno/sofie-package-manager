@@ -21,6 +21,7 @@ export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 
 type GenerateExpectation = Expectation.Base & {
 	sideEffect?: ExpectedPackage.Base['sideEffect']
+	external?: boolean
 }
 export function generateExpectations(
 	managerId: string,
@@ -99,6 +100,7 @@ export function generateExpectations(
 				expectations[exp.id] = {
 					...exp,
 					sideEffect: expWrap.expectedPackage.sideEffect,
+					external: expWrap.external,
 				}
 			}
 		}
@@ -109,13 +111,15 @@ export function generateExpectations(
 		if (expectation0.type === Expectation.Type.FILE_COPY) {
 			const expectation = expectation0 as Expectation.FileCopy
 
-			// All files that have been copied should also be scanned:
-			const scan = generateMediaFileScan(expectation)
-			expectations[scan.id] = scan
+			if (!expectation0.external) {
+				// All files that have been copied should also be scanned:
+				const scan = generateMediaFileScan(expectation)
+				expectations[scan.id] = scan
 
-			// All files that have been copied should also be deep-scanned:
-			const deepScan = generateMediaFileDeepScan(expectation)
-			expectations[deepScan.id] = deepScan
+				// All files that have been copied should also be deep-scanned:
+				const deepScan = generateMediaFileDeepScan(expectation)
+				expectations[deepScan.id] = deepScan
+			}
 
 			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
 				const packageContainer: PackageContainer =
@@ -176,6 +180,7 @@ function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap):
 			}", from "${JSON.stringify(expWrapMediaFile.sources)}"`,
 			requiredForPlayout: true,
 			displayRank: 0,
+			sendReport: !expWrap.external,
 		},
 
 		startRequirement: {
@@ -217,6 +222,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 			}", from ${expWrapQuantelClip.sources}`,
 			requiredForPlayout: true,
 			displayRank: 0,
+			sendReport: !expWrap.external,
 		},
 
 		startRequirement: {
@@ -246,6 +252,7 @@ function generateMediaFileScan(expectation: Expectation.FileCopy): Expectation.M
 			description: `Scanning is used to provide Sofie GUI with status about the media`,
 			requiredForPlayout: false,
 			displayRank: 10,
+			sendReport: expectation.statusReport.sendReport,
 		},
 
 		startRequirement: {
@@ -287,6 +294,7 @@ function generateMediaFileDeepScan(expectation: Expectation.FileCopy): Expectati
 			description: `Deep scanning includes scene-detection, black/freeze frames etc.`,
 			requiredForPlayout: false,
 			displayRank: 10,
+			sendReport: expectation.statusReport.sendReport,
 		},
 
 		startRequirement: {
@@ -339,6 +347,7 @@ function generateMediaFileThumbnail(
 			description: `Thumbnail is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 11,
+			sendReport: expectation.statusReport.sendReport,
 		},
 
 		startRequirement: {
@@ -387,6 +396,7 @@ function generateMediaFilePreview(
 			description: `Preview is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 12,
+			sendReport: expectation.statusReport.sendReport,
 		},
 
 		startRequirement: {
