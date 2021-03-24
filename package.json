@@ -55,8 +55,8 @@
         "node": ">=12.3.0"
     },
     "dependencies": {
-        "@sofie-automation/blueprints-integration": "1.19.0-nightly-feat-package-management-20210213-123211-669d116.0",
-        "@sofie-automation/server-core-integration": "1.19.0-nightly-feat-package-management-20210213-123211-669d116.0"
+        "@sofie-automation/blueprints-integration": "1.32.0-in-testing.0",
+        "@sofie-automation/server-core-integration": "1.32.0-in-testing.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "husky": {
