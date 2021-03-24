@@ -14,12 +14,13 @@ import { GenericWorker, WorkerLocation } from '../../worker'
 
 /** This is a type of worker that runs on a linux machine */
 export class LinuxWorker extends GenericWorker {
+	static readonly type = 'linuxWorker'
 	constructor(
 		public readonly config: WorkerAgentConfig,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
-		super(config, location, sendMessageToManager, 'linuxWorker')
+		super(config, location, sendMessageToManager, LinuxWorker.type)
 	}
 	async doYouSupportExpectation(_exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return {

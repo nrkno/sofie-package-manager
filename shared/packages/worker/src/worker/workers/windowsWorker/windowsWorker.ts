@@ -20,12 +20,14 @@ import { QuantelClipCopy } from './expectationHandlers/quantelClipCopy'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
+	static readonly type = 'windowsWorker'
+
 	constructor(
 		public readonly config: WorkerAgentConfig,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
-		super(config, location, sendMessageToManager, 'windowsWorker')
+		super(config, location, sendMessageToManager, WindowsWorker.type)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		try {

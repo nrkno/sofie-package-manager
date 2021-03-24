@@ -227,7 +227,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		if (!this.accessor.folderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
 		const folderPath = this.accessor.folderPath
 
-		if (this.worker.type === 'windowsWorker') {
+		if (this.worker.type === WindowsWorker.type) {
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
 			const windowsWorker = this.worker as WindowsWorker
 
