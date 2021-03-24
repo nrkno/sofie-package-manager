@@ -619,7 +619,8 @@ export class ExpectationManager {
 						)
 						if (fulfilled.fulfilled) {
 							// Yes it is still fullfiled
-							this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
+							// No need to update the tracked state, since it's already fullfilled:
+							// this.updateTrackedExp(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
 						} else {
 							// It appears like it's not fullfilled anymore
 							trackedExp.status.actualVersionHash = undefined
