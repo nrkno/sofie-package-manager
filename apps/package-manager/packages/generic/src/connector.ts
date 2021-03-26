@@ -104,17 +104,22 @@ export class Connector {
 
 		watcher
 			.on('add', () => {
-				reloadInput().catch((error) => this._logger.error(error.toString()))
+				triggerReloadInput()
 			})
 			.on('change', () => {
-				reloadInput().catch((error) => this._logger.error(error.toString()))
+				triggerReloadInput()
 			})
 			.on('unlink', () => {
-				reloadInput().catch((error) => this._logger.error(error.toString()))
+				triggerReloadInput()
 			})
 			.on('error', (error) => {
 				this._logger.error(error.toString())
 			})
+		const triggerReloadInput = () => {
+			setTimeout(() => {
+				reloadInput().catch((error) => this._logger.error(error.toString()))
+			}, 100)
+		}
 		const reloadInput = async () => {
 			this._logger.info(`Change detected in ${fileName}`)
 			// Check that the file exists:
