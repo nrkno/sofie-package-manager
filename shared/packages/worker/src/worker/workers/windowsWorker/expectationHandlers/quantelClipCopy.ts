@@ -126,8 +126,10 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 			lookupTarget.accessor.type === Accessor.AccessType.QUANTEL
 		) {
 			// We can copy by using internal Quantel copy
-			if (!isQuantelClipAccessorHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
-			if (!isQuantelClipAccessorHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isQuantelClipAccessorHandle(lookupSource.handle))
+				throw new Error(`Source AccessHandler type is wrong (${lookupSource.handle.type})`)
+			if (!isQuantelClipAccessorHandle(lookupTarget.handle))
+				throw new Error(`Source AccessHandler type is wrong (${lookupTarget.handle.type})`)
 
 			let wasCancelled = false
 			let wasCompleted = false
@@ -135,7 +137,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				// on cancel work
 				wasCancelled = true
 				await new Promise<void>((resolve, reject) => {
-					writeStream.once('close', () => {
+					putPackageHandler.once('close', () => {
 						lookupTarget.handle
 							.removePackage()
 							.then(() => lookupTarget.handle.removeMetadata())
@@ -143,23 +145,9 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 							.catch((err) => reject(err))
 					})
 					sourceReadInfo.cancel()
-					writeStream.abort()
+					putPackageHandler.abort()
 				})
 			})
-
-			// todo: check frame count
-
-			// const fileSize: number =
-			// 	typeof actualSourceUVersion.fileSize.value === 'number'
-			// 		? actualSourceUVersion.fileSize.value
-			// 		: parseInt(actualSourceUVersion.fileSize.value || '0', 10)
-
-			// const byteCounter = new ByteCounter()
-			// byteCounter.on('progress', (bytes: number) => {
-			// 	if (fileSize) {
-			// 		workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
-			// 	}
-			// })
 
 			const updateProgress = setInterval(() => {
 				if (wasCancelled || wasCompleted) {
@@ -167,38 +155,50 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 					return
 				}
 
-				;(async () => {
+				; (async () => {
 					const sourceClip = await lookupSource.handle.getPackageActualVersion()
-					const targetClip = await lookupTarget.handle.getPackageActualVersion()
+					let targetClip: Expectation.Version.Any | null = null
+					try {
+						targetClip = await lookupTarget.handle.getPackageActualVersion()
+					} catch (err) {
+						if ((err + '').match(/not found/i)) {
+							// not found, that's okay
+						} else {
+							throw err
+						}
+					}
+					if (wasCancelled || wasCompleted) return
 
-					if (sourceClip && targetClip) {
-						if (
-							sourceClip.type === Expectation.Version.Type.QUANTEL_CLIP &&
-							targetClip.type === Expectation.Version.Type.QUANTEL_CLIP
-						) {
-							if (targetClip.frames) {
-								workInProgress._reportProgress(
-									actualSourceVersionHash,
-									sourceClip.frames / targetClip.frames
-								)
+					if (sourceClip) {
+
+						if (targetClip) {
+							if (
+								sourceClip.type === Expectation.Version.Type.QUANTEL_CLIP &&
+								targetClip.type === Expectation.Version.Type.QUANTEL_CLIP
+							) {
+								if (targetClip.frames) {
+									workInProgress._reportProgress(
+										actualSourceVersionHash,
+										sourceClip.frames / targetClip.frames
+									)
+								}
 							}
+						} else {
+							workInProgress._reportProgress(actualSourceVersionHash, 0)
 						}
 					}
 				})().catch((err) => {
 					workInProgress._reportError(err)
 				})
-			}, 1000)
+			}, 100)
 
 			const sourceReadInfo = await lookupSource.handle.getPackageReadInfo()
-			const writeStream = await lookupTarget.handle.putPackageInfo(sourceReadInfo.readInfo)
+			const putPackageHandler = await lookupTarget.handle.putPackageInfo(sourceReadInfo.readInfo)
 
-			// sourceReadInfo.readStream.on('error', (err) => {
-			// 	workInProgress._reportError(err)
-			// })
-			writeStream.on('error', (err) => {
+			putPackageHandler.on('error', (err) => {
 				workInProgress._reportError(err)
 			})
-			writeStream.once('close', () => {
+			putPackageHandler.once('close', () => {
 				if (wasCancelled) return // ignore
 				wasCompleted = true
 				setImmediate(() => {

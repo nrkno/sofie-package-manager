@@ -56,5 +56,5 @@ export function isFileShareAccessorHandle<Metadata>(
 export function isQuantelClipAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is QuantelAccessorHandle<Metadata> {
-	return accessorHandler.type === 'quantelClip'
+	return accessorHandler.type === 'quantel'
 }
