@@ -60,3 +60,38 @@ export function getFileShareTarget(containerId: string, filePath: string): Expec
 		},
 	}
 }
+export function getQuantelSource(containerId: string): Expectation.PackageContainerOnPackageQuantel {
+	return {
+		containerId: containerId,
+		label: `Label ${containerId}`,
+		accessors: {
+			quantel0: literal<AccessorOnPackage.Quantel>({
+				type: Accessor.AccessType.QUANTEL,
+				quantelGatewayUrl: 'http://192.168.0.1',
+				ISAUrls: ['127.0.0.1'],
+				// zoneId?: string;
+				// serverId?: number;
+				// networkId?: string;
+				allowRead: true,
+			}),
+		},
+	}
+}
+export function getQuantelTarget(containerId: string, serverId: number): Expectation.PackageContainerOnPackageQuantel {
+	return {
+		containerId: containerId,
+		label: `Label ${containerId}`,
+		accessors: {
+			quantel0: literal<AccessorOnPackage.Quantel>({
+				type: Accessor.AccessType.QUANTEL,
+				quantelGatewayUrl: 'http://192.168.0.1',
+				ISAUrls: ['127.0.0.1'],
+				// zoneId?: string;
+				serverId: serverId,
+				// networkId?: string;
+				allowRead: true,
+				allowWrite: true,
+			}),
+		},
+	}
+}

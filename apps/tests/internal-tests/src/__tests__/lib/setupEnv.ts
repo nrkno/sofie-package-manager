@@ -41,6 +41,7 @@ const defaultTestConfig: SingleAppConfig = {
 		port: null,
 		accessUrl: null,
 		workforceURL: null,
+		watchFiles: false,
 	},
 	worker: {
 		workerId: 'worker',

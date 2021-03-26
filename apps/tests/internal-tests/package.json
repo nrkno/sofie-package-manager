@@ -13,6 +13,7 @@
         "deep-extend": "^0.6.0",
         "nexe": "^3.3.7",
         "lint-staged": "^7.2.0",
+        "tv-automation-quantel-gateway-client": "^2.0.1",
         "windows-network-drive": "^3.0.1"
     },
     "dependencies": {
