@@ -84,7 +84,11 @@ export namespace Expectation {
 	}
 	export interface PackageContainerOnPackageFile extends PackageContainerOnPackage {
 		accessors: {
-			[accessorId: string]: AccessorOnPackage.LocalFolder | AccessorOnPackage.FileShare | AccessorOnPackage.HTTP
+			[accessorId: string]:
+				| AccessorOnPackage.LocalFolder
+				| AccessorOnPackage.FileShare
+				| AccessorOnPackage.HTTP
+				| AccessorOnPackage.Quantel
 		}
 	}
 
@@ -196,7 +200,7 @@ export namespace Expectation {
 				guid?: string
 				title?: string
 			}
-			version: Expectation.Version.ExpectAny
+			version: Expectation.Version.ExpectedQuantelClip
 		}
 	}
 	export interface PackageContainerOnPackageQuantel extends PackageContainerOnPackage {
