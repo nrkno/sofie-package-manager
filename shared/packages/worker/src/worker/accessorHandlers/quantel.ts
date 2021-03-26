@@ -65,7 +65,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// There is at least one clip that matches the query
 			return undefined // all good
 		} else {
-			return `Quantel clip "${this.accessor.guid || this.accessor.title}" not found`
+			return `Quantel clip "${this.content.guid || this.content.title}" not found`
 		}
 	}
 	async tryPackageRead(): Promise<string | undefined> {
@@ -227,16 +227,17 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		let cache = this.worker.accessorCache[this.type] as AccessorQuantelCache
 
 		if (!cache) {
-			this.worker.accessorCache[this.type] = cache = {
+			cache = {
 				gateways: {},
 			}
+			this.worker.accessorCache[this.type] = cache
 		}
 
 		// These errors are just for types. User-facing checks are done in this.checkAccessor()
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
 		if (!this.accessor.ISAUrls) throw new Error('accessor.ISAUrls is not set')
 		if (!this.accessor.ISAUrls.length) throw new Error('accessor.ISAUrls array is empty')
-		if (!this.accessor.serverId) throw new Error('accessor.serverId is not set')
+		// if (!this.accessor.serverId) throw new Error('accessor.serverId is not set')
 
 		const id = `${this.accessor.quantelGatewayUrl}`
 
@@ -248,7 +249,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				this.accessor.quantelGatewayUrl,
 				this.accessor.ISAUrls,
 				this.accessor.zoneId,
-				this.accessor.serverId
+				this.accessor.serverId || 0
 			)
 
 			// @todo: this should be emitted somehow:
@@ -257,10 +258,6 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// gateway.monitorServerStatus(() => {})
 
 			cache.gateways[id] = gateway
-
-			this.worker.accessorCache['quantel'] = {
-				quantelGateway: new QuantelGateway(),
-			}
 		}
 
 		// Verify that the cached gateway matches what we want:
@@ -292,13 +289,13 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	 */
 	private async searchForClips(quantel: QuantelGateway): Promise<ClipDataSummary[]> {
 		let searchQuery: ClipSearchQuery = {}
-		if (this.accessor.guid) {
+		if (this.content.guid) {
 			searchQuery = {
-				guid: `"${this.accessor.guid}"`,
+				ClipGUID: `"${this.content.guid}"`,
 			}
-		} else if (this.accessor.title) {
+		} else if (this.content.title) {
 			searchQuery = {
-				title: `"${this.accessor.title}"`,
+				Title: `"${this.content.title}"`,
 			}
 		} else throw new Error(`Neither guid nor title set for Quantel clip`)
 
