@@ -310,7 +310,10 @@ export class PackageManagerHandler {
 		}
 	): void {
 		if (!expectaction) {
-			delete this.toReportExpectationStatus[expectationId]
+			if (this.toReportExpectationStatus[expectationId]) {
+				delete this.toReportExpectationStatus[expectationId]
+				this.triggerSendUpdateExpectationStatus(expectationId)
+			}
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
 
@@ -340,8 +343,8 @@ export class PackageManagerHandler {
 			}
 
 			this.toReportExpectationStatus[expectationId] = packageStatus
+			this.triggerSendUpdateExpectationStatus(expectationId)
 		}
-		this.triggerSendUpdateExpectationStatus(expectationId)
 	}
 	private triggerSendUpdateExpectationStatus(expectationId: string) {
 		if (!this.sendUpdateExpectationStatusTimeouts[expectationId]) {

@@ -43,7 +43,10 @@ export namespace Expectation {
 		}[]
 
 		/** Contains info for reporting back status to Core. null = don't report back */
-		statusReport: Omit<ExpectedPackageStatusAPI.WorkBaseInfo, 'fromPackages'> & { sendReport: boolean }
+		statusReport: Omit<ExpectedPackageStatusAPI.WorkBaseInfo, 'fromPackages'> & {
+			/** Set to true to enable reporting back statuses to Core */
+			sendReport: boolean
+		}
 
 		/** Contains info for determining that work can start (and is used to perform the work) */
 		startRequirement: {
