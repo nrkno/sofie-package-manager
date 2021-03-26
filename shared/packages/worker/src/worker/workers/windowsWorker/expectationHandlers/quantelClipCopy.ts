@@ -155,8 +155,11 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 					return
 				}
 
-				; (async () => {
+				;(async () => {
+					if (wasCancelled || wasCompleted) return
 					const sourceClip = await lookupSource.handle.getPackageActualVersion()
+
+					if (wasCancelled || wasCompleted) return
 					let targetClip: Expectation.Version.Any | null = null
 					try {
 						targetClip = await lookupTarget.handle.getPackageActualVersion()
@@ -167,10 +170,9 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 							throw err
 						}
 					}
+
 					if (wasCancelled || wasCompleted) return
-
 					if (sourceClip) {
-
 						if (targetClip) {
 							if (
 								sourceClip.type === Expectation.Version.Type.QUANTEL_CLIP &&
@@ -199,7 +201,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				workInProgress._reportError(err)
 			})
 			putPackageHandler.once('close', () => {
-				if (wasCancelled) return // ignore
+				if (wasCancelled || wasCompleted) return // ignore
 				wasCompleted = true
 				setImmediate(() => {
 					// Copying is done
