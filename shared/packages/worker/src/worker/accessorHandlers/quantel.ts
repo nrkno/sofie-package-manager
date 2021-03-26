@@ -169,10 +169,13 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 					throw new Error(
 						`Clip id ${readInfo.clipId} property "Created" doesn't match (${clipData.Created} vs ${readInfo.version.created})`
 					)
-				if (clipData.CloneId !== readInfo.version.cloneId)
+				const cloneId = clipData.CloneId || clipData.ClipID
+
+				if (cloneId !== readInfo.version.cloneId) {
 					throw new Error(
-						`Clip id ${readInfo.clipId} property "CloneId" doesn't match (${clipData.CloneId} vs ${readInfo.version.cloneId})`
+						`Clip id ${readInfo.clipId} property "CloneId" doesn't match (${cloneId} vs ${readInfo.version.cloneId})`
 					)
+				}
 
 				let copyCreated = false
 				// Try to copy onto one of the server pools, and stop trying on first success.
