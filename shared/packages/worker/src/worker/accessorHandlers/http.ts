@@ -8,6 +8,7 @@ import AbortController from 'abort-controller'
 
 /** Accessor handle for accessing files in a local folder */
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'http'
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.HTTP,
@@ -15,7 +16,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			filePath: string
 		}
 	) {
-		super(worker, accessor, content, 'http')
+		super(worker, accessor, content, HTTPAccessorHandle.type)
 	}
 	doYouSupportAccess(): boolean {
 		return !this.accessor.networkId || this.worker.location.localNetworkIds.includes(this.accessor.networkId)

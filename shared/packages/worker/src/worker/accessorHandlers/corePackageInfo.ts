@@ -5,6 +5,7 @@ import { GenericWorker } from '../worker'
 
 /** Accessor handle for accessing data store in Core */
 export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'corePackageInfo'
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.CorePackageCollection,
@@ -12,7 +13,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 			infoType: string // "ffprobe"
 		}
 	) {
-		super(worker, accessor, content, 'corePackageInfo')
+		super(worker, accessor, content, CorePackageInfoAccessorHandle.type)
 		this.content
 	}
 	doYouSupportAccess(): boolean {

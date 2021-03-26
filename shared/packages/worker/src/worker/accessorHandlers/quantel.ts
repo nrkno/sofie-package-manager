@@ -16,6 +16,7 @@ const MINIMUM_FRAMES = 10
 
 /** Accessor handle for handling clips in a Quantel system */
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'quantel'
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.Quantel,
@@ -24,7 +25,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			title?: string
 		}
 	) {
-		super(worker, accessor, content, 'quantel')
+		super(worker, accessor, content, QuantelAccessorHandle.type)
 	}
 	doYouSupportAccess(): boolean {
 		return !this.accessor.networkId || this.worker.location.localNetworkIds.includes(this.accessor.networkId)

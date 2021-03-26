@@ -20,6 +20,7 @@ const pExec = promisify(exec)
 
 /** Accessor handle for accessing files on a network share */
 export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'fileShare'
 	private actualFolderPath: string | undefined
 	private mappedDriveLetters: {
 		[driveLetter: string]: string
@@ -31,7 +32,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			filePath: string
 		}
 	) {
-		super(worker, accessor, content, 'fileShare')
+		super(worker, accessor, content, FileShareAccessorHandle.type)
 		this.actualFolderPath = this.accessor.folderPath // To be overwrittenlater
 	}
 	doYouSupportAccess(): boolean {

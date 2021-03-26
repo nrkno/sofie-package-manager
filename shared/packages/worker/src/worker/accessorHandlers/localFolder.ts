@@ -16,6 +16,7 @@ const fsWriteFile = promisify(fs.writeFile)
 
 /** Accessor handle for accessing files in a local folder */
 export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'localFolder'
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.LocalFolder,
@@ -23,7 +24,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 			filePath: string
 		}
 	) {
-		super(worker, accessor, content, 'localFolder')
+		super(worker, accessor, content, LocalFolderAccessorHandle.type)
 	}
 	doYouSupportAccess(): boolean {
 		return !this.accessor.resourceId || this.accessor.resourceId === this.worker.location.localComputerId

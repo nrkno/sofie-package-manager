@@ -36,25 +36,25 @@ function assertNever(_shouldBeNever: never) {
 export function isLocalFolderHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is LocalFolderAccessorHandle<Metadata> {
-	return accessorHandler.type === 'localFolder'
+	return accessorHandler.type === LocalFolderAccessorHandle.type
 }
 export function isCorePackageInfoAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is CorePackageInfoAccessorHandle<Metadata> {
-	return accessorHandler.type === 'corePackageInfo'
+	return accessorHandler.type === CorePackageInfoAccessorHandle.type
 }
 export function isHTTPAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is HTTPAccessorHandle<Metadata> {
-	return accessorHandler.type === 'http'
+	return accessorHandler.type === HTTPAccessorHandle.type
 }
 export function isFileShareAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is FileShareAccessorHandle<Metadata> {
-	return accessorHandler.type === 'fileShare'
+	return accessorHandler.type === FileShareAccessorHandle.type
 }
 export function isQuantelClipAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is QuantelAccessorHandle<Metadata> {
-	return accessorHandler.type === 'quantel'
+	return accessorHandler.type === QuantelAccessorHandle.type
 }
