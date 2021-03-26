@@ -5,7 +5,7 @@ import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccess } from '../lib/lib'
 import { Diff } from 'deep-diff'
-import { ReturnTypeDoYouSupportExpectation } from '@shared/api'
+import { Expectation, ReturnTypeDoYouSupportExpectation } from '@shared/api'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainers(
@@ -76,7 +76,7 @@ export type LookupPackageContainer<Metadata> =
 interface LookupChecks {
 	read?: boolean
 	readPackage?: boolean
-	packageVersion?: any
+	packageVersion?: Expectation.Version.ExpectAny
 
 	write?: boolean
 	writePackageContainer?: boolean

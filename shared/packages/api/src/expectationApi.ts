@@ -193,7 +193,7 @@ export namespace Expectation {
 				guid?: string
 				title?: string
 			}
-			version: any // todo
+			version: Expectation.Version.ExpectAny
 		}
 	}
 	export interface PackageContainerOnPackageQuantel extends PackageContainerOnPackage {

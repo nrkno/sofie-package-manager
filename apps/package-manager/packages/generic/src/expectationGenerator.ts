@@ -232,7 +232,10 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 		endRequirement: {
 			targets: expWrapQuantelClip.targets as [Expectation.PackageContainerOnPackageQuantel],
 			content: content,
-			version: expWrapQuantelClip.expectedPackage.version,
+			version: {
+				type: Expectation.Version.Type.QUANTEL_CLIP,
+				...expWrapQuantelClip.expectedPackage.version,
+			},
 		},
 	}
 	exp.id = hashObj(exp.endRequirement)
