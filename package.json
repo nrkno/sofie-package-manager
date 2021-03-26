@@ -55,8 +55,8 @@
         "node": ">=12.3.0"
     },
     "dependencies": {
-        "@sofie-automation/blueprints-integration": "1.32.0-in-testing.0",
-        "@sofie-automation/server-core-integration": "1.32.0-in-testing.0"
+        "@sofie-automation/blueprints-integration": "1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0",
+        "@sofie-automation/server-core-integration": "1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "husky": {

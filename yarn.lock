@@ -1478,10 +1478,10 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.32.0-in-testing.0":
-  version "1.32.0-in-testing.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.32.0-in-testing.0.tgz#ae1f90afc76df725ed64377a59713ccec69d7749"
-  integrity sha512-FHRNnzaWlMfCD2oN1GNS69ck/10ythvKdc0ZbkJFEZnhEmzWrATEx+lE2AreS9kSsfrPwFzAt983NMEZqhhBrA==
+"@sofie-automation/blueprints-integration@1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0":
+  version "1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0.tgz#8a5566722cc83b81db6852f265ade60d40f94148"
+  integrity sha512-JTPdGP8Pq7NsnUFUenbtIdd4n22s0MMBStB8RwT3Gb8EDPCYZDKJAE9IyrEx1OYu8szjqp6Fa1rszEQY9ax+Bw==
   dependencies:
     moment "2.29.1"
     timeline-state-resolver-types "5.6.0-nightly-release31-20210322-163519-1a4031442.0"
@@ -1507,10 +1507,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.32.0-in-testing.0":
-  version "1.32.0-in-testing.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.32.0-in-testing.0.tgz#2d560670500d03896cc8b6f01b2ff475b75ab5e1"
-  integrity sha512-/CS5MdAN87a68xCOCvd4txCK/3L05U+Be4B00GFewtM0U+Bpm45S++nd4xcovvOoxfmYrr8hDAoWwiEco2cOOg==
+"@sofie-automation/server-core-integration@1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0":
+  version "1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0.tgz#d59f91a0c353ab9145305118c8129a792722da12"
+  integrity sha512-KxPsf6Fac+RHieCwAV8CxwnuQ0+deVF70gTvkkstvDrD5dMFzF9EVZ/JQZhjnRv1HMIPWNIkaOS29Nb6weDiLw==
   dependencies:
     data-store "3.1.0"
     ejson "^2.2.0"
