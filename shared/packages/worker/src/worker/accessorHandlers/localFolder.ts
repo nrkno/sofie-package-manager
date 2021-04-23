@@ -95,10 +95,12 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		await this.unlinkIfExists(this.fullPath)
 	}
 
+	/** Path to the PackageContainer, ie the folder */
 	get folderPath(): string {
 		if (!this.accessor.folderPath) throw new Error(`LocalFolderAccessor: accessor.folderPath not set!`)
 		return this.accessor.folderPath
 	}
+	/** Local path to the Package, ie the File */
 	get filePath(): string {
 		const filePath = this.accessor.filePath || this.content.filePath
 		if (!filePath) throw new Error(`LocalFolderAccessor: filePath not set!`)

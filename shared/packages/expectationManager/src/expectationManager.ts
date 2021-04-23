@@ -239,7 +239,7 @@ export class ExpectationManager {
 				wipId: number,
 				actualVersionHash: string,
 				reason: string,
-				result: any
+				_result: any
 			): Promise<void> => {
 				const wip = this.worksInProgress[`${clientId}_${wipId}`]
 				if (wip) {
@@ -252,9 +252,6 @@ export class ExpectationManager {
 							progress: 1,
 						})
 
-						if (wip.trackedExp.handleResult) {
-							wip.trackedExp.handleResult(result)
-						}
 						if (this.handleTriggerByFullfilledIds(wip.trackedExp)) {
 							// Something was triggered, run again asap.
 						}
@@ -889,16 +886,20 @@ export enum TrackedExpectationState {
 	ABORTED = 'aborted',
 }
 interface TrackedExpectation {
+	/** Unique ID of the tracked expectation */
 	id: string
+	/** The Expectation */
 	exp: Expectation.Any
 
+	/** The current State of the expectation. */
 	state: TrackedExpectationState
+	/** Human-readable reason for the current state. (To be used in GUIs) */
 	reason: string
 
 	/** List of worker ids that supports this Expectation */
 	availableWorkers: string[]
+	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
-	handleResult?: (result: any) => void
 
 	/** These statuses are sent from the workers */
 	status: {
