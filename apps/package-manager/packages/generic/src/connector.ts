@@ -6,6 +6,7 @@ import { ProcessHandler } from './process'
 import * as chokidar from 'chokidar'
 import * as fs from 'fs'
 import { promisify } from 'util'
+import * as path from 'path'
 
 const fsAccess = promisify(fs.access)
 const fsReadFile = promisify(fs.readFile)
@@ -99,8 +100,10 @@ export class Connector {
 	}
 
 	private async initFileWatcher(packageManagerHandler: PackageManagerHandler): Promise<void> {
-		const fileName = './expectedPackages.json'
+		const fileName = path.join(process.cwd(), './expectedPackages.json')
 		const watcher = chokidar.watch(fileName, { persistent: true })
+
+		this._logger.info(`Watching file "${fileName}"`)
 
 		watcher
 			.on('add', () => {
