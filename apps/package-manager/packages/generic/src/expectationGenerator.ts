@@ -1,6 +1,6 @@
 import { Accessor, ExpectedPackage, PackageContainer } from '@sofie-automation/blueprints-integration'
 import { ActivePlaylist, ActiveRundown, ExpectedPackageWrap, PackageContainers } from './packageManager'
-import { Expectation, hashObj } from '@shared/api'
+import { Expectation, hashObj, PackageContainerExpectation } from '@shared/api'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
@@ -23,6 +23,7 @@ type GenerateExpectation = Expectation.Base & {
 	sideEffect?: ExpectedPackage.Base['sideEffect']
 	external?: boolean
 }
+const REMOVE_DELAY = 1000 * 3600 * 3 // Wait 3 hours before
 export function generateExpectations(
 	managerId: string,
 	packageContainers: PackageContainers,
@@ -195,6 +196,9 @@ function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap):
 				...expWrapMediaFile.expectedPackage.version,
 			},
 		},
+		workOptions: {
+			removeDelay: REMOVE_DELAY,
+		},
 	}
 	exp.id = hashObj(exp.endRequirement)
 	return exp
@@ -237,6 +241,9 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 				...expWrapQuantelClip.expectedPackage.version,
 			},
 		},
+		workOptions: {
+			removeDelay: REMOVE_DELAY,
+		},
 	}
 	exp.id = hashObj(exp.endRequirement)
 
@@ -277,6 +284,9 @@ function generateMediaFileScan(expectation: Expectation.FileCopy): Expectation.M
 			],
 			content: expectation.endRequirement.content,
 			version: null,
+		},
+		workOptions: {
+			...expectation.workOptions,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -324,6 +334,9 @@ function generateMediaFileDeepScan(expectation: Expectation.FileCopy): Expectati
 				freezeDetection: true,
 				blackDetection: true,
 			},
+		},
+		workOptions: {
+			...expectation.workOptions,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -375,6 +388,9 @@ function generateMediaFileThumbnail(
 				seekTime: settings.seekTime || 0,
 			},
 		},
+		workOptions: {
+			...expectation.workOptions,
+		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
 	}
@@ -422,6 +438,9 @@ function generateMediaFilePreview(
 				// width: 512,
 				// height: -1, // preserve ratio
 			},
+		},
+		workOptions: {
+			...expectation.workOptions,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -475,3 +494,16 @@ function generateMediaFilePreview(
 
 // 	return tmpCopy
 // }
+
+export function generatePackageContainerExpectations(
+	_managerId: string,
+	_packageContainers: PackageContainers,
+	_activePlaylist: ActivePlaylist
+): { [id: string]: PackageContainerExpectation } {
+	const o: { [id: string]: PackageContainerExpectation } = {}
+
+	// for (const [containerId, packageContainer] of Object.entries(packageContainers)) {
+	// todo: add file monitor
+	// }
+	return o
+}

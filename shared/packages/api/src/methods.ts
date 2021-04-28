@@ -1,10 +1,15 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import { Expectation } from './expectationApi'
+import { PackageContainerExpectation } from './packageContainerApi'
 import {
+	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	ReturnTypeRunPackageContainerCronJob,
+	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
 
 /** Methods used by ExpectationManager and WorkForce */
@@ -48,6 +53,20 @@ export namespace ExpectationManagerWorkerAgent {
 		removeExpectation: (exp: Expectation.Any) => Promise<ReturnTypeRemoveExpectation>
 
 		cancelWorkInProgress: (wipId: number) => Promise<void>
+
+		// PackageContainer-related methods:
+		doYouSupportPackageContainer: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<ReturnTypeDoYouSupportPackageContainer>
+		runPackageContainerCronJob: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<ReturnTypeRunPackageContainerCronJob>
+		setupPackageContainerMonitors: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<ReturnTypeSetupPackageContainerMonitors>
+		disposePackageContainerMonitors: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<ReturnTypeDisposePackageContainerMonitors>
 	}
 	/** Methods on ExpectedManager, called by WorkerAgent */
 	export interface ExpectationManager {

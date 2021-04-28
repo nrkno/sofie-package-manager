@@ -10,6 +10,7 @@ import {
 	ReportExpectationStatus,
 	ReportPackageContainerPackageStatus,
 	MessageFromWorker,
+	ReportPackageContainerExpectationStatus,
 } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
@@ -59,6 +60,7 @@ export async function setupExpectationManager(
 	callbacks: {
 		reportExpectationStatus: ReportExpectationStatus
 		reportPackageContainerPackageStatus: ReportPackageContainerPackageStatus
+		reportPackageContainerExpectationStatus: ReportPackageContainerExpectationStatus
 		messageFromWorker: MessageFromWorker
 	}
 ) {
@@ -75,6 +77,7 @@ export async function setupExpectationManager(
 		{ type: 'internal' },
 		callbacks.reportExpectationStatus,
 		callbacks.reportPackageContainerPackageStatus,
+		callbacks.reportPackageContainerExpectationStatus,
 		callbacks.messageFromWorker
 	)
 
@@ -156,6 +159,9 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			container.packages[packageId] = {
 				packageStatus: packageStatus,
 			}
+		},
+		reportPackageContainerExpectationStatus: () => {
+			// todo
 		},
 		messageFromWorker: async (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 			switch (message.type) {

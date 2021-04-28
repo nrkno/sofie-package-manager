@@ -13,11 +13,11 @@ import {
 } from '@shared/api'
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 
 export const QuantelClipCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
-		return checkWorkerHasAccessToPackageContainers(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
 		})
@@ -259,20 +259,32 @@ function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {
-	return lookupAccessorHandles<QuantelMetadata>(worker, exp.startRequirement.sources, exp.endRequirement.content, {
-		read: true,
-		readPackage: true,
-		packageVersion: exp.endRequirement.version,
-	})
+	return lookupAccessorHandles<QuantelMetadata>(
+		worker,
+		exp.startRequirement.sources,
+		exp.endRequirement.content,
+		exp.workOptions,
+		{
+			read: true,
+			readPackage: true,
+			packageVersion: exp.endRequirement.version,
+		}
+	)
 }
 function lookupCopyTargets(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {
-	return lookupAccessorHandles<QuantelMetadata>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
-		write: true,
-		writePackageContainer: true,
-	})
+	return lookupAccessorHandles<QuantelMetadata>(
+		worker,
+		exp.endRequirement.targets,
+		exp.endRequirement.content,
+		exp.workOptions,
+		{
+			write: true,
+			writePackageContainer: true,
+		}
+	)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

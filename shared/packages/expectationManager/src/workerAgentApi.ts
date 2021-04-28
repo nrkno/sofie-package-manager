@@ -7,6 +7,11 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeRemoveExpectation,
 	AdapterServerOptions,
+	PackageContainerExpectation,
+	ReturnTypeDoYouSupportPackageContainer,
+	ReturnTypeRunPackageContainerCronJob,
+	ReturnTypeSetupPackageContainerMonitors,
+	ReturnTypeDisposePackageContainerMonitors,
 } from '@shared/api'
 
 /** Handles communications between a Worker and a Workforce */
@@ -49,5 +54,27 @@ export class WorkerAgentAPI
 
 	async cancelWorkInProgress(wipId: number): Promise<void> {
 		return await this._sendMessage('cancelWorkInProgress', wipId)
+	}
+
+	// PackageContainer-related methods: ----------------------------------------------------------------------------------------
+	async doYouSupportPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDoYouSupportPackageContainer> {
+		return await this._sendMessage('doYouSupportPackageContainer', packageContainer)
+	}
+	async runPackageContainerCronJob(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeRunPackageContainerCronJob> {
+		return await this._sendMessage('runPackageContainerCronJob', packageContainer)
+	}
+	async setupPackageContainerMonitors(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeSetupPackageContainerMonitors> {
+		return await this._sendMessage('setupPackageContainerMonitors', packageContainer)
+	}
+	async disposePackageContainerMonitors(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDisposePackageContainerMonitors> {
+		return await this._sendMessage('disposePackageContainerMonitors', packageContainer)
 	}
 }

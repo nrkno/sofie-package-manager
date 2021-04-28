@@ -6,7 +6,7 @@ import {
 	UniversalVersion,
 	compareUniversalVersions,
 	makeUniversalVersion,
-	findBestPackageContainerWithAccess,
+	findBestPackageContainerWithAccessToPackage,
 } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
@@ -26,7 +26,7 @@ import {
 import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import {
-	checkWorkerHasAccessToPackageContainers,
+	checkWorkerHasAccessToPackageContainersOnPackage,
 	lookupAccessorHandles,
 	LookupPackageContainer,
 	userReadableDiff,
@@ -35,7 +35,7 @@ import {
 
 export const FileCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
-		return checkWorkerHasAccessToPackageContainers(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
 		})
@@ -46,8 +46,14 @@ export const FileCopy: ExpectationWindowsHandler = {
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
-		const accessTargetPackageContainer = findBestPackageContainerWithAccess(worker, exp.endRequirement.targets)
+		const accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(
+			worker,
+			exp.startRequirement.sources
+		)
+		const accessTargetPackageContainer = findBestPackageContainerWithAccessToPackage(
+			worker,
+			exp.endRequirement.targets
+		)
 
 		const accessorTypeCost: { [key: string]: number } = {
 			[Accessor.AccessType.LOCAL_FOLDER]: 1,
@@ -163,6 +169,11 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
 		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
+		// TODO:
+		Should metadata be considered to be an equally important part of a "package"?
+		If so, removal should not be done separately
+
+
 		if (
 			process.platform === 'win32' && // Robocopy is a windows-only feature
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
@@ -192,6 +203,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 				await lookupTarget.handle.removePackage()
 				await lookupTarget.handle.removeMetadata()
 			})
+
+			await lookupTarget.handle.packageIsInPlace()
 
 			const sourcePath = lookupSource.handle.fullPath
 			const targetPath = lookupTarget.handle.fullPath
@@ -332,18 +345,30 @@ function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
-	return lookupAccessorHandles<UniversalVersion>(worker, exp.startRequirement.sources, exp.endRequirement.content, {
-		read: true,
-		readPackage: true,
-		packageVersion: exp.endRequirement.version,
-	})
+	return lookupAccessorHandles<UniversalVersion>(
+		worker,
+		exp.startRequirement.sources,
+		exp.endRequirement.content,
+		exp.workOptions,
+		{
+			read: true,
+			readPackage: true,
+			packageVersion: exp.endRequirement.version,
+		}
+	)
 }
 function lookupCopyTargets(
 	worker: GenericWorker,
 	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
-	return lookupAccessorHandles<UniversalVersion>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
-		write: true,
-		writePackageContainer: true,
-	})
+	return lookupAccessorHandles<UniversalVersion>(
+		worker,
+		exp.endRequirement.targets,
+		exp.endRequirement.content,
+		exp.workOptions,
+		{
+			write: true,
+			writePackageContainer: true,
+		}
+	)
 }

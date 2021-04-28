@@ -1,0 +1,68 @@
+{
+    "description": "This file is intended for debugging use. By passing the argument --watchFiles=true, the application will monitor this file as a second source of packages, so we can fiddle without going through Core",
+    "packageContainers": {
+        "a": {
+            "label": "A",
+            "accessors": {
+                "local": {
+                    "type": "local_folder",
+                    "folderPath": "C:\\Users\\Admin\\Desktop\\A",
+                    "allowRead": true
+                }
+            }
+        },
+        "b": {
+            "label": "B",
+            "accessors": {
+                "local": {
+                    "type": "local_folder",
+                    "folderPath": "C:\\Users\\Admin\\Desktop\\B",
+                    "allowRead": true,
+                    "allowWrite": true
+                }
+            }
+        },
+        "internet": {
+            "label": "The Internet",
+            "accessors": {
+                "http": {
+                    "type": "http",
+                    "baseUrl": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/",
+                    "allowRead": true
+                }
+            }
+        }
+    },
+    "expectedPackages": [
+        {
+            "disable": false,
+            "type": "media_file",
+            "_id": "test",
+            "contentVersionHash": "abc1234",
+            "content": {
+                "filePath": "test.mp4"
+            },
+            "version": {},
+            "sources": [
+                {
+                    "containerId": "a",
+                    "accessors": {
+                        "local": {
+                            "type": "local_folder",
+                            "filePath": "test.mp4"
+                        }
+                    }
+                }
+            ],
+            "layers": [
+                "b"
+            ],
+            "sideEffect": {
+                "previewContainerId": null,
+                "previewPackageSettings": null,
+                "thumbnailContainerId": null,
+                "thumbnailPackageSettings": null
+            }
+        }
+    ]
+}

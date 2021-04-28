@@ -10,6 +10,12 @@ import {
 	Hook,
 	LoggerInstance,
 	WorkerConfig,
+	literal,
+	PackageContainerExpectation,
+	ReturnTypeDoYouSupportPackageContainer,
+	ReturnTypeRunPackageContainerCronJob,
+	ReturnTypeSetupPackageContainerMonitors,
+	ReturnTypeDisposePackageContainerMonitors,
 } from '@shared/api'
 import { ExpectationManagerAPI } from './expManApi'
 import { IWorkInProgress } from './worker/lib/workInProgress'
@@ -126,7 +132,7 @@ export class WorkerAgent {
 			url: url,
 			api: new ExpectationManagerAPI(),
 		})
-		const methods: ExpectationManagerWorkerAgent.WorkerAgent = {
+		const methods: ExpectationManagerWorkerAgent.WorkerAgent = literal<ExpectationManagerWorkerAgent.WorkerAgent>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {
 				return await this._worker.doYouSupportExpectation(exp)
 			},
@@ -202,7 +208,27 @@ export class WorkerAgent {
 				}
 				delete this.worksInProgress[`${wipId}`]
 			},
-		}
+			doYouSupportPackageContainer: (
+				packageContainer: PackageContainerExpectation
+			): Promise<ReturnTypeDoYouSupportPackageContainer> => {
+				return this._worker.doYouSupportPackageContainer(packageContainer)
+			},
+			runPackageContainerCronJob: (
+				packageContainer: PackageContainerExpectation
+			): Promise<ReturnTypeRunPackageContainerCronJob> => {
+				return this._worker.runPackageContainerCronJob(packageContainer)
+			},
+			setupPackageContainerMonitors: (
+				packageContainer: PackageContainerExpectation
+			): Promise<ReturnTypeSetupPackageContainerMonitors> => {
+				return this._worker.setupPackageContainerMonitors(packageContainer)
+			},
+			disposePackageContainerMonitors: (
+				packageContainer: PackageContainerExpectation
+			): Promise<ReturnTypeDisposePackageContainerMonitors> => {
+				return this._worker.disposePackageContainerMonitors(packageContainer)
+			},
+		})
 		// Connect to the ExpectationManager:
 
 		if (url === '__internal') {

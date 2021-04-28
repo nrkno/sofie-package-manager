@@ -33,3 +33,23 @@ export interface WorkerAgentConfig {
 	 */
 	windowsDriveLetters?: string[]
 }
+export interface ReturnTypeDoYouSupportPackageContainer {
+	support: boolean
+	reason: string
+}
+export interface ReturnTypeRunPackageContainerCronJob {
+	completed: boolean
+	reason?: string
+}
+export interface ReturnTypeDisposePackageContainerMonitors {
+	disposed: boolean
+	reason?: string
+}
+export interface ReturnTypeSetupPackageContainerMonitors {
+	setupOk: boolean
+	reason?: string
+	monitors?: { [monitorId: string]: MonitorProperties }
+}
+export interface MonitorProperties {
+	label: string
+}

@@ -17,18 +17,28 @@ const MINIMUM_FRAMES = 10
 /** Accessor handle for handling clips in a Quantel system */
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'quantel'
-	constructor(
-		worker: GenericWorker,
-		private accessor: AccessorOnPackage.Quantel,
-		private content: {
-			guid?: string
-			title?: string
-		}
-	) {
-		super(worker, accessor, content, QuantelAccessorHandle.type)
+	private content: {
+		guid?: string
+		title?: string
 	}
-	doYouSupportAccess(): boolean {
-		return !this.accessor.networkId || this.worker.location.localNetworkIds.includes(this.accessor.networkId)
+	private workOptions: {}
+	constructor(worker: GenericWorker, private accessor: AccessorOnPackage.Quantel, content: any, workOptions: any) {
+		super(worker, accessor, content, QuantelAccessorHandle.type)
+		// Verify content data:
+		if (content.guid && typeof content.guid !== 'string')
+			throw new Error('Bad input data: content.guid must be a string!')
+		if (content.title && typeof content.title !== 'string')
+			throw new Error('Bad input data: content.title must be a string!')
+		this.content = content
+		// if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
+		//	throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+		this.workOptions = workOptions
+
+		this.workOptions = this.workOptions
+	}
+	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+		const accessor = accessor0 as AccessorOnPackage.Quantel
+		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
 	}
 	checkHandleRead(): string | undefined {
 		if (!this.accessor.allowRead) {
@@ -219,6 +229,16 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	async removeMetadata(): Promise<void> {
 		// Not supported, do nothing
 	}
+	async runCronJob(): Promise<string | undefined> {
+		return undefined // not applicable
+	}
+	async setupPackageContainerMonitors(): Promise<string | undefined> {
+		return undefined // not applicable
+	}
+	async disposePackageContainerMonitors(): Promise<string | undefined> {
+		return undefined // not applicable
+	}
+
 	private convertClipSummaryToVersion(clipSummary: ClipDataSummary): Expectation.Version.QuantelClip {
 		return {
 			type: Expectation.Version.Type.QUANTEL_CLIP,

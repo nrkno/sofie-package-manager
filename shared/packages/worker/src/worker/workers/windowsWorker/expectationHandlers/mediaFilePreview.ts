@@ -1,6 +1,6 @@
 import { Accessor } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
-import { findBestPackageContainerWithAccess } from '../lib/lib'
+import { findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	hashObj,
@@ -13,12 +13,12 @@ import {
 } from '@shared/api'
 import { isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { ChildProcess, spawn } from 'child_process'
 
 export const MediaFilePreview: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
-		return checkWorkerHasAccessToPackageContainers(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
 		})
@@ -29,8 +29,14 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
-		const accessTargetPackageContainer = findBestPackageContainerWithAccess(worker, exp.endRequirement.targets)
+		const accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(
+			worker,
+			exp.startRequirement.sources
+		)
+		const accessTargetPackageContainer = findBestPackageContainerWithAccessToPackage(
+			worker,
+			exp.endRequirement.targets
+		)
 
 		const accessorTypeCost: { [key: string]: number } = {
 			[Accessor.AccessType.LOCAL_FOLDER]: 1,
@@ -299,18 +305,30 @@ function lookupPreviewSources(
 	worker: GenericWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
-	return lookupAccessorHandles<Metadata>(worker, exp.startRequirement.sources, exp.startRequirement.content, {
-		read: true,
-		readPackage: true,
-		packageVersion: exp.startRequirement.version,
-	})
+	return lookupAccessorHandles<Metadata>(
+		worker,
+		exp.startRequirement.sources,
+		exp.startRequirement.content,
+		exp.workOptions,
+		{
+			read: true,
+			readPackage: true,
+			packageVersion: exp.startRequirement.version,
+		}
+	)
 }
 function lookupPreviewTargets(
 	worker: GenericWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
-	return lookupAccessorHandles<Metadata>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
-		write: true,
-		writePackageContainer: true,
-	})
+	return lookupAccessorHandles<Metadata>(
+		worker,
+		exp.endRequirement.targets,
+		exp.endRequirement.content,
+		exp.workOptions,
+		{
+			write: true,
+			writePackageContainer: true,
+		}
+	)
 }

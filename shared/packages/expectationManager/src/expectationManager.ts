@@ -14,6 +14,7 @@ import {
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
+import { PackageContainerExpectation } from 'shared/packages/api/dist'
 
 /**
  * The Expectation Manager is responsible for tracking the state of the Expectations,
@@ -35,10 +36,16 @@ export class ExpectationManager {
 
 	/** Store for various incoming things, to be processed on next iteration round */
 	private receivedUpdates: {
-		/** Set to true when there are (external) updates to the expectations available */
-		expectationsHasBeenUpdated: boolean
-		/** Store for incoming expectations */
+		/** Store for incoming Expectations */
 		expectations: { [id: string]: Expectation.Any }
+		/** Set to true when there have been changes to expectations.receivedUpdates */
+		expectationsHasBeenUpdated: boolean
+
+		/** Store for incoming PackageContainerExpectations */
+		packageContainers: { [id: string]: PackageContainerExpectation }
+		/** Set to true when there have been changes to expectations.receivedUpdates */
+		packageContainersHasBeenUpdated: boolean
+
 		/** Store for incoming Restart-calls */
 		restartExpectations: { [id: string]: true }
 		/** Store for incoming Abort-calls */
@@ -46,15 +53,19 @@ export class ExpectationManager {
 		/** Store for incoming RestartAll-calls */
 		restartAllExpectations: boolean
 	} = {
-		expectationsHasBeenUpdated: false,
 		expectations: {},
+		expectationsHasBeenUpdated: false,
+		packageContainers: {},
+		packageContainersHasBeenUpdated: false,
 		restartExpectations: {},
 		abortExpectations: {},
 		restartAllExpectations: false,
 	}
 
 	/** This is the main store of all Tracked Expectations */
-	private tracked: { [id: string]: TrackedExpectation } = {}
+	private trackedExpectations: { [id: string]: TrackedExpectation } = {}
+
+	private trackedPackageContainers: { [id: string]: TrackedPackageContainerExpectation } = {}
 	/** key-value store of which expectations are triggered when another is fullfilled */
 	private _triggerByFullfilledIds: { [fullfilledId: string]: string[] } = {}
 
@@ -87,6 +98,7 @@ export class ExpectationManager {
 		private workForceConnectionOptions: ClientConnectionOptions,
 		private reportExpectationStatus: ReportExpectationStatus,
 		private reportPackageContainerPackageStatus: ReportPackageContainerPackageStatus,
+		private reportPackageContainerExpectationStatus: ReportPackageContainerExpectationStatus,
 		private onMessageFromWorker: MessageFromWorker
 	) {
 		if (this.serverConnectionOptions.type === 'websocket') {
@@ -158,9 +170,15 @@ export class ExpectationManager {
 		}
 	}
 
+	updatePackageContainerExpectations(packageContainers: { [id: string]: PackageContainerExpectation }): void {
+		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
+		this.receivedUpdates.packageContainers = packageContainers
+
+		this._triggerEvaluateExpectations(true)
+	}
 	/** Called when there is an updated set of expectations */
 	updateExpectations(expectations: { [id: string]: Expectation.Any }): void {
-		// We store the incoming expectations in this temporary
+		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
 		this.receivedUpdates.expectations = expectations
 		this.receivedUpdates.expectationsHasBeenUpdated = true
 
@@ -298,14 +316,19 @@ export class ExpectationManager {
 		if (this.receivedUpdates.expectationsHasBeenUpdated) {
 			await this.updateReceivedExpectations()
 		}
+		if (this.receivedUpdates.packageContainersHasBeenUpdated) {
+			await this.updateReceivedPackageContainerExpectations()
+		}
 		let runAgainASAP = false
+
+		await this.iterateThroughPackageContainers()
 
 		const iterateThroughTrackedExpectation = async (allowStartWorking: boolean): Promise<void> => {
 			const startTime = Date.now()
 
 			const removeIds: string[] = []
 
-			const tracked: TrackedExpectation[] = Object.values(this.tracked)
+			const tracked: TrackedExpectation[] = Object.values(this.trackedExpectations)
 			tracked.sort((a, b) => {
 				// Lowest priority first
 				if (a.exp.priority > b.exp.priority) return 1
@@ -350,7 +373,7 @@ export class ExpectationManager {
 				}
 			}
 			for (const id of removeIds) {
-				delete this.tracked[id]
+				delete this.trackedExpectations[id]
 			}
 		}
 
@@ -373,12 +396,12 @@ export class ExpectationManager {
 
 			let isNew = false
 			let doUpdate = false
-			if (!this.tracked[id]) {
+			if (!this.trackedExpectations[id]) {
 				// new
 				doUpdate = true
 				isNew = true
-			} else if (!_.isEqual(this.tracked[id].exp, exp)) {
-				const trackedExp = this.tracked[id]
+			} else if (!_.isEqual(this.trackedExpectations[id].exp, exp)) {
+				const trackedExp = this.trackedExpectations[id]
 
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
@@ -398,7 +421,7 @@ export class ExpectationManager {
 					reason: '',
 					status: {},
 				}
-				this.tracked[id] = trackedExp
+				this.trackedExpectations[id] = trackedExp
 				if (isNew) {
 					this.updateTrackedExpStatus(trackedExp, undefined, 'Added just now')
 				} else {
@@ -408,12 +431,12 @@ export class ExpectationManager {
 		}
 
 		// Removed:
-		for (const id of Object.keys(this.tracked)) {
+		for (const id of Object.keys(this.trackedExpectations)) {
 			if (!this.receivedUpdates.expectations[id]) {
 				// This expectation has been removed
 				// TODO: handled removed expectations!
 
-				const trackedExp = this.tracked[id]
+				const trackedExp = this.trackedExpectations[id]
 
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
@@ -429,14 +452,14 @@ export class ExpectationManager {
 
 		// Restarted:
 		if (this.receivedUpdates.restartAllExpectations) {
-			for (const id of Object.keys(this.tracked)) {
+			for (const id of Object.keys(this.trackedExpectations)) {
 				this.receivedUpdates.restartExpectations[id] = true
 			}
 		}
 		this.receivedUpdates.restartAllExpectations = false
 
 		for (const id of Object.keys(this.receivedUpdates.restartExpectations)) {
-			const trackedExp = this.tracked[id]
+			const trackedExp = this.trackedExpectations[id]
 			if (trackedExp) {
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
@@ -453,7 +476,7 @@ export class ExpectationManager {
 
 		// Aborted:
 		for (const id of Object.keys(this.receivedUpdates.abortExpectations)) {
-			const trackedExp = this.tracked[id]
+			const trackedExp = this.trackedExpectations[id]
 			if (trackedExp) {
 				if (trackedExp.state == TrackedExpectationState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
@@ -468,8 +491,8 @@ export class ExpectationManager {
 		this.receivedUpdates.abortExpectations = {}
 
 		this._triggerByFullfilledIds = {}
-		for (const id of Object.keys(this.tracked)) {
-			const trackedExp = this.tracked[id]
+		for (const id of Object.keys(this.trackedExpectations)) {
+			const trackedExp = this.trackedExpectations[id]
 			if (trackedExp.exp.triggerByFullfilledIds) {
 				for (const triggerByFullfilledId of trackedExp.exp.triggerByFullfilledIds) {
 					if (triggerByFullfilledId === id) {
@@ -876,7 +899,7 @@ export class ExpectationManager {
 			const toTriggerIds = this._triggerByFullfilledIds[trackedExp.id] || []
 
 			for (const id of toTriggerIds) {
-				const toTriggerExp = this.tracked[id]
+				const toTriggerExp = this.trackedExpectations[id]
 				if (toTriggerExp) {
 					toTriggerExp.lastEvaluationTime = 0 // so that it reruns ASAP
 					hasTriggeredSomething = true
@@ -894,8 +917,8 @@ export class ExpectationManager {
 			// Check if those are fullfilled:
 			let waitingFor: TrackedExpectation | undefined = undefined
 			for (const id of trackedExp.exp.dependsOnFullfilled) {
-				if (this.tracked[id].state !== TrackedExpectationState.FULFILLED) {
-					waitingFor = this.tracked[id]
+				if (this.trackedExpectations[id].state !== TrackedExpectationState.FULFILLED) {
+					waitingFor = this.trackedExpectations[id]
 					break
 				}
 			}
@@ -908,6 +931,169 @@ export class ExpectationManager {
 		}
 
 		return await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
+	}
+	private async updateReceivedPackageContainerExpectations() {
+		this.receivedUpdates.packageContainersHasBeenUpdated = false
+
+		// Added / Changed
+		for (const id of Object.keys(this.receivedUpdates.packageContainers)) {
+			const packageContainer: PackageContainerExpectation = this.receivedUpdates.packageContainers[id]
+
+			let isNew = false
+			let isUpdated = false
+			if (!this.trackedPackageContainers[id]) {
+				// new
+				isUpdated = true
+				isNew = true
+			} else if (!_.isEqual(this.trackedPackageContainers[id].packageContainer, packageContainer)) {
+				isUpdated = true
+			}
+			if (isNew) {
+				const trackedPackageContainer: TrackedPackageContainerExpectation = {
+					id: id,
+					packageContainer: packageContainer,
+					currentWorker: null,
+					isUpdated: true,
+					lastEvaluationTime: 0,
+					status: {
+						monitors: {},
+					},
+				}
+				this.trackedPackageContainers[id] = trackedPackageContainer
+			}
+			if (isUpdated) {
+				this.trackedPackageContainers[id].packageContainer = packageContainer
+				this.trackedPackageContainers[id].isUpdated = true
+			}
+		}
+
+		// Removed:
+		for (const id of Object.keys(this.trackedPackageContainers)) {
+			if (!this.receivedUpdates.packageContainers[id]) {
+				// This packageContainersExpectation has been removed
+
+				const trackedPackageContainer = this.trackedPackageContainers[id]
+				if (trackedPackageContainer.currentWorker) {
+					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
+					if (workerAgent) {
+						await workerAgent.api.disposePackageContainerMonitors(trackedPackageContainer.packageContainer)
+					}
+				}
+			}
+		}
+	}
+	private async iterateThroughPackageContainers(): Promise<void> {
+		for (const trackedPackageContainer of Object.values(this.trackedPackageContainers)) {
+			if (trackedPackageContainer.isUpdated) {
+				// If the packageContainer was newly updated, reset and set up again:
+				if (trackedPackageContainer.currentWorker) {
+					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
+					const dispose = await workerAgent.api.disposePackageContainerMonitors(
+						trackedPackageContainer.packageContainer
+					)
+					if (!dispose.disposed) {
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, dispose.reason)
+						continue // Break further execution for this PackageContainer
+					}
+					trackedPackageContainer.currentWorker = null
+				}
+				trackedPackageContainer.isUpdated = false
+			}
+
+			if (trackedPackageContainer.currentWorker) {
+				// Check that the worker still exists:
+				if (!this.workerAgents[trackedPackageContainer.currentWorker]) {
+					trackedPackageContainer.currentWorker = null
+				}
+			}
+
+			let currentWorkerIsNew = false
+			if (!trackedPackageContainer.currentWorker) {
+				// Find a worker
+				let notSupportReason: string | null = null
+				await Promise.all(
+					Object.entries(this.workerAgents).map(async ([workerId, workerAgent]) => {
+						const support = await workerAgent.api.doYouSupportPackageContainer(
+							trackedPackageContainer.packageContainer
+						)
+						if (!trackedPackageContainer.currentWorker && support.support) {
+							trackedPackageContainer.currentWorker = workerId
+							currentWorkerIsNew = true
+						} else {
+							notSupportReason = support.reason
+						}
+					})
+				)
+				if (!trackedPackageContainer.currentWorker) {
+					notSupportReason = 'Found no worker that supports this packageContainer'
+				}
+				if (notSupportReason) {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, notSupportReason)
+					continue // Break further execution for this PackageContainer
+				}
+			}
+
+			if (trackedPackageContainer.currentWorker) {
+				const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
+
+				if (currentWorkerIsNew) {
+					const monitorSetup = await workerAgent.api.setupPackageContainerMonitors(
+						trackedPackageContainer.packageContainer
+					)
+
+					trackedPackageContainer.status.monitors = {}
+					for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors ?? {})) {
+						trackedPackageContainer.status.monitors[monitorId] = {
+							label: monitor.label,
+							reason: 'Starting up',
+						}
+					}
+				}
+				const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
+					trackedPackageContainer.packageContainer
+				)
+				if (!cronJobStatus.completed) {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, cronJobStatus.reason)
+					continue
+				}
+			}
+		}
+	}
+	private updateTrackedPackageContainerStatus(
+		trackedPackageContainer: TrackedPackageContainerExpectation,
+		reason: string | undefined
+	) {
+		trackedPackageContainer.lastEvaluationTime = Date.now()
+
+		// const prevStatus = trackedPackageContainer.status
+		let updatedReason = false
+
+		if (trackedPackageContainer.status.reason !== reason) {
+			trackedPackageContainer.status.reason = reason || ''
+			updatedReason = true
+		}
+		// const status = Object.assign({}, trackedPackageContainer.status, newStatus) // extend with new values
+		// if (!_.isEqual(prevStatus, status)) {
+		// 	Object.assign(trackedPackageContainer.status, newStatus)
+		// 	updatedStatus = true
+		// }
+		// Log and report new states an reasons:
+		// if (updatedState) {
+		// 	this.logger.info(
+		// 		`${trackedPackageContainer.exp.statusReport.label}: New state: "${prevState}"->"${trackedPackageContainer.state}", reason: "${trackedPackageContainer.reason}"`
+		// 	)
+		// } else
+		if (updatedReason) {
+			this.logger.info(
+				`${trackedPackageContainer.packageContainer.label}: Reason: "${trackedPackageContainer.status.reason}"`
+			)
+		}
+
+		if (updatedReason) {
+			this.reportPackageContainerExpectationStatus(trackedPackageContainer.packageContainer, {
+				statusReason: trackedPackageContainer.status.reason,
+			})
+		}
 	}
 }
 /** Denotes the various states of a Tracked Expectation */
@@ -985,3 +1171,33 @@ export type ReportPackageContainerPackageStatus = (
 	packageId: string,
 	packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 ) => void
+export type ReportPackageContainerExpectationStatus = (
+	packageContainer: PackageContainerExpectation | null,
+	statusInfo: {
+		statusReason?: string
+	}
+) => void
+interface TrackedPackageContainerExpectation {
+	/** Unique ID of the tracked packageContainer */
+	id: string
+	/** The PackageContainerExpectation */
+	packageContainer: PackageContainerExpectation
+	/** True whether the packageContainer was newly updated */
+	isUpdated: boolean
+
+	currentWorker: string | null
+
+	/** Timestamp of the last time the expectation was evaluated. */
+	lastEvaluationTime: number
+
+	/** These statuses are sent from the workers */
+	status: {
+		reason?: string
+		monitors: {
+			[monitorId: string]: {
+				label: string
+				reason: string
+			}
+		}
+	}
+}

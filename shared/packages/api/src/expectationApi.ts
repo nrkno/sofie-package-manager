@@ -58,6 +58,8 @@ export namespace Expectation {
 			content: any
 			version: any
 		}
+		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
+		workOptions: {}
 		/** Reference to another expectation.
 		 * Won't start until ALL other expectations are fullfilled
 		 */
@@ -81,6 +83,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedFileOnDisk
 		}
+		workOptions: WorkOptions.RemoveDelay
 	}
 	export interface PackageContainerOnPackageFile extends PackageContainerOnPackage {
 		accessors: {
@@ -107,6 +110,7 @@ export namespace Expectation {
 			}
 			version: null
 		}
+		workOptions: WorkOptions.RemoveDelay
 	}
 	export interface MediaFileDeepScan extends Base {
 		type: Type.MEDIA_FILE_DEEP_SCAN
@@ -149,6 +153,7 @@ export namespace Expectation {
 				blackThreshold?: number
 			}
 		}
+		workOptions: WorkOptions.RemoveDelay
 	}
 	export interface PackageContainerOnPackageCorePackage extends PackageContainerOnPackage {
 		accessors: {
@@ -170,6 +175,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFileThumbnail
 		}
+		workOptions: WorkOptions.RemoveDelay
 	}
 	export interface MediaFilePreview extends Base {
 		type: Type.MEDIA_FILE_PREVIEW
@@ -186,6 +192,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFilePreview
 		}
+		workOptions: WorkOptions.RemoveDelay
 	}
 
 	export interface QuantelClipCopy extends Base {
@@ -206,6 +213,14 @@ export namespace Expectation {
 	export interface PackageContainerOnPackageQuantel extends PackageContainerOnPackage {
 		accessors: {
 			[accessorId: string]: AccessorOnPackage.Quantel
+		}
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-namespace
+	export namespace WorkOptions {
+		export interface RemoveDelay {
+			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */
+			removeDelay?: number
 		}
 	}
 

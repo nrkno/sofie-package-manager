@@ -3,32 +3,55 @@ import { promisify } from 'util'
 import * as fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
-import { Expectation } from '@shared/api'
+import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
+import { assertNever } from '../lib/lib'
+import { FileRemoval } from './lib/FileRemoval'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
 const fsOpen = promisify(fs.open)
 const fsClose = promisify(fs.close)
-const fsUnlink = promisify(fs.unlink)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 
 /** Accessor handle for accessing files in a local folder */
 export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'localFolder'
+	private fileRemoval = new FileRemoval(
+		() => this.folderPath,
+		() => this.filePath
+	)
+
+	private content: {
+		filePath: string
+	}
+	private workOptions: Expectation.WorkOptions.RemoveDelay
+
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.LocalFolder,
-		private content: {
-			filePath: string
-		}
+		content: any,
+		workOptions: any
 	) {
 		super(worker, accessor, content, LocalFolderAccessorHandle.type)
+
+		// Verify content data:
+		if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		this.content = content
+		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
+			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+		this.workOptions = workOptions
 	}
-	doYouSupportAccess(): boolean {
-		return !this.accessor.resourceId || this.accessor.resourceId === this.worker.location.localComputerId
+	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+		const accessor = accessor0 as AccessorOnPackage.LocalFolder
+		return !accessor.resourceId || accessor.resourceId === worker.location.localComputerId
 	}
+	/** Full path to the package */
+	get fullPath(): string {
+		return path.join(this.folderPath, this.filePath)
+	}
+
 	checkHandleRead(): string | undefined {
 		if (!this.accessor.allowRead) {
 			return `Not allowed to read`
@@ -92,50 +115,18 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		return this.convertStatToVersion(stat)
 	}
 	async removePackage(): Promise<void> {
-		await this.unlinkIfExists(this.fullPath)
-	}
-
-	/** Path to the PackageContainer, ie the folder */
-	get folderPath(): string {
-		if (!this.accessor.folderPath) throw new Error(`LocalFolderAccessor: accessor.folderPath not set!`)
-		return this.accessor.folderPath
-	}
-	/** Local path to the Package, ie the File */
-	get filePath(): string {
-		const filePath = this.accessor.filePath || this.content.filePath
-		if (!filePath) throw new Error(`LocalFolderAccessor: filePath not set!`)
-		return filePath
-	}
-	get fullPath(): string {
-		return path.join(this.folderPath, this.filePath)
-	}
-	private convertStatToVersion(stat: fs.Stats): Expectation.Version.FileOnDisk {
-		return {
-			type: Expectation.Version.Type.FILE_ON_DISK,
-			fileSize: stat.size,
-			modifiedDate: stat.mtimeMs * 1000,
-			// checksum?: string
-			// checkSumType?: 'sha' | 'md5' | 'whatever'
+		if (this.workOptions.removeDelay) {
+			await this.fileRemoval.delayPackageRemoval(this.workOptions.removeDelay)
+		} else {
+			await this.fileRemoval.unlinkIfExists(this.fullPath)
 		}
 	}
-	private async unlinkIfExists(path: string): Promise<void> {
-		let exists = false
-		try {
-			await fsAccess(path, fs.constants.R_OK)
-			// The file exists
-			exists = true
-		} catch (err) {
-			// Ignore
-		}
-		if (exists) await fsUnlink(path)
-	}
-
 	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
 		const readStream = await new Promise<fs.ReadStream>((resolve, reject) => {
-			const readStream = fs.createReadStream(this.fullPath)
-			readStream.once('error', reject)
+			const rs: fs.ReadStream = fs.createReadStream(this.fullPath)
+			rs.once('error', reject)
 			// Wait for the stream to be actually valid before continuing:
-			readStream.once('open', () => resolve(readStream))
+			rs.once('open', () => resolve(rs))
 		})
 
 		return {
@@ -146,6 +137,8 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		}
 	}
 	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
+		await this.fileRemoval.clearPackageRemoval()
+
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
 		const streamWrapper: PutPackageHandler = new PutPackageHandler(() => {
@@ -162,6 +155,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		throw new Error('LocalFolder.getPackageReadInfo: Not supported')
 	}
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
+		// await this.removeDeferRemovePackage()
 		throw new Error('LocalFolder.putPackageInfo: Not supported')
 	}
 
@@ -185,9 +179,72 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		await fsWriteFile(this.metadataPath, JSON.stringify(metadata))
 	}
 	async removeMetadata(): Promise<void> {
-		await this.unlinkIfExists(this.metadataPath)
+		await this.fileRemoval.unlinkIfExists(this.metadataPath)
 	}
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
+		for (const cronjob of cronjobs) {
+			if (cronjob === 'interval') {
+				// ignore
+			} else if (cronjob === 'cleanup') {
+				await this.fileRemoval.removeDuePackages()
+			} else {
+				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
+				assertNever(cronjob)
+			}
+		}
+
+		return undefined
+	}
+	async setupPackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
+		for (const monitor of monitors) {
+			if (monitor === 'packages') {
+				// todo: implement monitors
+				throw new Error('Not implemented yet')
+			} else {
+				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
+				assertNever(monitor)
+			}
+		}
+
+		return undefined
+	}
+	async disposePackageContainerMonitors(
+		_packageContainerExp: PackageContainerExpectation
+	): Promise<string | undefined> {
+		// todo: implement monitors
+		return undefined
+	}
+
+	/** Called when the package is supposed to be in place */
+	async packageIsInPlace(): Promise<void> {
+		await this.fileRemoval.clearPackageRemoval()
+	}
+	private convertStatToVersion(stat: fs.Stats): Expectation.Version.FileOnDisk {
+		return {
+			type: Expectation.Version.Type.FILE_ON_DISK,
+			fileSize: stat.size,
+			modifiedDate: stat.mtimeMs * 1000,
+			// checksum?: string
+			// checkSumType?: 'sha' | 'md5' | 'whatever'
+		}
+	}
+
+	/** Path to the PackageContainer, ie the folder */
+	private get folderPath(): string {
+		if (!this.accessor.folderPath) throw new Error(`LocalFolderAccessor: accessor.folderPath not set!`)
+		return this.accessor.folderPath
+	}
+	/** Local path to the Package, ie the File */
+	private get filePath(): string {
+		const filePath = this.accessor.filePath || this.content.filePath
+		if (!filePath) throw new Error(`LocalFolderAccessor: filePath not set!`)
+		return filePath
+	}
+	/** Full path to the metadata file */
 	private get metadataPath() {
 		return this.fullPath + '_metadata.json'
 	}
+	/** Full path to the file containing deferred removals */
 }

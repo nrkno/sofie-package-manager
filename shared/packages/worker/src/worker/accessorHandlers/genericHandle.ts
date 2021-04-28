@@ -1,6 +1,6 @@
 import { AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { EventEmitter } from 'events'
-import { Expectation } from '@shared/api'
+import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 
 /**
@@ -14,8 +14,10 @@ export abstract class GenericAccessorHandle<Metadata> {
 		public readonly type: string
 	) {}
 
+	// Note: abstract static methods aren't currently supported by typescript: https://github.com/microsoft/TypeScript/issues/34516
+	// But it's still the type of thing we want to have here:
 	/** @returns true if the accessor is (statically) able to support access the PackageContainer */
-	abstract doYouSupportAccess(): boolean
+	// abstract static doYouSupportAccess(worker: GenericWorker, accessor: AccessorOnPackage.Any): boolean
 
 	/**
 	 * Checks if there are any issues with the properties in the accessor or content for being able to read
@@ -78,6 +80,26 @@ export abstract class GenericAccessorHandle<Metadata> {
 	abstract getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }>
 	/** For accessors that supports readInfo: Pipe info about a package source (obtained from getPackageReadInfo()) */
 	abstract putPackageInfo(readInfo: PackageReadInfo): Promise<PutPackageHandler>
+
+	/**
+	 * Performs a cronjob on the Package container
+	 * @returns undefined if all is OK / string with error message
+	 */
+	abstract runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined>
+	/**
+	 * Setup monitors on the Package container
+	 * @returns undefined if all is OK / string with error message
+	 */
+	abstract setupPackageContainerMonitors(
+		packageContainerExp: PackageContainerExpectation
+	): Promise<string | undefined>
+	/**
+	 * Tear down monitors on the Package container
+	 * @returns undefined if all is OK / string with error message
+	 */
+	abstract disposePackageContainerMonitors(
+		packageContainerExp: PackageContainerExpectation
+	): Promise<string | undefined>
 }
 
 /**

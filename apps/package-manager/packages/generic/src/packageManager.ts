@@ -9,7 +9,7 @@ import {
 	PackageContainer,
 	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
-import { generateExpectations } from './expectationGenerator'
+import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
 import { ExpectationManager } from '@shared/expectation-manager'
 import {
 	ClientConnectionOptions,
@@ -18,6 +18,8 @@ import {
 	ExpectationManagerWorkerAgent,
 	PackageManagerConfig,
 	LoggerInstance,
+	PackageContainerExpectation,
+	literal,
 } from '@shared/api'
 import * as deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -72,6 +74,15 @@ export class PackageManagerHandler {
 				packageId: string,
 				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 			) => this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
+			(
+				_packageContainer: PackageContainerExpectation | null,
+				_statusInfo: {
+					statusReason?: string
+				}
+			) => {
+				// todo: report PackageContainerExpectation Status to somewhere?
+				// this.reportPackageContainerExpectationStatus
+			},
 			(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => this.onMessageFromWorker(message)
 		)
 	}
@@ -109,6 +120,9 @@ export class PackageManagerHandler {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
+			// @ts-ignore hack
+			if (expectedPackage.disable) continue // skip
+
 			const combinedSources: PackageContainerOnPackage[] = []
 			for (const packageSource of expectedPackage.sources) {
 				const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
@@ -168,7 +182,7 @@ export class PackageManagerHandler {
 				if (combinedTargets.length) {
 					expectedPackagesWraps.push({
 						expectedPackage: expectedPackage,
-						priority: 999,
+						priority: 999, // lowest priority
 						sources: combinedSources,
 						targets: combinedTargets,
 						playoutDeviceId: '',
@@ -294,9 +308,17 @@ export class PackageManagerHandler {
 			expectedPackages
 		)
 		this.logger.info('expectations:', expectations)
+		const packageContainerExpectations = generatePackageContainerExpectations(
+			this._expectationManager.managerId,
+			this.packageContainersCache,
+			activePlaylist
+		)
+		this.ensureMandatoryPackageContainerExpectations(packageContainerExpectations)
 		// this.logger.info(JSON.stringify(expectations, null, 2))
 
 		// Step 2: Track and handle new expectations:
+		this._expectationManager.updatePackageContainerExpectations(packageContainerExpectations)
+
 		this._expectationManager.updateExpectations(expectations)
 	}
 	public updateExpectationStatus(
@@ -508,6 +530,30 @@ export class PackageManagerHandler {
 	public abortExpectation(workId: string): void {
 		// This method can be called from core
 		this._expectationManager.abortExpectation(workId)
+	}
+	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
+	private ensureMandatoryPackageContainerExpectations(packageContainerExpectations: {
+		[id: string]: PackageContainerExpectation
+	}): void {
+		for (const [containerId, packageContainer] of Object.entries(this.packageContainersCache)) {
+			// All packageContainers should be monitored:
+			if (!packageContainerExpectations[containerId]) {
+				// todo: Maybe should not all package-managers monitor,
+				// this should perhaps be coordinated with the Workforce-manager, who should monitor who?
+
+				// Add default packageContainerExpectation:
+				packageContainerExpectations[containerId] = literal<PackageContainerExpectation>({
+					...packageContainer,
+					id: containerId,
+					managerId: this._expectationManager.managerId,
+					cronjobs: {
+						interval: 0,
+					},
+					monitors: {},
+				})
+			}
+			packageContainerExpectations[containerId].cronjobs.cleanup = {} // Add monitor
+		}
 	}
 }
 export function omit<T, P extends keyof T>(obj: T, ...props: P[]): Omit<T, P> {

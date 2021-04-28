@@ -1,6 +1,6 @@
 import { exec, ChildProcess } from 'child_process'
 import { Accessor } from '@sofie-automation/blueprints-integration'
-import { findBestPackageContainerWithAccess } from '../lib/lib'
+import { findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
@@ -14,12 +14,12 @@ import {
 } from '@shared/api'
 import { isCorePackageInfoAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainers, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 
 export const MediaFileScan: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
-		return checkWorkerHasAccessToPackageContainers(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
 	},
@@ -29,7 +29,10 @@ export const MediaFileScan: ExpectationWindowsHandler = {
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
+		const accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(
+			worker,
+			exp.startRequirement.sources
+		)
 
 		const accessorTypeCost: { [key: string]: number } = {
 			[Accessor.AccessType.LOCAL_FOLDER]: 1,
@@ -202,20 +205,32 @@ function lookupScanSources(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileScan
 ): Promise<LookupPackageContainer<Metadata>> {
-	return lookupAccessorHandles<Metadata>(worker, exp.startRequirement.sources, exp.startRequirement.content, {
-		read: true,
-		readPackage: true,
-		packageVersion: exp.startRequirement.version,
-	})
+	return lookupAccessorHandles<Metadata>(
+		worker,
+		exp.startRequirement.sources,
+		exp.startRequirement.content,
+		exp.workOptions,
+		{
+			read: true,
+			readPackage: true,
+			packageVersion: exp.startRequirement.version,
+		}
+	)
 }
 function lookupScanTargets(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileScan
 ): Promise<LookupPackageContainer<Metadata>> {
-	return lookupAccessorHandles<Metadata>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
-		write: true,
-		writePackageContainer: true,
-	})
+	return lookupAccessorHandles<Metadata>(
+		worker,
+		exp.endRequirement.targets,
+		exp.endRequirement.content,
+		exp.workOptions,
+		{
+			write: true,
+			writePackageContainer: true,
+		}
+	)
 }
 
 export function scanWithFFProbe(

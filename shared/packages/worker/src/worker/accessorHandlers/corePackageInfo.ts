@@ -6,17 +6,29 @@ import { GenericWorker } from '../worker'
 /** Accessor handle for accessing data store in Core */
 export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'corePackageInfo'
+	private content: {
+		infoType: string // "ffprobe"
+	}
+	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.CorePackageCollection,
-		private content: {
-			infoType: string // "ffprobe"
-		}
+		content: any,
+		workOptions: any
 	) {
 		super(worker, accessor, content, CorePackageInfoAccessorHandle.type)
-		this.content
+
+		// Verify content data:
+		if (!content.infoType) throw new Error('Bad input data: content.infoType not set!')
+		this.content = content
+		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
+			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+		this.workOptions = workOptions
+
+		this.content = this.content
+		this.workOptions = this.workOptions
 	}
-	doYouSupportAccess(): boolean {
+	static doYouSupportAccess(): boolean {
 		return true // always has access
 	}
 	checkHandleRead(): string | undefined {
@@ -80,6 +92,15 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	}
 	async removeMetadata(): Promise<void> {
 		throw new Error('removeMetadata not applicable for CorePackageInfo')
+	}
+	async runCronJob(): Promise<string | undefined> {
+		return undefined // not applicable
+	}
+	async setupPackageContainerMonitors(): Promise<string | undefined> {
+		return undefined // not applicable
+	}
+	async disposePackageContainerMonitors(): Promise<string | undefined> {
+		return undefined // not applicable
 	}
 
 	public async findUnUpdatedPackageInfo(

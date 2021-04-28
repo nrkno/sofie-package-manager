@@ -1,11 +1,16 @@
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
+	PackageContainerExpectation,
+	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	ReturnTypeRunPackageContainerCronJob,
+	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
 } from '@shared/api'
 import { IWorkInProgress } from './lib/workInProgress'
@@ -24,7 +29,7 @@ export abstract class GenericWorker {
 		public type: string
 	) {}
 	/**
-	 * Does the worker supports this expectation?
+	 * Does the worker support this expectation?
 	 * This includes things like:
 	 * * Being able to access/read/write to the sources and targets
 	 */
@@ -60,6 +65,27 @@ export abstract class GenericWorker {
 	 * This is called when an expectation has been removed.
 	 */
 	abstract removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation>
+
+	/**
+	 * Does the worker support this packageContainer?
+	 * This includes things like:
+	 * Being able to access/read/write to the packageContainer
+	 */
+	abstract doYouSupportPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDoYouSupportPackageContainer>
+	/** Execute a cronjob on the packageContainer */
+	abstract runPackageContainerCronJob(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeRunPackageContainerCronJob>
+	/** Set up monitors for this PackageContainer */
+	abstract setupPackageContainerMonitors(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeSetupPackageContainerMonitors>
+	/** Tear down monitors for this PackageContainer */
+	abstract disposePackageContainerMonitors(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDisposePackageContainerMonitors>
 }
 export interface WorkerLocation {
 	/** The name/identifier of the computer that this runs on */

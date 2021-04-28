@@ -1,11 +1,16 @@
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
+	PackageContainerExpectation,
+	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	ReturnTypeRunPackageContainerCronJob,
+	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
 } from '@shared/api'
 import { GenericWorker, WorkerLocation } from '../../worker'
@@ -17,6 +22,7 @@ import { ExpectationHandler } from '../../lib/expectationHandler'
 import { IWorkInProgress } from '../../lib/workInProgress'
 import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
 import { QuantelClipCopy } from './expectationHandlers/quantelClipCopy'
+import * as PackageContainerExpHandler from './packageContainerExpectationHandler'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -73,5 +79,26 @@ export class WindowsWorker extends GenericWorker {
 				// @ts-expect-error exp.type is never
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}
+	}
+
+	doYouSupportPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDoYouSupportPackageContainer> {
+		return PackageContainerExpHandler.doYouSupportPackageContainer(packageContainer, this)
+	}
+	runPackageContainerCronJob(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeRunPackageContainerCronJob> {
+		return PackageContainerExpHandler.runPackageContainerCronJob(packageContainer, this)
+	}
+	setupPackageContainerMonitors(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeSetupPackageContainerMonitors> {
+		return PackageContainerExpHandler.setupPackageContainerMonitors(packageContainer, this)
+	}
+	disposePackageContainerMonitors(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDisposePackageContainerMonitors> {
+		return PackageContainerExpHandler.disposePackageContainerMonitors(packageContainer, this)
 	}
 }

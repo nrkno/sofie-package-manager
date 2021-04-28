@@ -3,22 +3,22 @@ import { getAccessorHandle } from '../../../accessorHandlers/accessor'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
-import { compareActualExpectVersions, findBestPackageContainerWithAccess } from '../lib/lib'
+import { compareActualExpectVersions, findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { Diff } from 'deep-diff'
 import { Expectation, ReturnTypeDoYouSupportExpectation } from '@shared/api'
 
 /** Check that a worker has access to the packageContainers through its accessors */
-export function checkWorkerHasAccessToPackageContainers(
+export function checkWorkerHasAccessToPackageContainersOnPackage(
 	genericWorker: GenericWorker,
 	checks: {
 		sources?: PackageContainerOnPackage[]
 		targets?: PackageContainerOnPackage[]
 	}
 ): ReturnTypeDoYouSupportExpectation {
-	let accessSourcePackageContainer: ReturnType<typeof findBestPackageContainerWithAccess>
+	let accessSourcePackageContainer: ReturnType<typeof findBestPackageContainerWithAccessToPackage>
 	// Check that we have access to the packageContainers
 	if (checks.sources !== undefined) {
-		accessSourcePackageContainer = findBestPackageContainerWithAccess(genericWorker, checks.sources)
+		accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(genericWorker, checks.sources)
 		if (!accessSourcePackageContainer) {
 			return {
 				support: false,
@@ -29,9 +29,9 @@ export function checkWorkerHasAccessToPackageContainers(
 		}
 	}
 
-	let accessTargetPackageContainer: ReturnType<typeof findBestPackageContainerWithAccess>
+	let accessTargetPackageContainer: ReturnType<typeof findBestPackageContainerWithAccessToPackage>
 	if (checks.targets !== undefined) {
-		accessTargetPackageContainer = findBestPackageContainerWithAccess(genericWorker, checks.targets)
+		accessTargetPackageContainer = findBestPackageContainerWithAccessToPackage(genericWorker, checks.targets)
 		if (!accessTargetPackageContainer) {
 			return {
 				support: false,
@@ -84,18 +84,19 @@ interface LookupChecks {
 /** Go through the Accessors and return the best one that we can use for the expectation */
 export async function lookupAccessorHandles<Metadata>(
 	worker: GenericWorker,
-	expectationAccessors: PackageContainerOnPackage[],
+	packageContainers: PackageContainerOnPackage[],
 	expectationContent: unknown,
+	expectationWorkOptions: unknown,
 	checks: LookupChecks
 ): Promise<LookupPackageContainer<Metadata>> {
 	/** undefined if all good, error string otherwise */
 	let errorReason: undefined | string = 'No target found'
 
 	// See if the file is available at any of the targets:
-	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(expectationAccessors)) {
+	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
 		errorReason = undefined
 
-		const handle = getAccessorHandle<Metadata>(worker, accessor, expectationContent)
+		const handle = getAccessorHandle<Metadata>(worker, accessor, expectationContent, expectationWorkOptions)
 
 		if (checks.read) {
 			// Check that the accessor-handle supports reading:
@@ -142,6 +143,7 @@ export async function lookupAccessorHandles<Metadata>(
 			}
 		}
 		if (checks.writePackageContainer) {
+			// Check that it is possible to write to write to the package container:
 			const issuePackage = await handle.checkPackageContainerWriteAccess()
 			if (issuePackage) {
 				errorReason = `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${issuePackage}`

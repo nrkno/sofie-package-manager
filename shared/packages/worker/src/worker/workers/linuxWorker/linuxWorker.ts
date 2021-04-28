@@ -2,11 +2,16 @@ import { IWorkInProgress } from '../../lib/workInProgress'
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
+	PackageContainerExpectation,
+	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
+	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	ReturnTypeRunPackageContainerCronJob,
+	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
 } from '@shared/api'
 
@@ -44,6 +49,30 @@ export class LinuxWorker extends GenericWorker {
 		throw new Error(`Not implemented yet`)
 	}
 	removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
+		throw new Error(`Not implemented yet`)
+	}
+
+	async doYouSupportPackageContainer(
+		_packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDoYouSupportPackageContainer> {
+		return {
+			support: false,
+			reason: `Not implemented yet`,
+		}
+	}
+	async runPackageContainerCronJob(
+		_packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeRunPackageContainerCronJob> {
+		throw new Error(`Not implemented yet`)
+	}
+	async setupPackageContainerMonitors(
+		_packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeSetupPackageContainerMonitors> {
+		throw new Error(`Not implemented yet`)
+	}
+	async disposePackageContainerMonitors(
+		_packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDisposePackageContainerMonitors> {
 		throw new Error(`Not implemented yet`)
 	}
 }

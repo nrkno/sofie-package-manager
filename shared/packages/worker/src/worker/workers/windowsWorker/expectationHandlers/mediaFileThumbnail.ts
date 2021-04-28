@@ -9,13 +9,13 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@shared/api'
-import { findBestPackageContainerWithAccess } from '../lib/lib'
+import { findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import { isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import {
-	checkWorkerHasAccessToPackageContainers,
+	checkWorkerHasAccessToPackageContainersOnPackage,
 	formatTimeCode,
 	lookupAccessorHandles,
 	LookupPackageContainer,
@@ -23,7 +23,7 @@ import {
 
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
-		return checkWorkerHasAccessToPackageContainers(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
 	},
@@ -33,7 +33,10 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const accessSourcePackageContainer = findBestPackageContainerWithAccess(worker, exp.startRequirement.sources)
+		const accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(
+			worker,
+			exp.startRequirement.sources
+		)
 
 		const accessorTypeCost: { [key: string]: number } = {
 			[Accessor.AccessType.LOCAL_FOLDER]: 1,
@@ -270,18 +273,30 @@ function lookupThumbnailSources(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
-	return lookupAccessorHandles<Metadata>(worker, exp.startRequirement.sources, exp.startRequirement.content, {
-		read: true,
-		readPackage: true,
-		packageVersion: exp.startRequirement.version,
-	})
+	return lookupAccessorHandles<Metadata>(
+		worker,
+		exp.startRequirement.sources,
+		exp.startRequirement.content,
+		exp.workOptions,
+		{
+			read: true,
+			readPackage: true,
+			packageVersion: exp.startRequirement.version,
+		}
+	)
 }
 function lookupThumbnailTargets(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
-	return lookupAccessorHandles<Metadata>(worker, exp.endRequirement.targets, exp.endRequirement.content, {
-		write: true,
-		writePackageContainer: true,
-	})
+	return lookupAccessorHandles<Metadata>(
+		worker,
+		exp.endRequirement.targets,
+		exp.endRequirement.content,
+		exp.workOptions,
+		{
+			write: true,
+			writePackageContainer: true,
+		}
+	)
 }

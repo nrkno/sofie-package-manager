@@ -77,6 +77,7 @@ describe('Basic', () => {
 						},
 						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
+					workOptions: {},
 				}),
 			})
 
@@ -129,6 +130,7 @@ describe('Basic', () => {
 						},
 						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
+					workOptions: {},
 				}),
 			})
 
@@ -185,6 +187,7 @@ describe('Basic', () => {
 						},
 						version: { type: Expectation.Version.Type.QUANTEL_CLIP },
 					},
+					workOptions: {},
 				}),
 			})
 

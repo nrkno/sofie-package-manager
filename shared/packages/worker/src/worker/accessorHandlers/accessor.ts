@@ -10,20 +10,26 @@ import { QuantelAccessorHandle } from './quantel'
 export function getAccessorHandle<Metadata>(
 	worker: GenericWorker,
 	accessor: AccessorOnPackage.Any,
-	content: unknown
+	content: unknown,
+	workOptions: unknown
 ): GenericAccessorHandle<Metadata> {
+	const HandleClass = getAccessorStaticHandle(accessor)
+	// @ts-ignore
+	return new HandleClass(worker, accessor as any, content as any, workOptions as any)
+}
+export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 	if (accessor.type === undefined) {
-		throw new Error(`getAccessorHandle: Accessor type is undefined`)
+		throw new Error(`getAccessorStaticHandle: Accessor type is undefined`)
 	} else if (accessor.type === Accessor.AccessType.LOCAL_FOLDER) {
-		return new LocalFolderAccessorHandle(worker, accessor, content as any)
+		return LocalFolderAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
-		return new CorePackageInfoAccessorHandle(worker, accessor, content as any)
+		return CorePackageInfoAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.HTTP) {
-		return new HTTPAccessorHandle(worker, accessor, content as any)
+		return HTTPAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.FILE_SHARE) {
-		return new FileShareAccessorHandle(worker, accessor, content as any)
+		return FileShareAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.QUANTEL) {
-		return new QuantelAccessorHandle(worker, accessor, content as any)
+		return QuantelAccessorHandle
 	} else {
 		assertNever(accessor.type) // Assert  so as to not forget to add an if-clause above
 		throw new Error(`Unsupported Accessor type "${accessor.type}"`)

@@ -1,5 +1,9 @@
-import { AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
-import { getAccessorHandle } from '../../../accessorHandlers/accessor'
+import {
+	AccessorOnPackage,
+	PackageContainer,
+	PackageContainerOnPackage,
+} from '@sofie-automation/blueprints-integration'
+import { getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
 import { GenericWorker } from '../../../worker'
 import { Expectation } from '@shared/api'
 import { prioritizeAccessors } from '../../../lib/lib'
@@ -99,12 +103,34 @@ export interface UniversalVersion {
 export type VersionProperty = { name: string; value: string | number | undefined }
 
 /** Looks through the packageContainers and return the first one we support access to. */
-export function findBestPackageContainerWithAccess(
+export function findBestPackageContainerWithAccessToPackage(
 	worker: GenericWorker,
 	packageContainers: PackageContainerOnPackage[]
 ): { packageContainer: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: string } | undefined {
 	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
-		if (getAccessorHandle(worker, accessor, {}).doYouSupportAccess()) {
+		if (getAccessorStaticHandle(accessor).doYouSupportAccess(worker, accessor)) {
+			return { packageContainer, accessor, accessorId }
+		}
+	}
+	return undefined
+}
+
+/** Returns the best accessor for a packageContainer */
+export function findBestAccessorOnPackageContainer(
+	worker: GenericWorker,
+	containerId: string,
+	packageContainer: PackageContainer
+): { packageContainer: PackageContainer; accessor: AccessorOnPackage.Any; accessorId: string } | undefined {
+	// Construct a fake PackageContainerOnPackage from the PackageContainer, so that we can use prioritizeAccessors() later:
+	const packageContainers: PackageContainerOnPackage[] = [
+		{
+			containerId: containerId,
+			label: packageContainer.label,
+			accessors: packageContainer.accessors as any,
+		},
+	]
+	for (const { accessorId, accessor } of prioritizeAccessors(packageContainers)) {
+		if (getAccessorStaticHandle(accessor).doYouSupportAccess(worker, accessor)) {
 			return { packageContainer, accessor, accessorId }
 		}
 	}
