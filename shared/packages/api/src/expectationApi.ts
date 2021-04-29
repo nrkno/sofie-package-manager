@@ -59,7 +59,7 @@ export namespace Expectation {
 			version: any
 		}
 		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
-		workOptions: {}
+		workOptions: any // {}
 		/** Reference to another expectation.
 		 * Won't start until ALL other expectations are fullfilled
 		 */

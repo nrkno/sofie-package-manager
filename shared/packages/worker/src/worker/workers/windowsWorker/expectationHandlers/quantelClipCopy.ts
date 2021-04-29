@@ -140,7 +140,6 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 					putPackageHandler.once('close', () => {
 						lookupTarget.handle
 							.removePackage()
-							.then(() => lookupTarget.handle.removeMetadata())
 							.then(() => resolve())
 							.catch((err) => reject(err))
 					})
@@ -240,7 +239,6 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 
 		try {
 			await lookupTarget.handle.removePackage()
-			await lookupTarget.handle.removeMetadata()
 		} catch (err) {
 			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
 		}

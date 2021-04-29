@@ -14,9 +14,12 @@ export function getAccessorHandle<Metadata>(
 	workOptions: unknown
 ): GenericAccessorHandle<Metadata> {
 	const HandleClass = getAccessorStaticHandle(accessor)
-	// @ts-ignore
-	return new HandleClass(worker, accessor as any, content as any, workOptions as any)
+
+	// For some reason, tsc complains about build error TS2351: This expression is not constructable:
+	// But it works..!
+	return new (HandleClass as any)(worker, accessor as any, content as any, workOptions as any)
 }
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 	if (accessor.type === undefined) {
 		throw new Error(`getAccessorStaticHandle: Accessor type is undefined`)

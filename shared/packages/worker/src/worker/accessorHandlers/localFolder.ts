@@ -18,26 +18,26 @@ const fsWriteFile = promisify(fs.writeFile)
 /** Accessor handle for accessing files in a local folder */
 export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'localFolder'
-	private fileRemoval = new FileRemoval(
-		() => this.folderPath,
-		() => this.filePath
-	)
+	private fileRemoval = new FileRemoval(() => this.folderPath)
 
 	private content: {
-		filePath: string
+		onlyContainerAccess?: boolean
+		filePath?: string
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.LocalFolder,
-		content: any,
-		workOptions: any
+		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
 		super(worker, accessor, content, LocalFolderAccessorHandle.type)
 
 		// Verify content data:
-		if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		if (!content.onlyContainerAccess) {
+			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		}
 		this.content = content
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
@@ -69,7 +69,9 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 			return `LocalFolder Accessor type is not LOCAL_FOLDER ("${this.accessor.type}")!`
 		}
 		if (!this.accessor.folderPath) return `Folder path not set`
-		if (!this.filePath) return `File path not set`
+		if (!this.content.onlyContainerAccess) {
+			if (!this.filePath) return `File path not set`
+		}
 		return undefined // all good
 	}
 	async checkPackageReadAccess(): Promise<string | undefined> {
@@ -116,8 +118,9 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 	}
 	async removePackage(): Promise<void> {
 		if (this.workOptions.removeDelay) {
-			await this.fileRemoval.delayPackageRemoval(this.workOptions.removeDelay)
+			await this.fileRemoval.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
+			await this.removeMetadata()
 			await this.fileRemoval.unlinkIfExists(this.fullPath)
 		}
 	}
@@ -137,7 +140,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		}
 	}
 	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
-		await this.fileRemoval.clearPackageRemoval()
+		await this.fileRemoval.clearPackageRemoval(this.filePath)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
@@ -219,7 +222,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 
 	/** Called when the package is supposed to be in place */
 	async packageIsInPlace(): Promise<void> {
-		await this.fileRemoval.clearPackageRemoval()
+		await this.fileRemoval.clearPackageRemoval(this.filePath)
 	}
 	private convertStatToVersion(stat: fs.Stats): Expectation.Version.FileOnDisk {
 		return {
@@ -238,6 +241,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 	}
 	/** Local path to the Package, ie the File */
 	private get filePath(): string {
+		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 		const filePath = this.accessor.filePath || this.content.filePath
 		if (!filePath) throw new Error(`LocalFolderAccessor: filePath not set!`)
 		return filePath
@@ -246,5 +250,4 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 	private get metadataPath() {
 		return this.fullPath + '_metadata.json'
 	}
-	/** Full path to the file containing deferred removals */
 }

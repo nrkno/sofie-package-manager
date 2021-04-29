@@ -157,7 +157,6 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					},
 				}
 
-				await lookupTarget.handle.removeMetadata()
 				await lookupTarget.handle.removePackage()
 
 				const args = [

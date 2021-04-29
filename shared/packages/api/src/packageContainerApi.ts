@@ -9,7 +9,7 @@ export interface PackageContainerExpectation extends PackageContainer {
 	cronjobs: {
 		/** How often the cronjob should run (approximately) */
 		interval?: number
-		cleanup?: {}
+		cleanup?: any // {}
 	}
 	/** Defines which monitors are expected to run */
 	monitors: {

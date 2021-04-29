@@ -12,12 +12,10 @@ const fsUnlink = promisify(fs.unlink)
  * It is used by the Localfodler and FileShare classes
  */
 export class FileRemoval {
-	constructor(private getFolderPath: () => string, private getFilePath: () => string) {}
+	constructor(private getFolderPath: () => string) {}
 	/** Schedule the package for later removal */
-	async delayPackageRemoval(ttl: number): Promise<void> {
+	async delayPackageRemoval(filePath: string, ttl: number): Promise<void> {
 		const packagesToRemove = await this.getPackagesToRemove()
-
-		const filePath = this.getFilePath()
 
 		// Search for a pre-existing entry:
 		let found = false
@@ -40,14 +38,8 @@ export class FileRemoval {
 		await this.storePackagesToRemove(packagesToRemove)
 	}
 	/** Clear a scheduled later removal of a package */
-	async clearPackageRemoval(): Promise<void> {
+	async clearPackageRemoval(filePath: string): Promise<void> {
 		const packagesToRemove = await this.getPackagesToRemove()
-
-		console.log('clearPackageRemoval ----------------')
-
-		const filePath = this.getFilePath()
-
-		console.log('filePath', filePath)
 
 		let found = false
 		for (let i = 0; i < packagesToRemove.length; i++) {
@@ -71,9 +63,12 @@ export class FileRemoval {
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove this package
-				const fullPath = path.join(this.getFolderPath(), entry.filePath)
+				const fullPath = this.getFullPath(entry.filePath)
+				const metadataPath = this.getMetadataPath(entry.filePath)
 
 				await this.unlinkIfExists(fullPath)
+				await this.unlinkIfExists(metadataPath)
+
 				removedFilePaths.push(entry.filePath)
 			}
 		}
@@ -105,6 +100,12 @@ export class FileRemoval {
 			// Ignore
 		}
 		if (exists) await fsUnlink(filePath)
+	}
+	getFullPath(filePath: string): string {
+		return path.join(this.getFolderPath(), filePath)
+	}
+	getMetadataPath(filePath: string): string {
+		return this.getFullPath(filePath) + '_metadata.json'
 	}
 
 	/** Full path to the file containing deferred removals */

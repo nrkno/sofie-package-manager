@@ -150,7 +150,6 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 						},
 					}
 
-					await lookupTarget.handle.removeMetadata()
 					await lookupTarget.handle.removePackage()
 
 					const seekTime = exp.endRequirement.version.seekTime
@@ -254,7 +253,6 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
-		await lookupTarget.handle.removeMetadata()
 		await lookupTarget.handle.removePackage()
 
 		return { removed: true, reason: 'Removed thumbnail' }

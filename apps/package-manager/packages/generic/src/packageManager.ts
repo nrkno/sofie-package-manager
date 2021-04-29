@@ -75,14 +75,12 @@ export class PackageManagerHandler {
 				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 			) => this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
 			(
-				_packageContainer: PackageContainerExpectation | null,
-				_statusInfo: {
+				containerId: string,
+				packageContainer: PackageContainerExpectation | null,
+				statusInfo: {
 					statusReason?: string
 				}
-			) => {
-				// todo: report PackageContainerExpectation Status to somewhere?
-				// this.reportPackageContainerExpectationStatus
-			},
+			) => this.updatePackageContainerStatus(containerId, packageContainer, statusInfo),
 			(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => this.onMessageFromWorker(message)
 		)
 	}
@@ -120,9 +118,6 @@ export class PackageManagerHandler {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
-			// @ts-ignore hack
-			if (expectedPackage.disable) continue // skip
-
 			const combinedSources: PackageContainerOnPackage[] = []
 			for (const packageSource of expectedPackage.sources) {
 				const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
@@ -495,6 +490,14 @@ export class PackageManagerHandler {
 				this.logger.error(err)
 			})
 	}
+	public updatePackageContainerStatus(
+		containerId: string,
+		_packageContainer: PackageContainerExpectation | null,
+		statusInfo: { statusReason?: string | undefined }
+	): void {
+		this.logger.info(`PackageContainerStatus "${containerId}"`)
+		this.logger.info(statusInfo.statusReason || '>No reason<')
+	}
 	private async onMessageFromWorker(
 		message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any
 	): Promise<any> {
@@ -536,23 +539,33 @@ export class PackageManagerHandler {
 		[id: string]: PackageContainerExpectation
 	}): void {
 		for (const [containerId, packageContainer] of Object.entries(this.packageContainersCache)) {
-			// All packageContainers should be monitored:
-			if (!packageContainerExpectations[containerId]) {
-				// todo: Maybe should not all package-managers monitor,
-				// this should perhaps be coordinated with the Workforce-manager, who should monitor who?
-
-				// Add default packageContainerExpectation:
-				packageContainerExpectations[containerId] = literal<PackageContainerExpectation>({
-					...packageContainer,
-					id: containerId,
-					managerId: this._expectationManager.managerId,
-					cronjobs: {
-						interval: 0,
-					},
-					monitors: {},
-				})
+			/** Is the Container writeable */
+			let isWriteable = false
+			for (const accessor of Object.values(packageContainer.accessors)) {
+				if (accessor.allowWrite) {
+					isWriteable = true
+					break
+				}
 			}
-			packageContainerExpectations[containerId].cronjobs.cleanup = {} // Add monitor
+			// All writeable packageContainers should have the clean up cronjob:
+			if (isWriteable) {
+				if (!packageContainerExpectations[containerId]) {
+					// todo: Maybe should not all package-managers monitor,
+					// this should perhaps be coordinated with the Workforce-manager, who should monitor who?
+
+					// Add default packageContainerExpectation:
+					packageContainerExpectations[containerId] = literal<PackageContainerExpectation>({
+						...packageContainer,
+						id: containerId,
+						managerId: this._expectationManager.managerId,
+						cronjobs: {
+							interval: 0,
+						},
+						monitors: {},
+					})
+				}
+				packageContainerExpectations[containerId].cronjobs.cleanup = {} // Add cronjob to clean up
+			}
 		}
 	}
 }

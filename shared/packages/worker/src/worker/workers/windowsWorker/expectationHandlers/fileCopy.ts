@@ -108,7 +108,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 			}
 		}
 
-		// Also check if we actually can read from the package:
+		// Also check if we actually can read from the package,
+		// This might help in some cases if the file is currently transferring
 		const issueReading = await lookupSource.handle.tryPackageRead()
 		if (issueReading) return { ready: false, reason: issueReading }
 
@@ -169,11 +170,6 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
 		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
-		// TODO:
-		Should metadata be considered to be an equally important part of a "package"?
-		If so, removal should not be done separately
-
-
 		if (
 			process.platform === 'win32' && // Robocopy is a windows-only feature
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
@@ -201,7 +197,6 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 				// Remove target files
 				await lookupTarget.handle.removePackage()
-				await lookupTarget.handle.removeMetadata()
 			})
 
 			await lookupTarget.handle.packageIsInPlace()
@@ -260,7 +255,6 @@ export const FileCopy: ExpectationWindowsHandler = {
 					writeStream.once('close', () => {
 						lookupTarget.handle
 							.removePackage()
-							.then(() => lookupTarget.handle.removeMetadata())
 							.then(() => resolve())
 							.catch((err) => reject(err))
 					})
@@ -329,7 +323,6 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		try {
 			await lookupTarget.handle.removePackage()
-			await lookupTarget.handle.removeMetadata()
 		} catch (err) {
 			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
 		}

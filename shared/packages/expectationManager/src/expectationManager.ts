@@ -10,11 +10,11 @@ import {
 	WorkForceExpectationManager,
 	Hook,
 	LoggerInstance,
+	PackageContainerExpectation,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
-import { PackageContainerExpectation } from 'shared/packages/api/dist'
 
 /**
  * The Expectation Manager is responsible for tracking the state of the Expectations,
@@ -173,6 +173,7 @@ export class ExpectationManager {
 	updatePackageContainerExpectations(packageContainers: { [id: string]: PackageContainerExpectation }): void {
 		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
 		this.receivedUpdates.packageContainers = packageContainers
+		this.receivedUpdates.packageContainersHasBeenUpdated = true
 
 		this._triggerEvaluateExpectations(true)
 	}
@@ -1065,24 +1066,13 @@ export class ExpectationManager {
 	) {
 		trackedPackageContainer.lastEvaluationTime = Date.now()
 
-		// const prevStatus = trackedPackageContainer.status
 		let updatedReason = false
 
 		if (trackedPackageContainer.status.reason !== reason) {
 			trackedPackageContainer.status.reason = reason || ''
 			updatedReason = true
 		}
-		// const status = Object.assign({}, trackedPackageContainer.status, newStatus) // extend with new values
-		// if (!_.isEqual(prevStatus, status)) {
-		// 	Object.assign(trackedPackageContainer.status, newStatus)
-		// 	updatedStatus = true
-		// }
-		// Log and report new states an reasons:
-		// if (updatedState) {
-		// 	this.logger.info(
-		// 		`${trackedPackageContainer.exp.statusReport.label}: New state: "${prevState}"->"${trackedPackageContainer.state}", reason: "${trackedPackageContainer.reason}"`
-		// 	)
-		// } else
+
 		if (updatedReason) {
 			this.logger.info(
 				`${trackedPackageContainer.packageContainer.label}: Reason: "${trackedPackageContainer.status.reason}"`
@@ -1090,9 +1080,13 @@ export class ExpectationManager {
 		}
 
 		if (updatedReason) {
-			this.reportPackageContainerExpectationStatus(trackedPackageContainer.packageContainer, {
-				statusReason: trackedPackageContainer.status.reason,
-			})
+			this.reportPackageContainerExpectationStatus(
+				trackedPackageContainer.id,
+				trackedPackageContainer.packageContainer,
+				{
+					statusReason: trackedPackageContainer.status.reason,
+				}
+			)
 		}
 	}
 }
@@ -1172,6 +1166,7 @@ export type ReportPackageContainerPackageStatus = (
 	packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 ) => void
 export type ReportPackageContainerExpectationStatus = (
+	containerId: string,
 	packageContainer: PackageContainerExpectation | null,
 	statusInfo: {
 		statusReason?: string

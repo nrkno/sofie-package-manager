@@ -7,26 +7,26 @@ import { GenericWorker } from '../worker'
 export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'corePackageInfo'
 	private content: {
-		infoType: string // "ffprobe"
+		onlyContainerAccess?: boolean
+		infoType?: string // "ffprobe"
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
 		worker: GenericWorker,
 		private accessor: AccessorOnPackage.CorePackageCollection,
-		content: any,
-		workOptions: any
+		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
 		super(worker, accessor, content, CorePackageInfoAccessorHandle.type)
 
 		// Verify content data:
-		if (!content.infoType) throw new Error('Bad input data: content.infoType not set!')
+		if (!content.onlyContainerAccess) {
+			if (!content.infoType) throw new Error('Bad input data: content.infoType not set!')
+		}
 		this.content = content
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
 		this.workOptions = workOptions
-
-		this.content = this.content
-		this.workOptions = this.workOptions
 	}
 	static doYouSupportAccess(): boolean {
 		return true // always has access
@@ -61,6 +61,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		throw new Error('getPackageActualVersion not applicable for CorePackageInfo')
 	}
 	async removePackage(): Promise<void> {
+		await this.removeMetadata()
 		throw new Error('removePackage not applicable for CorePackageInfo')
 
 		// todo: implement
@@ -91,7 +92,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		throw new Error('updateMetadata not applicable for CorePackageInfo')
 	}
 	async removeMetadata(): Promise<void> {
-		throw new Error('removeMetadata not applicable for CorePackageInfo')
+		// Not applicable
 	}
 	async runCronJob(): Promise<string | undefined> {
 		return undefined // not applicable

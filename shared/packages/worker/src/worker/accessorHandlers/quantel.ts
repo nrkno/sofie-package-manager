@@ -18,23 +18,30 @@ const MINIMUM_FRAMES = 10
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'quantel'
 	private content: {
+		onlyContainerAccess?: boolean
 		guid?: string
 		title?: string
 	}
-	private workOptions: {}
-	constructor(worker: GenericWorker, private accessor: AccessorOnPackage.Quantel, content: any, workOptions: any) {
+	private workOptions: any // {}
+	constructor(
+		worker: GenericWorker,
+		private accessor: AccessorOnPackage.Quantel,
+		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+	) {
 		super(worker, accessor, content, QuantelAccessorHandle.type)
+
 		// Verify content data:
-		if (content.guid && typeof content.guid !== 'string')
-			throw new Error('Bad input data: content.guid must be a string!')
-		if (content.title && typeof content.title !== 'string')
-			throw new Error('Bad input data: content.title must be a string!')
+		if (!content.onlyContainerAccess) {
+			if (content.guid && typeof content.guid !== 'string')
+				throw new Error('Bad input data: content.guid must be a string!')
+			if (content.title && typeof content.title !== 'string')
+				throw new Error('Bad input data: content.title must be a string!')
+		}
 		this.content = content
 		// if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 		//	throw new Error('Bad input data: workOptions.removeDelay is not a number!')
 		this.workOptions = workOptions
-
-		this.workOptions = this.workOptions
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.Quantel
@@ -62,7 +69,10 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!this.accessor.quantelGatewayUrl) return `Accessor quantelGatewayUrl not set`
 		if (!this.accessor.ISAUrls) return `Accessor ISAUrls not set`
 		if (!this.accessor.ISAUrls.length) return `Accessor ISAUrls is empty`
-		if (!this.content.guid && this.content.title) return `Neither guid or title are set (at least one should be)`
+		if (!this.content.onlyContainerAccess) {
+			if (!this.content.guid && this.content.title)
+				return `Neither guid or title are set (at least one should be)`
+		}
 
 		return undefined // all good
 	}
@@ -122,6 +132,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		} else throw new Error(`Clip not found`)
 	}
 	async removePackage(): Promise<void> {
+		await this.removeMetadata()
 		// We don't really do this, instead we let the quantel management delete old clip.
 		// Perhaps in the future, we could have an opt-in feature to remove clips?
 		return undefined // that's ok
@@ -312,6 +323,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	 * Sorted in the order of Created (latest first)
 	 */
 	private async searchForClips(quantel: QuantelGateway): Promise<ClipDataSummary[]> {
+		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
+
 		let searchQuery: ClipSearchQuery = {}
 		if (this.content.guid) {
 			searchQuery = {

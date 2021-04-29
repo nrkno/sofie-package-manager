@@ -55,6 +55,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 
 	/**
 	 * Removes the package from the PackageContainer (if the package exists)
+	 * Also removes any Metadata associated with the package
 	 */
 	abstract removePackage(): Promise<void>
 
@@ -67,7 +68,8 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 */
 	abstract updateMetadata(metadata: Metadata): Promise<void>
 	/**
-	 * Remove the custom Metadata for a Package
+	 * Remove the custom Metadata for a Package.
+	 * Note: This should only be called when the Metadata is removed separately from the package, metadata is also removed when calling removePackage()
 	 */
 	abstract removeMetadata(): Promise<void>
 

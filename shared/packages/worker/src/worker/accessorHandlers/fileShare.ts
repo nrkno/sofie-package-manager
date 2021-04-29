@@ -1,4 +1,3 @@
-import * as path from 'path'
 import { promisify } from 'util'
 import * as fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
@@ -24,32 +23,43 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	static readonly type = 'fileShare'
 	private actualFolderPath: string | undefined
 
-	private fileRemoval = new FileRemoval(
-		() => this.folderPath,
-		() => this.filePath
-	)
+	private fileRemoval = new FileRemoval(() => this.folderPath)
 	private mappedDriveLetters: {
 		[driveLetter: string]: string
 	} = {}
 
 	private content: {
-		filePath: string
+		onlyContainerAccess?: boolean
+		filePath?: string
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 
-	constructor(worker: GenericWorker, private accessor: AccessorOnPackage.FileShare, content: any, workOptions: any) {
+	constructor(
+		worker: GenericWorker,
+		private accessor: AccessorOnPackage.FileShare,
+		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+	) {
 		super(worker, accessor, content, FileShareAccessorHandle.type)
 		this.actualFolderPath = this.accessor.folderPath // To be overwrittenlater
 
 		// Verify content data:
-		if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		if (!content.onlyContainerAccess) {
+			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		}
 		this.content = content
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
 		this.workOptions = workOptions
 	}
+	/** Path to the PackageContainer, ie the folder on the share */
+	get folderPath(): string {
+		if (!this.actualFolderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
+		return this.actualFolderPath
+	}
+	/** Full path to the package */
 	get fullPath(): string {
-		return path.join(this.folderPath, this.filePath)
+		return this.fileRemoval.getFullPath(this.filePath)
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.FileShare
@@ -72,7 +82,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			return `FileShare Accessor type is not FILE_SHARE ("${this.accessor.type}")!`
 		}
 		if (!this.accessor.folderPath) return `Folder path not set`
-		if (!this.filePath) return `File path not set`
+		if (!this.content.onlyContainerAccess) {
+			if (!this.filePath) return `File path not set`
+		}
 		return undefined // all good
 	}
 	async checkPackageReadAccess(): Promise<string | undefined> {
@@ -142,8 +154,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	async removePackage(): Promise<void> {
 		await this.prepareFileAccess()
 		if (this.workOptions.removeDelay) {
-			await this.fileRemoval.delayPackageRemoval(this.workOptions.removeDelay)
+			await this.fileRemoval.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
+			await this.removeMetadata()
 			await this.fileRemoval.unlinkIfExists(this.fullPath)
 		}
 	}
@@ -166,7 +179,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
 		await this.prepareFileAccess()
-		await this.fileRemoval.clearPackageRemoval()
+		await this.fileRemoval.clearPackageRemoval(this.filePath)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
@@ -245,12 +258,10 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		// todo: implement monitors
 		return undefined
 	}
-
-	get folderPath(): string {
-		if (!this.actualFolderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
-		return this.actualFolderPath
-	}
+	/** Local path to the Package, ie the File */
 	private get filePath(): string {
+		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
+
 		const filePath = this.accessor.filePath || this.content.filePath
 		if (!filePath) throw new Error(`FileShareAccessor: filePath not set!`)
 		return filePath
@@ -266,7 +277,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 
 	private get metadataPath() {
-		return this.fullPath + '_metadata.json'
+		return this.fileRemoval.getMetadataPath(this.filePath)
 	}
 	/**
 	 * Make preparations for file access (such as map a drive letter).

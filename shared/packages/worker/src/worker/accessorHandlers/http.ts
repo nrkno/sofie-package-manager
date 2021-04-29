@@ -11,14 +11,22 @@ import { assertNever } from '../lib/lib'
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'http'
 	private content: {
-		filePath: string
+		onlyContainerAccess?: boolean
+		filePath?: string
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
-	constructor(worker: GenericWorker, private accessor: AccessorOnPackage.HTTP, content: any, workOptions: any) {
+	constructor(
+		worker: GenericWorker,
+		private accessor: AccessorOnPackage.HTTP,
+		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+	) {
 		super(worker, accessor, content, HTTPAccessorHandle.type)
 
 		// Verify content data:
-		if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		if (!content.onlyContainerAccess) {
+			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		}
 		this.content = content
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
@@ -65,6 +73,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (this.workOptions.removeDelay) {
 			await this.delayPackageRemoval(this.workOptions.removeDelay)
 		} else {
+			await this.removeMetadata()
 			await this.deletePackageIfExists(this.fullUrl)
 		}
 	}
@@ -170,7 +179,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			return `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`
 		}
 		if (!this.accessor.baseUrl) return `Accessor baseUrl not set`
-		if (!this.filePath) return `filePath not set`
+		if (!this.content.onlyContainerAccess) {
+			if (!this.filePath) return `filePath not set`
+		}
 		return undefined // all good
 	}
 	private get baseUrl(): string {
@@ -178,6 +189,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return this.accessor.baseUrl
 	}
 	private get filePath(): string {
+		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 		const filePath = this.accessor.url || this.content.filePath
 		if (!filePath) throw new Error(`HTTPAccessorHandle: filePath not set!`)
 		return filePath
@@ -270,12 +282,13 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		for (const entry of packagesToRemove) {
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
-				// it is time to remove this package
+				// it is time to remove the package:
 				const fullUrl: string = [
 					this.baseUrl.replace(/\/$/, ''), // trim trailing slash
 					entry.filePath,
 				].join('/')
 
+				await this.deletePackageIfExists(fullUrl + '_metadata.json')
 				await this.deletePackageIfExists(fullUrl)
 				removedFilePaths.push(entry.filePath)
 			}
@@ -318,7 +331,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	/** */
 	private async getPackagesToRemove(): Promise<DelayPackageRemovalEntry[]> {
-		return this.fetchJSON(this.deferRemovePackagesPath) ?? []
+		return (await this.fetchJSON(this.deferRemovePackagesPath)) ?? []
 	}
 	private async storePackagesToRemove(packagesToRemove: DelayPackageRemovalEntry[]): Promise<void> {
 		await this.storeJSON(this.deferRemovePackagesPath, packagesToRemove)
