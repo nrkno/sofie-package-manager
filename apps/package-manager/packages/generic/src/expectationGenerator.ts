@@ -297,6 +297,7 @@ function generateMediaFileScan(expectation: Expectation.FileCopy): Expectation.M
 		},
 		workOptions: {
 			...expectation.workOptions,
+			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -347,6 +348,7 @@ function generateMediaFileDeepScan(expectation: Expectation.FileCopy): Expectati
 		},
 		workOptions: {
 			...expectation.workOptions,
+			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -400,6 +402,7 @@ function generateMediaFileThumbnail(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -451,6 +454,7 @@ function generateMediaFilePreview(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
