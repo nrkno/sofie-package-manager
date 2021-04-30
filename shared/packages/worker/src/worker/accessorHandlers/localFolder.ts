@@ -2,11 +2,11 @@ import * as path from 'path'
 import { promisify } from 'util'
 import * as fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
+import { PackageReadInfo, PutPackageHandler } from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { assertNever } from '../lib/lib'
-import { FileRemoval } from './lib/FileRemoval'
+import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -16,9 +16,9 @@ const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 
 /** Accessor handle for accessing files in a local folder */
-export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
-	static readonly type = 'localFolder'
-	private fileRemoval = new FileRemoval(() => this.folderPath)
+console.log('GenericFileAccessorHandle', GenericFileAccessorHandle)
+export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
+	static readonly type = LocalFolderAccessorHandleType
 
 	private content: {
 		onlyContainerAccess?: boolean
@@ -28,11 +28,12 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 
 	constructor(
 		worker: GenericWorker,
+		accessorId: string,
 		private accessor: AccessorOnPackage.LocalFolder,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
-		super(worker, accessor, content, LocalFolderAccessorHandle.type)
+		super(worker, accessorId, accessor, content, LocalFolderAccessorHandle.type)
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
@@ -118,10 +119,10 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 	}
 	async removePackage(): Promise<void> {
 		if (this.workOptions.removeDelay) {
-			await this.fileRemoval.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
+			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
-			await this.fileRemoval.unlinkIfExists(this.fullPath)
+			await this.unlinkIfExists(this.fullPath)
 		}
 	}
 	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
@@ -140,7 +141,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		}
 	}
 	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
-		await this.fileRemoval.clearPackageRemoval(this.filePath)
+		await this.clearPackageRemoval(this.filePath)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
@@ -182,7 +183,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		await fsWriteFile(this.metadataPath, JSON.stringify(metadata))
 	}
 	async removeMetadata(): Promise<void> {
-		await this.fileRemoval.unlinkIfExists(this.metadataPath)
+		await this.unlinkIfExists(this.metadataPath)
 	}
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
@@ -190,7 +191,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
-				await this.fileRemoval.removeDuePackages()
+				await this.removeDuePackages()
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
@@ -203,39 +204,39 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericAccessorHandle<M
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
-				// todo: implement monitors
-				throw new Error('Not implemented yet')
+				// setup file monitor:
+				this.setupPackagesMonitor(packageContainerExp)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
 				assertNever(monitor)
 			}
 		}
 
-		return undefined
+		return undefined // all good
 	}
 	async disposePackageContainerMonitors(
-		_packageContainerExp: PackageContainerExpectation
+		packageContainerExp: PackageContainerExpectation
 	): Promise<string | undefined> {
-		// todo: implement monitors
-		return undefined
+		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
+		for (const monitor of monitors) {
+			if (monitor === 'packages') {
+				// dispose of the file monitor:
+				this.disposePackagesMonitor()
+			} else {
+				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
+				assertNever(monitor)
+			}
+		}
+		return undefined // all good
 	}
 
 	/** Called when the package is supposed to be in place */
 	async packageIsInPlace(): Promise<void> {
-		await this.fileRemoval.clearPackageRemoval(this.filePath)
-	}
-	private convertStatToVersion(stat: fs.Stats): Expectation.Version.FileOnDisk {
-		return {
-			type: Expectation.Version.Type.FILE_ON_DISK,
-			fileSize: stat.size,
-			modifiedDate: stat.mtimeMs * 1000,
-			// checksum?: string
-			// checkSumType?: 'sha' | 'md5' | 'whatever'
-		}
+		await this.clearPackageRemoval(this.filePath)
 	}
 
 	/** Path to the PackageContainer, ie the folder */
-	private get folderPath(): string {
+	get folderPath(): string {
 		if (!this.accessor.folderPath) throw new Error(`LocalFolderAccessor: accessor.folderPath not set!`)
 		return this.accessor.folderPath
 	}

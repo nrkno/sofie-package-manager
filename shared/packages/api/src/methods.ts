@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
+import { ExpectedPackage } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -97,7 +98,7 @@ export namespace ExpectationManagerWorkerAgent {
 
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace MessageFromWorkerPayload {
-		export type Any = FetchPackageInfoMetadata | UpdatePackageInfo | RemovePackageInfo
+		export type Any = FetchPackageInfoMetadata | UpdatePackageInfo | RemovePackageInfo | ReportFromMonitorPackages
 		export interface Base {
 			type: string
 			arguments: any[]
@@ -125,6 +126,14 @@ export namespace ExpectationManagerWorkerAgent {
 			arguments: [
 				string, // type
 				string // packageId
+			]
+		}
+		export interface ReportFromMonitorPackages extends Base {
+			type: 'reportFromMonitorPackages'
+			arguments: [
+				string, // containerId
+				string, // monitorId
+				ExpectedPackage.Any[] // expectedPackages
 			]
 		}
 	}

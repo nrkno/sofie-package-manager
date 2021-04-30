@@ -96,7 +96,13 @@ export async function lookupAccessorHandles<Metadata>(
 	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
 		errorReason = undefined
 
-		const handle = getAccessorHandle<Metadata>(worker, accessor, expectationContent, expectationWorkOptions)
+		const handle = getAccessorHandle<Metadata>(
+			worker,
+			accessorId,
+			accessor,
+			expectationContent,
+			expectationWorkOptions
+		)
 
 		if (checks.read) {
 			// Check that the accessor-handle supports reading:

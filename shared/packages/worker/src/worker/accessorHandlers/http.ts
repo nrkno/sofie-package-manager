@@ -17,11 +17,12 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
 		worker: GenericWorker,
+		public readonly accessorId: string,
 		private accessor: AccessorOnPackage.HTTP,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
-		super(worker, accessor, content, HTTPAccessorHandle.type)
+		super(worker, accessorId, accessor, content, HTTPAccessorHandle.type)
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {

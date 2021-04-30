@@ -19,6 +19,7 @@ export interface ReturnTypeRemoveExpectation {
 
 /** Configurations for any of the workers */
 export interface WorkerAgentConfig {
+	workerId: string
 	/**
 	 * The time to wait when determining if the source package is stable or not (this is used to wait for growing files)
 	 * Set to 0 to disable the stability check.

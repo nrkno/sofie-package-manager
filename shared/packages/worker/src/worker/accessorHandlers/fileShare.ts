@@ -1,14 +1,14 @@
 import { promisify } from 'util'
 import * as fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
+import { PackageReadInfo, PutPackageHandler } from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
 import * as networkDrive from 'windows-network-drive'
 import { exec } from 'child_process'
 import { assertNever } from '../lib/lib'
-import { FileRemoval } from './lib/FileRemoval'
+import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -19,11 +19,10 @@ const fsWriteFile = promisify(fs.writeFile)
 const pExec = promisify(exec)
 
 /** Accessor handle for accessing files on a network share */
-export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
-	static readonly type = 'fileShare'
+export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
+	static readonly type = FileShareAccessorHandleType
 	private actualFolderPath: string | undefined
 
-	private fileRemoval = new FileRemoval(() => this.folderPath)
 	private mappedDriveLetters: {
 		[driveLetter: string]: string
 	} = {}
@@ -36,11 +35,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 
 	constructor(
 		worker: GenericWorker,
+		accessorId: string,
 		private accessor: AccessorOnPackage.FileShare,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
-		super(worker, accessor, content, FileShareAccessorHandle.type)
+		super(worker, accessorId, accessor, content, FileShareAccessorHandle.type)
 		this.actualFolderPath = this.accessor.folderPath // To be overwrittenlater
 
 		// Verify content data:
@@ -59,7 +59,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 	/** Full path to the package */
 	get fullPath(): string {
-		return this.fileRemoval.getFullPath(this.filePath)
+		return this.getFullPath(this.filePath)
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.FileShare
@@ -154,10 +154,10 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	async removePackage(): Promise<void> {
 		await this.prepareFileAccess()
 		if (this.workOptions.removeDelay) {
-			await this.fileRemoval.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
+			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
-			await this.fileRemoval.unlinkIfExists(this.fullPath)
+			await this.unlinkIfExists(this.fullPath)
 		}
 	}
 
@@ -179,7 +179,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
 		await this.prepareFileAccess()
-		await this.fileRemoval.clearPackageRemoval(this.filePath)
+		await this.clearPackageRemoval(this.filePath)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
@@ -221,7 +221,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		await fsWriteFile(this.metadataPath, JSON.stringify(metadata))
 	}
 	async removeMetadata(): Promise<void> {
-		await this.fileRemoval.unlinkIfExists(this.metadataPath)
+		await this.unlinkIfExists(this.metadataPath)
 	}
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
@@ -229,7 +229,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
-				await this.fileRemoval.removeDuePackages()
+				await this.removeDuePackages()
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
@@ -242,21 +242,30 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
-				// todo: implement monitors
-				throw new Error('Not implemented yet')
+				// setup file monitor:
+				this.setupPackagesMonitor(packageContainerExp)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
 				assertNever(monitor)
 			}
 		}
 
-		return undefined
+		return undefined // all good
 	}
 	async disposePackageContainerMonitors(
-		_packageContainerExp: PackageContainerExpectation
+		packageContainerExp: PackageContainerExpectation
 	): Promise<string | undefined> {
-		// todo: implement monitors
-		return undefined
+		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
+		for (const monitor of monitors) {
+			if (monitor === 'packages') {
+				// dispose of the file monitor:
+				this.disposePackagesMonitor()
+			} else {
+				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
+				assertNever(monitor)
+			}
+		}
+		return undefined // all good
 	}
 	/** Local path to the Package, ie the File */
 	private get filePath(): string {
@@ -266,18 +275,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		if (!filePath) throw new Error(`FileShareAccessor: filePath not set!`)
 		return filePath
 	}
-	private convertStatToVersion(stat: fs.Stats): Expectation.Version.FileOnDisk {
-		return {
-			type: Expectation.Version.Type.FILE_ON_DISK,
-			fileSize: stat.size,
-			modifiedDate: stat.mtimeMs * 1000,
-			// checksum?: string
-			// checkSumType?: 'sha' | 'md5' | 'whatever'
-		}
-	}
 
 	private get metadataPath() {
-		return this.fileRemoval.getMetadataPath(this.filePath)
+		return this.getMetadataPath(this.filePath)
 	}
 	/**
 	 * Make preparations for file access (such as map a drive letter).

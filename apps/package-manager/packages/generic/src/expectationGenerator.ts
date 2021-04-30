@@ -496,14 +496,28 @@ function generateMediaFilePreview(
 // }
 
 export function generatePackageContainerExpectations(
-	_managerId: string,
-	_packageContainers: PackageContainers,
+	managerId: string,
+	packageContainers: PackageContainers,
 	_activePlaylist: ActivePlaylist
 ): { [id: string]: PackageContainerExpectation } {
 	const o: { [id: string]: PackageContainerExpectation } = {}
 
-	// for (const [containerId, packageContainer] of Object.entries(packageContainers)) {
-	// todo: add file monitor
-	// }
+	// This is temporary, to test/show how the
+	for (const [containerId, packageContainer] of Object.entries(packageContainers)) {
+		if (containerId === 'source0') {
+			o[containerId] = {
+				...packageContainer,
+				id: containerId,
+				managerId: managerId,
+				cronjobs: {},
+				monitors: {
+					packages: {
+						targetLayers: ['target0'],
+						// ignore: '',
+					},
+				},
+			}
+		}
+	}
 	return o
 }

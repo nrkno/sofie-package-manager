@@ -15,7 +15,14 @@ export interface PackageContainerExpectation extends PackageContainer {
 	monitors: {
 		/** Monitor the packages of a PackageContainer */
 		packages?: {
-			// Todo: add options, such as filters, etc...
+			/** If set, ignore any files matching this. (Regular expression). */
+			ignore?: string
+
+			/** What layers to set on the resulting ExpectedPackage */
+			targetLayers: string[]
+
+			/** What to set for sideEffect on the resulting ExpectedPackage */
+			sideEffect?: any
 		}
 	}
 }

@@ -6,18 +6,21 @@ import { GenericWorker } from '../worker'
 /** Accessor handle for accessing data store in Core */
 export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'corePackageInfo'
+	// @ts-expect-error unused variable
 	private content: {
 		onlyContainerAccess?: boolean
 		infoType?: string // "ffprobe"
 	}
+	// @ts-expect-error unused variable
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
 		worker: GenericWorker,
+		accessorId: string,
 		private accessor: AccessorOnPackage.CorePackageCollection,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
-		super(worker, accessor, content, CorePackageInfoAccessorHandle.type)
+		super(worker, accessorId, accessor, content, CorePackageInfoAccessorHandle.type)
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {

@@ -64,6 +64,7 @@ export class ExpectationManager {
 
 	/** This is the main store of all Tracked Expectations */
 	private trackedExpectations: { [id: string]: TrackedExpectation } = {}
+	private trackedExpectationsCount = 0
 
 	private trackedPackageContainers: { [id: string]: TrackedPackageContainerExpectation } = {}
 	/** key-value store of which expectations are triggered when another is fullfilled */
@@ -229,7 +230,7 @@ export class ExpectationManager {
 						this._triggerEvaluateExpectations()
 					})
 			},
-			this._evaluateExpectationsRunAsap ? 100 : this.EVALUATE_INTERVAL
+			this._evaluateExpectationsRunAsap ? 1 : this.EVALUATE_INTERVAL
 		)
 	}
 	/** Return the API-methods that the WxpectationManager exposes to the WorkerAgent */
@@ -320,6 +321,10 @@ export class ExpectationManager {
 		if (this.receivedUpdates.packageContainersHasBeenUpdated) {
 			await this.updateReceivedPackageContainerExpectations()
 		}
+		// Update the count:
+		this.trackedExpectationsCount = Object.keys(this.trackedExpectations).length
+
+		/** If this is set to true, _evaluateExpectations() is going to be run again ASAP */
 		let runAgainASAP = false
 
 		await this.iterateThroughPackageContainers()
@@ -354,7 +359,7 @@ export class ExpectationManager {
 						// Will cause this expectation to be evaluated again ASAP
 						reiterateTrackedExp = true
 					}
-					if (session.triggerOtherExpectationsAgain) {
+					if (session.triggerOtherExpectationsAgain || session.triggerExpectationAgain) {
 						// Will cause another iteration of this._handleExpectations to be called again ASAP after this iteration has finished
 						runAgainASAP = true
 					}
@@ -647,11 +652,12 @@ export class ExpectationManager {
 					}
 				} else {
 					// Do nothing
+					session.triggerOtherExpectationsAgain = true
 				}
 			} else if (trackedExp.state === TrackedExpectationState.FULFILLED) {
 				// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore?
 
-				if (timeSinceLastEvaluation > this.FULLFILLED_MONITOR_TIME) {
+				if (timeSinceLastEvaluation > this.getFullfilledMonitorTime()) {
 					await this.assignWorkerToSession(session, trackedExp)
 					if (session.assignedWorker) {
 						// Check if it is still fulfilled:
@@ -748,6 +754,14 @@ export class ExpectationManager {
 			this.updateTrackedExpStatus(trackedExp, undefined, err.toString())
 		}
 		return session
+	}
+	getFullfilledMonitorTime(): number {
+		return (
+			// Default minimum time to wait:
+			this.FULLFILLED_MONITOR_TIME +
+			// Also add some more time, so that we don't check too often when we have a lot of expectations:
+			this.trackedExpectationsCount * 0.02
+		)
 	}
 	/** Update the state and status of a trackedExpectation */
 	private updateTrackedExpStatus(

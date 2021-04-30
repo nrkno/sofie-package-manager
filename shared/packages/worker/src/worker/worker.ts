@@ -21,6 +21,7 @@ import { IWorkInProgress } from './lib/workInProgress'
 export abstract class GenericWorker {
 	/** A space where the AccessorHandlers can store various things, such as persistant connections, etc.. */
 	public accessorCache: { [accessorType: string]: unknown } = {}
+	private _uniqueId = 0
 
 	constructor(
 		public readonly genericConfig: WorkerAgentConfig,
@@ -28,6 +29,11 @@ export abstract class GenericWorker {
 		public sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		public type: string
 	) {}
+
+	/** Locally unique number */
+	get uniqueId(): number {
+		return this._uniqueId++
+	}
 	/**
 	 * Does the worker support this expectation?
 	 * This includes things like:

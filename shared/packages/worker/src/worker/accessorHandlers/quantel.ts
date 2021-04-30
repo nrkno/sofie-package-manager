@@ -22,14 +22,16 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		guid?: string
 		title?: string
 	}
+	// @ts-expect-error unused variable
 	private workOptions: any // {}
 	constructor(
 		worker: GenericWorker,
+		accessorId: string,
 		private accessor: AccessorOnPackage.Quantel,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
-		super(worker, accessor, content, QuantelAccessorHandle.type)
+		super(worker, accessorId, accessor, content, QuantelAccessorHandle.type)
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
@@ -259,14 +261,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		}
 	}
 	private async getQuantelGateway(): Promise<QuantelGateway> {
-		let cache = this.worker.accessorCache[this.type] as AccessorQuantelCache
-
-		if (!cache) {
-			cache = {
-				gateways: {},
-			}
-			this.worker.accessorCache[this.type] = cache
-		}
+		/** Persistant store for Quantel gatews */
+		const cacheGateways = this.ensureCache<{ [id: string]: QuantelGateway }>('gateways', {})
 
 		// These errors are just for types. User-facing checks are done in this.checkAccessor()
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
@@ -276,7 +272,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		const id = `${this.accessor.quantelGatewayUrl}`
 
-		let gateway: QuantelGateway = cache.gateways[id]
+		let gateway: QuantelGateway = cacheGateways[id]
 
 		if (!gateway) {
 			gateway = new QuantelGateway()
@@ -292,7 +288,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// @todo: We should be able to emit statuses somehow:
 			// gateway.monitorServerStatus(() => {})
 
-			cache.gateways[id] = gateway
+			cacheGateways[id] = gateway
 		}
 
 		// Verify that the cached gateway matches what we want:
@@ -353,8 +349,4 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				) => new Date(b.Created).getTime() - new Date(a.Created).getTime()
 			)
 	}
-}
-
-interface AccessorQuantelCache {
-	gateways: { [id: string]: QuantelGateway }
 }

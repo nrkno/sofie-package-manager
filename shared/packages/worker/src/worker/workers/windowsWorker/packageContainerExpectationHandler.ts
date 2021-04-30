@@ -21,7 +21,7 @@ export async function runPackageContainerCronJob(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeRunPackageContainerCronJob> {
-	const lookup = await lookupPackageContainer(genericWorker, packageContainer)
+	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'cronjob')
 	if (!lookup.ready) return { completed: lookup.ready, reason: lookup.reason }
 
 	const result = await lookup.handle.runCronJob(packageContainer)
@@ -33,12 +33,10 @@ export async function setupPackageContainerMonitors(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeSetupPackageContainerMonitors> {
-	const lookup = await lookupPackageContainer(genericWorker, packageContainer)
+	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
 	if (!lookup.ready) return { setupOk: lookup.ready, reason: lookup.reason }
 
 	const result = await lookup.handle.setupPackageContainerMonitors(packageContainer)
-
-	// todo: handle monitors
 
 	if (result) return { setupOk: false, reason: result, monitors: {} }
 	else return { setupOk: true } // all good
@@ -47,7 +45,7 @@ export async function disposePackageContainerMonitors(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeDisposePackageContainerMonitors> {
-	const lookup = await lookupPackageContainer(genericWorker, packageContainer)
+	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
 	if (!lookup.ready) return { disposed: lookup.ready, reason: lookup.reason }
 
 	const result = await lookup.handle.disposePackageContainerMonitors(packageContainer)
@@ -81,7 +79,8 @@ function checkWorkerHasAccessToPackageContainer(
 
 async function lookupPackageContainer(
 	worker: GenericWorker,
-	packageContainer: PackageContainerExpectation
+	packageContainer: PackageContainerExpectation,
+	forWhat: 'cronjob' | 'monitor'
 ): Promise<LookupPackageContainer> {
 	// Construct a fake PackageContainerOnPackage from the PackageContainer, so that we can use lookupAccessorHandles() later:
 	const packageContainers: PackageContainerOnPackage[] = [
@@ -101,11 +100,15 @@ async function lookupPackageContainer(
 			onlyContainerAccess: true,
 		},
 		{},
-		{
-			read: true,
-			write: true,
-			writePackageContainer: true,
-		}
+		forWhat == 'cronjob'
+			? {
+					read: true,
+					write: true,
+					writePackageContainer: true,
+			  }
+			: {
+					read: true,
+			  }
 	)) as LookupPackageContainer
 }
 export type LookupPackageContainer =

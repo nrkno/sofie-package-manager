@@ -237,7 +237,6 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 export interface WorkerConfig {
 	process: ProcessConfig
 	worker: {
-		workerId: string
 		workforceURL: string | null
 		resourceId: string
 		networkIds: string[]

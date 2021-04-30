@@ -9,6 +9,7 @@ import { QuantelAccessorHandle } from './quantel'
 
 export function getAccessorHandle<Metadata>(
 	worker: GenericWorker,
+	accessorId: string,
 	accessor: AccessorOnPackage.Any,
 	content: unknown,
 	workOptions: unknown
@@ -17,7 +18,7 @@ export function getAccessorHandle<Metadata>(
 
 	// For some reason, tsc complains about build error TS2351: This expression is not constructable:
 	// But it works..!
-	return new (HandleClass as any)(worker, accessor as any, content as any, workOptions as any)
+	return new (HandleClass as any)(worker, accessorId, accessor as any, content as any, workOptions as any)
 }
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {

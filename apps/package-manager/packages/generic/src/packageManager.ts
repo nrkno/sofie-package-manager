@@ -45,6 +45,9 @@ export class PackageManagerHandler {
 		expectedPackages: [],
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
+	private monitoredPackages: {
+		[monitorId: string]: ResultingExpectedPackage[]
+	} = {}
 
 	constructor(
 		public logger: LoggerInstance,
@@ -114,76 +117,86 @@ export class PackageManagerHandler {
 	getExpectationManager(): ExpectationManager {
 		return this._expectationManager
 	}
+	private wrapExpectedPackage(
+		packageContainers: PackageContainers,
+		expectedPackage: ExpectedPackage.Any
+	): ExpectedPackageWrap | undefined {
+		const combinedSources: PackageContainerOnPackage[] = []
+		for (const packageSource of expectedPackage.sources) {
+			const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
+			if (lookedUpSource) {
+				// We're going to combine the accessor attributes set on the Package with the ones defined on the source:
+				const combinedSource: PackageContainerOnPackage = {
+					...omit(clone(lookedUpSource), 'accessors'),
+					accessors: {},
+					containerId: packageSource.containerId,
+				}
+
+				const accessorIds = _.uniq(
+					Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors))
+				)
+
+				for (const accessorId of accessorIds) {
+					const sourceAccessor = lookedUpSource.accessors[accessorId] as Accessor.Any | undefined
+
+					const packageAccessor = packageSource.accessors[accessorId] as AccessorOnPackage.Any | undefined
+
+					if (packageAccessor && sourceAccessor && packageAccessor.type === sourceAccessor.type) {
+						combinedSource.accessors[accessorId] = deepExtend({}, sourceAccessor, packageAccessor)
+					} else if (packageAccessor) {
+						combinedSource.accessors[accessorId] = clone<AccessorOnPackage.Any>(packageAccessor)
+					} else if (sourceAccessor) {
+						combinedSource.accessors[accessorId] = clone<Accessor.Any>(
+							sourceAccessor
+						) as AccessorOnPackage.Any
+					}
+				}
+				combinedSources.push(combinedSource)
+			}
+		}
+		// Lookup Package targets:
+		const combinedTargets: PackageContainerOnPackage[] = []
+
+		for (const layer of expectedPackage.layers) {
+			// Hack: we use the layer name as a 1-to-1 relation to a target containerId
+			const packageContainerId: string = layer
+
+			if (packageContainerId) {
+				const lookedUpTarget = packageContainers[packageContainerId]
+				if (lookedUpTarget) {
+					// Todo: should the be any combination of properties here?
+					combinedTargets.push({
+						...omit(clone(lookedUpTarget), 'accessors'),
+						accessors: lookedUpTarget.accessors as {
+							[accessorId: string]: AccessorOnPackage.Any
+						},
+						containerId: packageContainerId,
+					})
+				}
+			}
+		}
+
+		if (combinedSources.length) {
+			if (combinedTargets.length) {
+				return {
+					expectedPackage: expectedPackage,
+					priority: 999, // lowest priority
+					sources: combinedSources,
+					targets: combinedTargets,
+					playoutDeviceId: '',
+					external: true,
+				}
+			}
+		}
+		return undefined
+	}
 	setExternalData(packageContainers: PackageContainers, expectedPackages: ExpectedPackage.Any[]): void {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
-			const combinedSources: PackageContainerOnPackage[] = []
-			for (const packageSource of expectedPackage.sources) {
-				const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
-				if (lookedUpSource) {
-					// We're going to combine the accessor attributes set on the Package with the ones defined on the source:
-					const combinedSource: PackageContainerOnPackage = {
-						...omit(clone(lookedUpSource), 'accessors'),
-						accessors: {},
-						containerId: packageSource.containerId,
-					}
-
-					const accessorIds = _.uniq(
-						Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors))
-					)
-
-					for (const accessorId of accessorIds) {
-						const sourceAccessor = lookedUpSource.accessors[accessorId] as Accessor.Any | undefined
-
-						const packageAccessor = packageSource.accessors[accessorId] as AccessorOnPackage.Any | undefined
-
-						if (packageAccessor && sourceAccessor && packageAccessor.type === sourceAccessor.type) {
-							combinedSource.accessors[accessorId] = deepExtend({}, sourceAccessor, packageAccessor)
-						} else if (packageAccessor) {
-							combinedSource.accessors[accessorId] = clone<AccessorOnPackage.Any>(packageAccessor)
-						} else if (sourceAccessor) {
-							combinedSource.accessors[accessorId] = clone<Accessor.Any>(
-								sourceAccessor
-							) as AccessorOnPackage.Any
-						}
-					}
-					combinedSources.push(combinedSource)
-				}
-			}
-			// Lookup Package targets:
-			const combinedTargets: PackageContainerOnPackage[] = []
-
-			for (const layer of expectedPackage.layers) {
-				// Hack: we use the layer name as a 1-to-1 relation to a target containerId
-				const packageContainerId: string = layer
-
-				if (packageContainerId) {
-					const lookedUpTarget = packageContainers[packageContainerId]
-					if (lookedUpTarget) {
-						// Todo: should the be any combination of properties here?
-						combinedTargets.push({
-							...omit(clone(lookedUpTarget), 'accessors'),
-							accessors: lookedUpTarget.accessors as {
-								[accessorId: string]: AccessorOnPackage.Any
-							},
-							containerId: packageContainerId,
-						})
-					}
-				}
-			}
-
-			if (combinedSources.length) {
-				if (combinedTargets.length) {
-					expectedPackagesWraps.push({
-						expectedPackage: expectedPackage,
-						priority: 999, // lowest priority
-						sources: combinedSources,
-						targets: combinedTargets,
-						playoutDeviceId: '',
-						external: true,
-					})
-				}
+			const wrap = this.wrapExpectedPackage(packageContainers, expectedPackage)
+			if (wrap) {
+				expectedPackagesWraps.push(wrap)
 			}
 		}
 
@@ -273,6 +286,15 @@ export class PackageManagerHandler {
 				Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
 			}
 
+			// Add from Monitors:
+			{
+				for (const monitorExpectedPackages of Object.values(this.monitoredPackages)) {
+					for (const expectedPackage of monitorExpectedPackages) {
+						expectedPackages.push(expectedPackage)
+					}
+				}
+			}
+
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
 		}, 300)
 	}
@@ -291,7 +313,7 @@ export class PackageManagerHandler {
 			this.expectedPackageCache[exp.expectedPackage._id] = exp
 		}
 
-		this.logger.info('expectedPackages', expectedPackages)
+		this.logger.info(`Has ${expectedPackages.length} expectedPackages`)
 		// this.logger.info(JSON.stringify(expectedPackages, null, 2))
 
 		// Step 1: Generate expectations:
@@ -302,7 +324,7 @@ export class PackageManagerHandler {
 			activeRundowns,
 			expectedPackages
 		)
-		this.logger.info('expectations:', expectations)
+		this.logger.info(`Has ${Object.keys(expectations).length} expectations`)
 		const packageContainerExpectations = generatePackageContainerExpectations(
 			this._expectationManager.managerId,
 			this.packageContainersCache,
@@ -517,6 +539,10 @@ export class PackageManagerHandler {
 					PeripheralDeviceAPI.methods.removePackageInfo,
 					message.arguments
 				)
+			case 'reportFromMonitorPackages':
+				this.reportMonitoredPackages(...message.arguments)
+				break
+
 			default:
 				// @ts-expect-error message.type is never
 				throw new Error(`Unsupported message type "${message.type}"`)
@@ -567,6 +593,20 @@ export class PackageManagerHandler {
 				packageContainerExpectations[containerId].cronjobs.cleanup = {} // Add cronjob to clean up
 			}
 		}
+	}
+	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
+		const expectedPackagesWraps: ExpectedPackageWrap[] = []
+
+		for (const expectedPackage of expectedPackages) {
+			const wrap = this.wrapExpectedPackage(this.packageContainersCache, expectedPackage)
+			if (wrap) {
+				expectedPackagesWraps.push(wrap)
+			}
+		}
+
+		this.monitoredPackages[monitorId] = expectedPackagesWraps
+
+		this._triggerUpdatedExpectedPackages()
 	}
 }
 export function omit<T, P extends keyof T>(obj: T, ...props: P[]): Omit<T, P> {

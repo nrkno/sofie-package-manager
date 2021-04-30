@@ -1,3 +1,5 @@
+import { ExpectedPackage } from '@sofie-automation/blueprints-integration'
+
 export class CoreMockAPI {
 	packageInfos: {
 		[id: string]: any
@@ -54,6 +56,13 @@ export class CoreMockAPI {
 		// This is a mock of the Sofie Core method "removePackageInfo"
 		const id = this.getPackageInfoId(packageId, type)
 		delete this.packageInfos[id]
+	}
+	async reportFromMonitorPackages(
+		_containerId: string,
+		_monitorId: string,
+		_filePaths: ExpectedPackage.Any[]
+	): Promise<void> {
+		// todo: implement this in the mock?
 	}
 	private getPackageInfoId(packageId: string, type: string): string {
 		return `${packageId}_${type}`

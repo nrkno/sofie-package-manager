@@ -9,6 +9,7 @@ import { GenericWorker } from '../worker'
 export abstract class GenericAccessorHandle<Metadata> {
 	constructor(
 		protected worker: GenericWorker,
+		public readonly accessorId: string,
 		protected _accessor: AccessorOnPackage.Any,
 		protected _content: unknown,
 		public readonly type: string
@@ -102,6 +103,30 @@ export abstract class GenericAccessorHandle<Metadata> {
 	abstract disposePackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
 	): Promise<string | undefined>
+
+	protected setCache<T>(key: string, value: T): T {
+		if (!this.worker.accessorCache[this.type]) {
+			this.worker.accessorCache[this.type] = {}
+		}
+		;(this.worker.accessorCache[this.type] as any)[key] = value
+
+		return value
+	}
+	protected getCache(key: string): any {
+		const cache = this.worker.accessorCache[this.type] as any
+		if (cache) {
+			return cache[key]
+		}
+		return undefined
+	}
+	protected ensureCache<T>(key: string, defaultValue: T): T {
+		const value = this.getCache(key)
+		if (this.getCache(key) !== undefined) {
+			return value
+		} else {
+			return this.setCache(key, defaultValue)
+		}
+	}
 }
 
 /**

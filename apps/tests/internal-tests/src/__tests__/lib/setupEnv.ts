@@ -171,6 +171,8 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 					return await coreApi.updatePackageInfo(...message.arguments)
 				case 'removePackageInfo':
 					return await coreApi.removePackageInfo(...message.arguments)
+				case 'reportFromMonitorPackages':
+					return await coreApi.reportFromMonitorPackages(...message.arguments)
 				default:
 					// @ts-expect-error message.type is never
 					throw new Error(`Unsupported message type "${message.type}"`)
