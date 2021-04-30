@@ -1,5 +1,11 @@
 import { Accessor, ExpectedPackage, PackageContainer } from '@sofie-automation/blueprints-integration'
-import { ActivePlaylist, ActiveRundown, ExpectedPackageWrap, PackageContainers } from './packageManager'
+import {
+	ActivePlaylist,
+	ActiveRundown,
+	ExpectedPackageWrap,
+	PackageContainers,
+	PackageManagerSettings,
+} from './packageManager'
 import { Expectation, hashObj, PackageContainerExpectation } from '@shared/api'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
@@ -23,13 +29,13 @@ type GenerateExpectation = Expectation.Base & {
 	sideEffect?: ExpectedPackage.Base['sideEffect']
 	external?: boolean
 }
-const REMOVE_DELAY = 1000 * 3600 * 3 // Wait 3 hours before
 export function generateExpectations(
 	managerId: string,
 	packageContainers: PackageContainers,
 	_activePlaylist: ActivePlaylist,
 	activeRundowns: ActiveRundown[],
-	expectedPackages: ExpectedPackageWrap[]
+	expectedPackages: ExpectedPackageWrap[],
+	settings: PackageManagerSettings
 ): { [id: string]: Expectation.Any } {
 	const expectations: { [id: string]: GenerateExpectation } = {}
 
@@ -53,7 +59,7 @@ export function generateExpectations(
 		let exp: Expectation.Any | undefined = undefined
 
 		if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-			exp = generateMediaFileCopy(managerId, expWrap)
+			exp = generateMediaFileCopy(managerId, expWrap, settings)
 		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
 			exp = generateQuantelCopy(managerId, expWrap)
 		}
@@ -160,7 +166,11 @@ export function generateExpectations(
 	return returnExpectations
 }
 
-function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap): Expectation.FileCopy {
+function generateMediaFileCopy(
+	managerId: string,
+	expWrap: ExpectedPackageWrap,
+	settings: PackageManagerSettings
+): Expectation.FileCopy {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapMediaFile
 
 	const exp: Expectation.FileCopy = {
@@ -197,7 +207,7 @@ function generateMediaFileCopy(managerId: string, expWrap: ExpectedPackageWrap):
 			},
 		},
 		workOptions: {
-			removeDelay: REMOVE_DELAY,
+			removeDelay: settings.delayRemoval,
 		},
 	}
 	exp.id = hashObj(exp.endRequirement)
@@ -242,7 +252,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 			},
 		},
 		workOptions: {
-			removeDelay: REMOVE_DELAY,
+			// removeDelay: 0 // Not used by Quantel
 		},
 	}
 	exp.id = hashObj(exp.endRequirement)

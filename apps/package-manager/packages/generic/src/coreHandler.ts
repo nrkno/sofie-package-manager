@@ -43,9 +43,7 @@ export class CoreHandler {
 	public _observers: Array<any> = []
 	public deviceSettings: { [key: string]: any } = {}
 
-	public errorReporting = false
-	public multithreading = false
-	public reportAllCommands = false
+	public delayRemoval = 0
 
 	private _deviceOptions: DeviceConfig
 	private _onConnected?: () => any
@@ -145,6 +143,14 @@ export class CoreHandler {
 		observer.added = (id: string) => this.onDeviceChanged(id)
 		observer.changed = (id: string) => this.onDeviceChanged(id)
 		this.setupObserverForPeripheralDeviceCommands()
+
+		const peripheralDevices = this.core.getCollection('peripheralDevices')
+		if (peripheralDevices) {
+			peripheralDevices.find({}).forEach((device) => {
+				this.onDeviceChanged(device._id)
+			})
+		}
+
 		return
 	}
 	async destroy(): Promise<void> {
@@ -222,14 +228,8 @@ export class CoreHandler {
 				// this.logger.debug('End test debug logging')
 			}
 
-			if (this.deviceSettings['errorReporting'] !== this.errorReporting) {
-				this.errorReporting = this.deviceSettings['errorReporting']
-			}
-			if (this.deviceSettings['multiThreading'] !== this.multithreading) {
-				this.multithreading = this.deviceSettings['multiThreading']
-			}
-			if (this.deviceSettings['reportAllCommands'] !== this.reportAllCommands) {
-				this.reportAllCommands = this.deviceSettings['reportAllCommands']
+			if (this.deviceSettings['delayRemoval'] !== this.delayRemoval) {
+				this.delayRemoval = this.deviceSettings['delayRemoval']
 			}
 
 			if (this._packageManagerHandler) {

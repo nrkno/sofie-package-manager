@@ -48,6 +48,9 @@ export class PackageManagerHandler {
 	private monitoredPackages: {
 		[monitorId: string]: ResultingExpectedPackage[]
 	} = {}
+	settings: PackageManagerSettings = {
+		delayRemoval: 0,
+	}
 
 	constructor(
 		public logger: LoggerInstance,
@@ -112,7 +115,9 @@ export class PackageManagerHandler {
 		this.logger.info('PackageManagerHandler initialized')
 	}
 	onSettingsChanged(): void {
-		// todo
+		this.settings = {
+			delayRemoval: this._coreHandler.delayRemoval,
+		}
 	}
 	getExpectationManager(): ExpectationManager {
 		return this._expectationManager
@@ -322,7 +327,8 @@ export class PackageManagerHandler {
 			this.packageContainersCache,
 			activePlaylist,
 			activeRundowns,
-			expectedPackages
+			expectedPackages,
+			this.settings
 		)
 		this.logger.info(`Has ${Object.keys(expectations).length} expectations`)
 		const packageContainerExpectations = generatePackageContainerExpectations(
@@ -638,4 +644,7 @@ export interface ActivePlaylist {
 export interface ActiveRundown {
 	_id: string
 	_rank: number
+}
+export interface PackageManagerSettings {
+	delayRemoval: number
 }
