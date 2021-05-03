@@ -3,10 +3,11 @@ import yargs = require('yargs/yargs')
 import * as _ from 'underscore'
 import { WorkerAgentConfig } from './worker'
 
-function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
-	return opts
-}
+/*
+ * This file contains various CLI argument definitions, used by the various processes that together constitutes the Package Manager
+ */
 
+/** Generic CLI-argument-definitions for any process */
 const processOptions = defineArguments({
 	logPath: { type: 'string', describe: 'Set to write logs to this file' },
 
@@ -17,6 +18,7 @@ const processOptions = defineArguments({
 	},
 	certificates: { type: 'string', describe: 'SSL Certificates' },
 })
+/** CLI-argument-definitions for the Workforce process */
 const workforceArguments = defineArguments({
 	port: {
 		type: 'number',
@@ -24,6 +26,7 @@ const workforceArguments = defineArguments({
 		describe: 'The port number to start the Workforce websocket server on',
 	},
 })
+/** CLI-argument-definitions for the HTTP-Server process */
 const httpServerArguments = defineArguments({
 	httpServerPort: {
 		type: 'number',
@@ -46,6 +49,7 @@ const httpServerArguments = defineArguments({
 		describe: 'The internal path to use for file storage',
 	},
 })
+/** CLI-argument-definitions for the Package Manager process */
 const packageManagerArguments = defineArguments({
 	coreHost: {
 		type: 'string',
@@ -96,6 +100,7 @@ const packageManagerArguments = defineArguments({
 		describe: 'If true, will watch the file "expectedPackages.json" as an additional source of expected packages.',
 	},
 })
+/** CLI-argument-definitions for the Worker process */
 const workerArguments = defineArguments({
 	workerId: { type: 'string', default: process.env.WORKER_ID || 'worker0', describe: 'Unique id of the worker' },
 	workforceURL: {
@@ -119,6 +124,7 @@ const workerArguments = defineArguments({
 		describe: 'Identifier of the local networks this worker has access to ("networkA;networkB")',
 	},
 })
+/** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
 	workerCount: {
 		type: 'number',
@@ -301,4 +307,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 	}
 }
 
-// Set up logging
+/** Helper function, to get strict typings for the yargs-Options. */
+function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
+	return opts
+}

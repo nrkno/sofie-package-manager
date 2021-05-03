@@ -1,5 +1,10 @@
 import { PackageContainer } from '@sofie-automation/blueprints-integration'
 
+/*
+ * This file contains definitions for Package Container Expectations, an internal datastructure upon which the Package Manager operates.
+ */
+
+/** A PackageContainerExpectation defines what functionality to run for a Package Container. */
 export interface PackageContainerExpectation extends PackageContainer {
 	/** ID of the PackageContainer */
 	id: string

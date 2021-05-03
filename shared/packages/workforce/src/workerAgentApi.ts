@@ -1,6 +1,10 @@
 import { WorkForceWorkerAgent, AdapterServer, AdapterServerOptions } from '@shared/api'
 
-/** Handles communications between a Worker and a Workforce */
+/**
+ * Exposes the API-methods of a WorkerAgent, to be called from the Workforce
+ * Note: The WorkerAgent connects to the Workforce, therefore the Workforce is the AdapterServer here.
+ * The corresponding other side is implemented at shared/packages/worker/src/workforceApi.ts
+ */
 export class WorkerAgentAPI
 	extends AdapterServer<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>
 	implements WorkForceWorkerAgent.WorkerAgent {

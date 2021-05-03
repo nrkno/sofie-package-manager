@@ -17,12 +17,15 @@ import {
 	ReturnTypeSetupPackageContainerMonitors,
 	ReturnTypeDisposePackageContainerMonitors,
 } from '@shared/api'
-import { ExpectationManagerAPI } from './expManApi'
+import { ExpectationManagerAPI } from './expectationManagerApi'
 import { IWorkInProgress } from './worker/lib/workInProgress'
 import { GenericWorker } from './worker/worker'
 import { WindowsWorker } from './worker/workers/windowsWorker/windowsWorker'
 import { WorkforceAPI } from './workforceApi'
 
+/** The WorkerAgent is a front for a Worker (@see GenericWorker).
+ * It is intended to be the main class in its worker-process, and handles things like communication with the WorkForce or the Expectation-Manager
+ */
 export class WorkerAgent {
 	private _worker: GenericWorker
 	// private _busyMethodCount = 0
@@ -89,6 +92,7 @@ export class WorkerAgent {
 		Object.values(this.expectationManagers).forEach((expectationManager) => expectationManager.api.terminate())
 		// this._worker.terminate()
 	}
+	/** Called when running in the same-process-mode, it */
 	hookToWorkforce(hook: Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>): void {
 		this.workforceAPI.hook(hook)
 	}

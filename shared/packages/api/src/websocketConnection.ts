@@ -107,4 +107,5 @@ export interface MessageIdentifyClient {
 	id: string
 }
 
+/** A Hook defines */
 export type Hook<ServerMethods, ClientMethods> = (clientId: string, clientHook: ClientMethods) => ServerMethods

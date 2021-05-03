@@ -22,14 +22,16 @@ The packages in [apps/](apps/) can be run as individual applications.
 
 ### Packages (Libraries)
 
-| Name                   | Location                                                                 | Description                                                             |
-| ---------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| **API**                | [shared/packages/api](shared/packages/api)                               | Various interfaces used by the other libraries                          |
+| Name | Location | Description |
+| -- | -- | -- |
+| **API**                | [shared/packages/api](shared/packages/api)                               | Various interfaces used by the other libraries |
 | **ExpectationManager** | [shared/packages/expectationManager](shared/packages/expectationManager) | The ExpectationManager class is used by the Package Manager application |
-| **Worker**             | [shared/packages/worker](shared/packages/worker)                         | The Worker class is used by the Worker application                      |
-| **Workforce**          | [shared/packages/Workforce](shared/packages/Workforce)                   | The Workforce class is used by the Worker application                   |
+| **Worker**             | [shared/packages/worker](shared/packages/worker)                         | The Worker class is used by the Worker application |
+| **Workforce**          | [shared/packages/Workforce](shared/packages/Workforce)                   | The Workforce class is used by the Worker application |
 
 ## For Developers
+
+Be sure to read the [FOR DEVELOPERS](/FOR_DEVELOPERS.md) documentation.
 
 Note: This mono-repo uses [Yarn](https://yarnpkg.com) and [Lerna](https://github.com/lerna/lerna), so most commands can be run on the root folder (no need to cd into each package).
 

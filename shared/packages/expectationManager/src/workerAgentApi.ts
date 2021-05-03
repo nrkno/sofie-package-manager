@@ -14,7 +14,11 @@ import {
 	ReturnTypeDisposePackageContainerMonitors,
 } from '@shared/api'
 
-/** Handles communications between a Worker and a Workforce */
+/**
+ * Exposes the API-methods of a WorkerAgent, to be called from the ExpectationManager
+ * Note: The WorkerAgent connects to the ExpectationManager, therefore the ExpectationManager is the AdapterServer here.
+ * The corresponding other side is implemented at shared/packages/worker/src/expectationManagerApi.ts
+ */
 export class WorkerAgentAPI
 	extends AdapterServer<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
 	implements ExpectationManagerWorkerAgent.WorkerAgent {

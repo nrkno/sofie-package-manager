@@ -1,3 +1,7 @@
+/*
+ * This file contains API definitions for the Worker methods
+ */
+
 export interface ReturnTypeDoYouSupportExpectation {
 	support: boolean
 	reason: string

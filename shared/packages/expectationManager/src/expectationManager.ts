@@ -3,7 +3,6 @@ import {
 	Expectation,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ClientConnectionOptions,
-	ServerConnectionOptions,
 	ExpectationManagerWorkerAgent,
 	WebsocketServer,
 	ClientConnection,
@@ -34,7 +33,7 @@ export class ExpectationManager {
 
 	private workforceAPI = new WorkforceAPI()
 
-	/** Store for various incoming things, to be processed on next iteration round */
+	/** Store for various incoming data, to be processed on next iteration round */
 	private receivedUpdates: {
 		/** Store for incoming Expectations */
 		expectations: { [id: string]: Expectation.Any }
@@ -93,7 +92,7 @@ export class ExpectationManager {
 	constructor(
 		private logger: LoggerInstance,
 		public readonly managerId: string,
-		private serverConnectionOptions: ServerConnectionOptions,
+		private serverOptions: ExpectationManagerServerOptions,
 		/** At what url the ExpectationManager can be reached on */
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
@@ -102,34 +101,32 @@ export class ExpectationManager {
 		private reportPackageContainerExpectationStatus: ReportPackageContainerExpectationStatus,
 		private onMessageFromWorker: MessageFromWorker
 	) {
-		if (this.serverConnectionOptions.type === 'websocket') {
-			this.logger.info(`Expectation Manager on port ${this.serverConnectionOptions.port}`)
-			this.websocketServer = new WebsocketServer(
-				this.serverConnectionOptions.port,
-				(client: ClientConnection) => {
-					// A new client has connected
+		if (this.serverOptions.type === 'websocket') {
+			this.logger.info(`Expectation Manager on port ${this.serverOptions.port}`)
+			this.websocketServer = new WebsocketServer(this.serverOptions.port, (client: ClientConnection) => {
+				// A new client has connected
 
-					this.logger.info(`New ${client.clientType} connected, id "${client.clientId}"`)
+				this.logger.info(`New ${client.clientType} connected, id "${client.clientId}"`)
 
-					if (client.clientType === 'workerAgent') {
-						const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
+				if (client.clientType === 'workerAgent') {
+					const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
 
-						const api = new WorkerAgentAPI(expectationManagerMethods, {
-							type: 'websocket',
-							clientConnection: client,
-						})
+					const api = new WorkerAgentAPI(expectationManagerMethods, {
+						type: 'websocket',
+						clientConnection: client,
+					})
 
-						this.workerAgents[client.clientId] = { api }
-					} else {
-						throw new Error(`Unknown clientType "${client.clientType}"`)
-					}
+					this.workerAgents[client.clientId] = { api }
+				} else {
+					throw new Error(`Unknown clientType "${client.clientType}"`)
 				}
-			)
+			})
 		} else {
 			// todo: handle direct connections
 		}
 	}
 
+	/** Initialize the ExpectationManager. This method is should be called shortly after the class has been instantiated. */
 	async init(): Promise<void> {
 		await this.workforceAPI.init(this.managerId, this.workForceConnectionOptions, this)
 
@@ -142,6 +139,7 @@ export class ExpectationManager {
 
 		this._triggerEvaluateExpectations(true)
 	}
+	/** Used to hook into methods of Workforce directly (this is done when the server and client runs in the same process). */
 	hookToWorkforce(
 		hook: Hook<WorkForceExpectationManager.WorkForce, WorkForceExpectationManager.ExpectationManager>
 	): void {
@@ -153,6 +151,7 @@ export class ExpectationManager {
 			this.websocketServer.terminate()
 		}
 	}
+	/** Returns a Hook used to hook up a WorkerAgent to our API-methods. */
 	getWorkerAgentHook(): Hook<
 		ExpectationManagerWorkerAgent.ExpectationManager,
 		ExpectationManagerWorkerAgent.WorkerAgent
@@ -170,7 +169,7 @@ export class ExpectationManager {
 			return workerAgentMethods
 		}
 	}
-
+	/** Called when there is an updated set of PackageContainerExpectations. */
 	updatePackageContainerExpectations(packageContainers: { [id: string]: PackageContainerExpectation }): void {
 		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
 		this.receivedUpdates.packageContainers = packageContainers
@@ -178,7 +177,7 @@ export class ExpectationManager {
 
 		this._triggerEvaluateExpectations(true)
 	}
-	/** Called when there is an updated set of expectations */
+	/** Called when there is an updated set of Expectations. */
 	updateExpectations(expectations: { [id: string]: Expectation.Any }): void {
 		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
 		this.receivedUpdates.expectations = expectations
@@ -186,22 +185,33 @@ export class ExpectationManager {
 
 		this._triggerEvaluateExpectations(true)
 	}
+	/** Request that an Expectation is restarted. This functions returns immediately, not waiting for a result. */
 	restartExpectation(expectationId: string): void {
 		this.receivedUpdates.restartExpectations[expectationId] = true
 		this.receivedUpdates.expectationsHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
+	/** Request that all Expectations are restarted. This functions returns immediately, not waiting for a result. */
 	restartAllExpectations(): void {
 		this.receivedUpdates.restartAllExpectations = true
 		this.receivedUpdates.expectationsHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
+	/** Request that an Expectation is aborted.
+	 * "Aborted" means that any current work is cancelled and any finished work will be removed.
+	 * Any future attempts to check on the Expectation will be ignored.
+	 * To un-Abort, call this.restartExpectation().
+	 * This functions returns immediately, not waiting for a result. */
 	abortExpectation(expectationId: string): void {
 		this.receivedUpdates.abortExpectations[expectationId] = true
 		this.receivedUpdates.expectationsHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
-	private _triggerEvaluateExpectations(asap?: boolean) {
+	/**
+	 * Schedule the evaluateExpectations() to run
+	 * @param asap If true, will re-schedule evaluateExpectations() to run as soon as possible
+	 */
+	private _triggerEvaluateExpectations(asap?: boolean): void {
 		if (asap) this._evaluateExpectationsRunAsap = true
 		if (this._evaluateExpectationsIsBusy) return
 
@@ -233,7 +243,7 @@ export class ExpectationManager {
 			this._evaluateExpectationsRunAsap ? 1 : this.EVALUATE_INTERVAL
 		)
 	}
-	/** Return the API-methods that the WxpectationManager exposes to the WorkerAgent */
+	/** Return the API-methods that the ExpectationManager exposes to the WorkerAgent */
 	private getWorkerAgentAPI(clientId: string): ExpectationManagerWorkerAgent.ExpectationManager {
 		return {
 			messageFromWorker: async (
@@ -312,14 +322,19 @@ export class ExpectationManager {
 			},
 		}
 	}
-	/** Evaluate all of the expectations */
+	/**
+	 * This is the main work-loop of the ExpectationManager.
+	 * Evaluates the Expectations and PackageContainerExpectations
+	 */
 	private async _evaluateExpectations(): Promise<void> {
 		this.logger.info(Date.now() / 1000 + ' _evaluateExpectations ----------')
+
+		// First we're going to see if there is any new incoming data which needs to be pulled in.
 		if (this.receivedUpdates.expectationsHasBeenUpdated) {
 			await this.updateReceivedExpectations()
 		}
 		if (this.receivedUpdates.packageContainersHasBeenUpdated) {
-			await this.updateReceivedPackageContainerExpectations()
+			await this._updateReceivedPackageContainerExpectations()
 		}
 		// Update the count:
 		this.trackedExpectationsCount = Object.keys(this.trackedExpectations).length
@@ -327,72 +342,22 @@ export class ExpectationManager {
 		/** If this is set to true, _evaluateExpectations() is going to be run again ASAP */
 		let runAgainASAP = false
 
-		await this.iterateThroughPackageContainers()
+		// Iterate through the PackageContainerExpectations:
+		await this._evaluateAllTrackedPackageContainers()
 
-		const iterateThroughTrackedExpectation = async (allowStartWorking: boolean): Promise<void> => {
-			const startTime = Date.now()
+		// First, we're doing a run-through to just update the statues of the expectations.
+		// The reason for this is that by updating all statuses we will have emitted at least one status for each expectation.
+		// Updating the statuses should go fairly quickly, and emitting those statuses is important for the Sofie GUI.
+		runAgainASAP = runAgainASAP || (await this._evaluateAllTrackedExpectations(false))
 
-			const removeIds: string[] = []
-
-			const tracked: TrackedExpectation[] = Object.values(this.trackedExpectations)
-			tracked.sort((a, b) => {
-				// Lowest priority first
-				if (a.exp.priority > b.exp.priority) return 1
-				if (a.exp.priority < b.exp.priority) return -1
-
-				// Lowest lastOperationTime first
-				if (a.lastEvaluationTime > b.lastEvaluationTime) return 1
-				if (a.lastEvaluationTime < b.lastEvaluationTime) return -1
-
-				return 0
-			})
-			for (const trackedExp of tracked) {
-				let assignedWorker: WorkerAgentAssignment | undefined
-				let reiterateTrackedExp = true
-				let runCount = 0
-				while (reiterateTrackedExp) {
-					reiterateTrackedExp = false
-					runCount++
-					const session = await this.evaluateTrackedExpectation(trackedExp, assignedWorker, allowStartWorking)
-					assignedWorker = session.assignedWorker // So that this will be piped right into the evaluation on next pass
-					if (session.triggerExpectationAgain && runCount < 10) {
-						// Will cause this expectation to be evaluated again ASAP
-						reiterateTrackedExp = true
-					}
-					if (session.triggerOtherExpectationsAgain || session.triggerExpectationAgain) {
-						// Will cause another iteration of this._handleExpectations to be called again ASAP after this iteration has finished
-						runAgainASAP = true
-					}
-					if (session.expectationCanBeRemoved) {
-						// The tracked expectation can be removed
-						removeIds.push(trackedExp.id)
-					}
-				}
-				if (runAgainASAP && Date.now() - startTime > this.ALLOW_SKIPPING_QUEUE_TIME) {
-					// Skip the rest of the queue, so that we don't get stuck on evaluating low-prios far down the line.
-					break
-				}
-				if (this.receivedUpdates.expectationsHasBeenUpdated) {
-					// We have received new expectations. We should abort the evaluation queue and restart from the beginning.
-					runAgainASAP = true
-					break
-				}
-			}
-			for (const id of removeIds) {
-				delete this.trackedExpectations[id]
-			}
-		}
-
-		// First, we're doing a run-through of the expectations in order to have all statuses updated:
-		await iterateThroughTrackedExpectation(false)
-
-		// Then, we iterate through the expectations, now to do actual work:
-		await iterateThroughTrackedExpectation(true)
+		// Then, we iterate through the Expectations again, now to do actual work:
+		runAgainASAP = runAgainASAP || (await this._evaluateAllTrackedExpectations(true))
 
 		if (runAgainASAP) {
 			this._triggerEvaluateExpectations(true)
 		}
 	}
+	/** Goes through the incoming data and stores it */
 	private async updateReceivedExpectations(): Promise<void> {
 		this.receivedUpdates.expectationsHasBeenUpdated = false
 
@@ -512,6 +477,68 @@ export class ExpectationManager {
 				}
 			}
 		}
+	}
+	/** Iterate through the tracked Expectations */
+	private async _evaluateAllTrackedExpectations(allowStartWorking: boolean): Promise<boolean> {
+		/** If this is set to true, we want _evaluateExpectations() to be run again ASAP */
+		let runAgainASAP = false
+		const startTime = Date.now()
+
+		const removeIds: string[] = []
+
+		const tracked: TrackedExpectation[] = Object.values(this.trackedExpectations)
+		tracked.sort((a, b) => {
+			// Lowest priority first
+			if (a.exp.priority > b.exp.priority) return 1
+			if (a.exp.priority < b.exp.priority) return -1
+
+			// Lowest lastOperationTime first
+			if (a.lastEvaluationTime > b.lastEvaluationTime) return 1
+			if (a.lastEvaluationTime < b.lastEvaluationTime) return -1
+
+			return 0
+		})
+		for (const trackedExp of tracked) {
+			let assignedWorker: WorkerAgentAssignment | undefined = undefined
+			let reiterateTrackedExp = true
+			let runCount = 0
+			while (reiterateTrackedExp) {
+				reiterateTrackedExp = false
+				runCount++
+				const session: ExpectationStateHandlerSession = await this.evaluateTrackedExpectation(
+					trackedExp,
+					assignedWorker,
+					allowStartWorking
+				)
+				assignedWorker = session.assignedWorker // So that this will be piped right into the evaluation on next pass
+				if (session.triggerExpectationAgain && runCount < 10) {
+					// Will cause this expectation to be evaluated again ASAP
+					reiterateTrackedExp = true
+				}
+				if (session.triggerOtherExpectationsAgain || session.triggerExpectationAgain) {
+					// Will cause another iteration of this._handleExpectations to be called again ASAP after this iteration has finished
+					runAgainASAP = true
+				}
+				if (session.expectationCanBeRemoved) {
+					// The tracked expectation can be removed
+					removeIds.push(trackedExp.id)
+				}
+			}
+			if (runAgainASAP && Date.now() - startTime > this.ALLOW_SKIPPING_QUEUE_TIME) {
+				// Skip the rest of the queue, so that we don't get stuck on evaluating low-prio expectations.
+				break
+			}
+			if (this.receivedUpdates.expectationsHasBeenUpdated) {
+				// We have received new expectations. We should abort the evaluation-loop and restart from the beginning.
+				// So that we don't miss any high-prio Expectations.
+				runAgainASAP = true
+				break
+			}
+		}
+		for (const id of removeIds) {
+			delete this.trackedExpectations[id]
+		}
+		return runAgainASAP
 	}
 	async evaluateTrackedExpectation(
 		trackedExp: TrackedExpectation,
@@ -657,7 +684,7 @@ export class ExpectationManager {
 			} else if (trackedExp.state === TrackedExpectationState.FULFILLED) {
 				// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore?
 
-				if (timeSinceLastEvaluation > this.getFullfilledMonitorTime()) {
+				if (timeSinceLastEvaluation > this.getFullfilledWaitTime()) {
 					await this.assignWorkerToSession(session, trackedExp)
 					if (session.assignedWorker) {
 						// Check if it is still fulfilled:
@@ -755,7 +782,8 @@ export class ExpectationManager {
 		}
 		return session
 	}
-	getFullfilledMonitorTime(): number {
+	/** Returns the appropriate time to wait before checking a fulfilled expectation again */
+	private getFullfilledWaitTime(): number {
 		return (
 			// Default minimum time to wait:
 			this.FULLFILLED_MONITOR_TIME +
@@ -847,6 +875,7 @@ export class ExpectationManager {
 				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 		}
 	}
+	/** Do a bidding between the available Workers and assign the cheapest one to use for the evaulation-session. */
 	private async assignWorkerToSession(
 		session: ExpectationStateHandlerSession,
 		trackedExp: TrackedExpectation
@@ -923,11 +952,12 @@ export class ExpectationManager {
 		}
 		return hasTriggeredSomething
 	}
+	/** Calls workerAgent.isExpectationReadyToStartWorkingOn() */
 	private async isExpectationReadyToStartWorkingOn(
 		workerAgent: WorkerAgentAPI,
 		trackedExp: TrackedExpectation
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
-		// Intercept if
+		// First check if the Expectation depends on the fullfilled-status of another Expectation:
 		if (trackedExp.exp.dependsOnFullfilled?.length) {
 			// Check if those are fullfilled:
 			let waitingFor: TrackedExpectation | undefined = undefined
@@ -947,7 +977,7 @@ export class ExpectationManager {
 
 		return await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
 	}
-	private async updateReceivedPackageContainerExpectations() {
+	private async _updateReceivedPackageContainerExpectations() {
 		this.receivedUpdates.packageContainersHasBeenUpdated = false
 
 		// Added / Changed
@@ -997,7 +1027,7 @@ export class ExpectationManager {
 			}
 		}
 	}
-	private async iterateThroughPackageContainers(): Promise<void> {
+	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of Object.values(this.trackedPackageContainers)) {
 			if (trackedPackageContainer.isUpdated) {
 				// If the packageContainer was newly updated, reset and set up again:
@@ -1104,6 +1134,15 @@ export class ExpectationManager {
 		}
 	}
 }
+export type ExpectationManagerServerOptions =
+	| {
+			type: 'websocket'
+			/** Port of the websocket server */
+			port: number
+	  }
+	| {
+			type: 'internal'
+	  }
 /** Denotes the various states of a Tracked Expectation */
 export enum TrackedExpectationState {
 	NEW = 'new',
@@ -1145,6 +1184,7 @@ interface TrackedExpectation {
 		sourceIsPlaceholder?: boolean // todo: to be implemented (quantel)
 	}
 }
+/** Contains some data which is persisted during an evaluation-session */
 interface ExpectationStateHandlerSession {
 	/** Set to true if the tracked expectation should be triggered again ASAP */
 	triggerExpectationAgain?: boolean
@@ -1153,7 +1193,7 @@ interface ExpectationStateHandlerSession {
 	/** Set to true when the tracked expectation can safely be removed */
 	expectationCanBeRemoved?: boolean
 
-	/** The Worker assigned to the Expectation for this evaluation */
+	/** The Worker assigned to the Expectation during this evaluation-session */
 	assignedWorker: WorkerAgentAssignment | undefined
 	noAssignedWorkerReason?: string
 }

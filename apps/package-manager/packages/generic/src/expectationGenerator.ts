@@ -199,7 +199,7 @@ function generateMediaFileCopy(
 		},
 
 		endRequirement: {
-			targets: expWrapMediaFile.targets as [Expectation.PackageContainerOnPackageFile],
+			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.File],
 			content: expWrapMediaFile.expectedPackage.content,
 			version: {
 				type: Expectation.Version.Type.FILE_ON_DISK,
@@ -244,7 +244,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 		},
 
 		endRequirement: {
-			targets: expWrapQuantelClip.targets as [Expectation.PackageContainerOnPackageQuantel],
+			targets: expWrapQuantelClip.targets as [Expectation.SpecificPackageContainerOnPackage.QuantelClip],
 			content: content,
 			version: {
 				type: Expectation.Version.Type.QUANTEL_CLIP,

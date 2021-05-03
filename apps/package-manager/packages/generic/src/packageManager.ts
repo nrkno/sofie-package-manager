@@ -10,11 +10,10 @@ import {
 	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
 import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
-import { ExpectationManager } from '@shared/expectation-manager'
+import { ExpectationManager, ExpectationManagerServerOptions } from '@shared/expectation-manager'
 import {
 	ClientConnectionOptions,
 	Expectation,
-	ServerConnectionOptions,
 	ExpectationManagerWorkerAgent,
 	PackageManagerConfig,
 	LoggerInstance,
@@ -55,14 +54,14 @@ export class PackageManagerHandler {
 	constructor(
 		public logger: LoggerInstance,
 		private managerId: string,
-		private serverConnectionOptions: ServerConnectionOptions,
+		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions
 	) {
 		this._expectationManager = new ExpectationManager(
 			this.logger,
 			this.managerId,
-			this.serverConnectionOptions,
+			this.serverOptions,
 			this.serverAccessUrl,
 			this.workForceConnectionOptions,
 			(

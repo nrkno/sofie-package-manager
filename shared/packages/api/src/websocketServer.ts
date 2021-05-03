@@ -8,11 +8,7 @@ export class WebsocketServer {
 	private wss: WebSocket.Server
 	private clients: ClientConnection[] = []
 
-	constructor(
-		port: number,
-		// private requestMessageHandler: (clientType: string) => OnMessageHandler,
-		private onConnection: (client: ClientConnection, clientType: string) => void
-	) {
+	constructor(port: number, private onConnection: (client: ClientConnection) => void) {
 		this.wss = new WebSocket.Server({ port: port })
 
 		this.wss.on('close', () => {
@@ -32,11 +28,9 @@ export class WebsocketServer {
 				this.clients = this.clients.filter((c) => c !== client)
 			})
 
-			client.on('clientTypeReceived', (clientType) => {
-				// const onMessage = this.requestMessageHandler(clientType)
-				// client.setOnMessage(onMessage)
-
-				this.onConnection(client, clientType)
+			client.on('clientTypeReceived', () => {
+				// client.clientType has now been set
+				this.onConnection(client)
 			})
 		})
 	}
@@ -48,10 +42,9 @@ export class WebsocketServer {
 }
 
 export class ClientConnection extends WebsocketConnection {
-	// implements IClientConnection<IncomingMessage, OutgoingMessage> {
 	private pingInterval: NodeJS.Timeout
 	private isAlive = true
-	public clientType: MessageIdentifyClient['clientType'] = 'N/A'
+	public clientType: ClientType = 'N/A'
 	public clientId = 'N/A'
 
 	constructor(ws: WebSocket, onMessage: (message: MessageBase) => Promise<any>) {
@@ -88,7 +81,7 @@ export class ClientConnection extends WebsocketConnection {
 				const ident = (message as unknown) as MessageIdentifyClient
 				this.clientType = ident.clientType
 				this.clientId = ident.id
-				this.emit('clientTypeReceived', this.clientType)
+				this.emit('clientTypeReceived')
 			} else {
 				this.handleReceivedMessage(message)
 			}
@@ -103,14 +96,4 @@ export class ClientConnection extends WebsocketConnection {
 		this.ws?.close()
 	}
 }
-
-/*
-new WebsocketServer(
-	8080,
-	(_clientType: string) => {
-		// handle message
-		return async (_message: MessageBase) => {}
-	},
-	(_client) => {}
-)
-*/
+type ClientType = MessageIdentifyClient['clientType']

@@ -1,5 +1,5 @@
-import { ClientConnectionOptions, ServerConnectionOptions, LoggerInstance, PackageManagerConfig } from '@shared/api'
-import { ExpectationManager } from '@shared/expectation-manager'
+import { ClientConnectionOptions, LoggerInstance, PackageManagerConfig } from '@shared/api'
+import { ExpectationManager, ExpectationManagerServerOptions } from '@shared/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageManagerHandler } from './packageManager'
 import { ProcessHandler } from './process'
@@ -36,7 +36,7 @@ export class Connector {
 		this._process = new ProcessHandler(this._logger)
 		this.coreHandler = new CoreHandler(this._logger, this.config.packageManager)
 
-		const serverConnectionOptions: ServerConnectionOptions = config.packageManager.port
+		const packageManagerServerOptions: ExpectationManagerServerOptions = config.packageManager.port
 			? {
 					type: 'websocket',
 					port: config.packageManager.port,
@@ -53,7 +53,7 @@ export class Connector {
 		this.packageManagerHandler = new PackageManagerHandler(
 			this._logger,
 			config.packageManager.deviceId || 'manager0',
-			serverConnectionOptions,
+			packageManagerServerOptions,
 			config.packageManager.accessUrl || undefined,
 			workForceConnectionOptions
 		)

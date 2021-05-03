@@ -7,9 +7,13 @@ import {
 	LoggerInstance,
 	WorkforceConfig,
 } from '@shared/api'
-import { ExpectationManagerAPI } from './expManApi'
+import { ExpectationManagerAPI } from './expectationManagerApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 
+/**
+ * The Workforce class tracks the status of which ExpectationManagers and WorkerAgents are online,
+ * and mediates connections between the two.
+ */
 export class Workforce {
 	private workerAgents: {
 		[workerId: string]: {

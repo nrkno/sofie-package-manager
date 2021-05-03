@@ -1,6 +1,7 @@
 import * as WebSocket from 'ws'
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 
+/** A Class which */
 export class WebsocketClient extends WebsocketConnection {
 	private pingTimeout?: NodeJS.Timeout
 	private RETRY_CONNECT_TIME = 3000

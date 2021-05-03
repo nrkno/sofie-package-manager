@@ -1,10 +1,14 @@
 import * as crypto from 'crypto'
 
+/** Helper function to force the input to be of a certain type. */
 export function literal<T>(o: T): T {
 	return o
 }
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function hashObj(obj: any): string {
+/**
+ * Returns a string that changes whenever the input changes.
+ * Does NOT depend on the order of object attributes.
+ */
+export function hashObj(obj: unknown): string {
 	if (!obj) {
 		return ''
 	} else if (Array.isArray(obj)) {
@@ -14,6 +18,8 @@ export function hashObj(obj: any): string {
 		}
 		return hash(strs.join(','))
 	} else if (typeof obj === 'object') {
+		if (!obj) return 'null'
+
 		// Sort the keys, so that key order doesn't matter:
 		const keys = Object.keys(obj).sort((a, b) => {
 			if (a > b) return 1
@@ -23,7 +29,7 @@ export function hashObj(obj: any): string {
 
 		const strs: string[] = []
 		for (const key of keys) {
-			strs.push(hashObj(obj[key]))
+			strs.push(hashObj((obj as any)[key]))
 		}
 		return hash(strs.join('|'))
 	} else {

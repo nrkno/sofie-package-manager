@@ -13,6 +13,10 @@ import {
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
 
+/*
+ * This file contains API definitions for the methods used to communicate between the Workforce, Worker and Expectation-Manager.
+ */
+
 /** Methods used by ExpectationManager and WorkForce */
 export namespace WorkForceExpectationManager {
 	/** Methods on WorkForce, called by ExpectationManager */

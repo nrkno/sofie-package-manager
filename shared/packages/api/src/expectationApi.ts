@@ -4,8 +4,14 @@ import {
 	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
 
+/*
+ * This file contains definitions for Expectations, the internal datastructure upon which the Package Manager operates.
+ */
+
+/** An Expectation defines an "expected end state". The Package Manages takes these as input, then works towards fullfilling the expectations. */
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expectation {
+	/** Generic Expectation, used as "Any Exopectation" */
 	export type Any =
 		| FileCopy
 		| MediaFileScan
@@ -14,6 +20,7 @@ export namespace Expectation {
 		| MediaFilePreview
 		| QuantelClipCopy
 
+	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
 		FILE_COPY = 'file_copy',
 		MEDIA_FILE_SCAN = 'media_file_scan',
@@ -24,6 +31,7 @@ export namespace Expectation {
 		QUANTEL_CLIP_COPY = 'quantel_clip_copy',
 	}
 
+	/** Common attributes of all Expectations */
 	export interface Base {
 		id: string
 		type: Type
@@ -70,14 +78,15 @@ export namespace Expectation {
 		triggerByFullfilledIds?: string[]
 	}
 
+	/** Defines a File Copy Expectation. A File is to be copied from one of the Sources, to the Target. */
 	export interface FileCopy extends Base {
 		type: Type.FILE_COPY
 
 		startRequirement: {
-			sources: PackageContainerOnPackageFile[]
+			sources: SpecificPackageContainerOnPackage.File[]
 		}
 		endRequirement: {
-			targets: [PackageContainerOnPackageFile]
+			targets: [SpecificPackageContainerOnPackage.File]
 			content: {
 				filePath: string
 			}
@@ -85,16 +94,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
-	export interface PackageContainerOnPackageFile extends PackageContainerOnPackage {
-		accessors: {
-			[accessorId: string]:
-				| AccessorOnPackage.LocalFolder
-				| AccessorOnPackage.FileShare
-				| AccessorOnPackage.HTTP
-				| AccessorOnPackage.Quantel
-		}
-	}
-
+	/** Defines a Scan of a Media file Expectation. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface MediaFileScan extends Base {
 		type: Type.MEDIA_FILE_SCAN
 
@@ -104,7 +104,7 @@ export namespace Expectation {
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: [PackageContainerOnPackageCorePackage]
+			targets: [SpecificPackageContainerOnPackage.CorePackage]
 			content: {
 				filePath: string
 			}
@@ -112,6 +112,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
+	/** Defines a Deep-Scan of a Media file Expectation. A Deep-Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface MediaFileDeepScan extends Base {
 		type: Type.MEDIA_FILE_DEEP_SCAN
 
@@ -121,7 +122,7 @@ export namespace Expectation {
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: [PackageContainerOnPackageCorePackage]
+			targets: [SpecificPackageContainerOnPackage.CorePackage]
 			content: {
 				filePath: string
 			}
@@ -155,11 +156,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
-	export interface PackageContainerOnPackageCorePackage extends PackageContainerOnPackage {
-		accessors: {
-			[accessorId: string]: AccessorOnPackage.CorePackageCollection
-		}
-	}
+	/** Defines a Thumbnail of a Media file Expectation. A Thumbnail is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFileThumbnail extends Base {
 		type: Type.MEDIA_FILE_THUMBNAIL
 
@@ -169,7 +166,7 @@ export namespace Expectation {
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: PackageContainerOnPackageFile[]
+			targets: SpecificPackageContainerOnPackage.File[]
 			content: {
 				filePath: string
 			}
@@ -177,6 +174,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
+	/** Defines a Preview of a Media file Expectation. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFilePreview extends Base {
 		type: Type.MEDIA_FILE_PREVIEW
 
@@ -186,7 +184,7 @@ export namespace Expectation {
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: PackageContainerOnPackageFile[]
+			targets: SpecificPackageContainerOnPackage.File[]
 			content: {
 				filePath: string
 			}
@@ -195,14 +193,15 @@ export namespace Expectation {
 		workOptions: WorkOptions.RemoveDelay
 	}
 
+	/** Defines a Quantel clip Expectation. A Quantel clip is to be copied from one of the Sources, to the Target. */
 	export interface QuantelClipCopy extends Base {
 		type: Type.QUANTEL_CLIP_COPY
 
 		startRequirement: {
-			sources: PackageContainerOnPackageQuantel[]
+			sources: SpecificPackageContainerOnPackage.QuantelClip[]
 		}
 		endRequirement: {
-			targets: [PackageContainerOnPackageQuantel]
+			targets: [SpecificPackageContainerOnPackage.QuantelClip]
 			content: {
 				guid?: string
 				title?: string
@@ -210,9 +209,31 @@ export namespace Expectation {
 			version: Expectation.Version.ExpectedQuantelClip
 		}
 	}
-	export interface PackageContainerOnPackageQuantel extends PackageContainerOnPackage {
-		accessors: {
-			[accessorId: string]: AccessorOnPackage.Quantel
+
+	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
+	// eslint-disable-next-line @typescript-eslint/no-namespace
+	export namespace SpecificPackageContainerOnPackage {
+		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support files. */
+		export interface File extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
+					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.Quantel
+			}
+		}
+		/** Defines a PackageContainer for CorePackage (A collection in Sofie-Core accessible through an API). */
+		export interface CorePackage extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]: AccessorOnPackage.CorePackageCollection
+			}
+		}
+		/** Defines a PackageContainer for Quantel clips. */
+		export interface QuantelClip extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]: AccessorOnPackage.Quantel
+			}
 		}
 	}
 

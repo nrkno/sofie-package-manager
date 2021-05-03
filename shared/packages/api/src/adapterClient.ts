@@ -1,6 +1,11 @@
 import { WebsocketClient } from './websocketClient'
 import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
 
+/**
+ * The AdapterClient's sub-classes are used to connect to an AdapterServer in order to provide type-safe communication between processes (using web-sockets),
+ * or (in the case where they run in the same process) hook directly into the AdapterServer, to call the methods directly.
+ * @see {@link ./adapterServer.ts}
+ */
 export abstract class AdapterClient<ME, OTHER> {
 	/** Used for internal connections */
 	private serverHook?: Hook<OTHER, ME>
@@ -56,6 +61,7 @@ export abstract class AdapterClient<ME, OTHER> {
 			}
 		}
 	}
+	/** Used to hook into methods of the AdapterServer directly. Used when the server and client runs in the same process. */
 	hook(serverHook: Hook<OTHER, ME>): void {
 		this.serverHook = serverHook
 	}
@@ -63,7 +69,7 @@ export abstract class AdapterClient<ME, OTHER> {
 		this.conn?.close()
 	}
 }
-
+/** Options for an AdepterClient */
 export type ClientConnectionOptions =
 	| {
 			type: 'websocket'
