@@ -283,7 +283,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	 * Make preparations for file access (such as map a drive letter).
 	 * This method should be called prior to any file access being made.
 	 */
-	private async prepareFileAccess(forceRemount = false): Promise<void> {
+	async prepareFileAccess(forceRemount = false): Promise<void> {
 		if (!this.accessor.folderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
 		const folderPath = this.accessor.folderPath
 

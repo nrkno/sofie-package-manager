@@ -3,7 +3,7 @@ import {
 	PackageContainer,
 	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
-import { getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
+import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
 import { GenericWorker } from '../../../worker'
 import { Expectation } from '@shared/api'
 import { prioritizeAccessors } from '../../../lib/lib'
@@ -135,4 +135,14 @@ export function findBestAccessorOnPackageContainer(
 		}
 	}
 	return undefined
+}
+/** Return a standard cost for the various accessorHandler types */
+export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): number {
+	const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)
+	const target = findBestPackageContainerWithAccessToPackage(worker, exp.endRequirement.targets)
+
+	const sourceCost = source ? getAccessorCost(source.accessor.type) : Number.POSITIVE_INFINITY
+	const targetCost = target ? getAccessorCost(target.accessor.type) : Number.POSITIVE_INFINITY
+
+	return 30 * (sourceCost + targetCost)
 }

@@ -75,12 +75,12 @@ export abstract class GenericAccessorHandle<Metadata> {
 	abstract removeMetadata(): Promise<void>
 
 	/** For accessors that supports Streams: Obtain a binary read-stream that can be piped into putPackageStream() */
-	abstract getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }>
+	abstract getPackageReadStream(): Promise<PackageReadStream>
 	/** For accessors that supports Streams: Pipe in a stream (obtained from getPackageReadStream) */
 	abstract putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler>
 
 	/** For accessors that supports readInfo: Obtain info for reading a package, sent into putPackageInfo() */
-	abstract getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }>
+	abstract getPackageReadInfo(): Promise<PackageReadInfoWrap>
 	/** For accessors that supports readInfo: Pipe info about a package source (obtained from getPackageReadInfo()) */
 	abstract putPackageInfo(readInfo: PackageReadInfo): Promise<PutPackageHandler>
 
@@ -154,4 +154,13 @@ export interface PackageReadInfoQuantelClip extends PackageReadInfoBase {
 	type: PackageReadInfoBaseType.QUANTEL_CLIP
 	version: Expectation.Version.QuantelClip
 	clipId: number
+}
+
+export interface PackageReadStream {
+	readStream: NodeJS.ReadableStream
+	cancel: () => void
+}
+export interface PackageReadInfoWrap {
+	readInfo: PackageReadInfo
+	cancel: () => void
 }

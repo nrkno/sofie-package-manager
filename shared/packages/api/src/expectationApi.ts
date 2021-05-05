@@ -78,7 +78,7 @@ export namespace Expectation {
 		triggerByFullfilledIds?: string[]
 	}
 
-	/** Defines a File Copy Expectation. A File is to be copied from one of the Sources, to the Target. */
+	/** Defines a File Copy. A File is to be copied from one of the Sources, to the Target. */
 	export interface FileCopy extends Base {
 		type: Type.FILE_COPY
 
@@ -94,7 +94,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
-	/** Defines a Scan of a Media file Expectation. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
+	/** Defines a Scan of a Media file. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface MediaFileScan extends Base {
 		type: Type.MEDIA_FILE_SCAN
 
@@ -112,7 +112,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
-	/** Defines a Deep-Scan of a Media file Expectation. A Deep-Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
+	/** Defines a Deep-Scan of a Media file. A Deep-Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface MediaFileDeepScan extends Base {
 		type: Type.MEDIA_FILE_DEEP_SCAN
 
@@ -156,7 +156,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
-	/** Defines a Thumbnail of a Media file Expectation. A Thumbnail is to be created from one of the the sources and the resulting file is to be stored on the target. */
+	/** Defines a Thumbnail of a Media file. A Thumbnail is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFileThumbnail extends Base {
 		type: Type.MEDIA_FILE_THUMBNAIL
 
@@ -174,7 +174,7 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
-	/** Defines a Preview of a Media file Expectation. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
+	/** Defines a Preview of a Media file. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFilePreview extends Base {
 		type: Type.MEDIA_FILE_PREVIEW
 
@@ -193,7 +193,7 @@ export namespace Expectation {
 		workOptions: WorkOptions.RemoveDelay
 	}
 
-	/** Defines a Quantel clip Expectation. A Quantel clip is to be copied from one of the Sources, to the Target. */
+	/** Defines a Quantel clip. A Quantel clip is to be copied from one of the Sources, to the Target. */
 	export interface QuantelClipCopy extends Base {
 		type: Type.QUANTEL_CLIP_COPY
 
@@ -220,7 +220,6 @@ export namespace Expectation {
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
-					| AccessorOnPackage.Quantel
 			}
 		}
 		/** Defines a PackageContainer for CorePackage (A collection in Sofie-Core accessible through an API). */
@@ -229,7 +228,7 @@ export namespace Expectation {
 				[accessorId: string]: AccessorOnPackage.CorePackageCollection
 			}
 		}
-		/** Defines a PackageContainer for Quantel clips. */
+		/** Defines a PackageContainer for Quantel clips, stored on Quantel servers. */
 		export interface QuantelClip extends PackageContainerOnPackage {
 			accessors: {
 				[accessorId: string]: AccessorOnPackage.Quantel
@@ -267,7 +266,7 @@ export namespace Expectation {
 			QUANTEL_CLIP = 'quantel_clip',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
-		export type ExpectedFileOnDisk = ExpectedType<FileOnDisk>
+
 		export interface FileOnDisk extends Base {
 			type: Type.FILE_ON_DISK
 			/** File size in bytes */
@@ -278,7 +277,8 @@ export namespace Expectation {
 			// checksum?: string
 			// checkSumType?: 'sha' | 'md5' | 'whatever'
 		}
-		export type ExpectedMediaFileThumbnail = ExpectedType<MediaFileThumbnail>
+		export type ExpectedFileOnDisk = ExpectedType<FileOnDisk>
+
 		export interface MediaFileThumbnail extends Base {
 			type: Type.MEDIA_FILE_THUMBNAIL
 			/** Width of the thumbnail */
@@ -288,19 +288,22 @@ export namespace Expectation {
 			/** At what time to pick the thumbnail from [ms] */
 			seekTime: number
 		}
-		export type ExpectedMediaFilePreview = ExpectedType<MediaFilePreview>
+		export type ExpectedMediaFileThumbnail = ExpectedType<MediaFileThumbnail>
+
 		export interface MediaFilePreview extends Base {
 			type: Type.MEDIA_FILE_PREVIEW
 			bitrate: string // default: '40k'
 			width: number
 			height: number
 		}
-		export type ExpectedCorePackageInfo = ExpectedType<CorePackageInfo>
+		export type ExpectedMediaFilePreview = ExpectedType<MediaFilePreview>
+
 		export interface CorePackageInfo extends Base {
 			type: Type.CORE_PACKAGE_INFO
 			actualContentVersionHash: string
 		}
-		export type ExpectedHTTPFile = ExpectedType<HTTPFile>
+		export type ExpectedCorePackageInfo = ExpectedType<CorePackageInfo>
+
 		export interface HTTPFile extends Base {
 			type: Type.HTTP_FILE
 			contentType: string
@@ -308,7 +311,8 @@ export namespace Expectation {
 			modified: number
 			etags: string[]
 		}
-		export type ExpectedQuantelClip = ExpectedType<QuantelClip>
+		export type ExpectedHTTPFile = ExpectedType<HTTPFile>
+
 		export interface QuantelClip extends Base {
 			type: Type.QUANTEL_CLIP
 

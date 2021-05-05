@@ -1,5 +1,5 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
+import { GenericAccessorHandle, PackageReadInfo, PackageReadStream, PutPackageHandler } from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
@@ -78,7 +78,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			await this.deletePackageIfExists(this.fullUrl)
 		}
 	}
-	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
+	async getPackageReadStream(): Promise<PackageReadStream> {
 		const controller = new AbortController()
 		const res = await fetch(this.fullUrl, { signal: controller.signal })
 
@@ -174,6 +174,12 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		// todo: implement monitors
 		return undefined
 	}
+	get fullUrl(): string {
+		return [
+			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
+			this.filePath.replace(/^\//, ''), // trim leading slash
+		].join('/')
+	}
 
 	private checkAccessor(): string | undefined {
 		if (this.accessor.type !== Accessor.AccessType.HTTP) {
@@ -194,12 +200,6 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		const filePath = this.accessor.url || this.content.filePath
 		if (!filePath) throw new Error(`HTTPAccessorHandle: filePath not set!`)
 		return filePath
-	}
-	private get fullUrl(): string {
-		return [
-			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-			this.filePath.replace(/^\//, ''), // trim leading slash
-		].join('/')
 	}
 	private convertHeadersToVersion(headers: HTTPHeaders): Expectation.Version.HTTPFile {
 		return {

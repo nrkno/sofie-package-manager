@@ -234,6 +234,22 @@ describe('Basic', () => {
 		},
 		WAIT_JOB_TIME * 1000 + 5000
 	)
+	test.skip(
+		'Media file preview from local to file share',
+		async () => {
+			// To be written
+			expect(1).toEqual(1)
+		},
+		WAIT_JOB_TIME * 1000 + 5000
+	)
+	test.skip(
+		'Media file preview from local to file share',
+		async () => {
+			// To be written
+			expect(1).toEqual(1)
+		},
+		WAIT_JOB_TIME * 1000 + 5000
+	)
 })
 
 export {}

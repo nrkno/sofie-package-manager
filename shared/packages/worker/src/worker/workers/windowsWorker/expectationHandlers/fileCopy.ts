@@ -2,12 +2,7 @@ import { Accessor } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 // import { diff } from 'deep-diff'
-import {
-	UniversalVersion,
-	compareUniversalVersions,
-	makeUniversalVersion,
-	findBestPackageContainerWithAccessToPackage,
-} from '../lib/lib'
+import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getStandardCost } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	hashObj,
@@ -21,7 +16,7 @@ import {
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
-	isLocalFolderHandle,
+	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -31,7 +26,12 @@ import {
 	LookupPackageContainer,
 	waitTime,
 } from './lib'
+import { CancelablePromise } from '../../../lib/cancelablePromise'
+import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
 
+/**
+ * Copies a file from one of the sources and into the target PackageContainer
+ */
 export const FileCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
@@ -44,31 +44,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 		worker: GenericWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-
-		const accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(
-			worker,
-			exp.startRequirement.sources
-		)
-		const accessTargetPackageContainer = findBestPackageContainerWithAccessToPackage(
-			worker,
-			exp.endRequirement.targets
-		)
-
-		const accessorTypeCost: { [key: string]: number } = {
-			[Accessor.AccessType.LOCAL_FOLDER]: 1,
-			[Accessor.AccessType.QUANTEL]: 1,
-			[Accessor.AccessType.FILE_SHARE]: 2,
-			[Accessor.AccessType.HTTP]: 3,
-		}
-		const sourceCost = accessSourcePackageContainer
-			? accessorTypeCost[accessSourcePackageContainer.accessor.type as string] || 5
-			: Number.POSITIVE_INFINITY
-
-		const targetCost = accessTargetPackageContainer
-			? accessorTypeCost[accessTargetPackageContainer.accessor.type as string] || 5
-			: Number.POSITIVE_INFINITY
-
-		return 30 * (sourceCost + targetCost)
+		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
@@ -181,6 +157,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
 		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
+		const sourceHandle = lookupSource.handle
+		const targetHandle = lookupTarget.handle
 		if (
 			process.platform === 'win32' && // Robocopy is a windows-only feature
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
@@ -189,52 +167,51 @@ export const FileCopy: ExpectationWindowsHandler = {
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE)
 		) {
 			// We can do RoboCopy
-			if (!isLocalFolderHandle(lookupSource.handle) && !isFileShareAccessorHandle(lookupSource.handle))
+			if (!isLocalFolderAccessorHandle(sourceHandle) && !isFileShareAccessorHandle(sourceHandle))
 				throw new Error(`Source AccessHandler type is wrong`)
-			if (!isLocalFolderHandle(lookupTarget.handle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isLocalFolderAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
 
-			if (lookupSource.handle.fullPath === lookupTarget.handle.fullPath) {
+			if (sourceHandle.fullPath === targetHandle.fullPath) {
 				throw new Error('Unable to copy: source and Target file paths are the same!')
 			}
 
 			let wasCancelled = false
+			let copying: CancelablePromise<void> | undefined
 			const workInProgress = new WorkInProgress({ workLabel: 'Copying, using Robocopy' }, async () => {
 				// on cancel
 				wasCancelled = true
-				copying.cancel()
+				copying?.cancel()
 
 				// Wait a bit to allow freeing up of resources:
 				await waitTime(1000)
 
 				// Remove target files
-				await lookupTarget.handle.removePackage()
+				await targetHandle.removePackage()
+			}).do(async () => {
+				await targetHandle.packageIsInPlace()
+
+				const sourcePath = sourceHandle.fullPath
+				const targetPath = targetHandle.fullPath
+
+				copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
+					workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
+				})
+
+				await copying
+				copying = undefined
+				if (wasCancelled) return // ignore
+
+				const duration = Date.now() - startTime
+
+				await targetHandle.updateMetadata(actualSourceUVersion)
+
+				workInProgress._reportComplete(
+					actualSourceVersionHash,
+					`Copy completed in ${Math.round(duration / 100) / 10}s`,
+					undefined
+				)
 			})
 
-			await lookupTarget.handle.packageIsInPlace()
-
-			const sourcePath = lookupSource.handle.fullPath
-			const targetPath = lookupTarget.handle.fullPath
-
-			const copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
-				workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
-			})
-
-			copying
-				.then(async () => {
-					if (wasCancelled) return // ignore
-					const duration = Date.now() - startTime
-
-					await lookupTarget.handle.updateMetadata(actualSourceUVersion)
-
-					workInProgress._reportComplete(
-						actualSourceVersionHash,
-						`Copy completed in ${Math.round(duration / 100) / 10}s`,
-						undefined
-					)
-				})
-				.catch((err: Error) => {
-					workInProgress._reportError(new Error(err.toString() + ` "${sourcePath}", "${targetPath}"`))
-				})
 			return workInProgress
 		} else if (
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
@@ -246,73 +223,76 @@ export const FileCopy: ExpectationWindowsHandler = {
 		) {
 			// We can copy by using file streams
 			if (
-				!isLocalFolderHandle(lookupSource.handle) &&
+				!isLocalFolderAccessorHandle(lookupSource.handle) &&
 				!isFileShareAccessorHandle(lookupSource.handle) &&
 				!isHTTPAccessorHandle(lookupSource.handle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 			if (
-				!isLocalFolderHandle(lookupTarget.handle) &&
-				!isFileShareAccessorHandle(lookupTarget.handle) &&
-				!isHTTPAccessorHandle(lookupTarget.handle)
+				!isLocalFolderAccessorHandle(targetHandle) &&
+				!isFileShareAccessorHandle(targetHandle) &&
+				!isHTTPAccessorHandle(targetHandle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 
 			let wasCancelled = false
+			let sourceStream: PackageReadStream | undefined = undefined
+			let writeStream: PutPackageHandler | undefined = undefined
 			const workInProgress = new WorkInProgress({ workLabel: 'Copying, using streams' }, async () => {
 				// on cancel work
 				wasCancelled = true
 				await new Promise<void>((resolve, reject) => {
-					writeStream.once('close', () => {
-						lookupTarget.handle
+					writeStream?.once('close', () => {
+						targetHandle
 							.removePackage()
 							.then(() => resolve())
 							.catch((err) => reject(err))
 					})
-					sourceStream.cancel()
-					writeStream.abort()
+					sourceStream?.cancel()
+					writeStream?.abort()
 				})
-			})
+			}).do(async () => {
+				const fileSize: number =
+					typeof actualSourceUVersion.fileSize.value === 'number'
+						? actualSourceUVersion.fileSize.value
+						: parseInt(actualSourceUVersion.fileSize.value || '0', 10)
 
-			const fileSize: number =
-				typeof actualSourceUVersion.fileSize.value === 'number'
-					? actualSourceUVersion.fileSize.value
-					: parseInt(actualSourceUVersion.fileSize.value || '0', 10)
+				const byteCounter = new ByteCounter()
+				byteCounter.on('progress', (bytes: number) => {
+					if (fileSize) {
+						workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
+					}
+				})
 
-			const byteCounter = new ByteCounter()
-			byteCounter.on('progress', (bytes: number) => {
-				if (fileSize) {
-					workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
-				}
-			})
+				if (wasCancelled) return
+				sourceStream = await lookupSource.handle.getPackageReadStream()
+				writeStream = await targetHandle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
 
-			const sourceStream = await lookupSource.handle.getPackageReadStream()
-			const writeStream = await lookupTarget.handle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
+				sourceStream.readStream.on('error', (err) => {
+					workInProgress._reportError(err)
+				})
+				writeStream.on('error', (err) => {
+					workInProgress._reportError(err)
+				})
+				writeStream.once('close', () => {
+					if (wasCancelled) return // ignore
+					setImmediate(() => {
+						// Copying is done
+						const duration = Date.now() - startTime
 
-			sourceStream.readStream.on('error', (err) => {
-				workInProgress._reportError(err)
-			})
-			writeStream.on('error', (err) => {
-				workInProgress._reportError(err)
-			})
-			writeStream.once('close', () => {
-				if (wasCancelled) return // ignore
-				setImmediate(() => {
-					// Copying is done
-					const duration = Date.now() - startTime
-
-					lookupTarget.handle
-						.updateMetadata(actualSourceUVersion)
-						.then(() => {
-							workInProgress._reportComplete(
-								actualSourceVersionHash,
-								`Copy completed in ${Math.round(duration / 100) / 10}s`,
-								undefined
-							)
-						})
-						.catch((err) => {
-							workInProgress._reportError(err)
-						})
+						targetHandle
+							.updateMetadata(actualSourceUVersion)
+							.then(() => {
+								workInProgress._reportComplete(
+									actualSourceVersionHash,
+									`Copy completed in ${Math.round(duration / 100) / 10}s`,
+									undefined
+								)
+							})
+							.catch((err) => {
+								workInProgress._reportError(err)
+							})
+					})
 				})
 			})
 

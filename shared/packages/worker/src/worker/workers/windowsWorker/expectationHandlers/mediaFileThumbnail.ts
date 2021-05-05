@@ -1,4 +1,3 @@
-import { ChildProcess, spawn } from 'child_process'
 import { Accessor } from '@sofie-automation/blueprints-integration'
 import {
 	hashObj,
@@ -9,10 +8,14 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@shared/api'
-import { findBestPackageContainerWithAccessToPackage } from '../lib/lib'
+import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
-import { isHTTPAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
+import {
+	isFileShareAccessorHandle,
+	isHTTPAccessorHandle,
+	isLocalFolderAccessorHandle,
+} from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import {
 	checkWorkerHasAccessToPackageContainersOnPackage,
@@ -20,7 +23,12 @@ import {
 	lookupAccessorHandles,
 	LookupPackageContainer,
 } from './lib'
+import { assertNever } from '../../../lib/lib'
+import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
 
+/**
+ * Generates a thumbnail image from a source video file, and stores the resulting file into the target PackageContainer
+ */
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
@@ -32,23 +40,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		worker: GenericWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-
-		const accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(
-			worker,
-			exp.startRequirement.sources
-		)
-
-		const accessorTypeCost: { [key: string]: number } = {
-			[Accessor.AccessType.LOCAL_FOLDER]: 1,
-			[Accessor.AccessType.QUANTEL]: 1,
-			[Accessor.AccessType.FILE_SHARE]: 2,
-			[Accessor.AccessType.HTTP]: 3,
-		}
-		const sourceCost = accessSourcePackageContainer
-			? 10 * accessorTypeCost[accessSourcePackageContainer.accessor.type as string] || 5
-			: Number.POSITIVE_INFINITY
-
-		return sourceCost
+		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
@@ -85,9 +77,8 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
 
 		const issueReadPackage = await lookupTarget.handle.checkPackageReadAccess()
-		if (issueReadPackage) {
-			return { fulfilled: false, reason: `Thumbnail does not exist: ${issueReadPackage}` }
-		}
+		if (issueReadPackage) return { fulfilled: false, reason: `Thumbnail does not exist: ${issueReadPackage}` }
+
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
 
@@ -113,132 +104,102 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
 
-		let ffMpegProcess: ChildProcess | undefined
+		let ffMpegProcess: FFMpegProcess | undefined
 		const workInProgress = new WorkInProgress({ workLabel: 'Generating thumbnail' }, async () => {
 			// On cancel
 			if (ffMpegProcess) {
-				ffMpegProcess.kill() // todo: signal?
+				ffMpegProcess.kill()
 			}
 		}).do(async () => {
 			if (
-				lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
+				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+					lookupTarget.accessor.type === Accessor.AccessType.HTTP) &&
 				(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+					lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
 					lookupTarget.accessor.type === Accessor.AccessType.HTTP)
 			) {
-				if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
-				if (!isLocalFolderHandle(lookupTarget.handle) && !isHTTPAccessorHandle(lookupTarget.handle))
+				const sourceHandle = lookupSource.handle
+				const targetHandle = lookupTarget.handle
+				if (
+					!isLocalFolderAccessorHandle(sourceHandle) &&
+					!isFileShareAccessorHandle(sourceHandle) &&
+					!isHTTPAccessorHandle(sourceHandle)
+				)
+					throw new Error(`Source AccessHandler type is wrong`)
+				if (
+					!isLocalFolderAccessorHandle(targetHandle) &&
+					!isFileShareAccessorHandle(targetHandle) &&
+					!isHTTPAccessorHandle(targetHandle)
+				)
 					throw new Error(`Target AccessHandler type is wrong`)
 
-				const issueReadPackage = await lookupSource.handle.checkPackageReadAccess()
+				const issueReadPackage = await sourceHandle.checkPackageReadAccess()
 				if (issueReadPackage) {
-					workInProgress._reportError(new Error(issueReadPackage))
-				} else {
-					const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
-					const sourceVersionHash = hashObj(actualSourceVersion)
-
-					const metadata: Metadata = {
-						sourceVersionHash: sourceVersionHash,
-						version: {
-							...{
-								// Default values:
-								type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
-								width: 256,
-								height: -1,
-								seekTime: 0,
-							},
-							...exp.endRequirement.version,
-						},
-					}
-
-					await lookupTarget.handle.removePackage()
-
-					const seekTime = exp.endRequirement.version.seekTime
-
-					const seekTimeCode: string | undefined =
-						seekTime !== undefined ? formatTimeCode(seekTime) : undefined
-
-					// Use FFMpeg to generate the thumbnail:
-					const args: string[] = [
-						// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
-						'-hide_banner',
-						seekTimeCode ? `-ss ${seekTimeCode}` : '',
-						`-i "${lookupSource.handle.fullPath}"`,
-						`-f image2`,
-						'-frames:v 1',
-						`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:` +
-							`${metadata.version.height}`,
-						'-threads 1',
-					]
-
-					let pipeStdOut = false
-					if (isLocalFolderHandle(lookupTarget.handle)) {
-						args.push(`"${lookupTarget.handle.fullPath}"`)
-					} else if (isHTTPAccessorHandle(lookupTarget.handle)) {
-						pipeStdOut = true
-						args.push('pipe:1') // pipe output to stdout
-					} else {
-						throw new Error(`Unsupported Target AccessHandler`)
-					}
-
-					// Report back an initial status, because it looks nice:
-					workInProgress._reportProgress(sourceVersionHash, 0)
-
-					ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
-						shell: true,
-					})
-
-					let FFMpegIsDone = false
-					let uploadIsDone = false
-					/** To be called when done */
-					const onDone = () => {
-						if (FFMpegIsDone && uploadIsDone) {
-							lookupTarget.handle
-								.updateMetadata(metadata)
-								.then(() => {
-									const duration = Date.now() - startTime
-									workInProgress._reportComplete(
-										sourceVersionHash,
-										`Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
-										undefined
-									)
-								})
-								.catch((err) => {
-									workInProgress._reportError(err)
-								})
-						}
-					}
-
-					if (pipeStdOut) {
-						if (!ffMpegProcess.stdout) {
-							throw new Error('No stdout stream available')
-						}
-
-						const writeStream = await lookupTarget.handle.putPackageStream(ffMpegProcess.stdout)
-						writeStream.on('error', (err) => {
-							workInProgress._reportError(err)
-						})
-						writeStream.once('close', () => {
-							uploadIsDone = true
-							onDone()
-						})
-					} else {
-						uploadIsDone = true // no upload
-					}
-					let stdErr = ''
-					ffMpegProcess.stderr?.on('data', (data) => {
-						stdErr += data.toString()
-					})
-
-					ffMpegProcess.on('close', (code) => {
-						ffMpegProcess = undefined
-						if (code === 0) {
-							FFMpegIsDone = true
-							onDone()
-						} else {
-							workInProgress._reportError(new Error(`Code ${code} ${stdErr}`))
-						}
-					})
+					throw new Error(issueReadPackage)
 				}
+
+				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
+				const sourceVersionHash = hashObj(actualSourceVersion)
+
+				const metadata: Metadata = {
+					sourceVersionHash: sourceVersionHash,
+					version: {
+						...{
+							// Default values:
+							type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
+							width: 256,
+							height: -1,
+							seekTime: 0,
+						},
+						...exp.endRequirement.version,
+					},
+				}
+
+				await targetHandle.removePackage()
+
+				const seekTime = exp.endRequirement.version.seekTime
+
+				const seekTimeCode: string | undefined = seekTime !== undefined ? formatTimeCode(seekTime) : undefined
+
+				let inputPath: string
+				if (isLocalFolderAccessorHandle(targetHandle)) {
+					inputPath = targetHandle.fullPath
+				} else if (isFileShareAccessorHandle(targetHandle)) {
+					await targetHandle.prepareFileAccess()
+					inputPath = targetHandle.fullPath
+				} else if (isHTTPAccessorHandle(targetHandle)) {
+					inputPath = targetHandle.fullUrl
+				} else {
+					assertNever(targetHandle)
+					throw new Error(`Unsupported Target AccessHandler`)
+				}
+
+				// Use FFMpeg to generate the thumbnail:
+				const args: string[] = [
+					// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
+					'-hide_banner',
+					seekTimeCode ? `-ss ${seekTimeCode}` : '',
+					`-i "${inputPath}"`,
+					`-f image2`,
+					'-frames:v 1',
+					`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:` +
+						`${metadata.version.height}`,
+					'-threads 1',
+				]
+
+				ffMpegProcess = await runffMpeg(workInProgress, args, targetHandle, sourceVersionHash, async () => {
+					// Called when ffmpeg has finished
+					ffMpegProcess = undefined
+					await targetHandle.updateMetadata(metadata)
+
+					const duration = Date.now() - startTime
+					workInProgress._reportComplete(
+						sourceVersionHash,
+						`Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+						undefined
+					)
+				})
 			} else {
 				throw new Error(
 					`MediaFileThumbnail.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`

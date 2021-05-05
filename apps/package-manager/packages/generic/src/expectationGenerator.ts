@@ -527,6 +527,7 @@ export function generatePackageContainerExpectations(
 				monitors: {
 					packages: {
 						targetLayers: ['target0'],
+						ignore: '.bat',
 						// ignore: '',
 					},
 				},

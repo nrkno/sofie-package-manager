@@ -43,7 +43,7 @@ function assertNever(_shouldBeNever: never) {
 	// Nothing
 }
 
-export function isLocalFolderHandle<Metadata>(
+export function isLocalFolderAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is LocalFolderAccessorHandle<Metadata> {
 	return accessorHandler.type === LocalFolderAccessorHandle.type
@@ -67,4 +67,28 @@ export function isQuantelClipAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is QuantelAccessorHandle<Metadata> {
 	return accessorHandler.type === QuantelAccessorHandle.type
+}
+
+/** Returns a generic value for how costly it is to use an Accessor type. A higher value means that it is more expensive to access the accessor */
+export function getAccessorCost(accessorType: Accessor.AccessType | undefined): number {
+	switch (accessorType) {
+		// --------------------------------------------------------
+		case Accessor.AccessType.LOCAL_FOLDER:
+			return 1
+		case Accessor.AccessType.QUANTEL:
+			return 1
+		case Accessor.AccessType.CORE_PACKAGE_INFO:
+			return 2
+		// --------------------------------------------------------
+		case Accessor.AccessType.FILE_SHARE:
+			return 2
+		case Accessor.AccessType.HTTP:
+			return 3
+
+		case undefined:
+			return 999
+		default:
+			assertNever(accessorType)
+			return 999
+	}
 }

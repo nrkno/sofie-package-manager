@@ -74,11 +74,16 @@ export type LookupPackageContainer<Metadata> =
 			reason: string
 	  }
 interface LookupChecks {
+	/** Check that the accessor-handle supports reading */
 	read?: boolean
+	/** Check that the Package can be read */
 	readPackage?: boolean
+	/** Check that the version of the Package is correct */
 	packageVersion?: Expectation.Version.ExpectAny
 
+	/** Check that the accessor-handle supports writing */
 	write?: boolean
+	/** Check that it is possible to write to write to the package container */
 	writePackageContainer?: boolean
 }
 /** Go through the Accessors and return the best one that we can use for the expectation */

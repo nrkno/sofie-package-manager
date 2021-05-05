@@ -1,6 +1,6 @@
 import { exec, ChildProcess, spawn } from 'child_process'
 import { Accessor } from '@sofie-automation/blueprints-integration'
-import { findBestPackageContainerWithAccessToPackage } from '../lib/lib'
+import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
@@ -12,12 +12,16 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@shared/api'
-import { isCorePackageInfoAccessorHandle, isLocalFolderHandle } from '../../../accessorHandlers/accessor'
+import { isCorePackageInfoAccessorHandle, isLocalFolderAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { scanWithFFProbe } from './mediaFileScan'
 
+/**
+ * Performs a "deep scan" of the source media file and saves the result file into the target PackageContainer (a Sofie Core collection)
+ * The "deep scan" differs from the usual scan in that it does things that takes a bit longer, like scene-detection, field order detection etc..
+ */
 export const MediaFileDeepScan: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
@@ -29,23 +33,7 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 		worker: GenericWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-
-		const accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(
-			worker,
-			exp.startRequirement.sources
-		)
-
-		const accessorTypeCost: { [key: string]: number } = {
-			[Accessor.AccessType.LOCAL_FOLDER]: 1,
-			[Accessor.AccessType.QUANTEL]: 1,
-			[Accessor.AccessType.FILE_SHARE]: 2,
-			[Accessor.AccessType.HTTP]: 3,
-		}
-		const sourceCost = accessSourcePackageContainer
-			? 10 * accessorTypeCost[accessSourcePackageContainer.accessor.type as string] || 5
-			: Number.POSITIVE_INFINITY
-
-		return sourceCost
+		return getStandardCost(exp, worker)
 	},
 
 	isExpectationReadyToStartWorkingOn: async (
@@ -123,86 +111,68 @@ export const MediaFileDeepScan: ExpectationWindowsHandler = {
 				currentProcess.abort()
 			}
 		}).do(async () => {
+			const sourceHandle = lookupSource.handle
+			const targetHandle = lookupTarget.handle
 			if (
 				lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
 				lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
 			) {
-				if (!isLocalFolderHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
-				if (!isCorePackageInfoAccessorHandle(lookupTarget.handle))
+				if (!isLocalFolderAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
+				if (!isCorePackageInfoAccessorHandle(targetHandle))
 					throw new Error(`Target AccessHandler type is wrong`)
 
-				const targetHandle = lookupTarget.handle
+				const issueReadPackage = await sourceHandle.checkPackageReadAccess()
+				if (issueReadPackage) throw new Error(issueReadPackage)
 
-				const issueReadPackage = await lookupSource.handle.checkPackageReadAccess()
-				if (issueReadPackage) {
-					workInProgress._reportError(new Error(issueReadPackage))
-				} else {
-					const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
-					const sourceVersionHash = hashObj(actualSourceVersion)
+				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
+				const sourceVersionHash = hashObj(actualSourceVersion)
 
-					try {
-						workInProgress._reportProgress(sourceVersionHash, 0.1)
+				workInProgress._reportProgress(sourceVersionHash, 0.1)
 
-						// Scan with FFProbe:
-						const ffProbe = scanWithFFProbe(lookupSource.handle)
-						currentProcess.abort = ffProbe.abort
-						const ffProbeScan = await ffProbe.promise
-						workInProgress._reportProgress(sourceVersionHash, 0.1)
-						currentProcess.abort = undefined
+				// Scan with FFProbe:
+				const ffProbe = scanWithFFProbe(sourceHandle)
+				currentProcess.abort = ffProbe.abort
+				const ffProbeScan = await ffProbe.promise
+				workInProgress._reportProgress(sourceVersionHash, 0.1)
+				currentProcess.abort = undefined
 
-						const deepScan: any = {}
+				const deepScan: any = {}
 
-						// Scan field order:
-						const ffProbe2 = scanFieldOrder(lookupSource.handle, exp.endRequirement.version)
-						currentProcess.abort = ffProbe2.abort
-						deepScan.field_order = await ffProbe2.promise
-						workInProgress._reportProgress(sourceVersionHash, 0.2)
-						currentProcess.abort = undefined
+				// Scan field order:
+				const ffProbe2 = scanFieldOrder(sourceHandle, exp.endRequirement.version)
+				currentProcess.abort = ffProbe2.abort
+				deepScan.field_order = await ffProbe2.promise
+				workInProgress._reportProgress(sourceVersionHash, 0.2)
+				currentProcess.abort = undefined
 
-						// Scan more info:
-						const ffProbe3 = scanMoreInfo(
-							lookupSource.handle,
-							ffProbeScan,
-							exp.endRequirement.version,
-							(progress) => {
-								workInProgress._reportProgress(sourceVersionHash, 0.2 + 0.79 * progress)
-							}
-						)
-						currentProcess.abort = ffProbe3.abort
-						const moreInfo = await ffProbe3.promise
-						deepScan.blacks = moreInfo.blacks
-						deepScan.freezes = moreInfo.freezes
-						deepScan.scenes = moreInfo.scenes
-						workInProgress._reportProgress(sourceVersionHash, 0.99)
-						currentProcess.abort = undefined
+				// Scan more info:
+				const ffProbe3 = scanMoreInfo(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
+					workInProgress._reportProgress(sourceVersionHash, 0.2 + 0.79 * progress)
+				})
+				currentProcess.abort = ffProbe3.abort
+				const moreInfo = await ffProbe3.promise
+				deepScan.blacks = moreInfo.blacks
+				deepScan.freezes = moreInfo.freezes
+				deepScan.scenes = moreInfo.scenes
+				workInProgress._reportProgress(sourceVersionHash, 0.99)
+				currentProcess.abort = undefined
 
-						// all done:
-						targetHandle
-							.updatePackageInfo(
-								'deepScan',
-								exp,
-								exp.startRequirement.content,
-								actualSourceVersion,
-								exp.endRequirement.version,
-								deepScan
-							)
-							.then(
-								() => {
-									const duration = Date.now() - startTime
-									workInProgress._reportComplete(
-										sourceVersionHash,
-										`Scan completed in ${Math.round(duration / 100) / 10}s`,
-										undefined
-									)
-								},
-								(err) => {
-									workInProgress._reportError(err)
-								}
-							)
-					} catch (err) {
-						workInProgress._reportError(err)
-					}
-				}
+				// all done:
+				await targetHandle.updatePackageInfo(
+					'deepScan',
+					exp,
+					exp.startRequirement.content,
+					actualSourceVersion,
+					exp.endRequirement.version,
+					deepScan
+				)
+
+				const duration = Date.now() - startTime
+				workInProgress._reportComplete(
+					sourceVersionHash,
+					`Scan completed in ${Math.round(duration / 100) / 10}s`,
+					undefined
+				)
 			} else {
 				throw new Error(
 					`MediaFileScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
