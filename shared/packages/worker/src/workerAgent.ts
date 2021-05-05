@@ -258,11 +258,8 @@ export class WorkerAgent {
 			ids[newEm.id] = true
 
 			const em = this.expectationManagers[newEm.id]
-			if (!em) {
-				// added
-				await this.expectationManagerAvailable(newEm.id, newEm.url)
-			} else if (em.url !== newEm.url) {
-				// changed
+			if (!em || em.url !== newEm.url) {
+				// added or changed
 				await this.expectationManagerAvailable(newEm.id, newEm.url)
 			}
 		}

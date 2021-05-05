@@ -16,7 +16,6 @@ const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 
 /** Accessor handle for accessing files in a local folder */
-console.log('GenericFileAccessorHandle', GenericFileAccessorHandle)
 export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
 	static readonly type = LocalFolderAccessorHandleType
 

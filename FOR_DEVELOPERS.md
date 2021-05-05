@@ -48,18 +48,21 @@ The Worker is (almost completely) **stateless**, which allows it to expose a lam
 
 _Future functionality: There are multiple different types of Workers. Some are running on a Windows-machine with direct access to that maching. Some are running in Linux/Docker containers, or even off-premise._
 
-### Expectation & AccessorHandlers
+### ExpectationHandlers & AccessorHandlers
 
 ![Expectation and Accessor handlers](./images/handlers.png "Expectation and Accessor handlers")
 
-The Worker works internally by separating the `ExpectationHandlers` and the `AccessorHandlers`.
+Internally, the Worker is structured by separating the `ExpectationHandlers` and the `AccessorHandlers`.
 
 The `ExpectationHandlers` handles the high-level functionality required for a certain Expectation, while the `AccessorHandlers` handles the low-level functionality for a certain Accessor type.
+
+For example, when [copying a file](shared/packages/worker/src/worker/workers/windowsWorker/expectationHandlers/fileCopy.ts) from one folder to another, the `ExpectationHandler` will handle things like "check if the source package exists", "check if the target package already exists" but it's never touching the files directly, only talking to the the `AccessorHandler`.
+The `AccessorHandler` [exposes a few generic methods](./shared/packages/worker/src/worker/accessorHandlers/genericHandle.ts), like "check if we can read from a Package" (ie does a file exist), etc.
 
 
 ## HTTP-server
 
-The HTTP-server is a simple HTTP-server which allows for uploading and downloading of Packages with a RESTful API.
+The HTTP-server application is a simple HTTP-server which allows for uploading and downloading of Packages with a RESTful API.
 It is intended to provide a simple way of serving for example preview-files to the Sofie-GUI.
 
 ## Single-app
@@ -69,7 +72,7 @@ It is intended to be used as a simple deployment and for deveoplemnt/debugging.
 
 # Data structure & key concepts
 
-The Package Manager is based upon a few key concepts that are intentionally worded to be generic. Instead of calling things "files" or "media", we use the word "Package". The reason behind this is that the Package Manager is indended to be able to handle many different types of "things", stored in a multitude of ways on different types of systems and software/hardware.
+The Package Manager is based on a few key concepts that are intentionally worded to be generic. Instead of calling things "files" or "media", we use the word "Package". The reason behind this is that the Package Manager is indended to be able to handle many different types of "things", stored in a multitude of ways on different types of systems and software/hardware.
 
 ## The "Package"
 
@@ -90,4 +93,4 @@ A PackageContainer is separated from an **Accessor**, which is the "way to acces
 
 _See [expectationApi.ts](shared/packages/api/src/expectationApi.ts)._
 
-An Expectation is what the PackageManager uses to figure out what should be done and how to do it.
+An Expectation is what the PackageManager uses to figure out what should be done and how to do it. One example is "Copy a file from a source into a target".
