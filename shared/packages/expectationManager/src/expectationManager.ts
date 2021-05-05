@@ -348,10 +348,10 @@ export class ExpectationManager {
 		// First, we're doing a run-through to just update the statues of the expectations.
 		// The reason for this is that by updating all statuses we will have emitted at least one status for each expectation.
 		// Updating the statuses should go fairly quickly, and emitting those statuses is important for the Sofie GUI.
-		runAgainASAP = runAgainASAP || (await this._evaluateAllTrackedExpectations(false))
+		runAgainASAP = (await this._evaluateAllTrackedExpectations(false)) ? true : runAgainASAP
 
 		// Then, we iterate through the Expectations again, now to do actual work:
-		runAgainASAP = runAgainASAP || (await this._evaluateAllTrackedExpectations(true))
+		runAgainASAP = (await this._evaluateAllTrackedExpectations(true)) ? true : runAgainASAP
 
 		if (runAgainASAP) {
 			this._triggerEvaluateExpectations(true)
