@@ -1,6 +1,6 @@
 import { Accessor } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
-import { compareUniversalVersions, makeUniversalVersion } from '../lib/lib'
+import { compareUniversalVersions, getStandardCost, makeUniversalVersion } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	hashObj,
@@ -24,13 +24,10 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		_worker: GenericWorker
+		worker: GenericWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isQuantelFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-
-		// Because we really only support one accessor, let's just return a fix cost..
-
-		return 30
+		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
@@ -121,15 +118,17 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
 		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
+		const sourceHandle = lookupSource.handle
+		const targetHandle = lookupTarget.handle
 		if (
 			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
 			lookupTarget.accessor.type === Accessor.AccessType.QUANTEL
 		) {
 			// We can copy by using internal Quantel copy
-			if (!isQuantelClipAccessorHandle(lookupSource.handle))
-				throw new Error(`Source AccessHandler type is wrong (${lookupSource.handle.type})`)
-			if (!isQuantelClipAccessorHandle(lookupTarget.handle))
-				throw new Error(`Source AccessHandler type is wrong (${lookupTarget.handle.type})`)
+			if (!isQuantelClipAccessorHandle(sourceHandle))
+				throw new Error(`Source AccessHandler type is wrong (${sourceHandle.type})`)
+			if (!isQuantelClipAccessorHandle(targetHandle))
+				throw new Error(`Source AccessHandler type is wrong (${targetHandle.type})`)
 
 			let wasCancelled = false
 			let wasCompleted = false
@@ -138,7 +137,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				wasCancelled = true
 				await new Promise<void>((resolve, reject) => {
 					putPackageHandler.once('close', () => {
-						lookupTarget.handle
+						targetHandle
 							.removePackage()
 							.then(() => resolve())
 							.catch((err) => reject(err))
@@ -156,12 +155,12 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 
 				;(async () => {
 					if (wasCancelled || wasCompleted) return
-					const sourceClip = await lookupSource.handle.getPackageActualVersion()
+					const sourceClip = await sourceHandle.getPackageActualVersion()
 
 					if (wasCancelled || wasCompleted) return
 					let targetClip: Expectation.Version.Any | null = null
 					try {
-						targetClip = await lookupTarget.handle.getPackageActualVersion()
+						targetClip = await targetHandle.getPackageActualVersion()
 					} catch (err) {
 						if ((err + '').match(/not found/i)) {
 							// not found, that's okay
@@ -193,8 +192,8 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				})
 			}, 100)
 
-			const sourceReadInfo = await lookupSource.handle.getPackageReadInfo()
-			const putPackageHandler = await lookupTarget.handle.putPackageInfo(sourceReadInfo.readInfo)
+			const sourceReadInfo = await sourceHandle.getPackageReadInfo()
+			const putPackageHandler = await targetHandle.putPackageInfo(sourceReadInfo.readInfo)
 
 			putPackageHandler.on('error', (err) => {
 				workInProgress._reportError(err)
@@ -206,7 +205,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 					// Copying is done
 					const duration = Date.now() - startTime
 
-					lookupTarget.handle
+					targetHandle
 						.updateMetadata(actualSourceUVersion)
 						.then(() => {
 							workInProgress._reportComplete(

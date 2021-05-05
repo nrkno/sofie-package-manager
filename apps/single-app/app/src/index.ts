@@ -1,4 +1,5 @@
 import * as HTTPServer from '@http-server/generic'
+import * as QuantelHTTPTransformerProxy from '@quantel-http-transformer-proxy/generic'
 import * as PackageManager from '@package-manager/generic'
 import * as Workforce from '@shared/workforce'
 import * as Worker from '@shared/worker'
@@ -22,6 +23,8 @@ const logger = setupLogging(config)
 
 	logger.info('Core:          ' + config.packageManager.coreHost + ':' + config.packageManager.corePort)
 	logger.info('------------------------------------------------------------------')
+	logger.info(JSON.stringify(config, undefined, 2))
+	logger.info('------------------------------------------------------------------')
 
 	const connector = new PackageManager.Connector(logger, config)
 	const expectationManager = connector.getExpectationManager()
@@ -29,6 +32,10 @@ const logger = setupLogging(config)
 	logger.info('Initializing HTTP proxy Server')
 	const httpServer = new HTTPServer.PackageProxyServer(logger, config)
 	await httpServer.init()
+
+	logger.info('Initializing Quantel HTTP Transform proxy Server')
+	const quantelHTTPTransformerProxy = new QuantelHTTPTransformerProxy.QuantelHTTPTransformerProxy(logger, config)
+	await quantelHTTPTransformerProxy.init()
 
 	logger.info('Initializing Workforce')
 	const workforce = new Workforce.Workforce(logger, config)

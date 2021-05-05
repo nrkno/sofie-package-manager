@@ -152,9 +152,43 @@ export function generateExpectations(
 				)
 				expectations[preview.id] = preview
 			}
+		} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
+			const expectation = expectation0 as Expectation.QuantelClipCopy
 
-			// const tmpCopy = generateMediaFileHTTPCopy(expectation)
-			// expectations[tmpCopy.id] = tmpCopy
+			if (!expectation0.external) {
+				// All files that have been copied should also be scanned:
+				const scan = generatePackageScan(expectation)
+				expectations[scan.id] = scan
+
+				// All files that have been copied should also be deep-scanned:
+				const deepScan = generatePackageDeepScan(expectation)
+				expectations[deepScan.id] = deepScan
+			}
+
+			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
+				const packageContainer: PackageContainer =
+					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+
+				const thumbnail = generateQuantelClipThumbnail(
+					expectation,
+					expectation0.sideEffect.thumbnailContainerId,
+					expectation0.sideEffect.thumbnailPackageSettings,
+					packageContainer
+				)
+				expectations[thumbnail.id] = thumbnail
+			}
+
+			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
+				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+
+				const preview = generateQuantelClipPreview(
+					expectation,
+					expectation0.sideEffect.previewContainerId,
+					expectation0.sideEffect.previewPackageSettings,
+					packageContainer
+				)
+				expectations[preview.id] = preview
+			}
 		}
 	}
 
@@ -305,7 +339,9 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 
 	return scan
 }
-function generatePackageDeepScan(expectation: Expectation.FileCopy): Expectation.PackageDeepScan {
+function generatePackageDeepScan(
+	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy
+): Expectation.PackageDeepScan {
 	const deepScan: Expectation.PackageDeepScan = {
 		id: expectation.id + '_deepscan',
 		priority: expectation.priority + 1001,
@@ -450,6 +486,115 @@ function generateMediaFilePreview(
 				type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
 				// width: 512,
 				// height: -1, // preserve ratio
+			},
+		},
+		workOptions: {
+			...expectation.workOptions,
+			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+		},
+		dependsOnFullfilled: [expectation.id],
+		triggerByFullfilledIds: [expectation.id],
+	}
+	return preview
+}
+
+function generateQuantelClipThumbnail(
+	expectation: Expectation.QuantelClipCopy,
+	packageContainerId: string,
+	settings: ExpectedPackage.SideEffectThumbnailSettings,
+	packageContainer: PackageContainer
+): Expectation.QuantelClipThumbnail {
+	const thumbnail: Expectation.QuantelClipThumbnail = {
+		id: expectation.id + '_thumbnail',
+		priority: expectation.priority + 1002,
+		managerId: expectation.managerId,
+		type: Expectation.Type.QUANTEL_CLIP_THUMBNAIL,
+		fromPackages: expectation.fromPackages,
+
+		statusReport: {
+			label: `Generate thumbnail for ${expectation.statusReport.label}`,
+			description: `Thumbnail is used in Sofie GUI`,
+			requiredForPlayout: false,
+			displayRank: 11,
+			sendReport: expectation.statusReport.sendReport,
+		},
+
+		startRequirement: {
+			sources: expectation.endRequirement.targets,
+			content: expectation.endRequirement.content,
+			version: expectation.endRequirement.version,
+		},
+		endRequirement: {
+			targets: [
+				{
+					...(packageContainer as any),
+					containerId: packageContainerId,
+				},
+			],
+			content: {
+				filePath: settings.path,
+			},
+			version: {
+				type: Expectation.Version.Type.QUANTEL_CLIP_THUMBNAIL,
+				width: 512,
+				frame: settings.seekTime || 0, // todo: this is not time, but frames
+			},
+		},
+		workOptions: {
+			...expectation.workOptions,
+			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+		},
+		dependsOnFullfilled: [expectation.id],
+		triggerByFullfilledIds: [expectation.id],
+	}
+
+	return thumbnail
+}
+function generateQuantelClipPreview(
+	expectation: Expectation.QuantelClipCopy,
+	packageContainerId: string,
+	settings: ExpectedPackage.SideEffectPreviewSettings,
+	packageContainer: PackageContainer
+): Expectation.QuantelClipPreview {
+	const preview: Expectation.QuantelClipPreview = {
+		id: expectation.id + '_preview',
+		priority: expectation.priority + 1003,
+		managerId: expectation.managerId,
+		type: Expectation.Type.QUANTEL_CLIP_PREVIEW,
+		fromPackages: expectation.fromPackages,
+
+		statusReport: {
+			label: `Generate preview for ${expectation.statusReport.label}`,
+			description: `Preview is used in Sofie GUI`,
+			requiredForPlayout: false,
+			displayRank: 12,
+			sendReport: expectation.statusReport.sendReport,
+		},
+
+		startRequirement: {
+			sources: expectation.endRequirement.targets,
+			content: expectation.endRequirement.content,
+			version: expectation.endRequirement.version,
+		},
+		endRequirement: {
+			targets: [
+				{
+					...(packageContainer as any),
+					containerId: packageContainerId,
+				},
+			],
+			content: {
+				filePath:
+					settings.path ||
+					expectation.endRequirement.content.guid ||
+					expectation.endRequirement.content.title ||
+					'',
+			},
+			version: {
+				type: Expectation.Version.Type.QUANTEL_CLIP_PREVIEW,
+				// bitrate: string // default: '40k'
+				// width: number
+				// height: number
 			},
 		},
 		workOptions: {

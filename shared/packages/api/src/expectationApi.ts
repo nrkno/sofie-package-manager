@@ -14,21 +14,30 @@ export namespace Expectation {
 	/** Generic Expectation, used as "Any Exopectation" */
 	export type Any =
 		| FileCopy
-		| MediaFileScan
-		| MediaFileDeepScan
+		| PackageScan
+		| PackageDeepScan
 		| MediaFileThumbnail
 		| MediaFilePreview
 		| QuantelClipCopy
+		// | QuantelClipScan
+		// | QuantelClipDeepScan
+		| QuantelClipThumbnail
+		| QuantelClipPreview
 
 	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
 		FILE_COPY = 'file_copy',
-		MEDIA_FILE_SCAN = 'media_file_scan',
-		MEDIA_FILE_DEEP_SCAN = 'media_file_deep_scan',
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 		MEDIA_FILE_PREVIEW = 'media_file_preview',
 
+		PACKAGE_SCAN = 'package_scan',
+		PACKAGE_DEEP_SCAN = 'package_deep_scan',
+
 		QUANTEL_CLIP_COPY = 'quantel_clip_copy',
+		// QUANTEL_CLIP_SCAN = 'quantel_clip_scan',
+		// QUANTEL_CLIP_DEEP_SCAN = 'quantel_clip_deep_scan',
+		QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
+		QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
 	}
 
 	/** Common attributes of all Expectations */
@@ -95,37 +104,33 @@ export namespace Expectation {
 		workOptions: WorkOptions.RemoveDelay
 	}
 	/** Defines a Scan of a Media file. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
-	export interface MediaFileScan extends Base {
-		type: Type.MEDIA_FILE_SCAN
+	export interface PackageScan extends Base {
+		type: Type.PACKAGE_SCAN
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets']
-			content: FileCopy['endRequirement']['content']
-			version: FileCopy['endRequirement']['version']
+			sources: FileCopy['endRequirement']['targets'] | QuantelClipCopy['endRequirement']['targets']
+			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
 			targets: [SpecificPackageContainerOnPackage.CorePackage]
-			content: {
-				filePath: string
-			}
+			content: null // not using content, entries are stored using this.fromPackages
 			version: null
 		}
 		workOptions: WorkOptions.RemoveDelay
 	}
 	/** Defines a Deep-Scan of a Media file. A Deep-Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
-	export interface MediaFileDeepScan extends Base {
-		type: Type.MEDIA_FILE_DEEP_SCAN
+	export interface PackageDeepScan extends Base {
+		type: Type.PACKAGE_DEEP_SCAN
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets']
-			content: FileCopy['endRequirement']['content']
-			version: FileCopy['endRequirement']['version']
+			sources: FileCopy['endRequirement']['targets'] | QuantelClipCopy['endRequirement']['targets']
+			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
 			targets: [SpecificPackageContainerOnPackage.CorePackage]
-			content: {
-				filePath: string
-			}
+			content: null // not using content, entries are stored using this.fromPackages
 			version: {
 				/** Enable field order detection. An expensive chcek that decodes the start of the video */
 				fieldOrder?: boolean
@@ -210,6 +215,43 @@ export namespace Expectation {
 		}
 	}
 
+	/** Defines a Thumbnail of a Media file. A Thumbnail is to be created from one of the the sources and the resulting file is to be stored on the target. */
+	export interface QuantelClipThumbnail extends Base {
+		type: Type.QUANTEL_CLIP_THUMBNAIL
+
+		startRequirement: {
+			sources: QuantelClipCopy['endRequirement']['targets']
+			content: QuantelClipCopy['endRequirement']['content']
+			version: QuantelClipCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: SpecificPackageContainerOnPackage.File[]
+			content: {
+				filePath: string
+			}
+			version: Version.ExpectedQuantelClipThumbnail
+		}
+		workOptions: WorkOptions.RemoveDelay
+	}
+	/** Defines a Preview of a Quantel Clip. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
+	export interface QuantelClipPreview extends Base {
+		type: Type.QUANTEL_CLIP_PREVIEW
+
+		startRequirement: {
+			sources: QuantelClipCopy['endRequirement']['targets']
+			content: QuantelClipCopy['endRequirement']['content']
+			version: QuantelClipCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: SpecificPackageContainerOnPackage.File[]
+			content: {
+				filePath: string
+			}
+			version: Version.ExpectedQuantelClipPreview
+		}
+		workOptions: WorkOptions.RemoveDelay
+	}
+
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace SpecificPackageContainerOnPackage {
@@ -264,6 +306,8 @@ export namespace Expectation {
 			CORE_PACKAGE_INFO = 'core_package_info',
 			HTTP_FILE = 'http_file',
 			QUANTEL_CLIP = 'quantel_clip',
+			QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
+			QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
 
@@ -321,5 +365,24 @@ export namespace Expectation {
 
 			frames: number // since this can grow during transfer, don't use it for comparing for fullfillment
 		}
+		export type ExpectedQuantelClip = ExpectedType<QuantelClip>
+
+		export interface QuantelClipThumbnail extends Base {
+			type: Type.QUANTEL_CLIP_THUMBNAIL
+			/** Width of the thumbnail */
+			width: number
+
+			/** At what frame to pick the thumbnail from. If between 0 and 1, will be treated as % of the source duration. */
+			frame: number
+		}
+		export type ExpectedQuantelClipThumbnail = ExpectedType<QuantelClipThumbnail>
+
+		export interface QuantelClipPreview extends Base {
+			type: Type.QUANTEL_CLIP_PREVIEW
+			bitrate: string // default: '40k'
+			width: number
+			height: number
+		}
+		export type ExpectedQuantelClipPreview = ExpectedType<QuantelClipPreview>
 	}
 }

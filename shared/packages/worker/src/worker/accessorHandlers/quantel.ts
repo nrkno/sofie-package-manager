@@ -9,7 +9,7 @@ import {
 } from './genericHandle'
 import { Expectation, literal } from '@shared/api'
 import { GenericWorker } from '../worker'
-import { ClipDataSummary, ServerInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
+import { ClipData, ClipDataSummary, ServerInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
 /** The minimum amount of frames where a clip is minimumly playable */
 const MINIMUM_FRAMES = 10
@@ -105,9 +105,11 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// Check that it is meaningfully playable
 			return `Clip "${clipSummary.ClipGUID}" hasn't received enough frames`
 		}
-		if (!clipSummary.Completed || !clipSummary.Completed.length) {
-			return `Clip "${clipSummary.ClipGUID}" is not completed`
-		}
+		// 5/5/21: Removed check for completed - OA tests shoes it does nothing for placeholders / Richard
+		// if (!clipSummary.Completed || !clipSummary.Completed.length) {
+		// Note from Richard: Completed might not necessarily mean that it's completed on the right server
+		// 	return `Clip "${clipSummary.ClipGUID}" is not completed`
+		// }
 
 		return undefined
 	}
@@ -250,6 +252,28 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	}
 	async disposePackageContainerMonitors(): Promise<string | undefined> {
 		return undefined // not applicable
+	}
+
+	async getClip(): Promise<ClipDataSummary | undefined> {
+		const quantel = await this.getQuantelGateway()
+		return await this.searchForLatestClip(quantel)
+	}
+	async getClipDetails(clipId: number): Promise<ClipData | null> {
+		const quantel = await this.getQuantelGateway()
+		return await quantel.getClip(clipId)
+	}
+
+	async getTransformerStreamURL(): Promise<{ baseURL: string; url: string } | undefined> {
+		if (!this.accessor.transformerURL) return undefined
+
+		const clip = await this.getClip()
+		if (clip) {
+			return {
+				baseURL: this.accessor.transformerURL,
+				url: `/quantel/homezone/clips/streams/${clip.ClipID}/stream.mpd`,
+			}
+		}
+		return undefined
 	}
 
 	private convertClipSummaryToVersion(clipSummary: ClipDataSummary): Expectation.Version.QuantelClip {

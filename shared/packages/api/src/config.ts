@@ -132,6 +132,19 @@ const singleAppArguments = defineArguments({
 		describe: 'How many workers to spin up',
 	},
 })
+/** CLI-argument-definitions for the Quantel-HTTP-Transformer-Proxy process */
+const quantelHTTPTransformerProxyConfigArguments = defineArguments({
+	quantelProxyPort: {
+		type: 'number',
+		default: parseInt(process.env.QUANTEL_HTTP_TRANSFORMER_PROXY_PORT || '', 10) || 8081,
+		describe: 'The port on which to server the Quantel-HTTP-Transformer-Proxy server on',
+	},
+	quantelTransformerURL: {
+		type: 'string',
+		default: process.env.QUANTEL_HTTP_TRANSFORMER_URL || undefined,
+		describe: 'URL to the Quantel-HTTP-Transformer',
+	},
+})
 
 export interface ProcessConfig {
 	logPath: string | undefined
@@ -267,7 +280,12 @@ export function getWorkerConfig(): WorkerConfig {
 }
 
 // Configuration for the Single-app Application: ------------------------------
-export interface SingleAppConfig extends WorkforceConfig, HTTPServerConfig, PackageManagerConfig, WorkerConfig {
+export interface SingleAppConfig
+	extends WorkforceConfig,
+		HTTPServerConfig,
+		PackageManagerConfig,
+		WorkerConfig,
+		QuantelHTTPTransformerProxyConfig {
 	singleApp: {
 		workerCount: number
 	}
@@ -281,6 +299,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		...workerArguments,
 		...processOptions,
 		...singleAppArguments,
+		...quantelHTTPTransformerProxyConfigArguments,
 	}
 	// Remove some that are not used in the Single-App, so that they won't show up when running '--help':
 
@@ -304,8 +323,33 @@ export function getSingleAppConfig(): SingleAppConfig {
 		singleApp: {
 			workerCount: argv.workerCount || 1,
 		},
+		quantelHTTPTransformerProxy: getQuantelHTTPTransformerProxyConfig().quantelHTTPTransformerProxy,
 	}
 }
+// Configuration for the HTTP server Application: ----------------------------------
+export interface QuantelHTTPTransformerProxyConfig {
+	process: ProcessConfig
+	quantelHTTPTransformerProxy: {
+		port: number
+
+		transformerURL?: string
+	}
+}
+export function getQuantelHTTPTransformerProxyConfig(): QuantelHTTPTransformerProxyConfig {
+	const argv = yargs(process.argv.slice(2)).options({
+		...quantelHTTPTransformerProxyConfigArguments,
+		...processOptions,
+	}).argv
+
+	return {
+		process: getProcessConfig(argv),
+		quantelHTTPTransformerProxy: {
+			port: argv.quantelProxyPort,
+			transformerURL: argv.quantelTransformerURL,
+		},
+	}
+}
+// ---------------------------------------------------------------------------------
 
 /** Helper function, to get strict typings for the yargs-Options. */
 function defineArguments<O extends { [key: string]: Options }>(opts: O): O {

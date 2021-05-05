@@ -23,6 +23,8 @@ import { IWorkInProgress } from '../../lib/workInProgress'
 import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
 import { QuantelClipCopy } from './expectationHandlers/quantelClipCopy'
 import * as PackageContainerExpHandler from './packageContainerExpectationHandler'
+import { QuantelClipPreview } from './expectationHandlers/quantelClipPreview'
+import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
 import { assertNever } from '../../lib/lib'
 
 /** This is a type of worker that runs on a windows machine */
@@ -76,6 +78,10 @@ export class WindowsWorker extends GenericWorker {
 				return MediaFilePreview
 			case Expectation.Type.QUANTEL_CLIP_COPY:
 				return QuantelClipCopy
+			case Expectation.Type.QUANTEL_CLIP_THUMBNAIL:
+				return QuantelThumbnail
+			case Expectation.Type.QUANTEL_CLIP_PREVIEW:
+				return QuantelClipPreview
 			default:
 				assertNever(exp)
 				// @ts-expect-error exp.type is never

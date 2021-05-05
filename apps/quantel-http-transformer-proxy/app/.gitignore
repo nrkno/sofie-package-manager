@@ -1,0 +1,5 @@
+ffmpeg.exe
+ffprobe.exe
+log.log
+deploy/*
+fileStorage/
