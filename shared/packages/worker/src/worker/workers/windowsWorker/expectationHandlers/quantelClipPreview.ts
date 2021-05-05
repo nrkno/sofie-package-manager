@@ -219,7 +219,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 	},
 }
 function isQuantelClipPreview(exp: Expectation.Any): exp is Expectation.QuantelClipPreview {
-	return exp.type === Expectation.Type.MEDIA_FILE_PREVIEW
+	return exp.type === Expectation.Type.QUANTEL_CLIP_PREVIEW
 }
 
 interface Metadata {

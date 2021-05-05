@@ -244,7 +244,7 @@ async function getThumbnailURL(
 			const totalFrames = parseInt(clip.Frames, 10)
 
 			if (totalFrames) {
-				frame = totalFrames * frame
+				frame = Math.floor(totalFrames * frame)
 			}
 		}
 
