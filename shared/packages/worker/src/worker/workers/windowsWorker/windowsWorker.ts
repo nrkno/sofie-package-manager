@@ -15,14 +15,15 @@ import {
 } from '@shared/api'
 import { GenericWorker, WorkerLocation } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
-import { MediaFileScan } from './expectationHandlers/mediaFileScan'
-import { MediaFileDeepScan } from './expectationHandlers/mediaFileDeepScan'
+import { PackageScan } from './expectationHandlers/packageScan'
+import { PackageDeepScan } from './expectationHandlers/packageDeepScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
 import { IWorkInProgress } from '../../lib/workInProgress'
 import { MediaFilePreview } from './expectationHandlers/mediaFilePreview'
 import { QuantelClipCopy } from './expectationHandlers/quantelClipCopy'
 import * as PackageContainerExpHandler from './packageContainerExpectationHandler'
+import { assertNever } from '../../lib/lib'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -65,10 +66,10 @@ export class WindowsWorker extends GenericWorker {
 		switch (exp.type) {
 			case Expectation.Type.FILE_COPY:
 				return FileCopy
-			case Expectation.Type.MEDIA_FILE_SCAN:
-				return MediaFileScan
-			case Expectation.Type.MEDIA_FILE_DEEP_SCAN:
-				return MediaFileDeepScan
+			case Expectation.Type.PACKAGE_SCAN:
+				return PackageScan
+			case Expectation.Type.PACKAGE_DEEP_SCAN:
+				return PackageDeepScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
 				return MediaFileThumbnail
 			case Expectation.Type.MEDIA_FILE_PREVIEW:
@@ -76,6 +77,7 @@ export class WindowsWorker extends GenericWorker {
 			case Expectation.Type.QUANTEL_CLIP_COPY:
 				return QuantelClipCopy
 			default:
+				assertNever(exp)
 				// @ts-expect-error exp.type is never
 				throw new Error(`Unsupported expectation.type "${exp.type}"`)
 		}

@@ -120,11 +120,11 @@ export function generateExpectations(
 
 			if (!expectation0.external) {
 				// All files that have been copied should also be scanned:
-				const scan = generateMediaFileScan(expectation)
+				const scan = generatePackageScan(expectation)
 				expectations[scan.id] = scan
 
 				// All files that have been copied should also be deep-scanned:
-				const deepScan = generateMediaFileDeepScan(expectation)
+				const deepScan = generatePackageDeepScan(expectation)
 				expectations[deepScan.id] = deepScan
 			}
 
@@ -259,12 +259,12 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 
 	return exp
 }
-function generateMediaFileScan(expectation: Expectation.FileCopy): Expectation.MediaFileScan {
-	const scan: Expectation.MediaFileScan = {
+function generatePackageScan(expectation: Expectation.FileCopy | Expectation.QuantelClipCopy): Expectation.PackageScan {
+	const scan: Expectation.PackageScan = {
 		id: expectation.id + '_scan',
 		priority: expectation.priority + 100,
 		managerId: expectation.managerId,
-		type: Expectation.Type.MEDIA_FILE_SCAN,
+		type: Expectation.Type.PACKAGE_SCAN,
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
@@ -292,7 +292,7 @@ function generateMediaFileScan(expectation: Expectation.FileCopy): Expectation.M
 					},
 				},
 			],
-			content: expectation.endRequirement.content,
+			content: null,
 			version: null,
 		},
 		workOptions: {
@@ -305,12 +305,12 @@ function generateMediaFileScan(expectation: Expectation.FileCopy): Expectation.M
 
 	return scan
 }
-function generateMediaFileDeepScan(expectation: Expectation.FileCopy): Expectation.MediaFileDeepScan {
-	const deepScan: Expectation.MediaFileDeepScan = {
+function generatePackageDeepScan(expectation: Expectation.FileCopy): Expectation.PackageDeepScan {
+	const deepScan: Expectation.PackageDeepScan = {
 		id: expectation.id + '_deepscan',
 		priority: expectation.priority + 1001,
 		managerId: expectation.managerId,
-		type: Expectation.Type.MEDIA_FILE_DEEP_SCAN,
+		type: Expectation.Type.PACKAGE_DEEP_SCAN,
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
@@ -338,7 +338,7 @@ function generateMediaFileDeepScan(expectation: Expectation.FileCopy): Expectati
 					},
 				},
 			],
-			content: expectation.endRequirement.content,
+			content: null,
 			version: {
 				fieldOrder: true,
 				scenes: true,
@@ -444,7 +444,7 @@ function generateMediaFilePreview(
 				},
 			],
 			content: {
-				filePath: settings.path,
+				filePath: settings.path || expectation.endRequirement.content.filePath,
 			},
 			version: {
 				type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,

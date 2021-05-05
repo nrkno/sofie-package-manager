@@ -163,15 +163,15 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				const seekTimeCode: string | undefined = seekTime !== undefined ? formatTimeCode(seekTime) : undefined
 
 				let inputPath: string
-				if (isLocalFolderAccessorHandle(targetHandle)) {
-					inputPath = targetHandle.fullPath
-				} else if (isFileShareAccessorHandle(targetHandle)) {
-					await targetHandle.prepareFileAccess()
-					inputPath = targetHandle.fullPath
-				} else if (isHTTPAccessorHandle(targetHandle)) {
-					inputPath = targetHandle.fullUrl
+				if (isLocalFolderAccessorHandle(sourceHandle)) {
+					inputPath = sourceHandle.fullPath
+				} else if (isFileShareAccessorHandle(sourceHandle)) {
+					await sourceHandle.prepareFileAccess()
+					inputPath = sourceHandle.fullPath
+				} else if (isHTTPAccessorHandle(sourceHandle)) {
+					inputPath = sourceHandle.fullUrl
 				} else {
-					assertNever(targetHandle)
+					assertNever(sourceHandle)
 					throw new Error(`Unsupported Target AccessHandler`)
 				}
 

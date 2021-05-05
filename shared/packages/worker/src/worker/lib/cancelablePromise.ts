@@ -3,7 +3,7 @@ export type PromiseExecutor<T> = (
 	resolve: (value: T | PromiseLike<T>) => void,
 	reject: (reason?: any) => void,
 	onCancel: CancelHandler
-) => void
+) => Promise<void> | void
 
 export class CancelablePromise<T> implements Promise<T> {
 	private _basePromise: Promise<T>
@@ -11,8 +11,11 @@ export class CancelablePromise<T> implements Promise<T> {
 
 	constructor(executor: PromiseExecutor<T>) {
 		this._basePromise = new Promise((resolve, reject) => {
-			executor(resolve, reject, (cancelHandler: () => void): void => {
+			const maybePromise = executor(resolve, reject, (cancelHandler: () => void): void => {
 				this._cancelHandler = cancelHandler
+			})
+			Promise.resolve(maybePromise).catch((error) => {
+				reject(error)
 			})
 		})
 	}
