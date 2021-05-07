@@ -73,8 +73,10 @@ export function generateExpectations(
 			*/
 
 			let prioAdd = 1000
-			const activeRundown =
-				expWrap.expectedPackage.rundownId && activeRundownMap.get(expWrap.expectedPackage.rundownId)
+			const activeRundown: ActiveRundown | undefined = expWrap.expectedPackage.rundownId
+				? activeRundownMap.get(expWrap.expectedPackage.rundownId)
+				: undefined
+
 			if (activeRundown) {
 				// The expected package is in an active rundown
 				prioAdd = 0 + activeRundown._rank // Earlier rundowns should have higher priority

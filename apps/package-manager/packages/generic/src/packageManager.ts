@@ -277,6 +277,7 @@ export class PackageManagerHandler {
 				}
 				for (const expectedPackageObj of expectedPackageObjs) {
 					for (const expectedPackage of expectedPackageObj.expectedPackages) {
+						// Note: There might be duplicates of packages here, to be deduplicated later
 						expectedPackages.push(expectedPackage)
 					}
 				}
@@ -314,7 +315,15 @@ export class PackageManagerHandler {
 		this.expectedPackageCache = {}
 		this.packageContainersCache = packageContainers
 		for (const exp of expectedPackages) {
-			this.expectedPackageCache[exp.expectedPackage._id] = exp
+			// Note: There might be duplicates in expectedPackages
+
+			const existing = this.expectedPackageCache[exp.expectedPackage._id]
+			if (
+				!existing ||
+				existing.priority > exp.priority // If the existing priority is lower (ie higher), replace it
+			) {
+				this.expectedPackageCache[exp.expectedPackage._id] = exp
+			}
 		}
 
 		this.logger.info(`Has ${expectedPackages.length} expectedPackages`)
