@@ -26,14 +26,14 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		worker: GenericWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
-		if (!isQuantelFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
-		if (!isQuantelFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
@@ -65,7 +65,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		_wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<ReturnTypeIsExpectationFullfilled> => {
-		if (!isQuantelFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -97,14 +97,14 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 
 		return {
 			fulfilled: true,
-			reason: `File "${
+			reason: `Clip "${
 				exp.endRequirement.content.guid || exp.endRequirement.content.title
 			}" already exists on target`,
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
-		if (!isQuantelFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		// Copies the file from Source to Target
+		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		// Copies the clip from Source to Target
 
 		const startTime = Date.now()
 
@@ -228,8 +228,8 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		}
 	},
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
-		if (!isQuantelFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		// Remove the file on the location
+		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		// Remove the clip on the location
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) {
@@ -239,16 +239,16 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		try {
 			await lookupTarget.handle.removePackage()
 		} catch (err) {
-			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
+			return { removed: false, reason: `Cannot remove clip: ${err.toString()}` }
 		}
 
 		return {
 			removed: true,
-			reason: `Removed file "${exp.endRequirement.content.guid || exp.endRequirement.content.title}" from target`,
+			reason: `Removed clip "${exp.endRequirement.content.guid || exp.endRequirement.content.title}" from target`,
 		}
 	},
 }
-function isQuantelFileCopy(exp: Expectation.Any): exp is Expectation.QuantelClipCopy {
+function isQuantelClipCopy(exp: Expectation.Any): exp is Expectation.QuantelClipCopy {
 	return exp.type === Expectation.Type.QUANTEL_CLIP_COPY
 }
 

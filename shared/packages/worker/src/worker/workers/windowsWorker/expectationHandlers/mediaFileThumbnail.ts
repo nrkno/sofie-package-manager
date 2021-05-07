@@ -85,11 +85,11 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		const metadata = await lookupTarget.handle.fetchMetadata()
 
 		if (!metadata) {
-			return { fulfilled: false, reason: 'No file found' }
+			return { fulfilled: false, reason: 'No thumbnail file found' }
 		} else if (metadata.sourceVersionHash !== actualSourceVersionHash) {
-			return { fulfilled: false, reason: `Thumbnail version doesn't match file` }
+			return { fulfilled: false, reason: `Thumbnail version doesn't match thumbnail file` }
 		} else {
-			return { fulfilled: true, reason: 'Thumbnail already matches file' }
+			return { fulfilled: true, reason: 'Thumbnail already matches thumbnail file' }
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {

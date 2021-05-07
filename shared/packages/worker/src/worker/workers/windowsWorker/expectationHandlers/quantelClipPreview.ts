@@ -88,11 +88,11 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 		const metadata = await lookupTarget.handle.fetchMetadata()
 
 		if (!metadata) {
-			return { fulfilled: false, reason: 'No file found' }
+			return { fulfilled: false, reason: 'No preview file found' }
 		} else if (metadata.sourceVersionHash !== actualSourceVersionHash) {
-			return { fulfilled: false, reason: `Preview version doesn't match file` }
+			return { fulfilled: false, reason: `Preview version doesn't match preview file` }
 		} else {
-			return { fulfilled: true, reason: 'Preview already matches file' }
+			return { fulfilled: true, reason: 'Preview already matches preview file' }
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -212,10 +212,10 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 		try {
 			await lookupTarget.handle.removePackage()
 		} catch (err) {
-			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
+			return { removed: false, reason: `Cannot remove preview file: ${err.toString()}` }
 		}
 
-		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from target` }
+		return { removed: true, reason: `Removed preview file "${exp.endRequirement.content.filePath}" from target` }
 	},
 }
 function isQuantelClipPreview(exp: Expectation.Any): exp is Expectation.QuantelClipPreview {

@@ -91,11 +91,11 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		const targetMetadata = await lookupTarget.handle.fetchMetadata()
 
 		if (!targetMetadata) {
-			return { fulfilled: false, reason: 'No file found' }
+			return { fulfilled: false, reason: 'No thumbnail file found' }
 		} else if (targetMetadata.sourceVersionHash !== expectedTargetMetadata.sourceVersionHash) {
-			return { fulfilled: false, reason: `Thumbnail version hash doesn't match file` }
+			return { fulfilled: false, reason: `Thumbnail version hash doesn't match thumnail file` }
 		} else {
-			return { fulfilled: true, reason: 'Thumbnail already matches file' }
+			return { fulfilled: true, reason: 'Thumbnail already matches thumnail file' }
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
