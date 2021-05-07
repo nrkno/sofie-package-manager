@@ -7,10 +7,7 @@ import { GenericWorker } from '../worker'
 export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'corePackageInfo'
 	// @ts-expect-error unused variable
-	private content: {
-		onlyContainerAccess?: boolean
-		infoType?: string // "ffprobe"
-	}
+	private content: null // not used by this class
 	// @ts-expect-error unused variable
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
@@ -23,10 +20,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		super(worker, accessorId, accessor, content, CorePackageInfoAccessorHandle.type)
 
 		// Verify content data:
-		if (!content.onlyContainerAccess) {
-			if (!content.infoType) throw new Error('Bad input data: content.infoType not set!')
-		}
-		this.content = content
+		this.content = content // not used by this class
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
 		this.workOptions = workOptions

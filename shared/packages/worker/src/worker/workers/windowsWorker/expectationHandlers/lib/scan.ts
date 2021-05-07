@@ -133,7 +133,7 @@ export function scanFieldOrder(
 			if (!httpStreamURL) throw new Error(`Source Clip not found`)
 
 			args.push('-seekable 0')
-			args.push(`-i "${httpStreamURL}"`)
+			args.push(`-i "${httpStreamURL.fullURL}"`)
 		} else {
 			assertNever(sourceHandle)
 		}
@@ -176,7 +176,11 @@ export function scanMoreInfo(
 		| QuantelAccessorHandle<any>,
 	previouslyScanned: FFProbeScanResult,
 	targetVersion: Expectation.PackageDeepScan['endRequirement']['version'],
-	onProgress: (progress: number) => void
+	/** Callback which is called when there is some new progress */
+	onProgress: (
+		/** Progress, goes from 0 to 1 */
+		progress: number
+	) => void
 ): CancelablePromise<{
 	scenes: number[]
 	freezes: ScanAnomaly[]
@@ -228,7 +232,7 @@ export function scanMoreInfo(
 			if (!httpStreamURL) throw new Error(`Source Clip not found`)
 
 			args.push('-seekable 0')
-			args.push(`-i "${httpStreamURL}"`)
+			args.push(`-i "${httpStreamURL.fullURL}"`)
 		} else {
 			assertNever(sourceHandle)
 		}
@@ -257,11 +261,14 @@ export function scanMoreInfo(
 		if (!ffProbeProcess.stderr) {
 			throw new Error('spawned ffprobe-process stdin is null!')
 		}
+		let lastString = ''
 		let fileDuration: number | undefined = undefined
 		ffProbeProcess.stderr.on('data', (data: any) => {
 			const stringData = data.toString()
 
 			if (typeof stringData !== 'string') return
+
+			lastString = stringData
 
 			const frameRegex = /^frame= +\d+/g
 			const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
@@ -352,7 +359,7 @@ export function scanMoreInfo(
 					blacks,
 				})
 			} else {
-				reject(`Exited with code ${code}`)
+				reject(`FFProbe exited with code ${code} (${lastString})`)
 			}
 		})
 	})

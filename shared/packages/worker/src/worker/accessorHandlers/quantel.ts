@@ -263,14 +263,20 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		return await quantel.getClip(clipId)
 	}
 
-	async getTransformerStreamURL(): Promise<{ baseURL: string; url: string } | undefined> {
+	async getTransformerStreamURL(): Promise<{ baseURL: string; url: string; fullURL: string } | undefined> {
 		if (!this.accessor.transformerURL) return undefined
 
 		const clip = await this.getClip()
 		if (clip) {
+			const baseURL = this.accessor.transformerURL
+			const url = `/quantel/homezone/clips/streams/${clip.ClipID}/stream.mpd`
 			return {
-				baseURL: this.accessor.transformerURL,
-				url: `/quantel/homezone/clips/streams/${clip.ClipID}/stream.mpd`,
+				baseURL,
+				url,
+				fullURL: [
+					baseURL.replace(/\/$/, ''), // trim trailing slash
+					url.replace(/^\//, ''), // trim leading slash
+				].join('/'),
 			}
 		}
 		return undefined
