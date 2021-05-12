@@ -52,6 +52,10 @@ const defaultTestConfig: SingleAppConfig = {
 		windowsDriveLetters: ['X', 'Y', 'Z'],
 		sourcePackageStabilityThreshold: 0, // Disabling this to speed up the tests
 	},
+	quantelHTTPTransformerProxy: {
+		port: 0,
+		transformerURL: '',
+	},
 }
 
 export async function setupExpectationManager(

@@ -1,7 +1,10 @@
 import { Expectation, literal } from '@shared/api'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 
-export function getLocalSource(containerId: string, filePath: string): Expectation.PackageContainerOnPackageFile {
+export function getLocalSource(
+	containerId: string,
+	filePath: string
+): Expectation.SpecificPackageContainerOnPackage.File {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -15,7 +18,10 @@ export function getLocalSource(containerId: string, filePath: string): Expectati
 		},
 	}
 }
-export function getLocalTarget(containerId: string, filePath: string): Expectation.PackageContainerOnPackageFile {
+export function getLocalTarget(
+	containerId: string,
+	filePath: string
+): Expectation.SpecificPackageContainerOnPackage.File {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -31,7 +37,10 @@ export function getLocalTarget(containerId: string, filePath: string): Expectati
 	}
 }
 
-export function getFileShareSource(containerId: string, filePath: string): Expectation.PackageContainerOnPackageFile {
+export function getFileShareSource(
+	containerId: string,
+	filePath: string
+): Expectation.SpecificPackageContainerOnPackage.File {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -45,7 +54,10 @@ export function getFileShareSource(containerId: string, filePath: string): Expec
 		},
 	}
 }
-export function getFileShareTarget(containerId: string, filePath: string): Expectation.PackageContainerOnPackageFile {
+export function getFileShareTarget(
+	containerId: string,
+	filePath: string
+): Expectation.SpecificPackageContainerOnPackage.File {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -60,7 +72,7 @@ export function getFileShareTarget(containerId: string, filePath: string): Expec
 		},
 	}
 }
-export function getQuantelSource(containerId: string): Expectation.PackageContainerOnPackageQuantel {
+export function getQuantelSource(containerId: string): Expectation.SpecificPackageContainerOnPackage.QuantelClip {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -77,7 +89,10 @@ export function getQuantelSource(containerId: string): Expectation.PackageContai
 		},
 	}
 }
-export function getQuantelTarget(containerId: string, serverId: number): Expectation.PackageContainerOnPackageQuantel {
+export function getQuantelTarget(
+	containerId: string,
+	serverId: number
+): Expectation.SpecificPackageContainerOnPackage.QuantelClip {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,

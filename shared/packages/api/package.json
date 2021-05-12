@@ -10,7 +10,7 @@
     "scripts": {
         "build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "test": "jest",
+        "__test": "jest",
         "precommit": "lint-staged"
     },
     "peerDependencies": {
