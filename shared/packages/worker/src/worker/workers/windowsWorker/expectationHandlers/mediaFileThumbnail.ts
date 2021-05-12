@@ -25,12 +25,18 @@ import {
 } from './lib'
 import { assertNever } from '../../../lib/lib'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import { WindowsWorker } from '../windowsWorker'
 
 /**
  * Generates a thumbnail image from a source video file, and stores the resulting file into the target PackageContainer
  */
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+	doYouSupportExpectation(
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		windowsWorker: WindowsWorker
+	): ReturnTypeDoYouSupportExpectation {
+		if (!windowsWorker.hasFFMpeg) return { support: false, reason: 'Cannot access FFMpeg executable' }
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})

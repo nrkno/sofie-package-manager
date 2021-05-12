@@ -23,13 +23,19 @@ import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles
 import { DeepScanResult } from './lib/coreApi'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { scanFieldOrder, scanMoreInfo, scanWithFFProbe } from './lib/scan'
+import { WindowsWorker } from '../windowsWorker'
 
 /**
  * Performs a "deep scan" of the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
  * The "deep scan" differs from the usual scan in that it does things that takes a bit longer, like scene-detection, field order detection etc..
  */
 export const PackageDeepScan: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+	doYouSupportExpectation(
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		windowsWorker: WindowsWorker
+	): ReturnTypeDoYouSupportExpectation {
+		if (!windowsWorker.hasFFProbe) return { support: false, reason: 'Cannot access FFProbe executable' }
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})

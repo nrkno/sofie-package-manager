@@ -13,6 +13,43 @@ import { WorkInProgress } from '../../../../lib/workInProgress'
 export interface FFMpegProcess {
 	kill: () => void
 }
+/** Check if FFMpeg is available */
+export function hasFFMpeg(): Promise<string | null> {
+	return hasFFExecutable(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+}
+/** Check if FFProbe is available */
+export function hasFFProbe(): Promise<string | null> {
+	return hasFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
+}
+export function hasFFExecutable(ffExecutable: string): Promise<string | null> {
+	return new Promise<string | null>((resolve, reject) => {
+		const ffMpegProcess: ChildProcess = spawn(ffExecutable, ['-version'], {
+			shell: true,
+		})
+		let output = ''
+		ffMpegProcess.stderr?.on('data', (data) => {
+			const str = data.toString()
+			output += str
+		})
+		ffMpegProcess.stdout?.on('data', (data) => {
+			const str = data.toString()
+			output += str
+		})
+		ffMpegProcess.on('error', (err) => {
+			reject(err)
+		})
+		ffMpegProcess.on('close', (code) => {
+			const m = output.match(/version ([\w-]+)/) // version N-102494-g2899fb61d2
+
+			if (code === 0 && m) {
+				resolve(m[1])
+			} else {
+				reject(null)
+			}
+		})
+	})
+}
+
 /** Spawn an ffmpeg process and make it to output its content to the target */
 export async function runffMpeg<Metadata>(
 	workInProgress: WorkInProgress,

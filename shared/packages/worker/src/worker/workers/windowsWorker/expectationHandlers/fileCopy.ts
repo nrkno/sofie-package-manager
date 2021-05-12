@@ -198,6 +198,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 				})
 
 				await copying
+				// The copy is done
 				copying = undefined
 				if (wasCancelled) return // ignore
 

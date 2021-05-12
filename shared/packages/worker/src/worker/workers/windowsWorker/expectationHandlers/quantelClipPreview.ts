@@ -21,9 +21,15 @@ import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { getSourceHTTPHandle } from './quantelClipThumbnail'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import { WindowsWorker } from '../windowsWorker'
 
 export const QuantelClipPreview: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+	doYouSupportExpectation(
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		windowsWorker: WindowsWorker
+	): ReturnTypeDoYouSupportExpectation {
+		if (!windowsWorker.hasFFMpeg) return { support: false, reason: 'Cannot access FFMpeg executable' }
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,

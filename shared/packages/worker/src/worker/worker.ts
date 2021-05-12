@@ -34,6 +34,8 @@ export abstract class GenericWorker {
 	get uniqueId(): number {
 		return this._uniqueId++
 	}
+	/** Called upon startup */
+	abstract init(): Promise<void>
 	/**
 	 * Does the worker support this expectation?
 	 * This includes things like:

@@ -86,6 +86,8 @@ export class WorkerAgent {
 
 		const list = await this.workforceAPI.getExpectationManagerList()
 		await this.updateListOfExpectationManagers(list)
+
+		await this._worker.init()
 	}
 	terminate(): void {
 		this.workforceAPI.terminate()

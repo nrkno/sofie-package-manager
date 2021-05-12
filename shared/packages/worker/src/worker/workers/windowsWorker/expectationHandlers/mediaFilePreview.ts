@@ -19,12 +19,18 @@ import {
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import { WindowsWorker } from '../windowsWorker'
 
 /**
  * Generates a low-res preview video of a source video file, and stores the resulting file into the target PackageContainer
  */
 export const MediaFilePreview: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+	doYouSupportExpectation(
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		windowsWorker: WindowsWorker
+	): ReturnTypeDoYouSupportExpectation {
+		if (!windowsWorker.hasFFMpeg) return { support: false, reason: 'Cannot access FFMpeg executable' }
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,

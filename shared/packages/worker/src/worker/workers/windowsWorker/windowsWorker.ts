@@ -26,10 +26,14 @@ import * as PackageContainerExpHandler from './packageContainerExpectationHandle
 import { QuantelClipPreview } from './expectationHandlers/quantelClipPreview'
 import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
 import { assertNever } from '../../lib/lib'
+import { hasFFMpeg, hasFFProbe } from './expectationHandlers/lib/ffmpeg'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
 	static readonly type = 'windowsWorker'
+
+	public hasFFMpeg = false
+	public hasFFProbe = false
 
 	constructor(
 		public readonly config: WorkerAgentConfig,
@@ -48,6 +52,10 @@ export class WindowsWorker extends GenericWorker {
 				reason: err.toString(),
 			}
 		}
+	}
+	async init(): Promise<void> {
+		this.hasFFMpeg = !!(await hasFFMpeg())
+		this.hasFFProbe = !!(await hasFFProbe())
 	}
 	getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		return this.getExpectationHandler(exp).getCostForExpectation(exp, this, this)

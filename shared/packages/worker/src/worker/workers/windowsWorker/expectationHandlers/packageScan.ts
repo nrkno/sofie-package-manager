@@ -22,12 +22,18 @@ import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { scanWithFFProbe } from './lib/scan'
+import { WindowsWorker } from '../windowsWorker'
 
 /**
  * Scans the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
  */
 export const PackageScan: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+	doYouSupportExpectation(
+		exp: Expectation.Any,
+		genericWorker: GenericWorker,
+		windowsWorker: WindowsWorker
+	): ReturnTypeDoYouSupportExpectation {
+		if (!windowsWorker.hasFFProbe) return { support: false, reason: 'Cannot access FFProbe executable' }
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
