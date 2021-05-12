@@ -20,6 +20,7 @@
         "@shared/api": "*",
         "@shared/worker": "*",
         "@sofie-automation/blueprints-integration": "*",
+        "@supercharge/promise-pool": "^1.7.0",
         "underscore": "^1.12.0"
     },
     "peerDependencies": {

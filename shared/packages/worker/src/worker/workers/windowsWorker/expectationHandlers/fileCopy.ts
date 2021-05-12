@@ -24,10 +24,12 @@ import {
 	checkWorkerHasAccessToPackageContainersOnPackage,
 	lookupAccessorHandles,
 	LookupPackageContainer,
+	userReadableDiff,
 	waitTime,
 } from './lib'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
+import { diff } from 'deep-diff'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
@@ -57,46 +59,47 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
-		// Note: This part is disabled for the moment, as the results are unreliable and slows down the checking significantly.
-		//
-		// let sourceIsOld: boolean = false
-		// // Do a quick-check
-		// if (isLocalFolderHandle(lookupSource.handle)) {
-		// 	const version = await lookupSource.handle.getPackageActualVersion()
-		// 	if (version.modifiedDate < Date.now() - 1000 * 3600 * 1) {
-		// 		// The file seems to be fairly old, it should be safe to assume that
-		// 		sourceIsOld = true
-		// 	}
-		// }
+		let sourceIsOld = false
+		// Do a quick check first:
+		if (isLocalFolderAccessorHandle(lookupSource.handle) || isFileShareAccessorHandle(lookupSource.handle)) {
+			const version = await lookupSource.handle.getPackageActualVersion()
+			if (
+				version.modifiedDate <
+				Date.now() - 1000 * 3600 * 6 // 6 hours
+			) {
+				// The file seems to be fairly old, it should be safe to assume that it is no longer transferring
+				sourceIsOld = true
+			}
+		}
 
-		// const sourcePackageStabilityThreshold: number = worker.genericConfig.sourcePackageStabilityThreshold ?? 4000 // Defaults to 4000 ms
-		// if (sourcePackageStabilityThreshold !== 0 && !sourceIsOld) {
-		// 	// Also check that the source is stable (such as that the file size hasn't changed), to not start working on growing files.
-		// 	// This is similar to chokidars' awaitWriteFinish.stabilityThreshold feature.
+		const sourcePackageStabilityThreshold: number = worker.genericConfig.sourcePackageStabilityThreshold ?? 4000 // Defaults to 4000 ms
+		if (sourcePackageStabilityThreshold !== 0 && !sourceIsOld) {
+			// Check that the source is stable (such as that the file size hasn't changed), to not start working on growing files.
+			// This is similar to chokidars' awaitWriteFinish.stabilityThreshold feature.
 
-		// 	const actualSourceVersion0 = await lookupSource.handle.getPackageActualVersion()
+			const actualSourceVersion0 = await lookupSource.handle.getPackageActualVersion()
 
-		// 	await waitTime(sourcePackageStabilityThreshold)
+			await waitTime(sourcePackageStabilityThreshold)
 
-		// 	const actualSourceVersion1 = await lookupSource.handle.getPackageActualVersion()
+			const actualSourceVersion1 = await lookupSource.handle.getPackageActualVersion()
 
-		// 	// Note for posterity:
-		// 	// In local tests with a file share this doesn't seem to work that well
-		// 	// as the fs.stats doesn't seem to update during file copy in Windows.
+			// Note for posterity:
+			// In local tests with a file share this doesn't seem to work that well
+			// as the fs.stats doesn't seem to update during file copy in Windows.
 
-		// 	const versionDiff = diff(actualSourceVersion0, actualSourceVersion1)
+			const versionDiff = diff(actualSourceVersion0, actualSourceVersion1)
 
-		// 	if (versionDiff) {
-		// 		return {
-		// 			ready: false,
-		// 			sourceExists: true,
-		// 			reason: `Source is not stable (${userReadableDiff(versionDiff)})`,
-		// 		}
-		// 	}
-		// }
+			if (versionDiff) {
+				return {
+					ready: false,
+					sourceExists: true,
+					reason: `Source is not stable (${userReadableDiff(versionDiff)})`,
+				}
+			}
+		}
 
 		// Also check if we actually can read from the package,
-		// This might help in some cases if the file is currently transferring
+		// this might help in some cases if the file is currently transferring
 		const issueReading = await lookupSource.handle.tryPackageRead()
 		if (issueReading) return { ready: false, reason: issueReading }
 
