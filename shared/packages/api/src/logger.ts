@@ -1,4 +1,4 @@
-import * as Winston from 'winston'
+import Winston from 'winston'
 import { ProcessConfig } from './config'
 
 export interface LoggerInstance extends Winston.LoggerInstance {

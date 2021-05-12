@@ -1,5 +1,5 @@
-import * as WebSocket from 'ws'
-import * as EventEmitter from 'events'
+import WebSocket from 'ws'
+import EventEmitter from 'events'
 
 export const PING_TIME = 10 * 1000
 export const MESSAGE_TIMEOUT = 5000

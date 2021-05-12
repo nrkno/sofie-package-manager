@@ -1,7 +1,7 @@
-import * as fs from 'fs'
-import * as EventEmitter from 'events'
+import fs from 'fs'
+import EventEmitter from 'events'
 import { promisify } from 'util'
-import * as path from 'path'
+import path from 'path'
 
 const fsCopyFile = promisify(fs.copyFile)
 // @ts-expect-error mock

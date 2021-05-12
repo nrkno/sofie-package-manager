@@ -1,4 +1,4 @@
-import * as _ from 'underscore'
+import _ from 'underscore'
 import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
 import {
@@ -20,7 +20,7 @@ import {
 	PackageContainerExpectation,
 	literal,
 } from '@shared/api'
-import * as deepExtend from 'deep-extend'
+import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
 
 export class PackageManagerHandler {
@@ -344,6 +344,7 @@ export class PackageManagerHandler {
 			this.packageContainersCache,
 			activePlaylist
 		)
+		this.logger.info(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
 		this.ensureMandatoryPackageContainerExpectations(packageContainerExpectations)
 		// this.logger.info(JSON.stringify(expectations, null, 2))
 

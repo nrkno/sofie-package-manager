@@ -1,10 +1,10 @@
 // import * as HTTPServer from '@http-server/generic'
 // import * as PackageManager from '@package-manager/generic'
-import * as Workforce from '@shared/workforce'
-import * as Worker from '@shared/worker'
-import * as Winston from 'winston'
+import Workforce from '@shared/workforce'
+import Worker from '@shared/worker'
+import Winston from 'winston'
 import { Expectation, ExpectationManagerWorkerAgent, LoggerInstance, SingleAppConfig } from '@shared/api'
-// import * as deepExtend from 'deep-extend'
+// import deepExtend from 'deep-extend'
 import {
 	ExpectationManager,
 	ReportExpectationStatus,

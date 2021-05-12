@@ -27,6 +27,7 @@
 		"noUnusedParameters": true,
 		"outDir": "./dist",
 		"baseUrl": "./",
+		"esModuleInterop": true
 	},
 	"compileOnSave": false,
 	"exclude": [

@@ -1,5 +1,5 @@
 // eslint-disable-next-line node/no-unpublished-import
-import * as fsMockType from 'windows-network-drive' // Note: this is a mocked module
+import fsMockType from 'windows-network-drive' // Note: this is a mocked module
 
 const DEBUG_LOG = false
 

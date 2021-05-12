@@ -1,6 +1,6 @@
-import * as path from 'path'
+import path from 'path'
 import { promisify } from 'util'
-import * as fs from 'fs'
+import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { PackageReadInfo, PutPackageHandler } from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'

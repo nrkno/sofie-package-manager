@@ -8,7 +8,7 @@ import {
 
 import { DeviceConfig } from './connector'
 
-import * as fs from 'fs'
+import fs from 'fs'
 import { LoggerInstance, PackageManagerConfig } from '@shared/api'
 
 import { ProcessHandler } from './process'

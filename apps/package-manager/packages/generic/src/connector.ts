@@ -3,10 +3,10 @@ import { ExpectationManager, ExpectationManagerServerOptions } from '@shared/exp
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageManagerHandler } from './packageManager'
 import { ProcessHandler } from './process'
-import * as chokidar from 'chokidar'
-import * as fs from 'fs'
+import chokidar from 'chokidar'
+import fs from 'fs'
 import { promisify } from 'util'
-import * as path from 'path'
+import path from 'path'
 
 const fsAccess = promisify(fs.access)
 const fsReadFile = promisify(fs.readFile)

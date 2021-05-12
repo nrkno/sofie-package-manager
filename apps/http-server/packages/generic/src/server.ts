@@ -1,11 +1,11 @@
 import { promisify } from 'util'
 
-import * as fs from 'fs'
-import * as Koa from 'koa'
-import * as Router from 'koa-router'
-import * as cors from '@koa/cors'
-import * as multer from '@koa/multer'
-import * as bodyParser from 'koa-bodyparser'
+import fs from 'fs'
+import Koa from 'koa'
+import Router from 'koa-router'
+import cors from '@koa/cors'
+import multer from '@koa/multer'
+import bodyParser from 'koa-bodyparser'
 
 import { HTTPServerConfig, LoggerInstance } from '@shared/api'
 import { BadResponse, Storage } from './storage/storage'

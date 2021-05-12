@@ -1,4 +1,4 @@
-import * as WebSocket from 'ws'
+import WebSocket from 'ws'
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 
 /** A Class which */

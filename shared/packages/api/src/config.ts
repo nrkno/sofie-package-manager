@@ -1,6 +1,6 @@
 import { Options } from 'yargs'
 import yargs = require('yargs/yargs')
-import * as _ from 'underscore'
+import _ from 'underscore'
 import { WorkerAgentConfig } from './worker'
 
 /*
