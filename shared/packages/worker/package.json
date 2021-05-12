@@ -25,7 +25,7 @@
         "deep-diff": "^1.0.2",
         "form-data": "^4.0.0",
         "node-fetch": "^2.6.1",
-        "tv-automation-quantel-gateway-client": "^2.0.1",
+        "tv-automation-quantel-gateway-client": "^2.0.2",
         "windows-network-drive": "^3.0.1"
     },
     "peerDependencies": {

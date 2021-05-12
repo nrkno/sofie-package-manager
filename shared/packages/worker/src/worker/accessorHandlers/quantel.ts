@@ -310,7 +310,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				this.accessor.quantelGatewayUrl,
 				this.accessor.ISAUrls,
 				this.accessor.zoneId,
-				this.accessor.serverId || 0
+				this.accessor.serverId
 			)
 
 			// @todo: this should be emitted somehow:

@@ -1478,13 +1478,13 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0":
-  version "1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0.tgz#8a5566722cc83b81db6852f265ade60d40f94148"
-  integrity sha512-JTPdGP8Pq7NsnUFUenbtIdd4n22s0MMBStB8RwT3Gb8EDPCYZDKJAE9IyrEx1OYu8szjqp6Fa1rszEQY9ax+Bw==
+"@sofie-automation/blueprints-integration@1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0":
+  version "1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0.tgz#9a4a528559e4dad175f9bb4f369d3bb1887aadbe"
+  integrity sha512-CMhfQiEMMIZRTymHdkqfVgabA0ElXfvJvhApyEAFZ7LQbf7+EzT248hyxi2u1iT5ZeFoa3LASWQIY4yBvcIK8w==
   dependencies:
     moment "2.29.1"
-    timeline-state-resolver-types "5.6.0-nightly-release31-20210322-163519-1a4031442.0"
+    timeline-state-resolver-types "5.7.0-nightly-release33-20210421-102534-d3150d7e3.0"
     tslib "^2.1.0"
     underscore "1.12.1"
 
@@ -1507,10 +1507,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0":
-  version "1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.33.0-nightly-feat-pm-quantel-20210326-063624-16cec65.0.tgz#d59f91a0c353ab9145305118c8129a792722da12"
-  integrity sha512-KxPsf6Fac+RHieCwAV8CxwnuQ0+deVF70gTvkkstvDrD5dMFzF9EVZ/JQZhjnRv1HMIPWNIkaOS29Nb6weDiLw==
+"@sofie-automation/server-core-integration@1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0":
+  version "1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0.tgz#7e8cf63085ad2265d24d657f89596f2350d2b3fa"
+  integrity sha512-1VWmOlAHcXJ5K3MX/s1UFK1rPWzka/WcFHI0RF5imcu3ypN1bRvbYjRfmY2PCBvGbO7AJ8q5cbRs2Fd84fDZEw==
   dependencies:
     data-store "3.1.0"
     ejson "^2.2.0"
@@ -9643,10 +9643,10 @@ timeline-state-resolver-types@5.5.1:
   dependencies:
     tslib "^1.13.0"
 
-timeline-state-resolver-types@5.6.0-nightly-release31-20210322-163519-1a4031442.0:
-  version "5.6.0-nightly-release31-20210322-163519-1a4031442.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.6.0-nightly-release31-20210322-163519-1a4031442.0.tgz#7f870b8734f9b540cf2d49ed0c6e7eadd523e5c7"
-  integrity sha512-yXWK1R6HspbtL5TA0z6RcYCgLGPqOHSpFqtpl777FRnIoLhT3e04Nzjm+RwUHEbXXa8MeA1wnIXGTctrHUFXjQ==
+timeline-state-resolver-types@5.7.0-nightly-release33-20210421-102534-d3150d7e3.0:
+  version "5.7.0-nightly-release33-20210421-102534-d3150d7e3.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.7.0-nightly-release33-20210421-102534-d3150d7e3.0.tgz#569d8436cb89996c32d354acf63ade5e91a6140c"
+  integrity sha512-0duh41MtYAnDaFoQ2JibTzGtmz+c/ydoAECmpdnpo0GVMb96viz7eLnTkMTWMMlwJBYJbuzPtvmkgh/ZWaZRvw==
   dependencies:
     tslib "^1.13.0"
 
@@ -9847,13 +9847,12 @@ tunnel-agent@^0.6.0:
   dependencies:
     safe-buffer "^5.0.1"
 
-tv-automation-quantel-gateway-client@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/tv-automation-quantel-gateway-client/-/tv-automation-quantel-gateway-client-2.0.1.tgz#1ae03fc851fc7adbb4926c9e3ad556ad9ac4e0f1"
-  integrity sha512-W7cE6LbT7ickKtkKLEYwXfgFGWGUaN3yD8pOhBiweKp1JPSmvXF8PgmGqNHng5d0kUQLNe6mJDvdvNk8PkVTmw==
+tv-automation-quantel-gateway-client@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/tv-automation-quantel-gateway-client/-/tv-automation-quantel-gateway-client-2.0.2.tgz#5d5db5525e1d3af8e575edeccd223cac672184f9"
+  integrity sha512-SzW5FalDbF5uhMeLSGxrIuFuxcjqO9SPjcWZ0h4fmZ6FZTxX3R6IA0pTq5RNDvSLUI0A8b6q0EKilLELlSeoew==
   dependencies:
     got "^11.5.2"
-    underscore "^1.9.1"
 
 tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"
@@ -9957,7 +9956,7 @@ underscore@1.12.0, underscore@^1.12.0:
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.12.0.tgz#4814940551fc80587cef7840d1ebb0f16453be97"
   integrity sha512-21rQzss/XPMjolTiIezSu3JAjgagXKROtNrYFEOWK109qY1Uv2tVjPTZ1ci2HgvQDA16gHYSthQIJfB+XId/rQ==
 
-underscore@1.12.1, underscore@^1.12.1, underscore@^1.9.1:
+underscore@1.12.1, underscore@^1.12.1:
   version "1.12.1"
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.12.1.tgz#7bb8cc9b3d397e201cf8553336d262544ead829e"
   integrity sha512-hEQt0+ZLDVUMhebKxL4x1BTtDY7bavVofhZ9KZ4aI26X9SRaE+Y3m83XUL1UP2jn8ynjndwCCpEHdUG+9pP1Tw==
