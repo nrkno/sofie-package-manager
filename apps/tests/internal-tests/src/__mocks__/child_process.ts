@@ -27,6 +27,20 @@ function spawn(command: string, args: string[] = []) {
 				spawned.emit('close', 9999)
 			})
 		})
+	} else if (command === 'ffmpeg' || command === 'ffmpeg.exe') {
+		setImmediate(() => {
+			ffmpeg(spawned, args).catch((err) => {
+				console.log(err)
+				spawned.emit('close', 9999)
+			})
+		})
+	} else if (command === 'ffprobe' || command === 'ffprobe.exe') {
+		setImmediate(() => {
+			ffprobe(spawned, args).catch((err) => {
+				console.log(err)
+				spawned.emit('close', 9999)
+			})
+		})
 	} else {
 		throw new Error(`Mock child_process.spawn: command not implemented: "${command}"`)
 	}
@@ -115,6 +129,22 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 	} catch (err) {
 		console.log(err)
 		spawned.emit('close', 9999)
+	}
+}
+async function ffmpeg(spawned: SpawnedProcess, args: string[]) {
+	if (args[0] === '-version') {
+		spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
+		spawned.emit('close', 0) // OK
+	} else {
+		throw new Error(`Mock child_process.spawn: Unsupported arguments: "${args}"`)
+	}
+}
+async function ffprobe(spawned: SpawnedProcess, args: string[]) {
+	if (args[0] === '-version') {
+		spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
+		spawned.emit('close', 0) // OK
+	} else {
+		throw new Error(`Mock child_process.spawn: Unsupported arguments: "${args}"`)
 	}
 }
 
