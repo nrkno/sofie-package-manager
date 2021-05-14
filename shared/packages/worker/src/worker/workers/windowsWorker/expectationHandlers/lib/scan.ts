@@ -140,6 +140,7 @@ export function scanFieldOrder(
 
 		let ffProbeProcess: ChildProcess | undefined = undefined
 		onCancel(() => {
+			ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
 			ffProbeProcess?.kill()
 			reject('Cancelled')
 		})
@@ -242,13 +243,14 @@ export function scanMoreInfo(
 		args.push('-threads 1')
 		args.push('-')
 
-		let ffProbeProcess: ChildProcess | undefined = undefined
+		let ffMpegProcess: ChildProcess | undefined = undefined
 
 		onCancel(() => {
-			ffProbeProcess?.kill()
+			ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffMpegProcess?.kill()
 		})
 
-		ffProbeProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, { shell: true })
+		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, { shell: true })
 
 		const scenes: number[] = []
 		const freezes: ScanAnomaly[] = []
@@ -258,12 +260,12 @@ export function scanMoreInfo(
 		// let currentFrame = 0
 
 		// ffProbeProcess.stdout.on('data', () => { lastProgressReportTimestamp = new Date() })
-		if (!ffProbeProcess.stderr) {
+		if (!ffMpegProcess.stderr) {
 			throw new Error('spawned ffprobe-process stdin is null!')
 		}
 		let lastString = ''
 		let fileDuration: number | undefined = undefined
-		ffProbeProcess.stderr.on('data', (data: any) => {
+		ffMpegProcess.stderr.on('data', (data: any) => {
 			const stringData = data.toString()
 
 			if (typeof stringData !== 'string') return
@@ -337,30 +339,38 @@ export function scanMoreInfo(
 			}
 		})
 
-		ffProbeProcess.on('close', (code) => {
-			ffProbeProcess = undefined
-			if (code === 0) {
-				// success
+		const onClose = (code: number | null) => {
+			if (ffMpegProcess) {
+				ffMpegProcess = undefined
+				if (code === 0) {
+					// success
 
-				// If freeze frame is the end of video, it is not detected fully:
-				if (
-					freezes[freezes.length - 1] &&
-					!freezes[freezes.length - 1].end &&
-					typeof previouslyScanned.format?.duration === 'number'
-				) {
-					freezes[freezes.length - 1].end = previouslyScanned.format.duration
-					freezes[freezes.length - 1].duration =
-						previouslyScanned.format.duration - freezes[freezes.length - 1].start
+					// If freeze frame is the end of video, it is not detected fully:
+					if (
+						freezes[freezes.length - 1] &&
+						!freezes[freezes.length - 1].end &&
+						typeof previouslyScanned.format?.duration === 'number'
+					) {
+						freezes[freezes.length - 1].end = previouslyScanned.format.duration
+						freezes[freezes.length - 1].duration =
+							previouslyScanned.format.duration - freezes[freezes.length - 1].start
+					}
+
+					resolve({
+						scenes,
+						freezes,
+						blacks,
+					})
+				} else {
+					reject(`FFProbe exited with code ${code} (${lastString})`)
 				}
-
-				resolve({
-					scenes,
-					freezes,
-					blacks,
-				})
-			} else {
-				reject(`FFProbe exited with code ${code} (${lastString})`)
 			}
+		}
+		ffMpegProcess.on('close', (code) => {
+			onClose(code)
+		})
+		ffMpegProcess.on('exit', (code) => {
+			onClose(code)
 		})
 	})
 }

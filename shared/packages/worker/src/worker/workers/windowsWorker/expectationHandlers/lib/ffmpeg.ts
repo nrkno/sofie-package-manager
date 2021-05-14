@@ -11,7 +11,7 @@ import { assertNever } from '../../../../lib/lib'
 import { WorkInProgress } from '../../../../lib/workInProgress'
 
 export interface FFMpegProcess {
-	kill: () => void
+	cancel: () => void
 }
 /** Check if FFMpeg is available */
 export function hasFFMpeg(): Promise<string | null> {
@@ -87,7 +87,7 @@ export async function runffMpeg<Metadata>(
 		throw new Error(`Unsupported Target AccessHandler`)
 	}
 
-	const ffMpegProcess: ChildProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
+	let ffMpegProcess: ChildProcess | undefined = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
 		shell: true,
 	})
 
@@ -135,18 +135,31 @@ export async function runffMpeg<Metadata>(
 			}
 		}
 	})
-	ffMpegProcess.on('close', (code) => {
-		// ffMpegProcess = undefined
-		if (code === 0) {
-			FFMpegIsDone = true
-			maybeDone()
-		} else {
-			workInProgress._reportError(new Error(`Code ${code}`))
+	const onClose = (code: number | null) => {
+		if (ffMpegProcess) {
+			ffMpegProcess = undefined
+			if (code === 0) {
+				FFMpegIsDone = true
+				maybeDone()
+			} else {
+				workInProgress._reportError(new Error(`Code ${code}`))
+			}
 		}
+	}
+	ffMpegProcess.on('close', (code) => {
+		onClose(code)
+	})
+	ffMpegProcess.on('exit', (code) => {
+		onClose(code)
 	})
 
 	// Report back an initial status, because it looks nice:
 	workInProgress._reportProgress(actualSourceVersionHash, 0)
 
-	return ffMpegProcess
+	return {
+		cancel: () => {
+			ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffMpegProcess?.kill()
+		},
+	}
 }

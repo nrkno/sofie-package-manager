@@ -113,9 +113,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		let ffMpegProcess: FFMpegProcess | undefined
 		const workInProgress = new WorkInProgress({ workLabel: 'Generating thumbnail' }, async () => {
 			// On cancel
-			if (ffMpegProcess) {
-				ffMpegProcess.kill()
-			}
+			ffMpegProcess?.cancel()
 		}).do(async () => {
 			if (
 				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||

@@ -145,23 +145,23 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
 				const sourceVersionHash = hashObj(actualSourceVersion)
 
-				workInProgress._reportProgress(sourceVersionHash, 0.1)
+				workInProgress._reportProgress(sourceVersionHash, 0.01)
 
 				// Scan with FFProbe:
 				currentProcess = scanWithFFProbe(sourceHandle)
 				const ffProbeScan = await currentProcess
-				workInProgress._reportProgress(sourceVersionHash, 0.2)
+				workInProgress._reportProgress(sourceVersionHash, 0.1)
 				currentProcess = undefined
 
 				// Scan field order:
 				currentProcess = scanFieldOrder(sourceHandle, exp.endRequirement.version)
 				const resultFieldOrder = await currentProcess
-				workInProgress._reportProgress(sourceVersionHash, 0.5)
+				workInProgress._reportProgress(sourceVersionHash, 0.2)
 				currentProcess = undefined
 
 				// Scan more info:
 				currentProcess = scanMoreInfo(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
-					workInProgress._reportProgress(sourceVersionHash, 0.5 + 0.4 * progress)
+					workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
 				})
 				const { blacks: resultBlacks, freezes: resultFreezes, scenes: resultScenes } = await currentProcess
 				workInProgress._reportProgress(sourceVersionHash, 0.99)

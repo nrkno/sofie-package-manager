@@ -576,10 +576,6 @@ export class ExpectationManager {
 				break
 			}
 		}
-		// Post step: Reset the session:
-		for (const trackedExp of tracked) {
-			trackedExp.session = null
-		}
 		for (const id of removeIds) {
 			delete this.trackedExpectations[id]
 		}
@@ -684,23 +680,21 @@ export class ExpectationManager {
 
 				await this.assignWorkerToSession(trackedExp.session, trackedExp)
 				if (trackedExp.session.assignedWorker) {
-					this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.WORKING, 'Working')
+					const assignedWorker = trackedExp.session.assignedWorker
 
 					// Start working on the Expectation:
-					const wipInfo = await trackedExp.session.assignedWorker.worker.workOnExpectation(
-						trackedExp.exp,
-						trackedExp.session.assignedWorker.cost
-					)
+					const wipInfo = await assignedWorker.worker.workOnExpectation(trackedExp.exp, assignedWorker.cost)
+
 					trackedExp.status.workInProgressCancel = async () => {
-						await trackedExp.session?.assignedWorker?.worker.cancelWorkInProgress(wipInfo.wipId)
+						await assignedWorker.worker.cancelWorkInProgress(wipInfo.wipId)
 						delete trackedExp.status.workInProgressCancel
 					}
 
 					// trackedExp.status.workInProgress = new WorkInProgressReceiver(wipInfo.properties)
-					this.worksInProgress[`${trackedExp.session.assignedWorker.id}_${wipInfo.wipId}`] = {
+					this.worksInProgress[`${assignedWorker.id}_${wipInfo.wipId}`] = {
 						properties: wipInfo.properties,
 						trackedExp: trackedExp,
-						worker: trackedExp.session.assignedWorker.worker,
+						worker: assignedWorker.worker,
 					}
 
 					this.updateTrackedExpStatus(
@@ -718,6 +712,9 @@ export class ExpectationManager {
 						trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
 					)
 				}
+			} else if (trackedExp.state === TrackedExpectationState.WORKING) {
+				// It is already working, don't do anything
+				// TODO: work-timeout?
 			} else if (trackedExp.state === TrackedExpectationState.FULFILLED) {
 				// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore?
 
@@ -812,6 +809,8 @@ export class ExpectationManager {
 						trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
 					)
 				}
+			} else {
+				assertNever(trackedExp.state)
 			}
 		} catch (err) {
 			this.logger.error(err)
@@ -1298,4 +1297,7 @@ interface TrackedPackageContainerExpectation {
 			}
 		}
 	}
+}
+function assertNever(_shouldBeNever: never) {
+	// Nothing
 }

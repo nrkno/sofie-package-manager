@@ -126,9 +126,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			let ffMpegProcess: FFMpegProcess | undefined
 			const workInProgress = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
 				// On cancel
-				if (ffMpegProcess) {
-					ffMpegProcess.kill()
-				}
+				ffMpegProcess?.cancel()
 			}).do(async () => {
 				const issueReadPackage = await sourceHandle.checkPackageReadAccess()
 				if (issueReadPackage) throw new Error(issueReadPackage)
