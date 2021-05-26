@@ -35,13 +35,17 @@ export function scanWithFFProbe(
 			isHTTPAccessorHandle(sourceHandle)
 		) {
 			let inputPath: string
+			let filePath: string
 			if (isLocalFolderAccessorHandle(sourceHandle)) {
 				inputPath = sourceHandle.fullPath
+				filePath = sourceHandle.filePath
 			} else if (isFileShareAccessorHandle(sourceHandle)) {
 				await sourceHandle.prepareFileAccess()
 				inputPath = sourceHandle.fullPath
+				filePath = sourceHandle.filePath
 			} else if (isHTTPAccessorHandle(sourceHandle)) {
 				inputPath = sourceHandle.fullUrl
+				filePath = sourceHandle.filePath
 			} else {
 				assertNever(sourceHandle)
 				throw new Error('Unknown handle')
@@ -73,6 +77,7 @@ export function scanWithFFProbe(
 					reject(new Error(`File doesn't seem to be a media file`))
 					return
 				}
+				json.filePath = filePath
 				resolve(json)
 			})
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {

@@ -268,7 +268,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		return undefined // all good
 	}
 	/** Local path to the Package, ie the File */
-	private get filePath(): string {
+	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 
 		const filePath = this.accessor.filePath || this.content.filePath

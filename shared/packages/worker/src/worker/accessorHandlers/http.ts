@@ -195,7 +195,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (!this.accessor.baseUrl) throw new Error(`HTTPAccessorHandle: accessor.baseUrl not set!`)
 		return this.accessor.baseUrl
 	}
-	private get filePath(): string {
+	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 		const filePath = this.accessor.url || this.content.filePath
 		if (!filePath) throw new Error(`HTTPAccessorHandle: filePath not set!`)
