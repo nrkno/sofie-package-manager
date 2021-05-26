@@ -19,6 +19,7 @@ import PromisePool from '@supercharge/promise-pool'
 /**
  * The Expectation Manager is responsible for tracking the state of the Expectations,
  * and communicate with the Workers to progress them.
+ * @see FOR_DEVELOPERS.md
  */
 
 export class ExpectationManager {
@@ -1078,7 +1079,10 @@ export class ExpectationManager {
 						trackedPackageContainer.packageContainer
 					)
 					if (!dispose.disposed) {
-						this.updateTrackedPackageContainerStatus(trackedPackageContainer, dispose.reason)
+						this.updateTrackedPackageContainerStatus(
+							trackedPackageContainer,
+							'Unable to dispose: ' + dispose.reason
+						)
 						continue // Break further execution for this PackageContainer
 					}
 					trackedPackageContainer.currentWorker = null
@@ -1115,7 +1119,10 @@ export class ExpectationManager {
 					notSupportReason = 'Found no worker that supports this packageContainer'
 				}
 				if (notSupportReason) {
-					this.updateTrackedPackageContainerStatus(trackedPackageContainer, notSupportReason)
+					this.updateTrackedPackageContainerStatus(
+						trackedPackageContainer,
+						'Not supported: ' + notSupportReason
+					)
 					continue // Break further execution for this PackageContainer
 				}
 			}
@@ -1140,7 +1147,11 @@ export class ExpectationManager {
 					trackedPackageContainer.packageContainer
 				)
 				if (!cronJobStatus.completed) {
-					this.updateTrackedPackageContainerStatus(trackedPackageContainer, cronJobStatus.reason)
+					console.log(trackedPackageContainer.packageContainer.cronjobs)
+					this.updateTrackedPackageContainerStatus(
+						trackedPackageContainer,
+						'Cron job not completed: ' + cronJobStatus.reason
+					)
 					continue
 				}
 			}
@@ -1161,7 +1172,7 @@ export class ExpectationManager {
 
 		if (updatedReason) {
 			this.logger.info(
-				`${trackedPackageContainer.packageContainer.label}: Reason: "${trackedPackageContainer.status.reason}"`
+				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason}"`
 			)
 		}
 
