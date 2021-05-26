@@ -117,7 +117,11 @@ export function generateExpectations(
 			orgSmartbullExpectation = packageWrap
 			continue
 		}
-		if (packageWrap.sources.find((source) => source.containerId === 'source-smartbull')) {
+		if (
+			packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE &&
+			packageWrap.sources.find((source) => source.containerId === 'source-smartbull') &&
+			(packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/) // the files are on the form "smartbull_TIMESTAMP.mxf/mp4"
+		) {
 			smartbullExpectations.push(packageWrap)
 			continue
 		}
@@ -736,8 +740,7 @@ export function generatePackageContainerExpectations(
 				cronjobs: {},
 				monitors: {
 					packages: {
-						targetLayers: ['target0'],
-						ignore: '.bat',
+						targetLayers: [], // not used, since the layers of the original smartbull-package are used
 					},
 				},
 			}
