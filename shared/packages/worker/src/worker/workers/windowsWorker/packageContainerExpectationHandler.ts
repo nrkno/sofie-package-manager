@@ -21,6 +21,11 @@ export async function runPackageContainerCronJob(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeRunPackageContainerCronJob> {
+	// Quick-check: If there are no cronjobs at all, no need to check:
+	if (!Object.keys(packageContainer.cronjobs).length) {
+		return { completed: true } // all good
+	}
+
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'cronjob')
 	if (!lookup.ready) return { completed: lookup.ready, reason: lookup.reason }
 
