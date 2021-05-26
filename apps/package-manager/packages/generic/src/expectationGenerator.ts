@@ -6,7 +6,7 @@ import {
 	PackageContainers,
 	PackageManagerSettings,
 } from './packageManager'
-import { Expectation, hashObj, PackageContainerExpectation } from '@shared/api'
+import { Expectation, hashObj, PackageContainerExpectation, literal } from '@shared/api'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
@@ -55,63 +55,125 @@ export function generateExpectations(
 		activeRundownMap.set(activeRundown._id, activeRundown)
 	}
 
-	for (const expWrap of expectedPackages) {
+	function prioritizeExpectation(packageWrap: ExpectedPackageWrap, exp: Expectation.Any): void {
+		// Prioritize
+		/*
+		0: Things that are to be played out like RIGHT NOW
+		10: Things that are to be played out pretty soon (things that could be cued anytime now)
+		100: Other things that affect users (GUI things)
+		1000+: Other things that can be played out
+		*/
+
+		let prioAdd = 1000
+		const activeRundown: ActiveRundown | undefined = packageWrap.expectedPackage.rundownId
+			? activeRundownMap.get(packageWrap.expectedPackage.rundownId)
+			: undefined
+
+		if (activeRundown) {
+			// The expected package is in an active rundown
+			prioAdd = 0 + activeRundown._rank // Earlier rundowns should have higher priority
+		}
+		exp.priority += prioAdd
+	}
+	function addExpectation(packageWrap: ExpectedPackageWrap, exp: Expectation.Any) {
+		const existingExp = expectations[exp.id]
+		if (existingExp) {
+			// There is already an expectation pointing at the same place.
+
+			existingExp.priority = Math.min(existingExp.priority, exp.priority)
+
+			const existingPackage = existingExp.fromPackages[0]
+			const newPackage = exp.fromPackages[0]
+
+			if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
+				// log warning:
+				console.log(`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`)
+				console.log(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
+				console.log(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
+				console.log(`${JSON.stringify(exp.startRequirement)}`)
+
+				// TODO: log better warnings!
+			} else {
+				existingExp.fromPackages.push(exp.fromPackages[0])
+			}
+		} else {
+			expectations[exp.id] = {
+				...exp,
+				sideEffect: packageWrap.expectedPackage.sideEffect,
+				external: packageWrap.external,
+			}
+		}
+	}
+
+	const smartbullExpectations: ExpectedPackageWrap[] = [] // Hack, Smartbull
+	let orgSmartbullExpectation: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
+
+	for (const packageWrap of expectedPackages) {
 		let exp: Expectation.Any | undefined = undefined
 
-		if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-			exp = generateMediaFileCopy(managerId, expWrap, settings)
-		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
-			exp = generateQuantelCopy(managerId, expWrap)
+		// Temporary hacks: handle smartbull:
+		if (packageWrap.expectedPackage._id.match(/smartbull_auto_clip/)) {
+			// hack
+			orgSmartbullExpectation = packageWrap
+			continue
+		}
+		if (
+			packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE &&
+			packageWrap.sources.find((source) => source.containerId === 'source-smartbull') &&
+			(packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/) // the files are on the form "smartbull_TIMESTAMP.mxf/mp4"
+		) {
+			smartbullExpectations.push(packageWrap)
+			continue
+		}
+
+		if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+			exp = generateMediaFileCopy(managerId, packageWrap, settings)
+		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
+			exp = generateQuantelCopy(managerId, packageWrap)
 		}
 		if (exp) {
-			// Prioritize
-			/*
-			0: Things that are to be played out like RIGHT NOW
-			10: Things that are to be played out pretty soon (things that could be cued anytime now)
-			100: Other things that affect users (GUI things)
-			1000+: Other things that can be played out
-			*/
+			prioritizeExpectation(packageWrap, exp)
+			addExpectation(packageWrap, exp)
+		}
+	}
 
-			let prioAdd = 1000
-			const activeRundown: ActiveRundown | undefined = expWrap.expectedPackage.rundownId
-				? activeRundownMap.get(expWrap.expectedPackage.rundownId)
-				: undefined
+	// hack: handle Smartbull:
+	if (orgSmartbullExpectation) {
+		// Sort alphabetically on filePath:
+		smartbullExpectations.sort((a, b) => {
+			const expA = a.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
+			const expB = b.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
 
-			if (activeRundown) {
-				// The expected package is in an active rundown
-				prioAdd = 0 + activeRundown._rank // Earlier rundowns should have higher priority
-			}
-			exp.priority += prioAdd
+			// lowest first:
+			if (expA.content.filePath > expB.content.filePath) return 1
+			if (expA.content.filePath < expB.content.filePath) return -1
 
-			const existingExp = expectations[exp.id]
-			if (existingExp) {
-				// There is already an expectation pointing at the same place.
+			return 0
+		})
+		// Pick the last one:
+		const bestSmartbull = smartbullExpectations[smartbullExpectations.length - 1] as
+			| ExpectedPackageWrapMediaFile
+			| undefined
+		if (bestSmartbull) {
+			if (orgSmartbullExpectation.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+				const org = orgSmartbullExpectation as ExpectedPackageWrapMediaFile
 
-				existingExp.priority = Math.min(existingExp.priority, exp.priority)
-
-				const existingPackage = existingExp.fromPackages[0]
-				const newPackage = exp.fromPackages[0]
-
-				if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
-					// log warning:
-					console.log(
-						`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`
-					)
-					console.log(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
-					console.log(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
-					console.log(`${JSON.stringify(exp.startRequirement)}`)
-
-					// TODO: log better warnings!
-				} else {
-					existingExp.fromPackages.push(exp.fromPackages[0])
+				const newPackage: ExpectedPackageWrapMediaFile = {
+					...org,
+					expectedPackage: {
+						...org.expectedPackage,
+						// Take these from bestSmartbull:
+						content: bestSmartbull.expectedPackage.content,
+						version: bestSmartbull.expectedPackage.version,
+						sources: bestSmartbull.expectedPackage.sources,
+					},
 				}
-			} else {
-				expectations[exp.id] = {
-					...exp,
-					sideEffect: expWrap.expectedPackage.sideEffect,
-					external: expWrap.external,
+				const exp = generateMediaFileCopy(managerId, newPackage, settings)
+				if (exp) {
+					prioritizeExpectation(newPackage, exp)
+					addExpectation(newPackage, exp)
 				}
-			}
+			} else console.log('orgSmartbullExpectation is not a MEDIA_FILE')
 		}
 	}
 
@@ -296,7 +358,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	return exp
 }
 function generatePackageScan(expectation: Expectation.FileCopy | Expectation.QuantelClipCopy): Expectation.PackageScan {
-	const scan: Expectation.PackageScan = {
+	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
 		priority: expectation.priority + 100,
 		managerId: expectation.managerId,
@@ -337,14 +399,12 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return scan
+	})
 }
 function generatePackageDeepScan(
 	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy
 ): Expectation.PackageDeepScan {
-	const deepScan: Expectation.PackageDeepScan = {
+	return literal<Expectation.PackageDeepScan>({
 		id: expectation.id + '_deepscan',
 		priority: expectation.priority + 1001,
 		managerId: expectation.managerId,
@@ -390,9 +450,7 @@ function generatePackageDeepScan(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return deepScan
+	})
 }
 
 function generateMediaFileThumbnail(
@@ -401,7 +459,7 @@ function generateMediaFileThumbnail(
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFileThumbnail {
-	const thumbnail: Expectation.MediaFileThumbnail = {
+	return literal<Expectation.MediaFileThumbnail>({
 		id: expectation.id + '_thumbnail',
 		priority: expectation.priority + 1002,
 		managerId: expectation.managerId,
@@ -444,9 +502,7 @@ function generateMediaFileThumbnail(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return thumbnail
+	})
 }
 function generateMediaFilePreview(
 	expectation: Expectation.FileCopy,
@@ -454,7 +510,7 @@ function generateMediaFilePreview(
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFilePreview {
-	const preview: Expectation.MediaFilePreview = {
+	return literal<Expectation.MediaFilePreview>({
 		id: expectation.id + '_preview',
 		priority: expectation.priority + 1003,
 		managerId: expectation.managerId,
@@ -496,8 +552,7 @@ function generateMediaFilePreview(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-	return preview
+	})
 }
 
 function generateQuantelClipThumbnail(
@@ -506,7 +561,7 @@ function generateQuantelClipThumbnail(
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
 ): Expectation.QuantelClipThumbnail {
-	const thumbnail: Expectation.QuantelClipThumbnail = {
+	return literal<Expectation.QuantelClipThumbnail>({
 		id: expectation.id + '_thumbnail',
 		priority: expectation.priority + 1002,
 		managerId: expectation.managerId,
@@ -548,9 +603,7 @@ function generateQuantelClipThumbnail(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return thumbnail
+	})
 }
 function generateQuantelClipPreview(
 	expectation: Expectation.QuantelClipCopy,
@@ -558,7 +611,7 @@ function generateQuantelClipPreview(
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
 ): Expectation.QuantelClipPreview {
-	const preview: Expectation.QuantelClipPreview = {
+	return literal<Expectation.QuantelClipPreview>({
 		id: expectation.id + '_preview',
 		priority: expectation.priority + 1003,
 		managerId: expectation.managerId,
@@ -594,9 +647,6 @@ function generateQuantelClipPreview(
 			},
 			version: {
 				type: Expectation.Version.Type.QUANTEL_CLIP_PREVIEW,
-				// bitrate: string // default: '40k'
-				// width: number
-				// height: number
 			},
 		},
 		workOptions: {
@@ -605,8 +655,7 @@ function generateQuantelClipPreview(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-	return preview
+	})
 }
 
 // function generateMediaFileHTTPCopy(expectation: Expectation.FileCopy): Expectation.FileCopy {
@@ -663,9 +712,9 @@ export function generatePackageContainerExpectations(
 ): { [id: string]: PackageContainerExpectation } {
 	const o: { [id: string]: PackageContainerExpectation } = {}
 
-	// This is temporary, to test/show how the
 	for (const [containerId, packageContainer] of Object.entries(packageContainers)) {
-		if (containerId === 'source0') {
+		// This is temporary, to test/show how a monitor would work:
+		if (containerId === 'source_monitor') {
 			o[containerId] = {
 				...packageContainer,
 				id: containerId,
@@ -680,6 +729,23 @@ export function generatePackageContainerExpectations(
 				},
 			}
 		}
+
+		// This is a hard-coded hack for the "smartbull" feature,
+		// to be replaced or moved out later:
+		if (containerId === 'source-smartbull') {
+			o[containerId] = {
+				...packageContainer,
+				id: containerId,
+				managerId: managerId,
+				cronjobs: {},
+				monitors: {
+					packages: {
+						targetLayers: [], // not used, since the layers of the original smartbull-package are used
+					},
+				},
+			}
+		}
 	}
+
 	return o
 }
