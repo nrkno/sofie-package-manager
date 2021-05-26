@@ -346,7 +346,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 			content: content,
 			version: {
 				type: Expectation.Version.Type.QUANTEL_CLIP,
-				...expWrapQuantelClip.expectedPackage.version,
+				...(expWrapQuantelClip.expectedPackage.version as any), // hack, for release 32
 			},
 		},
 		workOptions: {

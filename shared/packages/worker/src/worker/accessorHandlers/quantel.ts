@@ -68,9 +68,13 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (this.accessor.type !== Accessor.AccessType.QUANTEL) {
 			return `Quantel Accessor type is not QUANTEL ("${this.accessor.type}")!`
 		}
+		const ISAUrls: string[] = []
+		if (this.accessor.ISAUrlMaster) ISAUrls.push(this.accessor.ISAUrlMaster)
+		if (this.accessor.ISAUrlBackup) ISAUrls.push(this.accessor.ISAUrlBackup)
+
 		if (!this.accessor.quantelGatewayUrl) return `Accessor quantelGatewayUrl not set`
-		if (!this.accessor.ISAUrls) return `Accessor ISAUrls not set`
-		if (!this.accessor.ISAUrls.length) return `Accessor ISAUrls is empty`
+		if (!ISAUrls) return `Accessor ISAUrls not set`
+		if (!ISAUrls.length) return `Accessor ISAUrls is empty`
 		if (!this.content.onlyContainerAccess) {
 			if (!this.content.guid && this.content.title)
 				return `Neither guid or title are set (at least one should be)`
@@ -264,21 +268,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	}
 
 	async getTransformerStreamURL(): Promise<{ baseURL: string; url: string; fullURL: string } | undefined> {
-		if (!this.accessor.transformerURL) return undefined
-
-		const clip = await this.getClip()
-		if (clip) {
-			const baseURL = this.accessor.transformerURL
-			const url = `/quantel/homezone/clips/streams/${clip.ClipID}/stream.mpd`
-			return {
-				baseURL,
-				url,
-				fullURL: [
-					baseURL.replace(/\/$/, ''), // trim trailing slash
-					url.replace(/^\//, ''), // trim leading slash
-				].join('/'),
-			}
-		}
+		// Not supported in Release 32:
 		return undefined
 	}
 
@@ -294,10 +284,14 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		/** Persistant store for Quantel gatews */
 		const cacheGateways = this.ensureCache<{ [id: string]: QuantelGateway }>('gateways', {})
 
+		const ISAUrls: string[] = []
+		if (this.accessor.ISAUrlMaster) ISAUrls.push(this.accessor.ISAUrlMaster)
+		if (this.accessor.ISAUrlBackup) ISAUrls.push(this.accessor.ISAUrlBackup)
+
 		// These errors are just for types. User-facing checks are done in this.checkAccessor()
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
-		if (!this.accessor.ISAUrls) throw new Error('accessor.ISAUrls is not set')
-		if (!this.accessor.ISAUrls.length) throw new Error('accessor.ISAUrls array is empty')
+		if (!ISAUrls) throw new Error('accessor.ISAUrls is not set')
+		if (!ISAUrls.length) throw new Error('accessor.ISAUrls array is empty')
 		// if (!this.accessor.serverId) throw new Error('accessor.serverId is not set')
 
 		const id = `${this.accessor.quantelGatewayUrl}`
@@ -306,12 +300,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		if (!gateway) {
 			gateway = new QuantelGateway()
-			await gateway.init(
-				this.accessor.quantelGatewayUrl,
-				this.accessor.ISAUrls,
-				this.accessor.zoneId,
-				this.accessor.serverId
-			)
+			await gateway.init(this.accessor.quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
 
 			// @todo: this should be emitted somehow:
 			gateway.on('error', (e) => console.log(`Quantel.QuantelGateway`, e))
@@ -329,9 +318,9 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			throw new Error(
 				`Cached QuantelGateway.quantelGatewayUrl doesnt match accessor ("${this.accessor.quantelGatewayUrl}" vs "${gateway.gatewayUrl}")`
 			)
-		if (this.accessor.ISAUrls.join(',') !== gateway.ISAUrls.join(','))
+		if (ISAUrls.join(',') !== gateway.ISAUrls.join(','))
 			throw new Error(
-				`Cached QuantelGateway.ISAUrls doesn't match accessor ("${this.accessor.ISAUrls.join(
+				`Cached QuantelGateway.ISAUrls doesn't match accessor ("${ISAUrls.join(
 					','
 				)}" vs "${gateway.ISAUrls.join(',')}")`
 			)

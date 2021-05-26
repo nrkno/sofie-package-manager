@@ -231,7 +231,7 @@ function getMetadata(exp: Expectation.QuantelClipThumbnail, actualSourceVersion:
 	})
 }
 async function getThumbnailURL(
-	exp: Expectation.QuantelClipThumbnail,
+	_exp: Expectation.QuantelClipThumbnail,
 	lookupSource: LookupPackageContainer<any>
 ): Promise<{ baseURL: string; url: string } | undefined> {
 	if (!lookupSource.accessor) throw new Error(`Source accessor not set!`)
@@ -239,27 +239,7 @@ async function getThumbnailURL(
 		throw new Error(`Source accessor should have been a Quantel ("${lookupSource.accessor.type}")`)
 	if (!isQuantelClipAccessorHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
 
-	if (!lookupSource.accessor.transformerURL) return undefined
-
-	const clip = await lookupSource.handle.getClip()
-	if (clip) {
-		const width = exp.endRequirement.version.width
-		let frame: number = exp.endRequirement.version.frame || 0
-		if (frame > 0 && frame < 1) {
-			// If between 0 and 1, will be treated as % of the source duration:
-			const totalFrames = parseInt(clip.Frames, 10)
-
-			if (totalFrames) {
-				frame = Math.floor(totalFrames * frame)
-			}
-		}
-
-		return {
-			baseURL: lookupSource.accessor.transformerURL,
-			url: `/quantel/homezone/clips/stills/${clip.ClipID}/${frame}.${width ? width + '.' : ''}jpg`,
-		}
-	}
-	return undefined
+	return undefined // not supported in Release 32
 }
 export function getSourceHTTPHandle(
 	worker: GenericWorker,
