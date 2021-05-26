@@ -32,13 +32,28 @@ export class PackageManagerHandler {
 	private expectedPackageCache: { [id: string]: ExpectedPackageWrap } = {}
 	private packageContainersCache: PackageContainers = {}
 
-	private toReportExpectationStatus: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
-	private sendUpdateExpectationStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
+	private reportedWorkStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
+	private toReportExpectationStatus: {
+		[id: string]: {
+			workStatus: ExpectedPackageStatusAPI.WorkStatus | null
+			/** If the status is new and needs to be reported to Core */
+			isUpdated: boolean
+		}
+	} = {}
+	private sendUpdateExpectationStatusTimeouts: NodeJS.Timeout | undefined
 
-	private toReportPackageStatus: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
-	private sendUpdatePackageContainerPackageStatusTimeouts: { [id: string]: NodeJS.Timeout } = {}
+	private reportedPackageStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
+	private toReportPackageStatus: {
+		[key: string]: {
+			containerId: string
+			packageId: string
+			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+			/** If the status is new and needs to be reported to Core */
+			isUpdated: boolean
+		}
+	} = {}
+	private sendUpdatePackageContainerPackageStatusTimeouts: NodeJS.Timeout | undefined
 
-	private reportedStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 	private externalData: { packageContainers: PackageContainers; expectedPackages: ExpectedPackageWrap[] } = {
 		packageContainers: {},
 		expectedPackages: [],
@@ -365,13 +380,12 @@ export class PackageManagerHandler {
 	): void {
 		if (!expectaction) {
 			if (this.toReportExpectationStatus[expectationId]) {
-				delete this.toReportExpectationStatus[expectationId]
-				this.triggerSendUpdateExpectationStatus(expectationId)
+				this.triggerSendUpdateExpectationStatus(expectationId, null)
 			}
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
 
-			const packageStatus: ExpectedPackageStatusAPI.WorkStatus = {
+			const workStatus: ExpectedPackageStatusAPI.WorkStatus = {
 				// Default properties:
 				...{
 					status: 'N/A',
@@ -385,9 +399,9 @@ export class PackageManagerHandler {
 				...statusInfo,
 
 				fromPackages: expectaction.fromPackages.map((fromPackage) => {
-					const prevPromPackage = this.toReportExpectationStatus[expectationId]?.fromPackages.find(
-						(p) => p.id === fromPackage.id
-					)
+					const prevPromPackage = this.toReportExpectationStatus[
+						expectationId
+					]?.workStatus?.fromPackages.find((p) => p.id === fromPackage.id)
 					return {
 						id: fromPackage.id,
 						expectedContentVersionHash: fromPackage.expectedContentVersionHash,
@@ -396,80 +410,84 @@ export class PackageManagerHandler {
 				}),
 			}
 
-			this.toReportExpectationStatus[expectationId] = packageStatus
-			this.triggerSendUpdateExpectationStatus(expectationId)
+			this.triggerSendUpdateExpectationStatus(expectationId, workStatus)
 		}
 	}
-	private triggerSendUpdateExpectationStatus(expectationId: string) {
-		if (!this.sendUpdateExpectationStatusTimeouts[expectationId]) {
-			this.sendUpdateExpectationStatusTimeouts[expectationId] = setTimeout(() => {
-				delete this.sendUpdateExpectationStatusTimeouts[expectationId]
-				this.sendUpdateExpectationStatus(expectationId)
-			}, 300)
+	private triggerSendUpdateExpectationStatus(
+		expectationId: string,
+		workStatus: ExpectedPackageStatusAPI.WorkStatus | null
+	) {
+		this.toReportExpectationStatus[expectationId] = {
+			workStatus: workStatus,
+			isUpdated: true,
 		}
-	}
-	private sendUpdateExpectationStatus(expectationId: string) {
-		const toReportStatus = this.toReportExpectationStatus[expectationId]
 
-		if (!toReportStatus && this.reportedStatuses[expectationId]) {
+		if (!this.sendUpdateExpectationStatusTimeouts) {
+			this.sendUpdateExpectationStatusTimeouts = setTimeout(() => {
+				delete this.sendUpdateExpectationStatusTimeouts
+				this.sendUpdateExpectationStatus()
+			}, 500)
+		}
+	}
+	private sendUpdateExpectationStatus() {
+		const changesTosend: UpdateExpectedPackageWorkStatusesChanges = []
+
+		for (const [expectationId, o] of Object.entries(this.toReportExpectationStatus)) {
+			if (o.isUpdated) {
+				if (!o.workStatus) {
+					if (this.reportedWorkStatuses[expectationId]) {
+						// Removed
+						changesTosend.push({
+							id: expectationId,
+							type: 'delete',
+						})
+						delete this.reportedWorkStatuses[expectationId]
+					}
+				} else {
+					const lastReportedStatus = this.reportedWorkStatuses[expectationId]
+
+					if (!lastReportedStatus) {
+						// Inserted
+						changesTosend.push({
+							id: expectationId,
+							type: 'insert',
+							status: o.workStatus,
+						})
+					} else {
+						// Updated
+						const mod: Partial<ExpectedPackageStatusAPI.WorkStatus> = {}
+						for (const key of Object.keys(o.workStatus) as (keyof ExpectedPackageStatusAPI.WorkStatus)[]) {
+							if (o.workStatus[key] !== lastReportedStatus[key]) {
+								mod[key] = o.workStatus[key] as any
+							}
+						}
+						if (!_.isEmpty(mod)) {
+							changesTosend.push({
+								id: expectationId,
+								type: 'update',
+								status: mod,
+							})
+						}
+					}
+					this.reportedWorkStatuses[expectationId] = o.workStatus
+				}
+
+				o.isUpdated = false
+			}
+		}
+
+		if (changesTosend.length) {
 			this._coreHandler.core
-				.callMethod(PeripheralDeviceAPI.methods.removeExpectedPackageWorkStatus, [expectationId])
+				.callMethod(PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses, [changesTosend])
 				.catch((err) => {
-					this.logger.error('Error when calling method removeExpectedPackageStatus:')
+					this.logger.error('Error when calling method updateExpectedPackageWorkStatuses:')
 					this.logger.error(err)
 				})
-			delete this.reportedStatuses[expectationId]
-		} else {
-			// const expWrap = this.expectedPackageCache[expectaction.statusReport.packageId]
-			// if (!expWrap) return // If the expectedPackage isn't found, we shouldn't send any updates
-
-			const lastReportedStatus = this.reportedStatuses[expectationId]
-
-			if (!lastReportedStatus) {
-				this._coreHandler.core
-					.callMethod(PeripheralDeviceAPI.methods.insertExpectedPackageWorkStatus, [
-						expectationId,
-						toReportStatus,
-					])
-					.catch((err) => {
-						this.logger.error('Error when calling method insertExpectedPackageStatus:')
-						this.logger.error(err)
-					})
-			} else {
-				const mod: Partial<ExpectedPackageStatusAPI.WorkStatus> = {}
-				for (const key of Object.keys(toReportStatus)) {
-					// @ts-expect-error no index signature found
-					if (toReportStatus[key] !== lastReportedStatus[key]) {
-						// @ts-expect-error no index signature found
-						mod[key] = toReportStatus[key]
-					}
-				}
-				if (!_.isEmpty(mod)) {
-					// Send partial update:
-					this._coreHandler.core
-						.callMethod(PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatus, [expectationId, mod])
-						.then((okResult) => {
-							if (!okResult) {
-								// Retry with sending full update
-								return this._coreHandler.core.callMethod(
-									PeripheralDeviceAPI.methods.insertExpectedPackageWorkStatus,
-									[expectationId, toReportStatus]
-								)
-							}
-							return Promise.resolve()
-						})
-						.catch((err) => {
-							this.logger.error('Error when calling method updateExpectedPackageStatus:')
-							this.logger.error(err)
-						})
-				}
-			}
-			this.reportedStatuses[expectationId] = {
-				...toReportStatus,
-			}
 		}
 	}
 	private async cleanReportedExpectations() {
+		// Clean out all reported statuses, this is an easy way to sync a clean state with core
+		this.reportedWorkStatuses = {}
 		await this._coreHandler.core.callMethod(
 			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
 			[]
@@ -482,7 +500,7 @@ export class PackageManagerHandler {
 	): void {
 		const packageContainerPackageId = `${containerId}_${packageId}`
 		if (!packageStatus) {
-			delete this.toReportPackageStatus[packageContainerPackageId]
+			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, null)
 		} else {
 			const o: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
 				// Default properties:
@@ -491,41 +509,74 @@ export class PackageManagerHandler {
 					progress: 0,
 					statusReason: '',
 				},
-				// Previous properties:
-				...(((this.toReportPackageStatus[packageContainerPackageId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in const packageStatus more strict
-				// Updated porperties:
+				// pre-existing properties:
+				...(((this.toReportPackageStatus[packageContainerPackageId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in the outer spread-assignment more strict
+				// Updated properties:
 				...packageStatus,
 			}
 
-			this.toReportPackageStatus[packageContainerPackageId] = o
+			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, o)
 		}
-		this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId)
 	}
-	private triggerSendUpdatePackageContainerPackageStatus(containerId: string, packageId: string): void {
-		const packageContainerPackageId = `${containerId}_${packageId}`
-		if (!this.sendUpdatePackageContainerPackageStatusTimeouts[packageContainerPackageId]) {
-			this.sendUpdatePackageContainerPackageStatusTimeouts[packageContainerPackageId] = setTimeout(() => {
-				delete this.sendUpdatePackageContainerPackageStatusTimeouts[packageContainerPackageId]
-				this.sendUpdatePackageContainerPackageStatus(containerId, packageId)
+	private triggerSendUpdatePackageContainerPackageStatus(
+		containerId: string,
+		packageId: string,
+		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+	): void {
+		const key = `${containerId}_${packageId}`
+
+		this.toReportPackageStatus[key] = {
+			containerId,
+			packageId,
+			packageStatus,
+			isUpdated: true,
+		}
+
+		if (!this.sendUpdatePackageContainerPackageStatusTimeouts) {
+			this.sendUpdatePackageContainerPackageStatusTimeouts = setTimeout(() => {
+				delete this.sendUpdatePackageContainerPackageStatusTimeouts
+				this.sendUpdatePackageContainerPackageStatus()
 			}, 300)
 		}
 	}
-	public sendUpdatePackageContainerPackageStatus(containerId: string, packageId: string): void {
-		const packageContainerPackageId = `${containerId}_${packageId}`
+	public sendUpdatePackageContainerPackageStatus(): void {
+		const changesTosend: UpdatePackageContainerPackageStatusesChanges = []
 
-		const toReportPackageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null =
-			this.toReportPackageStatus[packageContainerPackageId] || null
+		for (const [key, o] of Object.entries(this.toReportPackageStatus)) {
+			if (o.isUpdated) {
+				if (!o.packageStatus) {
+					if (this.reportedPackageStatuses[key]) {
+						// Removed
+						changesTosend.push({
+							containerId: o.containerId,
+							packageId: o.packageId,
+							type: 'delete',
+						})
+						delete this.reportedPackageStatuses[key]
+					}
+				} else {
+					// Inserted / Updated
+					changesTosend.push({
+						containerId: o.containerId,
+						packageId: o.packageId,
+						type: 'update',
+						status: o.packageStatus,
+					})
+					this.reportedPackageStatuses[key] = o.packageStatus
+				}
 
-		this._coreHandler.core
-			.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerPackageStatus, [
-				containerId,
-				packageId,
-				toReportPackageStatus,
-			])
-			.catch((err) => {
-				this.logger.error('Error when calling method removeExpectedPackageStatus:')
-				this.logger.error(err)
-			})
+				o.isUpdated = false
+			}
+		}
+
+		if (changesTosend.length) {
+			this._coreHandler.core
+				.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerPackageStatuses, [changesTosend])
+				.catch((err) => {
+					this.logger.error('Error when calling method updatePackageContainerPackageStatuses:')
+					this.logger.error(err)
+				})
+		}
 	}
 	public updatePackageContainerStatus(
 		containerId: string,
@@ -540,17 +591,17 @@ export class PackageManagerHandler {
 	): Promise<any> {
 		switch (message.type) {
 			case 'fetchPackageInfoMetadata':
-				return await this._coreHandler.core.callMethod(
+				return this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
 					message.arguments
 				)
 			case 'updatePackageInfo':
-				return await this._coreHandler.core.callMethod(
+				return this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.updatePackageInfo,
 					message.arguments
 				)
 			case 'removePackageInfo':
-				return await this._coreHandler.core.callMethod(
+				return this._coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.removePackageInfo,
 					message.arguments
 				)
@@ -559,7 +610,7 @@ export class PackageManagerHandler {
 				break
 
 			default:
-				// @ts-expect-error message.type is never
+				// @ts-expect-error message is never
 				throw new Error(`Unsupported message type "${message.type}"`)
 		}
 	}
@@ -657,3 +708,35 @@ export interface ActiveRundown {
 export interface PackageManagerSettings {
 	delayRemoval: number
 }
+
+/** Note: This is based on the Core method updateExpectedPackageWorkStatuses. */
+type UpdateExpectedPackageWorkStatusesChanges = (
+	| {
+			id: string
+			type: 'delete'
+	  }
+	| {
+			id: string
+			type: 'insert'
+			status: ExpectedPackageStatusAPI.WorkStatus
+	  }
+	| {
+			id: string
+			type: 'update'
+			status: Partial<ExpectedPackageStatusAPI.WorkStatus>
+	  }
+)[]
+/** Note: This is based on the Core method updatePackageContainerPackageStatuses. */
+type UpdatePackageContainerPackageStatusesChanges = (
+	| {
+			containerId: string
+			packageId: string
+			type: 'delete'
+	  }
+	| {
+			containerId: string
+			packageId: string
+			type: 'update'
+			status: ExpectedPackageStatusAPI.PackageContainerPackageStatus
+	  }
+)[]

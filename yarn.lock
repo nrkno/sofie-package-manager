@@ -1478,15 +1478,15 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0":
-  version "1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0.tgz#9a4a528559e4dad175f9bb4f369d3bb1887aadbe"
-  integrity sha512-CMhfQiEMMIZRTymHdkqfVgabA0ElXfvJvhApyEAFZ7LQbf7+EzT248hyxi2u1iT5ZeFoa3LASWQIY4yBvcIK8w==
+"@sofie-automation/blueprints-integration@1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0":
+  version "1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0.tgz#6e9279af9dac23e88df9e76bb4b41cb9cc04c446"
+  integrity sha512-4SsMbHcEzUVk24G7maJQXg2i9F8rdfGn/rV0Pn95Gih4OlJxefne4T5WKS6kOY5A3C8ZGDNRolHR/WtrbcOHLA==
   dependencies:
     moment "2.29.1"
-    timeline-state-resolver-types "5.7.0-nightly-release33-20210421-102534-d3150d7e3.0"
+    timeline-state-resolver-types "5.9.0-nightly-release34-20210511-085833-30ad952a1.0"
     tslib "^2.1.0"
-    underscore "1.12.1"
+    underscore "1.13.1"
 
 "@sofie-automation/code-standard-preset@^0.2.1", "@sofie-automation/code-standard-preset@^0.2.2":
   version "0.2.2"
@@ -1507,10 +1507,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0":
-  version "1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.34.0-nightly-test-mserk5-20210507-123656-f937ba8.0.tgz#7e8cf63085ad2265d24d657f89596f2350d2b3fa"
-  integrity sha512-1VWmOlAHcXJ5K3MX/s1UFK1rPWzka/WcFHI0RF5imcu3ypN1bRvbYjRfmY2PCBvGbO7AJ8q5cbRs2Fd84fDZEw==
+"@sofie-automation/server-core-integration@1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0":
+  version "1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0.tgz#dc115837aa303bb1c7741140c1a6de5c453f32b5"
+  integrity sha512-yy3wTxfLef+821BVshwozVBJEwOIZhUpQqFJDcQ9AVZDUzJEl97c+q++V/FvJ2SPbT/5FqFwVp3uzlnVUIWzIA==
   dependencies:
     data-store "3.1.0"
     ejson "^2.2.0"
@@ -9648,10 +9648,10 @@ timeline-state-resolver-types@5.5.1:
   dependencies:
     tslib "^1.13.0"
 
-timeline-state-resolver-types@5.7.0-nightly-release33-20210421-102534-d3150d7e3.0:
-  version "5.7.0-nightly-release33-20210421-102534-d3150d7e3.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.7.0-nightly-release33-20210421-102534-d3150d7e3.0.tgz#569d8436cb89996c32d354acf63ade5e91a6140c"
-  integrity sha512-0duh41MtYAnDaFoQ2JibTzGtmz+c/ydoAECmpdnpo0GVMb96viz7eLnTkMTWMMlwJBYJbuzPtvmkgh/ZWaZRvw==
+timeline-state-resolver-types@5.9.0-nightly-release34-20210511-085833-30ad952a1.0:
+  version "5.9.0-nightly-release34-20210511-085833-30ad952a1.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-5.9.0-nightly-release34-20210511-085833-30ad952a1.0.tgz#6edada5ea4199b290645c9ced2a4051ed68985ea"
+  integrity sha512-3M9CptINGuerTEJGriuez4PqFqyD3Cf2ZZ9lI0cv4mnXOTLt3kwbp4a0uc2HWLBgzPsYPM9JEz2Y20XFSJC4TQ==
   dependencies:
     tslib "^1.13.0"
 
@@ -9961,7 +9961,12 @@ underscore@1.12.0, underscore@^1.12.0:
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.12.0.tgz#4814940551fc80587cef7840d1ebb0f16453be97"
   integrity sha512-21rQzss/XPMjolTiIezSu3JAjgagXKROtNrYFEOWK109qY1Uv2tVjPTZ1ci2HgvQDA16gHYSthQIJfB+XId/rQ==
 
-underscore@1.12.1, underscore@^1.12.1:
+underscore@1.13.1:
+  version "1.13.1"
+  resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.1.tgz#0c1c6bd2df54b6b69f2314066d65b6cde6fcf9d1"
+  integrity sha512-hzSoAVtJF+3ZtiFX0VgfFPHEDRm7Y/QPjGyNo4TVdnDTdft3tr8hEkD25a1jC+TjTuE7tkHGKkhwCgs9dgBB2g==
+
+underscore@^1.12.1:
   version "1.12.1"
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.12.1.tgz#7bb8cc9b3d397e201cf8553336d262544ead829e"
   integrity sha512-hEQt0+ZLDVUMhebKxL4x1BTtDY7bavVofhZ9KZ4aI26X9SRaE+Y3m83XUL1UP2jn8ynjndwCCpEHdUG+9pP1Tw==
