@@ -173,6 +173,7 @@ export class WorkerAgent {
 					// callbacksOnDone: [],
 				}
 				const wipId = this.wipI++
+				console.log(`Worker "${this.id}" starting job ${wipId}, (${exp.id}). (${this.currentJobs.length})`)
 				this.currentJobs.push(currentjob)
 
 				try {
@@ -186,12 +187,18 @@ export class WorkerAgent {
 					})
 					workInProgress.on('error', (error) => {
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
+						console.log(
+							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
+						)
 
 						expectedManager.api.wipEventError(wipId, error).catch(console.error)
 						delete this.worksInProgress[`${wipId}`]
 					})
 					workInProgress.on('done', (actualVersionHash, reason, result) => {
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
+						console.log(
+							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), done. (${this.currentJobs.length})`
+						)
 
 						expectedManager.api.wipEventDone(wipId, actualVersionHash, reason, result).catch(console.error)
 						delete this.worksInProgress[`${wipId}`]
@@ -205,6 +212,9 @@ export class WorkerAgent {
 					// The workOnExpectation failed.
 
 					this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
+					console.log(
+						`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to initial error. (${this.currentJobs.length})`
+					)
 
 					throw err
 				}
