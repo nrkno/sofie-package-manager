@@ -172,37 +172,42 @@ export class WorkerAgent {
 					progress: 0,
 					// callbacksOnDone: [],
 				}
+				const wipId = this.wipI++
 				this.currentJobs.push(currentjob)
 
-				const wipId = this.wipI++
+				try {
+					const workInProgress = await this._worker.workOnExpectation(exp)
 
-				const workInProgress = await this._worker.workOnExpectation(exp)
+					this.worksInProgress[`${wipId}`] = workInProgress
 
-				this.worksInProgress[`${wipId}`] = workInProgress
+					workInProgress.on('progress', (actualVersionHash, progress: number) => {
+						currentjob.progress = progress
+						expectedManager.api.wipEventProgress(wipId, actualVersionHash, progress).catch(console.error)
+					})
+					workInProgress.on('error', (error) => {
+						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
 
-				workInProgress.on('progress', (actualVersionHash, progress: number) => {
-					currentjob.progress = progress
-					expectedManager.api.wipEventProgress(wipId, actualVersionHash, progress).catch(console.error)
-				})
-				workInProgress.on('error', (error) => {
+						expectedManager.api.wipEventError(wipId, error).catch(console.error)
+						delete this.worksInProgress[`${wipId}`]
+					})
+					workInProgress.on('done', (actualVersionHash, reason, result) => {
+						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
+
+						expectedManager.api.wipEventDone(wipId, actualVersionHash, reason, result).catch(console.error)
+						delete this.worksInProgress[`${wipId}`]
+					})
+
+					return {
+						wipId: wipId,
+						properties: workInProgress.properties,
+					}
+				} catch (err) {
+					// The workOnExpectation failed.
+
 					this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
 
-					expectedManager.api.wipEventError(wipId, error).catch(console.error)
-					delete this.worksInProgress[`${wipId}`]
-				})
-				workInProgress.on('done', (actualVersionHash, reason, result) => {
-					this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
-
-					expectedManager.api.wipEventDone(wipId, actualVersionHash, reason, result).catch(console.error)
-					delete this.worksInProgress[`${wipId}`]
-				})
-
-				return {
-					wipId: wipId,
-					properties: workInProgress.properties,
+					throw err
 				}
-
-				// return workInProgress
 			},
 			removeExpectation: async (exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> => {
 				return this._worker.removeExpectation(exp)
