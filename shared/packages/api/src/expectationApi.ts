@@ -48,7 +48,7 @@ export namespace Expectation {
 		/** Id of the ExpectationManager the expectation was created from */
 		managerId: string
 
-		/** Expectation priority. Lower will be handled first */
+		/** Expectation priority. Lower will be handled first. Note: This is not absolute, the actual execution order might vary. */
 		priority: number
 
 		/** A list of which expectedPackages that resultet in this expectation */

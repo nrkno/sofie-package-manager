@@ -683,6 +683,8 @@ export class ExpectationManager {
 				if (trackedExp.session.assignedWorker) {
 					const assignedWorker = trackedExp.session.assignedWorker
 
+					this.logger.info(`workOnExpectation: "${trackedExp.exp.id}" (${trackedExp.exp.type})`)
+
 					// Start working on the Expectation:
 					const wipInfo = await assignedWorker.worker.workOnExpectation(trackedExp.exp, assignedWorker.cost)
 
@@ -814,6 +816,7 @@ export class ExpectationManager {
 				assertNever(trackedExp.state)
 			}
 		} catch (err) {
+			this.logger.error('Error thrown in evaluateExpectationState')
 			this.logger.error(err)
 			this.updateTrackedExpStatus(trackedExp, undefined, err.toString())
 		}
@@ -1147,7 +1150,6 @@ export class ExpectationManager {
 					trackedPackageContainer.packageContainer
 				)
 				if (!cronJobStatus.completed) {
-					console.log(trackedPackageContainer.packageContainer.cronjobs)
 					this.updateTrackedPackageContainerStatus(
 						trackedPackageContainer,
 						'Cron job not completed: ' + cronJobStatus.reason
