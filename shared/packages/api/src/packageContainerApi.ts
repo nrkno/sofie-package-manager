@@ -23,6 +23,11 @@ export interface PackageContainerExpectation extends PackageContainer {
 			/** If set, ignore any files matching this. (Regular expression). */
 			ignore?: string
 
+			/** If set, the monitoring will be using polling */
+			usePolling?: number | null
+			/** If set, will set the awaitWriteFinish.StabilityThreshold of chokidar */
+			awaitWriteFinishStabilityThreshold?: number | null
+
 			/** What layers to set on the resulting ExpectedPackage */
 			targetLayers: string[]
 

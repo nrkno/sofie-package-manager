@@ -744,6 +744,8 @@ export function generatePackageContainerExpectations(
 				monitors: {
 					packages: {
 						targetLayers: ['source-smartbull'], // not used, since the layers of the original smartbull-package are used
+						usePolling: 2000,
+						awaitWriteFinishStabilityThreshold: 2000,
 					},
 				},
 			}
