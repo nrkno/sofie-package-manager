@@ -311,6 +311,7 @@ export class ExpectationManager {
 				const wip = this.worksInProgress[`${clientId}_${wipId}`]
 				if (wip) {
 					if (wip.trackedExp.state === TrackedExpectationState.WORKING) {
+						wip.trackedExp.errorCount++
 						this.updateTrackedExpStatus(wip.trackedExp, TrackedExpectationState.WAITING, error)
 						this.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
 							status: wip.trackedExp.state,
@@ -383,6 +384,7 @@ export class ExpectationManager {
 					state: TrackedExpectationState.NEW,
 					availableWorkers: [],
 					lastEvaluationTime: 0,
+					errorCount: 0,
 					reason: '',
 					status: {},
 					session: null,
@@ -398,6 +400,8 @@ export class ExpectationManager {
 
 		// Removed:
 		for (const id of Object.keys(this.trackedExpectations)) {
+			this.trackedExpectations[id].errorCount = 0 // Also reset the errorCount, to start fresh.
+
 			if (!this.receivedUpdates.expectations[id]) {
 				// This expectation has been removed
 				// TODO: handled removed expectations!
@@ -476,6 +480,10 @@ export class ExpectationManager {
 	private getTrackedExpectations(): TrackedExpectation[] {
 		const tracked: TrackedExpectation[] = Object.values(this.trackedExpectations)
 		tracked.sort((a, b) => {
+			// Lowest errorCount first, this is to make it so that if one expectation fails, it'll not block all the others
+			if (a.errorCount > b.errorCount) return 1
+			if (a.errorCount < b.errorCount) return -1
+
 			// Lowest priority first
 			if (a.exp.priority > b.exp.priority) return 1
 			if (a.exp.priority < b.exp.priority) return -1
@@ -1226,6 +1234,8 @@ interface TrackedExpectation {
 	availableWorkers: string[]
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
+	/** The number of times the expectation has failed */
+	errorCount: number
 
 	/** These statuses are sent from the workers */
 	status: {
