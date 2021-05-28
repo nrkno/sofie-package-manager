@@ -172,7 +172,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 			// We can do RoboCopy
 			if (!isLocalFolderAccessorHandle(sourceHandle) && !isFileShareAccessorHandle(sourceHandle))
 				throw new Error(`Source AccessHandler type is wrong`)
-			if (!isLocalFolderAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isLocalFolderAccessorHandle(targetHandle) && !isFileShareAccessorHandle(targetHandle))
+				throw new Error(`Source AccessHandler type is wrong`)
 
 			if (sourceHandle.fullPath === targetHandle.fullPath) {
 				throw new Error('Unable to copy: source and Target file paths are the same!')

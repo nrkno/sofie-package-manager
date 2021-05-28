@@ -267,6 +267,10 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		}
 		return undefined // all good
 	}
+	/** Called when the package is supposed to be in place */
+	async packageIsInPlace(): Promise<void> {
+		await this.clearPackageRemoval(this.filePath)
+	}
 	/** Local path to the Package, ie the File */
 	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
