@@ -215,6 +215,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		const controller = new AbortController()
 		const res = await fetch(this.fullUrl, { signal: controller.signal })
 
+		res.body.on('error', () => {
+			// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
+		})
+
 		const headers: HTTPHeaders = {
 			contentType: res.headers.get('content-type'),
 			contentLength: res.headers.get('content-length'),
