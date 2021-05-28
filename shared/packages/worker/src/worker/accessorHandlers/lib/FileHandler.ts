@@ -132,11 +132,22 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		const options = packageContainerExp.monitors.packages
 		if (!options) throw new Error('Options not set (this should never happen)')
 
-		const watcher = chokidar.watch(this.folderPath, {
+		const chokidarOptions: chokidar.WatchOptions = {
 			ignored: options.ignore ? new RegExp(options.ignore) : undefined,
-
 			persistent: true,
-		})
+		}
+		if (options.usePolling) {
+			chokidarOptions.usePolling = true
+			chokidarOptions.interval = 2000
+			chokidarOptions.binaryInterval = 2000
+		}
+		if (options.awaitWriteFinishStabilityThreshold) {
+			chokidarOptions.awaitWriteFinish = {
+				stabilityThreshold: options.awaitWriteFinishStabilityThreshold,
+				pollInterval: options.awaitWriteFinishStabilityThreshold,
+			}
+		}
+		const watcher = chokidar.watch(this.folderPath, chokidarOptions)
 
 		const monitorId = `${this.worker.genericConfig.workerId}_${this.worker.uniqueId}_${Date.now()}`
 		const seenFiles = new Map<string, Expectation.Version.FileOnDisk | null>()
@@ -170,6 +181,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 								seenFiles.set(filePath, version)
 							} catch (err) {
+								version = null
 								console.log('error', err)
 							}
 						}
@@ -242,12 +254,30 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					triggerSendUpdate()
 				}
 			})
-			.on('unlink', (fullPath) => {
+			.on('change', (fullPath) => {
 				const localPath = getFilePath(fullPath)
 				if (localPath) {
-					seenFiles.delete(localPath)
+					seenFiles.set(localPath, null) // This will cause triggerSendUpdate() to update the version
 					triggerSendUpdate()
 				}
+			})
+			.on('unlink', (fullPath) => {
+				// We don't trust chokidar, so we'll check it ourselves first..
+				// (We've seen an issue where removing a single file from a folder causes chokidar to emit unlink for ALL the files)
+				fsAccess(fullPath, fs.constants.R_OK)
+					.then(() => {
+						// The file seems to exist, even though chokidar says it doesn't.
+						// Ignore the event, then
+					})
+					.catch(() => {
+						// The file truly doesn't exist
+
+						const localPath = getFilePath(fullPath)
+						if (localPath) {
+							seenFiles.delete(localPath)
+							triggerSendUpdate()
+						}
+					})
 			})
 			.on('error', (error) => {
 				console.log('error', error)

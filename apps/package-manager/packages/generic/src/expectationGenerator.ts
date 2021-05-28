@@ -119,10 +119,13 @@ export function generateExpectations(
 		}
 		if (
 			packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE &&
-			packageWrap.sources.find((source) => source.containerId === 'source-smartbull') &&
-			(packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/) // the files are on the form "smartbull_TIMESTAMP.mxf/mp4"
+			packageWrap.sources.find((source) => source.containerId === 'source-smartbull')
 		) {
-			smartbullExpectations.push(packageWrap)
+			if ((packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/)) {
+				// the files are on the form "smartbull_TIMESTAMP.mxf/mp4"
+				smartbullExpectations.push(packageWrap)
+			}
+			// (any other files in the "source-smartbull"-container are to be ignored)
 			continue
 		}
 
@@ -164,7 +167,7 @@ export function generateExpectations(
 						...org.expectedPackage,
 						// Take these from bestSmartbull:
 						content: bestSmartbull.expectedPackage.content,
-						version: bestSmartbull.expectedPackage.version,
+						version: {}, // Don't even use bestSmartbull.expectedPackage.version,
 						sources: bestSmartbull.expectedPackage.sources,
 					},
 				}
@@ -740,7 +743,9 @@ export function generatePackageContainerExpectations(
 				cronjobs: {},
 				monitors: {
 					packages: {
-						targetLayers: [], // not used, since the layers of the original smartbull-package are used
+						targetLayers: ['source-smartbull'], // not used, since the layers of the original smartbull-package are used
+						usePolling: 2000,
+						awaitWriteFinishStabilityThreshold: 2000,
 					},
 				},
 			}

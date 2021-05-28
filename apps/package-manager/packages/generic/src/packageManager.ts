@@ -670,6 +670,10 @@ export class PackageManagerHandler {
 			}
 		}
 
+		this.logger.info(
+			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
+		)
+
 		this.monitoredPackages[monitorId] = expectedPackagesWraps
 
 		this._triggerUpdatedExpectedPackages()
