@@ -53,7 +53,10 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 
 		rbcpy.on('close', (code) => {
 			rbcpy = undefined
-			if (code && (code & 1) === 1) {
+			if (
+				code === 0 || // No errors occurred, and no copying was done.
+				(code && (code & 1) === 1) // One or more files were copied successfully (that is, new files have arrived).
+			) {
 				// Robocopy's code for succesfully copying files is 1 at LSB: https://ss64.com/nt/robocopy-exit.html
 				if (srcFileName !== dstFileName) {
 					fs.rename(path.join(dstFolder, srcFileName), path.join(dstFolder, dstFileName), (err) => {
