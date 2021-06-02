@@ -393,7 +393,9 @@ export class PackageManagerHandler {
 					statusReason: '',
 				},
 				// Previous properties:
-				...(((this.toReportExpectationStatus[expectationId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in const packageStatus more strict
+				...((this.toReportExpectationStatus[expectationId]?.workStatus ||
+					{}) as Partial<ExpectedPackageStatusAPI.WorkStatus>), // Intentionally cast to Partial<>, to make typings in const workStatus more strict
+
 				// Updated porperties:
 				...expectaction.statusReport,
 				...statusInfo,
