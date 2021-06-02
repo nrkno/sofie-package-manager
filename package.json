@@ -5,7 +5,8 @@
     "private": true,
     "workspaces": [
         "shared/**",
-        "apps/**"
+        "apps/**",
+        "tests/**"
     ],
     "scripts": {
         "ci": "yarn install && yarn build && yarn lint && yarn test",

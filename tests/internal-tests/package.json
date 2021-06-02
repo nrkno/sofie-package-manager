@@ -1,7 +1,7 @@
 {
     "name": "@tests/internal-tests",
     "version": "1.0.0",
-    "description": "Package Manager, http-proxy etc.. all in one application",
+    "description": "Internal tests",
     "private": true,
     "scripts": {
         "build": "rimraf dist && yarn build:main",
