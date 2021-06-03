@@ -5,13 +5,7 @@ import * as Worker from '@shared/worker'
 import * as Winston from 'winston'
 import { Expectation, ExpectationManagerWorkerAgent, LoggerInstance, SingleAppConfig } from '@shared/api'
 // import deepExtend from 'deep-extend'
-import {
-	ExpectationManager,
-	ReportExpectationStatus,
-	ReportPackageContainerPackageStatus,
-	MessageFromWorker,
-	ReportPackageContainerExpectationStatus,
-} from '@shared/expectation-manager'
+import { ExpectationManager, ExpectationManagerCallbacks } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 
@@ -61,12 +55,7 @@ const defaultTestConfig: SingleAppConfig = {
 export async function setupExpectationManager(
 	debugLogging: boolean,
 	workerCount: number = 1,
-	callbacks: {
-		reportExpectationStatus: ReportExpectationStatus
-		reportPackageContainerPackageStatus: ReportPackageContainerPackageStatus
-		reportPackageContainerExpectationStatus: ReportPackageContainerExpectationStatus
-		messageFromWorker: MessageFromWorker
-	}
+	callbacks: ExpectationManagerCallbacks
 ) {
 	const logger = new Winston.Logger({}) as LoggerInstance
 	logger.add(Winston.transports.Console, {
@@ -79,10 +68,7 @@ export async function setupExpectationManager(
 		{ type: 'internal' },
 		undefined,
 		{ type: 'internal' },
-		callbacks.reportExpectationStatus,
-		callbacks.reportPackageContainerPackageStatus,
-		callbacks.reportPackageContainerExpectationStatus,
-		callbacks.messageFromWorker
+		callbacks
 	)
 
 	// Initializing HTTP proxy Server:

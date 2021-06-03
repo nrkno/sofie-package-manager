@@ -33,7 +33,7 @@ export class ExpectationManager {
 	 */
 	private readonly ALLOW_SKIPPING_QUEUE_TIME = 30 * 1000 // ms
 
-	private workforceAPI = new WorkforceAPI()
+	private workforceAPI: WorkforceAPI
 
 	/** Store for various incoming data, to be processed on next iteration round */
 	private receivedUpdates: {
@@ -98,11 +98,9 @@ export class ExpectationManager {
 		/** At what url the ExpectationManager can be reached on */
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
-		private reportExpectationStatus: ReportExpectationStatus,
-		private reportPackageContainerPackageStatus: ReportPackageContainerPackageStatus,
-		private reportPackageContainerExpectationStatus: ReportPackageContainerExpectationStatus,
-		private onMessageFromWorker: MessageFromWorker
+		private callbacks: ExpectationManagerCallbacks
 	) {
+		this.workforceAPI = new WorkforceAPI(this.logger)
 		if (this.serverOptions.type === 'websocket') {
 			this.logger.info(`Expectation Manager on port ${this.serverOptions.port}`)
 			this.websocketServer = new WebsocketServer(this.serverOptions.port, (client: ClientConnection) => {
@@ -251,7 +249,7 @@ export class ExpectationManager {
 			messageFromWorker: async (
 				message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any
 			): Promise<any> => {
-				return this.onMessageFromWorker(message)
+				return this.callbacks.messageFromWorker(message)
 			},
 
 			wipEventProgress: async (
@@ -271,9 +269,14 @@ export class ExpectationManager {
 							)}" progress: ${progress}`
 						)
 
-						this.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, actualVersionHash, {
-							progress: progress,
-						})
+						this.callbacks.reportExpectationStatus(
+							wip.trackedExp.id,
+							wip.trackedExp.exp,
+							actualVersionHash,
+							{
+								progress: progress,
+							}
+						)
 					} else {
 						// ignore
 					}
@@ -290,11 +293,16 @@ export class ExpectationManager {
 					if (wip.trackedExp.state === TrackedExpectationState.WORKING) {
 						wip.trackedExp.status.actualVersionHash = actualVersionHash
 						this.updateTrackedExpStatus(wip.trackedExp, TrackedExpectationState.FULFILLED, reason)
-						this.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, actualVersionHash, {
-							status: wip.trackedExp.state,
-							statusReason: wip.trackedExp.reason,
-							progress: 1,
-						})
+						this.callbacks.reportExpectationStatus(
+							wip.trackedExp.id,
+							wip.trackedExp.exp,
+							actualVersionHash,
+							{
+								status: wip.trackedExp.state,
+								statusReason: wip.trackedExp.reason,
+								progress: 1,
+							}
+						)
 
 						if (this.handleTriggerByFullfilledIds(wip.trackedExp)) {
 							// Something was triggered, run again asap.
@@ -313,7 +321,7 @@ export class ExpectationManager {
 					if (wip.trackedExp.state === TrackedExpectationState.WORKING) {
 						wip.trackedExp.errorCount++
 						this.updateTrackedExpStatus(wip.trackedExp, TrackedExpectationState.WAITING, error)
-						this.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
+						this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
 							status: wip.trackedExp.state,
 							statusReason: wip.trackedExp.reason,
 						})
@@ -767,7 +775,7 @@ export class ExpectationManager {
 					if (removed.removed) {
 						trackedExp.session.expectationCanBeRemoved = true
 
-						this.reportExpectationStatus(trackedExp.id, null, null, {})
+						this.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
 					} else {
 						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.REMOVED, removed.reason)
 					}
@@ -880,7 +888,7 @@ export class ExpectationManager {
 		}
 
 		if (updatedState || updatedReason) {
-			this.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
+			this.callbacks.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
 				status: trackedExp.state,
 				statusReason: trackedExp.reason,
 			})
@@ -894,7 +902,7 @@ export class ExpectationManager {
 			for (const fromPackage of trackedExp.exp.fromPackages) {
 				// TODO: this is probably not eh right thing to do:
 				for (const packageContainer of trackedExp.exp.endRequirement.targets) {
-					this.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
+					this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
 						contentVersionHash: trackedExp.status.actualVersionHash || '',
 						progress: trackedExp.status.workProgress || 0,
 						status: this.getPackageStatus(trackedExp),
@@ -1187,7 +1195,7 @@ export class ExpectationManager {
 		}
 
 		if (updatedReason) {
-			this.reportPackageContainerExpectationStatus(
+			this.callbacks.reportPackageContainerExpectationStatus(
 				trackedPackageContainer.id,
 				trackedPackageContainer.packageContainer,
 				{
@@ -1275,28 +1283,32 @@ interface WorkerAgentAssignment {
 }
 export type MessageFromWorker = (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => Promise<any>
 
-export type ReportExpectationStatus = (
-	expectationId: string,
-	expectaction: Expectation.Any | null,
-	actualVersionHash: string | null,
-	statusInfo: {
-		status?: string
-		progress?: number
-		statusReason?: string
-	}
-) => void
-export type ReportPackageContainerPackageStatus = (
-	containerId: string,
-	packageId: string,
-	packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-) => void
-export type ReportPackageContainerExpectationStatus = (
-	containerId: string,
-	packageContainer: PackageContainerExpectation | null,
-	statusInfo: {
-		statusReason?: string
-	}
-) => void
+export interface ExpectationManagerCallbacks {
+	reportExpectationStatus: (
+		expectationId: string,
+		expectaction: Expectation.Any | null,
+		actualVersionHash: string | null,
+		statusInfo: {
+			status?: string
+			progress?: number
+			statusReason?: string
+		}
+	) => void
+	reportPackageContainerPackageStatus: (
+		containerId: string,
+		packageId: string,
+		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+	) => void
+	reportPackageContainerExpectationStatus: (
+		containerId: string,
+		packageContainer: PackageContainerExpectation | null,
+		statusInfo: {
+			statusReason?: string
+		}
+	) => void
+	messageFromWorker: MessageFromWorker
+}
+
 interface TrackedPackageContainerExpectation {
 	/** Unique ID of the tracked packageContainer */
 	id: string
