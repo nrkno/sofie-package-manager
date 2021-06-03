@@ -8,4 +8,7 @@ module.exports = {
         "**/dist/**/*",
         "**/__tests__/**/*",
     ],
+    "rules": {
+        "no-console": "warn"
+    }
 };

@@ -300,7 +300,6 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
 		if (!this.accessor.ISAUrls) throw new Error('accessor.ISAUrls is not set')
 		if (!this.accessor.ISAUrls.length) throw new Error('accessor.ISAUrls array is empty')
-		// if (!this.accessor.serverId) throw new Error('accessor.serverId is not set')
 
 		const id = `${this.accessor.quantelGatewayUrl}`
 
@@ -315,10 +314,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				this.accessor.serverId
 			)
 
-			// @todo: this should be emitted somehow:
-			gateway.on('error', (e) => console.log(`Quantel.QuantelGateway`, e))
-			// @todo: We should be able to emit statuses somehow:
-			// gateway.monitorServerStatus(() => {})
+			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway`, e))
 
 			cacheGateways[id] = gateway
 		}

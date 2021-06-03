@@ -2,6 +2,8 @@ import EventEmitter from 'events'
 // eslint-disable-next-line node/no-unpublished-import
 import { Q, ClipSearchQuery } from 'tv-automation-quantel-gateway-client' // note: this is a mocked module
 
+/* eslint-disable no-console */
+
 const client = jest.createMockFromModule('tv-automation-quantel-gateway-client') as any
 const DEBUG_LOG = false
 

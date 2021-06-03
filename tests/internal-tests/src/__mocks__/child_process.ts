@@ -3,11 +3,13 @@ import EventEmitter from 'events'
 import { promisify } from 'util'
 import path from 'path'
 
+/* eslint-disable no-console */
+
 const fsCopyFile = promisify(fs.copyFile)
 // @ts-expect-error mock
 const fs__mockSetDirectory = fs.__mockSetDirectory
 
-const child_process = jest.createMockFromModule('child_process') as any
+const child_process: any = jest.createMockFromModule('child_process')
 
 function exec(commandString: string) {
 	if (commandString.match(/^wmic /)) {

@@ -49,6 +49,7 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 		})
 		logger.info('Logging to Console')
 		// Hijack console.log:
+		// eslint-disable-next-line no-console
 		console.log = function (...args: any[]) {
 			// orgConsoleLog('a')
 			if (args.length >= 1) {

@@ -5,6 +5,7 @@ import * as Workforce from '@shared/workforce'
 import * as Worker from '@shared/worker'
 import { getSingleAppConfig, setupLogging } from '@shared/api'
 
+// eslint-disable-next-line no-console
 console.log('process started') // This is a message all Sofie processes log upon startup
 
 const config = getSingleAppConfig()

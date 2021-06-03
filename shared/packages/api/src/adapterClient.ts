@@ -1,3 +1,4 @@
+import { LoggerInstance } from './logger'
 import { WebsocketClient } from './websocketClient'
 import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
 
@@ -14,13 +15,14 @@ export abstract class AdapterClient<ME, OTHER> {
 		throw new Error('.init() must be called first!')
 	}
 
-	constructor(private clientType: MessageIdentifyClient['clientType']) {}
+	constructor(protected logger: LoggerInstance, private clientType: MessageIdentifyClient['clientType']) {}
 
 	private conn?: WebsocketClient
 
 	async init(id: string, connectionOptions: ClientConnectionOptions, clientMethods: ME): Promise<void> {
 		if (connectionOptions.type === 'websocket') {
 			const conn = new WebsocketClient(
+				this.logger,
 				id,
 				connectionOptions.url,
 				this.clientType,
@@ -37,10 +39,10 @@ export abstract class AdapterClient<ME, OTHER> {
 			this.conn = conn
 
 			conn.on('connected', () => {
-				console.log('Websocket client connected')
+				this.logger.debug('Websocket client connected')
 			})
 			conn.on('disconnected', () => {
-				console.log('Websocket client disconnected')
+				this.logger.debug('Websocket client disconnected')
 			})
 			this._sendMessage = ((type: string, ...args: any[]) => conn.send(type, ...args)) as any
 

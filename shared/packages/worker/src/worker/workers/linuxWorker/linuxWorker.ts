@@ -2,6 +2,7 @@ import { IWorkInProgress } from '../../lib/workInProgress'
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
+	LoggerInstance,
 	PackageContainerExpectation,
 	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
@@ -21,11 +22,12 @@ import { GenericWorker, WorkerLocation } from '../../worker'
 export class LinuxWorker extends GenericWorker {
 	static readonly type = 'linuxWorker'
 	constructor(
+		logger: LoggerInstance,
 		public readonly config: WorkerAgentConfig,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
-		super(config, location, sendMessageToManager, LinuxWorker.type)
+		super(logger, config, location, sendMessageToManager, LinuxWorker.type)
 	}
 	async doYouSupportExpectation(_exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return {

@@ -6,7 +6,7 @@ import {
 	PackageContainers,
 	PackageManagerSettings,
 } from './packageManager'
-import { Expectation, hashObj, PackageContainerExpectation, literal } from '@shared/api'
+import { Expectation, hashObj, PackageContainerExpectation, literal, LoggerInstance } from '@shared/api'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
@@ -30,6 +30,7 @@ type GenerateExpectation = Expectation.Base & {
 	external?: boolean
 }
 export function generateExpectations(
+	logger: LoggerInstance,
 	managerId: string,
 	packageContainers: PackageContainers,
 	_activePlaylist: ActivePlaylist,
@@ -87,10 +88,10 @@ export function generateExpectations(
 
 			if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
 				// log warning:
-				console.log(`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`)
-				console.log(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
-				console.log(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
-				console.log(`${JSON.stringify(exp.startRequirement)}`)
+				logger.warn(`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`)
+				logger.warn(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
+				logger.warn(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
+				logger.warn(`${JSON.stringify(exp.startRequirement)}`)
 
 				// TODO: log better warnings!
 			} else {
@@ -176,7 +177,7 @@ export function generateExpectations(
 					prioritizeExpectation(newPackage, exp)
 					addExpectation(newPackage, exp)
 				}
-			} else console.log('orgSmartbullExpectation is not a MEDIA_FILE')
+			} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
 		}
 	}
 

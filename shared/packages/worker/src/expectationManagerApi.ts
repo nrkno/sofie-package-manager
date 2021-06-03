@@ -1,4 +1,4 @@
-import { ExpectationManagerWorkerAgent, AdapterClient } from '@shared/api'
+import { ExpectationManagerWorkerAgent, AdapterClient, LoggerInstance } from '@shared/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the WorkerAgent
@@ -8,8 +8,8 @@ import { ExpectationManagerWorkerAgent, AdapterClient } from '@shared/api'
 export class ExpectationManagerAPI
 	extends AdapterClient<ExpectationManagerWorkerAgent.WorkerAgent, ExpectationManagerWorkerAgent.ExpectationManager>
 	implements ExpectationManagerWorkerAgent.ExpectationManager {
-	constructor() {
-		super('workerAgent')
+	constructor(logger: LoggerInstance) {
+		super(logger, 'workerAgent')
 	}
 	async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts

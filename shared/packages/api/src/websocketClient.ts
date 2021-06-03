@@ -1,4 +1,5 @@
 import WebSocket from 'ws'
+import { LoggerInstance } from './logger'
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 
 /** A Class which */
@@ -8,6 +9,7 @@ export class WebsocketClient extends WebsocketConnection {
 	private closed = false
 
 	constructor(
+		private logger: LoggerInstance,
 		private readonly id: string,
 		private readonly url: string,
 		private readonly clientType: MessageIdentifyClient['clientType'],
@@ -71,7 +73,7 @@ export class WebsocketClient extends WebsocketConnection {
 	}
 	private reconnect() {
 		this.connect().catch((err) => {
-			console.error(err)
+			this.logger.error(err)
 			this.onLostConnection()
 		})
 	}

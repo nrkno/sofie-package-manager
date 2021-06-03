@@ -1,6 +1,7 @@
 // eslint-disable-next-line node/no-unpublished-import
 import fsMockType from 'windows-network-drive' // Note: this is a mocked module
 
+/* eslint-disable no-console */
 const DEBUG_LOG = false
 
 enum fsConstants {

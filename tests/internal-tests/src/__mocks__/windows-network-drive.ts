@@ -1,5 +1,7 @@
 const wnd = jest.createMockFromModule('windows-network-drive') as any
 
+/* eslint-disable no-console */
+
 const DEBUG_LOG = false
 
 const mountedDrives: { [key: string]: string } = {}

@@ -182,7 +182,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								seenFiles.set(filePath, version)
 							} catch (err) {
 								version = null
-								console.log('error', err)
+								this.worker.logger.error(err)
 							}
 						}
 
@@ -237,7 +237,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					triggerSendUpdateIsRunning = false
 				})().catch((err) => {
 					triggerSendUpdateIsRunning = false
-					console.log('error', err)
+					this.worker.logger.error(err)
 				})
 			}, 1000) // Wait just a little bit, to avoid doing multiple updates
 		}
@@ -280,7 +280,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					})
 			})
 			.on('error', (error) => {
-				console.log('error', error)
+				this.worker.logger.error(error.toString())
 			})
 
 		/** Persistant store for Monitors */

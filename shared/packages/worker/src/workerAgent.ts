@@ -51,7 +51,7 @@ export class WorkerAgent {
 	} = {}
 
 	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
-		this.workforceAPI = new WorkforceAPI()
+		this.workforceAPI = new WorkforceAPI(this.logger)
 
 		this.id = config.worker.workerId
 		this.connectionOptions = this.config.worker.workforceURL
@@ -65,6 +65,7 @@ export class WorkerAgent {
 
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
+			this.logger,
 			this.config.worker,
 			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 				// Forward the message to the expectationManager:
@@ -136,7 +137,7 @@ export class WorkerAgent {
 		this.logger.info(`Connecting to Expectation Manager "${id}" at url "${url}"`)
 		const expectedManager = (this.expectationManagers[id] = {
 			url: url,
-			api: new ExpectationManagerAPI(),
+			api: new ExpectationManagerAPI(this.logger),
 		})
 		const methods: ExpectationManagerWorkerAgent.WorkerAgent = literal<ExpectationManagerWorkerAgent.WorkerAgent>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {
@@ -173,7 +174,9 @@ export class WorkerAgent {
 					// callbacksOnDone: [],
 				}
 				const wipId = this.wipI++
-				console.log(`Worker "${this.id}" starting job ${wipId}, (${exp.id}). (${this.currentJobs.length})`)
+				this.logger.debug(
+					`Worker "${this.id}" starting job ${wipId}, (${exp.id}). (${this.currentJobs.length})`
+				)
 				this.currentJobs.push(currentjob)
 
 				try {
@@ -183,24 +186,33 @@ export class WorkerAgent {
 
 					workInProgress.on('progress', (actualVersionHash, progress: number) => {
 						currentjob.progress = progress
-						expectedManager.api.wipEventProgress(wipId, actualVersionHash, progress).catch(console.error)
+						expectedManager.api.wipEventProgress(wipId, actualVersionHash, progress).catch((err) => {
+							this.logger.error('Error in wipEventProgress')
+							this.logger.error(err)
+						})
 					})
 					workInProgress.on('error', (error) => {
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
-						console.log(
+						this.logger.debug(
 							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
 						)
 
-						expectedManager.api.wipEventError(wipId, error).catch(console.error)
+						expectedManager.api.wipEventError(wipId, error).catch((err) => {
+							this.logger.error('Error in wipEventError')
+							this.logger.error(err)
+						})
 						delete this.worksInProgress[`${wipId}`]
 					})
 					workInProgress.on('done', (actualVersionHash, reason, result) => {
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
-						console.log(
+						this.logger.debug(
 							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), done. (${this.currentJobs.length})`
 						)
 
-						expectedManager.api.wipEventDone(wipId, actualVersionHash, reason, result).catch(console.error)
+						expectedManager.api.wipEventDone(wipId, actualVersionHash, reason, result).catch((err) => {
+							this.logger.error('Error in wipEventDone')
+							this.logger.error(err)
+						})
 						delete this.worksInProgress[`${wipId}`]
 					})
 
@@ -212,7 +224,7 @@ export class WorkerAgent {
 					// The workOnExpectation failed.
 
 					this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
-					console.log(
+					this.logger.debug(
 						`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to initial error. (${this.currentJobs.length})`
 					)
 

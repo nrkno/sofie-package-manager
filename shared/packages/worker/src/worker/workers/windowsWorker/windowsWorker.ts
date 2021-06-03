@@ -1,6 +1,7 @@
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
+	LoggerInstance,
 	PackageContainerExpectation,
 	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
@@ -36,11 +37,12 @@ export class WindowsWorker extends GenericWorker {
 	public hasFFProbe = false
 
 	constructor(
+		logger: LoggerInstance,
 		public readonly config: WorkerAgentConfig,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
-		super(config, location, sendMessageToManager, WindowsWorker.type)
+		super(logger, config, location, sendMessageToManager, WindowsWorker.type)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		try {
