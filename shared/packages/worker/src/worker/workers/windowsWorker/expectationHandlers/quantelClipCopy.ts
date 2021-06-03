@@ -203,20 +203,19 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				wasCompleted = true
 				setImmediate(() => {
 					// Copying is done
-					const duration = Date.now() - startTime
+					;(async () => {
+						await targetHandle.finalizePackage()
+						await targetHandle.updateMetadata(actualSourceUVersion)
 
-					targetHandle
-						.updateMetadata(actualSourceUVersion)
-						.then(() => {
-							workInProgress._reportComplete(
-								actualSourceVersionHash,
-								`Copy completed in ${Math.round(duration / 100) / 10}s`,
-								undefined
-							)
-						})
-						.catch((err) => {
-							workInProgress._reportError(err)
-						})
+						const duration = Date.now() - startTime
+						workInProgress._reportComplete(
+							actualSourceVersionHash,
+							`Copy completed in ${Math.round(duration / 100) / 10}s`,
+							undefined
+						)
+					})().catch((err) => {
+						workInProgress._reportError(err)
+					})
 				})
 			})
 

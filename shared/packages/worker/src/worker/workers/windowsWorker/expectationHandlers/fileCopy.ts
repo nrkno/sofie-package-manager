@@ -176,7 +176,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 				throw new Error(`Source AccessHandler type is wrong`)
 
 			if (sourceHandle.fullPath === targetHandle.fullPath) {
-				throw new Error('Unable to copy: source and Target file paths are the same!')
+				throw new Error('Unable to copy: Source and Target file paths are the same!')
 			}
 
 			let wasCancelled = false
@@ -195,21 +195,24 @@ export const FileCopy: ExpectationWindowsHandler = {
 				await targetHandle.packageIsInPlace()
 
 				const sourcePath = sourceHandle.fullPath
-				const targetPath = targetHandle.fullPath
+				const targetPath = exp.workOptions.useTemporaryFilePath
+					? targetHandle.temporaryFilePath
+					: targetHandle.fullPath
 
 				copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
 					workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
 				})
 
 				await copying
-				// The copy is done
+				// The copy is done at this point
+
 				copying = undefined
 				if (wasCancelled) return // ignore
 
-				const duration = Date.now() - startTime
-
+				await targetHandle.finalizePackage()
 				await targetHandle.updateMetadata(actualSourceUVersion)
 
+				const duration = Date.now() - startTime
 				workInProgress._reportComplete(
 					actualSourceVersionHash,
 					`Copy completed in ${Math.round(duration / 100) / 10}s`,
@@ -283,20 +286,19 @@ export const FileCopy: ExpectationWindowsHandler = {
 					if (wasCancelled) return // ignore
 					setImmediate(() => {
 						// Copying is done
-						const duration = Date.now() - startTime
+						;(async () => {
+							await targetHandle.finalizePackage()
+							await targetHandle.updateMetadata(actualSourceUVersion)
 
-						targetHandle
-							.updateMetadata(actualSourceUVersion)
-							.then(() => {
-								workInProgress._reportComplete(
-									actualSourceVersionHash,
-									`Copy completed in ${Math.round(duration / 100) / 10}s`,
-									undefined
-								)
-							})
-							.catch((err) => {
-								workInProgress._reportError(err)
-							})
+							const duration = Date.now() - startTime
+							workInProgress._reportComplete(
+								actualSourceVersionHash,
+								`Copy completed in ${Math.round(duration / 100) / 10}s`,
+								undefined
+							)
+						})().catch((err) => {
+							workInProgress._reportError(err)
+						})
 					})
 				})
 			})

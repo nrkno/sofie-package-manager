@@ -173,6 +173,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					async () => {
 						// Called when ffmpeg has finished
 						ffMpegProcess = undefined
+						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
 
 						const duration = Date.now() - startTime

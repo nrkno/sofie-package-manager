@@ -195,6 +195,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				ffMpegProcess = await runffMpeg(workInProgress, args, targetHandle, sourceVersionHash, async () => {
 					// Called when ffmpeg has finished
 					ffMpegProcess = undefined
+					await targetHandle.finalizePackage()
 					await targetHandle.updateMetadata(metadata)
 
 					const duration = Date.now() - startTime

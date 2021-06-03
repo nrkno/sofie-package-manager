@@ -16,6 +16,8 @@ const fsOpen = promisify(fs.open)
 const fsClose = promisify(fs.close)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
+const fsRename = promisify(fs.rename)
+const fsUnlink = promisify(fs.unlink)
 const pExec = promisify(exec)
 
 /** Accessor handle for accessing files on a network share */
@@ -31,7 +33,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		onlyContainerAccess?: boolean
 		filePath?: string
 	}
-	private workOptions: Expectation.WorkOptions.RemoveDelay
+	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
 	constructor(
 		worker: GenericWorker,
@@ -48,8 +50,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
 		}
 		this.content = content
+
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+		if (workOptions.useTemporaryFilePath && typeof workOptions.useTemporaryFilePath !== 'boolean')
+			throw new Error('Bad input data: workOptions.useTemporaryFilePath is not a boolean!')
 		this.workOptions = workOptions
 	}
 	/** Path to the PackageContainer, ie the folder on the share */
@@ -181,6 +186,19 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		await this.prepareFileAccess()
 		await this.clearPackageRemoval(this.filePath)
 
+		const fullPath = this.workOptions.useTemporaryFilePath ? this.temporaryFilePath : this.fullPath
+
+		// Remove the file if it exists:
+		let exists = false
+		try {
+			await fsAccess(fullPath, fs.constants.R_OK)
+			// The file exists
+			exists = true
+		} catch (err) {
+			// Ignore
+		}
+		if (exists) await fsUnlink(fullPath)
+
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
 		const streamWrapper: PutPackageHandler = new PutPackageHandler(() => {
@@ -199,6 +217,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		// await this.removeDeferRemovePackage()
 		throw new Error('FileShare.putPackageInfo: Not supported')
+	}
+
+	async finalizePackage(): Promise<void> {
+		if (this.workOptions.useTemporaryFilePath) {
+			await fsRename(this.temporaryFilePath, this.fullPath)
+		}
 	}
 
 	// Note: We handle metadata by storing a metadata json-file to the side of the file.
@@ -279,7 +303,10 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		if (!filePath) throw new Error(`FileShareAccessor: filePath not set!`)
 		return filePath
 	}
-
+	/** Full path to a temporary file */
+	get temporaryFilePath(): string {
+		return this.fullPath + '.pmtemp'
+	}
 	private get metadataPath() {
 		return this.getMetadataPath(this.filePath)
 	}

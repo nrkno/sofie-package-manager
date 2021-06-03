@@ -102,6 +102,7 @@ export async function runffMpeg<Metadata>(
 		})
 		writeStream.once('close', () => {
 			uploadIsDone = true
+
 			maybeDone()
 		})
 	} else {

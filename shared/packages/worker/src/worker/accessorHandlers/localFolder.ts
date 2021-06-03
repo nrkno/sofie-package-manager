@@ -14,6 +14,8 @@ const fsOpen = promisify(fs.open)
 const fsClose = promisify(fs.close)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
+const fsRename = promisify(fs.rename)
+const fsUnlink = promisify(fs.unlink)
 
 /** Accessor handle for accessing files in a local folder */
 export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
@@ -23,7 +25,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		onlyContainerAccess?: boolean
 		filePath?: string
 	}
-	private workOptions: Expectation.WorkOptions.RemoveDelay
+	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
 	constructor(
 		worker: GenericWorker,
@@ -39,8 +41,11 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
 		}
 		this.content = content
+
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+		if (workOptions.useTemporaryFilePath && typeof workOptions.useTemporaryFilePath !== 'boolean')
+			throw new Error('Bad input data: workOptions.useTemporaryFilePath is not a boolean!')
 		this.workOptions = workOptions
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
@@ -77,7 +82,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	async checkPackageReadAccess(): Promise<string | undefined> {
 		try {
 			await fsAccess(this.fullPath, fs.constants.R_OK)
-			// The file exists
+			// The file exists and can be read
 		} catch (err) {
 			// File is not readable
 			return `Not able to access file: ${err.toString()}`
@@ -142,7 +147,20 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
 		await this.clearPackageRemoval(this.filePath)
 
-		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
+		const fullPath = this.workOptions.useTemporaryFilePath ? this.temporaryFilePath : this.fullPath
+
+		// Remove the file if it exists:
+		let exists = false
+		try {
+			await fsAccess(fullPath, fs.constants.R_OK)
+			// The file exists
+			exists = true
+		} catch (err) {
+			// Ignore
+		}
+		if (exists) await fsUnlink(fullPath)
+
+		const writeStream = sourceStream.pipe(fs.createWriteStream(fullPath))
 
 		const streamWrapper: PutPackageHandler = new PutPackageHandler(() => {
 			writeStream.destroy()
@@ -160,6 +178,12 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		// await this.removeDeferRemovePackage()
 		throw new Error('LocalFolder.putPackageInfo: Not supported')
+	}
+
+	async finalizePackage(): Promise<void> {
+		if (this.workOptions.useTemporaryFilePath) {
+			await fsRename(this.temporaryFilePath, this.fullPath)
+		}
 	}
 
 	// Note: We handle metadata by storing a metadata json-file to the side of the file.
@@ -245,6 +269,10 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		const filePath = this.accessor.filePath || this.content.filePath
 		if (!filePath) throw new Error(`LocalFolderAccessor: filePath not set!`)
 		return filePath
+	}
+	/** Full path to a temporary file */
+	get temporaryFilePath(): string {
+		return this.fullPath + '.pmtemp'
 	}
 	/** Full path to the metadata file */
 	private get metadataPath() {

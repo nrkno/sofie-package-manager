@@ -23,7 +23,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		title?: string
 	}
 	// @ts-expect-error unused variable
-	private workOptions: any // {}
+	private workOptions: any
 	constructor(
 		worker: GenericWorker,
 		accessorId: string,
@@ -41,8 +41,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				throw new Error('Bad input data: content.title must be a string!')
 		}
 		this.content = content
-		// if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
-		//	throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+
 		this.workOptions = workOptions
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
@@ -233,6 +232,9 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		})
 
 		return streamHandler
+	}
+	async finalizePackage(): Promise<void> {
+		// do nothing
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {

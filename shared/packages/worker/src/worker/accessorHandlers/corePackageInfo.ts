@@ -81,6 +81,9 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('CorePackageInfo.putPackageInfo: Not supported')
 	}
+	async finalizePackage(): Promise<void> {
+		// do nothing
+	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
 		throw new Error('fetchMetadata not applicable for CorePackageInfo')

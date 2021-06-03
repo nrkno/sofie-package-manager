@@ -29,6 +29,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
 		}
 		this.content = content
+
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
 		this.workOptions = workOptions
@@ -127,6 +128,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('HTTP.putPackageInfo: Not supported')
+	}
+	async finalizePackage(): Promise<void> {
+		// do nothing
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {

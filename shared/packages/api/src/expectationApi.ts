@@ -101,7 +101,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedFileOnDisk
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Scan of a Media file. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface PackageScan extends Base {
@@ -177,7 +177,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFileThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Media file. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFilePreview extends Base {
@@ -195,7 +195,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFilePreview
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 
 	/** Defines a Quantel clip. A Quantel clip is to be copied from one of the Sources, to the Target. */
@@ -231,7 +231,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedQuantelClipThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Quantel Clip. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface QuantelClipPreview extends Base {
@@ -249,7 +249,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedQuantelClipPreview
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
@@ -283,6 +283,10 @@ export namespace Expectation {
 		export interface RemoveDelay {
 			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */
 			removeDelay?: number
+		}
+		export interface UseTemporaryFilePath {
+			/** When set, will work on a temporary package first, then move the package to the right place */
+			useTemporaryFilePath?: boolean
 		}
 	}
 

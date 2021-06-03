@@ -64,6 +64,7 @@ export class PackageManagerHandler {
 	} = {}
 	settings: PackageManagerSettings = {
 		delayRemoval: 0,
+		useTemporaryFilePath: false,
 	}
 
 	constructor(
@@ -131,7 +132,9 @@ export class PackageManagerHandler {
 	onSettingsChanged(): void {
 		this.settings = {
 			delayRemoval: this._coreHandler.delayRemoval,
+			useTemporaryFilePath: this._coreHandler.useTemporaryFilePath,
 		}
+		this._triggerUpdatedExpectedPackages()
 	}
 	getExpectationManager(): ExpectationManager {
 		return this._expectationManager
@@ -713,6 +716,7 @@ export interface ActiveRundown {
 }
 export interface PackageManagerSettings {
 	delayRemoval: number
+	useTemporaryFilePath: boolean
 }
 
 /** Note: This is based on the Core method updateExpectedPackageWorkStatuses. */

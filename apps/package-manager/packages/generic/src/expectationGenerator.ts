@@ -309,6 +309,7 @@ function generateMediaFileCopy(
 		},
 		workOptions: {
 			removeDelay: settings.delayRemoval,
+			useTemporaryFilePath: settings.useTemporaryFilePath,
 		},
 	}
 	exp.id = hashObj(exp.endRequirement)

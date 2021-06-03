@@ -176,20 +176,20 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 					if (wasCancelled) return // ignore
 					setImmediate(() => {
 						// Copying is done
-						const duration = Date.now() - startTime
 
-						lookupTarget.handle
-							.updateMetadata(targetMetadata)
-							.then(() => {
-								workInProgress._reportComplete(
-									targetMetadata.sourceVersionHash,
-									`Thumbnail fetched in ${Math.round(duration / 100) / 10}s`,
-									undefined
-								)
-							})
-							.catch((err) => {
-								workInProgress._reportError(err)
-							})
+						;(async () => {
+							await lookupTarget.handle.finalizePackage()
+							await lookupTarget.handle.updateMetadata(targetMetadata)
+
+							const duration = Date.now() - startTime
+							workInProgress._reportComplete(
+								targetMetadata.sourceVersionHash,
+								`Thumbnail fetched in ${Math.round(duration / 100) / 10}s`,
+								undefined
+							)
+						})().catch((err) => {
+							workInProgress._reportError(err)
+						})
 					})
 				})
 			})

@@ -12,5 +12,10 @@ export const PACKAGE_MANAGER_DEVICE_CONFIG: DeviceConfigManifest = {
 			name: 'Delay removal of packages (milliseconds)',
 			type: ConfigManifestEntryType.INT,
 		},
+		{
+			id: 'useTemporaryFilePath',
+			name: 'Use temporary file paths when copying',
+			type: ConfigManifestEntryType.BOOLEAN,
+		},
 	],
 }
