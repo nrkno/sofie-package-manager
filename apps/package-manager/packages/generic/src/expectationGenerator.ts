@@ -24,6 +24,14 @@ export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 		accessors: ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']
 	}[]
 }
+export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
+	expectedPackage: ExpectedPackage.ExpectedPackageJSONData
+	sources: {
+		containerId: string
+		label: string
+		accessors: ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']
+	}[]
+}
 
 type GenerateExpectation = Expectation.Base & {
 	sideEffect?: ExpectedPackage.Base['sideEffect']
@@ -134,6 +142,8 @@ export function generateExpectations(
 			exp = generateMediaFileCopy(managerId, packageWrap, settings)
 		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
 			exp = generateQuantelCopy(managerId, packageWrap)
+		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
+			exp = generateJsonDataCopy(managerId, packageWrap)
 		}
 		if (exp) {
 			prioritizeExpectation(packageWrap, exp)
@@ -661,6 +671,55 @@ function generateQuantelClipPreview(
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
 	})
+}
+
+function generateJsonDataCopy(
+	managerId: string,
+	expWrap: ExpectedPackageWrap,
+	settings: PackageManagerSettings
+): Expectation.JSONDataCopy {
+	const expWrapMediaFile = expWrap as ExpectedPackageWrapJSONData
+
+	const exp: Expectation.JsonDataCopy = {
+		id: '', // set later
+		priority: expWrap.priority * 10 || 0,
+		managerId: managerId,
+		fromPackages: [
+			{
+				id: expWrap.expectedPackage._id,
+				expectedContentVersionHash: expWrap.expectedPackage.contentVersionHash,
+			},
+		],
+		type: Expectation.Type.JSON_DATA_COPY,
+		statusReport: {
+			label: `Copy JSON data "${expWrapMediaFile.expectedPackage.content.path}"`,
+			description: `Copy JSON data "${expWrapMediaFile.expectedPackage.content.path}" from "${JSON.stringify(
+				expWrapMediaFile.sources
+			)}"`,
+			requiredForPlayout: true,
+			displayRank: 0,
+			sendReport: !expWrap.external,
+		},
+
+		startRequirement: {
+			sources: expWrapMediaFile.sources,
+		},
+
+		endRequirement: {
+			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.CorePackage],
+			content: expWrapMediaFile.expectedPackage.content,
+			version: {
+				type: Expectation.Version.Type.CORE_PACKAGE_INFO,
+				...expWrapMediaFile.expectedPackage.version,
+			},
+		},
+		workOptions: {
+			removeDelay: settings.delayRemoval,
+			useTemporaryFilePath: settings.useTemporaryFilePath,
+		},
+	}
+	exp.id = hashObj(exp.endRequirement)
+	return exp
 }
 
 // function generateMediaFileHTTPCopy(expectation: Expectation.FileCopy): Expectation.FileCopy {
