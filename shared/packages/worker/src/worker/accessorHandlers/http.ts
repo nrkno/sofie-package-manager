@@ -134,13 +134,13 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
-		return this.fetchJSON(this.fullUrl + '_metadata.json')
+		return this.fetchJSON(this.getMetadataPath(this.fullUrl))
 	}
 	async updateMetadata(metadata: Metadata): Promise<void> {
-		await this.storeJSON(this.fullUrl + '_metadata.json', metadata)
+		await this.storeJSON(this.getMetadataPath(this.fullUrl), metadata)
 	}
 	async removeMetadata(): Promise<void> {
-		await this.deletePackageIfExists(this.fullUrl + '_metadata.json')
+		await this.deletePackageIfExists(this.getMetadataPath(this.fullUrl))
 	}
 
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
@@ -297,7 +297,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 					entry.filePath,
 				].join('/')
 
-				await this.deletePackageIfExists(fullUrl + '_metadata.json')
+				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)
 				removedFilePaths.push(entry.filePath)
 			}
@@ -367,6 +367,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			const text = await result.text()
 			throw new Error(`storeJSON: Bad response: [${result.status}]: ${result.statusText}, POST ${url}, ${text}`)
 		}
+	}
+	/** Full path to the metadata file */
+	private getMetadataPath(fullUrl: string) {
+		return fullUrl + '_metadata.json'
 	}
 }
 interface HTTPHeaders {
