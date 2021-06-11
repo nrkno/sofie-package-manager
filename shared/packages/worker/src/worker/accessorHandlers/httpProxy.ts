@@ -13,9 +13,9 @@ import FormData from 'form-data'
 import AbortController from 'abort-controller'
 import { assertNever } from '../lib/lib'
 
-/** Accessor handle for accessing files in a local folder */
-export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
-	static readonly type = 'http'
+/** Accessor handle for accessing files in HTTP- */
+export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'http-proxy'
 	private content: {
 		onlyContainerAccess?: boolean
 		filePath?: string
@@ -28,7 +28,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
-		super(worker, accessorId, accessor, content, HTTPAccessorHandle.type)
+		super(worker, accessorId, accessor, content, HTTPProxyAccessorHandle.type)
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
@@ -212,12 +212,12 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 
 	private checkAccessor(): AccessorHandlerResult {
-		if (this.accessor.type !== Accessor.AccessType.HTTP) {
+		if (this.accessor.type !== Accessor.AccessType.HTTP_PROXY) {
 			return {
 				success: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
-					tech: `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`,
+					tech: `HTTPProxy Accessor type is not HTTP_PROXY ("${this.accessor.type}")!`,
 				},
 			}
 		}

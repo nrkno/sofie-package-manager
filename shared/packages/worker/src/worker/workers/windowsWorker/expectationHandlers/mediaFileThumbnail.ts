@@ -13,7 +13,7 @@ import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -153,23 +153,23 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 			if (
 				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-					lookupTarget.accessor.type === Accessor.AccessType.HTTP) &&
+					lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 				(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 					lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-					lookupTarget.accessor.type === Accessor.AccessType.HTTP)
+					lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 			) {
 				const sourceHandle = lookupSource.handle
 				const targetHandle = lookupTarget.handle
 				if (
 					!isLocalFolderAccessorHandle(sourceHandle) &&
 					!isFileShareAccessorHandle(sourceHandle) &&
-					!isHTTPAccessorHandle(sourceHandle)
+					!isHTTPProxyAccessorHandle(sourceHandle)
 				)
 					throw new Error(`Source AccessHandler type is wrong`)
 				if (
 					!isLocalFolderAccessorHandle(targetHandle) &&
 					!isFileShareAccessorHandle(targetHandle) &&
-					!isHTTPAccessorHandle(targetHandle)
+					!isHTTPProxyAccessorHandle(targetHandle)
 				)
 					throw new Error(`Target AccessHandler type is wrong`)
 
@@ -207,7 +207,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				} else if (isFileShareAccessorHandle(sourceHandle)) {
 					await sourceHandle.prepareFileAccess()
 					inputPath = sourceHandle.fullPath
-				} else if (isHTTPAccessorHandle(sourceHandle)) {
+				} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 					inputPath = sourceHandle.fullUrl
 				} else {
 					assertNever(sourceHandle)

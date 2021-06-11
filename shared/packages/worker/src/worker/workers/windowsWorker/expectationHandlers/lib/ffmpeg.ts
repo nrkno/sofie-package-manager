@@ -1,11 +1,11 @@
 import { ChildProcess, spawn } from 'child_process'
 import {
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../../accessorHandlers/accessor'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
-import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
+import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { assertNever } from '../../../../lib/lib'
 import { WorkInProgress } from '../../../../lib/workInProgress'
@@ -58,7 +58,7 @@ export async function runffMpeg<Metadata>(
 	targetHandle:
 		| LocalFolderAccessorHandle<Metadata>
 		| FileShareAccessorHandle<Metadata>
-		| HTTPAccessorHandle<Metadata>,
+		| HTTPProxyAccessorHandle<Metadata>,
 	actualSourceVersionHash: string,
 	onDone: () => Promise<void>
 ): Promise<FFMpegProcess> {
@@ -79,7 +79,7 @@ export async function runffMpeg<Metadata>(
 	} else if (isFileShareAccessorHandle(targetHandle)) {
 		await targetHandle.prepareFileAccess()
 		args.push(`"${targetHandle.fullPath}"`)
-	} else if (isHTTPAccessorHandle(targetHandle)) {
+	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
 		pipeStdOut = true
 		args.push('pipe:1') // pipe output to stdout
 	} else {

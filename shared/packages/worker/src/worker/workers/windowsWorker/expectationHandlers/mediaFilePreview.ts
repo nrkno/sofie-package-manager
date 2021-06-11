@@ -13,7 +13,7 @@ import {
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -150,14 +150,14 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP)
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 		) {
 			// We can read the source and write the preview directly.
 			if (!isLocalFolderAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPAccessorHandle(targetHandle)
+				!isHTTPProxyAccessorHandle(targetHandle)
 			)
 				throw new Error(`Target AccessHandler type is wrong`)
 

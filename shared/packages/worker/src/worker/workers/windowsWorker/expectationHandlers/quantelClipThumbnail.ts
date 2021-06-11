@@ -16,14 +16,14 @@ import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	getAccessorHandle,
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 	isQuantelClipAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { GenericAccessorHandle, PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
-import { HTTPAccessorHandle } from '../../../accessorHandlers/http'
+import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -162,14 +162,14 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP)
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 		) {
 			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPAccessorHandle(targetHandle)
+				!isHTTPProxyAccessorHandle(targetHandle)
 			)
 				throw new Error(`Target AccessHandler type is wrong`)
 
@@ -340,15 +340,15 @@ export function getSourceHTTPHandle(
 	worker: GenericWorker,
 	sourceHandle: GenericAccessorHandle<any>,
 	thumbnailURL: { baseURL: string; url: string }
-): HTTPAccessorHandle<any> {
+): HTTPProxyAccessorHandle<any> {
 	// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail,
 	// so we have a QUANTEL source, but we construct an HTTP source from it to use instead:
 
 	const handle = getAccessorHandle<Metadata>(
 		worker,
 		sourceHandle.accessorId + '__http',
-		literal<AccessorOnPackage.HTTP>({
-			type: Accessor.AccessType.HTTP,
+		literal<AccessorOnPackage.HTTPProxy>({
+			type: Accessor.AccessType.HTTP_PROXY,
 			baseUrl: thumbnailURL.baseURL,
 			// networkId?: string
 			url: thumbnailURL.url,
@@ -356,7 +356,7 @@ export function getSourceHTTPHandle(
 		{ filePath: thumbnailURL.url },
 		{}
 	)
-	if (!isHTTPAccessorHandle(handle)) throw new Error(`getSourceHTTPHandle: got a non-HTTP handle!`)
+	if (!isHTTPProxyAccessorHandle(handle)) throw new Error(`getSourceHTTPHandle: got a non-HTTP handle!`)
 	return handle
 }
 

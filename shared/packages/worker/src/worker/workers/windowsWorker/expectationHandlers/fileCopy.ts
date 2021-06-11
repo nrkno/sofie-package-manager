@@ -15,7 +15,7 @@ import {
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { ByteCounter } from '../../../lib/streamByteCounter'
@@ -246,22 +246,22 @@ export const FileCopy: ExpectationWindowsHandler = {
 		} else if (
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupSource.accessor.type === Accessor.AccessType.HTTP) &&
+				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP)
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 		) {
 			// We can copy by using file streams
 			if (
 				!isLocalFolderAccessorHandle(lookupSource.handle) &&
 				!isFileShareAccessorHandle(lookupSource.handle) &&
-				!isHTTPAccessorHandle(lookupSource.handle)
+				!isHTTPProxyAccessorHandle(lookupSource.handle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPAccessorHandle(targetHandle)
+				!isHTTPProxyAccessorHandle(targetHandle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 

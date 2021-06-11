@@ -5,6 +5,7 @@ const accessorTypePriority: { [key: string]: number } = {
 	[Accessor.AccessType.QUANTEL]: 1,
 	[Accessor.AccessType.FILE_SHARE]: 2,
 	[Accessor.AccessType.HTTP]: 3,
+	[Accessor.AccessType.HTTP_PROXY]: 3,
 	[Accessor.AccessType.CORE_PACKAGE_INFO]: 99999,
 }
 

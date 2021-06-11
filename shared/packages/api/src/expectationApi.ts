@@ -262,6 +262,7 @@ export namespace Expectation {
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
 			}
 		}
 		/** Defines a PackageContainer for CorePackage (A collection in Sofie-Core accessible through an API). */

@@ -3,7 +3,7 @@ import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
 import { GenericAccessorHandle } from './genericHandle'
-import { HTTPAccessorHandle } from './http'
+import { HTTPProxyAccessorHandle } from './httpProxy'
 import { LocalFolderAccessorHandle } from './localFolder'
 import { QuantelAccessorHandle } from './quantel'
 
@@ -28,8 +28,8 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		return LocalFolderAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
 		return CorePackageInfoAccessorHandle
-	} else if (accessor.type === Accessor.AccessType.HTTP) {
-		return HTTPAccessorHandle
+	} else if (accessor.type === Accessor.AccessType.HTTP_PROXY) {
+		return HTTPProxyAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.FILE_SHARE) {
 		return FileShareAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.QUANTEL) {
@@ -53,10 +53,10 @@ export function isCorePackageInfoAccessorHandle<Metadata>(
 ): accessorHandler is CorePackageInfoAccessorHandle<Metadata> {
 	return accessorHandler.type === CorePackageInfoAccessorHandle.type
 }
-export function isHTTPAccessorHandle<Metadata>(
+export function isHTTPProxyAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
-): accessorHandler is HTTPAccessorHandle<Metadata> {
-	return accessorHandler.type === HTTPAccessorHandle.type
+): accessorHandler is HTTPProxyAccessorHandle<Metadata> {
+	return accessorHandler.type === HTTPProxyAccessorHandle.type
 }
 export function isFileShareAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
@@ -82,7 +82,7 @@ export function getAccessorCost(accessorType: Accessor.AccessType | undefined): 
 		// --------------------------------------------------------
 		case Accessor.AccessType.FILE_SHARE:
 			return 2
-		case Accessor.AccessType.HTTP:
+		case Accessor.AccessType.HTTP_PROXY:
 			return 3
 
 		case undefined:

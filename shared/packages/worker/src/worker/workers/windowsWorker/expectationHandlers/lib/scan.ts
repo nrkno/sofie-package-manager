@@ -4,7 +4,7 @@ import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 } from '../../../../accessorHandlers/accessor'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { QuantelAccessorHandle } from '../../../../accessorHandlers/quantel'
@@ -13,7 +13,7 @@ import { assertNever } from '../../../../lib/lib'
 import { FieldOrder, ScanAnomaly } from './coreApi'
 import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
-import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
+import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 
 interface FFProbeScanResult {
 	// to be defined...
@@ -25,14 +25,14 @@ export function scanWithFFProbe(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
 		| FileShareAccessorHandle<any>
-		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>
 ): CancelablePromise<FFProbeScanResult> {
 	return new CancelablePromise<FFProbeScanResult>(async (resolve, reject, onCancel) => {
 		if (
 			isLocalFolderAccessorHandle(sourceHandle) ||
 			isFileShareAccessorHandle(sourceHandle) ||
-			isHTTPAccessorHandle(sourceHandle)
+			isHTTPProxyAccessorHandle(sourceHandle)
 		) {
 			let inputPath: string
 			let filePath: string
@@ -43,7 +43,7 @@ export function scanWithFFProbe(
 				await sourceHandle.prepareFileAccess()
 				inputPath = sourceHandle.fullPath
 				filePath = sourceHandle.filePath
-			} else if (isHTTPAccessorHandle(sourceHandle)) {
+			} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 				inputPath = sourceHandle.fullUrl
 				filePath = sourceHandle.filePath
 			} else {
@@ -103,7 +103,7 @@ export function scanFieldOrder(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
 		| FileShareAccessorHandle<any>
-		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>,
 	targetVersion: Expectation.PackageDeepScan['endRequirement']['version']
 ): CancelablePromise<FieldOrder> {
@@ -130,7 +130,7 @@ export function scanFieldOrder(
 		} else if (isFileShareAccessorHandle(sourceHandle)) {
 			await sourceHandle.prepareFileAccess()
 			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isHTTPAccessorHandle(sourceHandle)) {
+		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 			args.push(`-i "${sourceHandle.fullUrl}"`)
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
@@ -178,7 +178,7 @@ export function scanMoreInfo(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
 		| FileShareAccessorHandle<any>
-		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>,
 	previouslyScanned: FFProbeScanResult,
 	targetVersion: Expectation.PackageDeepScan['endRequirement']['version'],
@@ -230,7 +230,7 @@ export function scanMoreInfo(
 		} else if (isFileShareAccessorHandle(sourceHandle)) {
 			await sourceHandle.prepareFileAccess()
 			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isHTTPAccessorHandle(sourceHandle)) {
+		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 			args.push(`-i "${sourceHandle.fullUrl}"`)
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
