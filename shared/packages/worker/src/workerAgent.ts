@@ -191,16 +191,21 @@ export class WorkerAgent {
 							this.logger.error(err)
 						})
 					})
-					workInProgress.on('error', (error) => {
+					workInProgress.on('error', (error: string) => {
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
 						this.logger.debug(
 							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
 						)
 
-						expectedManager.api.wipEventError(wipId, error).catch((err) => {
-							this.logger.error('Error in wipEventError')
-							this.logger.error(err)
-						})
+						expectedManager.api
+							.wipEventError(wipId, {
+								user: 'Work aborted due to an error',
+								tech: error,
+							})
+							.catch((err) => {
+								this.logger.error('Error in wipEventError')
+								this.logger.error(err)
+							})
 						delete this.worksInProgress[`${wipId}`]
 					})
 					workInProgress.on('done', (actualVersionHash, reason, result) => {

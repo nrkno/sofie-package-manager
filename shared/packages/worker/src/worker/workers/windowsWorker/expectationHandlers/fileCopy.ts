@@ -93,20 +93,26 @@ export const FileCopy: ExpectationWindowsHandler = {
 				return {
 					ready: false,
 					sourceExists: true,
-					reason: `Source is not stable (${userReadableDiff(versionDiff)})`,
+					reason: {
+						user: `Waiting for source file to stop growing`,
+						tech: `Source is not stable (${userReadableDiff(versionDiff)})`,
+					},
 				}
 			}
 		}
 
 		// Also check if we actually can read from the package,
 		// this might help in some cases if the file is currently transferring
-		const issueReading = await lookupSource.handle.tryPackageRead()
-		if (issueReading) return { ready: false, reason: issueReading }
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
 
 		return {
 			ready: true,
 			sourceExists: true,
-			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: {
+			// 	user: 'Ready to start copying',
+			// 	tech: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// },
 		}
 	},
 	isExpectationFullfilled: async (
@@ -118,16 +124,29 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready)
-			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
+					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
+				},
+			}
 
 		const issuePackage = await lookupTarget.handle.checkPackageReadAccess()
-		if (issuePackage) {
-			return { fulfilled: false, reason: `File does not exist: ${issuePackage.toString()}` }
+		if (!issuePackage.success) {
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Target package: ${issuePackage.reason.user}`,
+					tech: `Target package: ${issuePackage.reason.tech}`,
+				},
+			}
 		}
 
 		// check that the file is of the right version:
 		const actualTargetVersion = await lookupTarget.handle.fetchMetadata()
-		if (!actualTargetVersion) return { fulfilled: false, reason: `Metadata missing` }
+		if (!actualTargetVersion)
+			return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
@@ -135,13 +154,13 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
 		const issueVersions = compareUniversalVersions(makeUniversalVersion(actualSourceVersion), actualTargetVersion)
-		if (issueVersions) {
-			return { fulfilled: false, reason: issueVersions }
+		if (!issueVersions.success) {
+			return { fulfilled: false, reason: issueVersions.reason }
 		}
 
 		return {
 			fulfilled: true,
-			reason: `File "${exp.endRequirement.content.filePath}" already exists on target`,
+			// reason: `File "${exp.endRequirement.content.filePath}" already exists on target`,
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -215,7 +234,10 @@ export const FileCopy: ExpectationWindowsHandler = {
 				const duration = Date.now() - startTime
 				workInProgress._reportComplete(
 					actualSourceVersionHash,
-					`Copy completed in ${Math.round(duration / 100) / 10}s`,
+					{
+						user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
+						tech: `Copy completed at ${Date.now()}`,
+					},
 					undefined
 				)
 			})
@@ -293,7 +315,10 @@ export const FileCopy: ExpectationWindowsHandler = {
 							const duration = Date.now() - startTime
 							workInProgress._reportComplete(
 								actualSourceVersionHash,
-								`Copy completed in ${Math.round(duration / 100) / 10}s`,
+								{
+									user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
+									tech: `Copy completed at ${Date.now()}`,
+								},
 								undefined
 							)
 						})().catch((err) => {
@@ -316,16 +341,31 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) {
-			return { removed: false, reason: `No access to target: ${lookupTarget.reason}` }
+			return {
+				removed: false,
+				reason: {
+					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
+					tech: `No access to target: ${lookupTarget.reason.tech}`,
+				},
+			}
 		}
 
 		try {
 			await lookupTarget.handle.removePackage()
 		} catch (err) {
-			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
+			return {
+				removed: false,
+				reason: {
+					user: `Cannot remove file due to an internal error`,
+					tech: `Cannot remove file: ${err.toString()}`,
+				},
+			}
 		}
 
-		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from target` }
+		return {
+			removed: true,
+			// reason: `Removed file "${exp.endRequirement.content.filePath}" from target`
+		}
 	},
 }
 function isFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {

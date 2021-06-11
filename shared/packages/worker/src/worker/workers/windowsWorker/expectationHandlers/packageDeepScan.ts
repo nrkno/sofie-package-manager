@@ -35,7 +35,14 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	): ReturnTypeDoYouSupportExpectation {
-		if (!windowsWorker.hasFFProbe) return { support: false, reason: 'Cannot access FFProbe executable' }
+		if (!windowsWorker.hasFFMpeg)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker: FFMpeg not found',
+					tech: 'Cannot access FFMpeg executable',
+				},
+			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
@@ -59,13 +66,13 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupDeepScanSources(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
-		const issueReading = await lookupSource.handle.tryPackageRead()
-		if (issueReading) return { ready: false, reason: issueReading }
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
 
 		return {
 			ready: true,
 			sourceExists: true,
-			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -77,10 +84,22 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
 		if (!lookupSource.ready)
-			return { fulfilled: false, reason: `Not able to access source: ${lookupSource.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access source, due to ${lookupSource.reason.user}`,
+					tech: `Not able to access source: ${lookupSource.reason.tech}`,
+				},
+			}
 		const lookupTarget = await lookupDeepScanTargets(worker, exp)
 		if (!lookupTarget.ready)
-			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access target, due to ${lookupTarget.reason.user}`,
+					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
+				},
+			}
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
@@ -100,7 +119,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
-			return { fulfilled: true, reason: packageInfoSynced.reason }
+			return { fulfilled: true }
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -139,8 +158,8 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 				if (!isCorePackageInfoAccessorHandle(targetHandle))
 					throw new Error(`Target AccessHandler type is wrong`)
 
-				const issueReadPackage = await sourceHandle.checkPackageReadAccess()
-				if (issueReadPackage) throw new Error(issueReadPackage)
+				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
+				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
 
 				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
 				const sourceVersionHash = hashObj(actualSourceVersion)
@@ -187,7 +206,10 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 				const duration = Date.now() - startTime
 				workInProgress._reportComplete(
 					sourceVersionHash,
-					`Scan completed in ${Math.round(duration / 100) / 10}s`,
+					{
+						user: `Scan completed in ${Math.round(duration / 100) / 10}s`,
+						tech: `Completed at ${Date.now()}`,
+					},
 					undefined
 				)
 			} else {
@@ -202,12 +224,29 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupDeepScanTargets(worker, exp)
-		if (!lookupTarget.ready) return { removed: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+		if (!lookupTarget.ready)
+			return {
+				removed: false,
+				reason: {
+					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
+					tech: `No access to target: ${lookupTarget.reason.tech}`,
+				},
+			}
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
-		await lookupTarget.handle.removePackageInfo('deepScan', exp)
+		try {
+			await lookupTarget.handle.removePackageInfo('deepScan', exp)
+		} catch (err) {
+			return {
+				removed: false,
+				reason: {
+					user: `Cannot remove the scan result due to an internal error`,
+					tech: `Cannot remove CorePackageInfo: ${err.toString()}`,
+				},
+			}
+		}
 
-		return { removed: true, reason: 'Removed scan info from Store' }
+		return { removed: true }
 	},
 }
 function isPackageDeepScan(exp: Expectation.Any): exp is Expectation.PackageDeepScan {

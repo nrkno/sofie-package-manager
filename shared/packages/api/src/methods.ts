@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { ExpectedPackage } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackage, ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -13,6 +13,8 @@ import {
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
 
+/** Contains textual descriptions for statuses. */
+export type Reason = ExpectedPackageStatusAPI.Reason
 /*
  * This file contains API definitions for the methods used to communicate between the Workforce, Worker and Expectation-Manager.
  */
@@ -79,8 +81,8 @@ export namespace ExpectationManagerWorkerAgent {
 
 		// Events emitted from a workInProgress:
 		wipEventProgress: (wipId: number, actualVersionHash: string | null, progress: number) => Promise<void>
-		wipEventDone: (wipId: number, actualVersionHash: string, reason: string, result: any) => Promise<void>
-		wipEventError: (wipId: number, error: string) => Promise<void>
+		wipEventDone: (wipId: number, actualVersionHash: string, reason: Reason, result: any) => Promise<void>
+		wipEventError: (wipId: number, reason: Reason) => Promise<void>
 	}
 	export interface WorkInProgressInfo {
 		wipId: number

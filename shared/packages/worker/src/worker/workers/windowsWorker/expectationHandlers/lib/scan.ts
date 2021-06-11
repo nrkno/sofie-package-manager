@@ -135,7 +135,7 @@ export function scanFieldOrder(
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
 
-			if (!httpStreamURL) throw new Error(`Source Clip not found`)
+			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
 
 			args.push('-seekable 0')
 			args.push(`-i "${httpStreamURL.fullURL}"`)
@@ -235,7 +235,7 @@ export function scanMoreInfo(
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
 
-			if (!httpStreamURL) throw new Error(`Source Clip not found`)
+			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
 
 			args.push('-seekable 0')
 			args.push(`-i "${httpStreamURL.fullURL}"`)

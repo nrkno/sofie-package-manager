@@ -36,7 +36,14 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	): ReturnTypeDoYouSupportExpectation {
-		if (!windowsWorker.hasFFMpeg) return { support: false, reason: 'Cannot access FFMpeg executable' }
+		if (!windowsWorker.hasFFMpeg)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker: FFMpeg not found',
+					tech: 'Cannot access FFMpeg executable',
+				},
+			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
@@ -59,13 +66,13 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
-		const issueReading = await lookupSource.handle.tryPackageRead()
-		if (issueReading) return { ready: false, reason: issueReading }
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
 
 		return {
 			ready: true,
 			sourceExists: true,
-			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -77,13 +84,32 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready)
-			return { fulfilled: false, reason: `Not able to access source: ${lookupSource.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access source, due to ${lookupSource.reason.user}`,
+					tech: `Not able to access source: ${lookupSource.reason.tech}`,
+				},
+			}
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready)
-			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access target, due to ${lookupTarget.reason.user}`,
+					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
+				},
+			}
 
 		const issueReadPackage = await lookupTarget.handle.checkPackageReadAccess()
-		if (issueReadPackage) return { fulfilled: false, reason: `Thumbnail does not exist: ${issueReadPackage}` }
+		if (!issueReadPackage.success)
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Issue with target: ${issueReadPackage.reason.user}`,
+					tech: `Issue with target: ${issueReadPackage.reason.tech}`,
+				},
+			}
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
@@ -91,11 +117,20 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		const metadata = await lookupTarget.handle.fetchMetadata()
 
 		if (!metadata) {
-			return { fulfilled: false, reason: 'No thumbnail file found' }
+			return {
+				fulfilled: false,
+				reason: { user: `The thumbnail needs to be re-generated`, tech: `No thumbnail metadata file found` },
+			}
 		} else if (metadata.sourceVersionHash !== actualSourceVersionHash) {
-			return { fulfilled: false, reason: `Thumbnail version doesn't match thumbnail file` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `The thumbnail needs to be re-generated`,
+					tech: `Thumbnail version doesn't match thumbnail file`,
+				},
+			}
 		} else {
-			return { fulfilled: true, reason: 'Thumbnail already matches thumbnail file' }
+			return { fulfilled: true }
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -138,9 +173,9 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				)
 					throw new Error(`Target AccessHandler type is wrong`)
 
-				const issueReadPackage = await sourceHandle.checkPackageReadAccess()
-				if (issueReadPackage) {
-					throw new Error(issueReadPackage)
+				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
+				if (!tryReadPackage.success) {
+					throw new Error(tryReadPackage.reason.tech)
 				}
 
 				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
@@ -201,7 +236,10 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 					const duration = Date.now() - startTime
 					workInProgress._reportComplete(
 						sourceVersionHash,
-						`Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+						{
+							user: `Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+							tech: `Completed at ${Date.now()}`,
+						},
 						undefined
 					)
 				})
@@ -217,11 +255,29 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) {
+			return {
+				removed: false,
+				reason: {
+					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
+					tech: `No access to target: ${lookupTarget.reason.tech}`,
+				},
+			}
+		}
 
-		await lookupTarget.handle.removePackage()
+		try {
+			await lookupTarget.handle.removePackage()
+		} catch (err) {
+			return {
+				removed: false,
+				reason: {
+					user: `Cannot remove file due to an internal error`,
+					tech: `Cannot remove preview file: ${err.toString()}`,
+				},
+			}
+		}
 
-		return { removed: true, reason: 'Removed thumbnail' }
+		return { removed: true }
 	},
 }
 function isMediaFileThumbnail(exp: Expectation.Any): exp is Expectation.MediaFileThumbnail {

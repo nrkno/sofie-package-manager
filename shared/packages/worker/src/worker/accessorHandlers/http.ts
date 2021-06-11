@@ -1,5 +1,11 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageReadInfo, PackageReadStream, PutPackageHandler } from './genericHandle'
+import {
+	GenericAccessorHandle,
+	PackageReadInfo,
+	PackageReadStream,
+	PutPackageHandler,
+	AccessorHandlerResult,
+} from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
@@ -38,33 +44,51 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		const accessor = accessor0 as AccessorOnPackage.HTTP
 		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): string | undefined {
+	checkHandleRead(): AccessorHandlerResult {
 		if (!this.accessor.allowRead) {
-			return `Not allowed to read`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to read`,
+					tech: `Not allowed to read`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): string | undefined {
+	checkHandleWrite(): AccessorHandlerResult {
 		if (!this.accessor.allowWrite) {
-			return `Not allowed to write`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to write`,
+					tech: `Not allowed to write`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	async checkPackageReadAccess(): Promise<string | undefined> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		const header = await this.fetchHeader()
 
 		if (header.status >= 400) {
-			return `Error when requesting url "${this.fullUrl}": [${header.status}]: ${header.statusText}`
+			return {
+				success: false,
+				reason: {
+					user: `Got error code ${header.status} when trying to fetch package`,
+					tech: `Error when requesting url "${this.fullUrl}": [${header.status}]: ${header.statusText}`,
+				},
+			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async tryPackageRead(): Promise<string | undefined> {
+	async tryPackageRead(): Promise<AccessorHandlerResult> {
 		// TODO: how to do this?
-		return undefined
+		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
 		// todo: how to check this?
-		return undefined // all good
+		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.HTTPFile> {
 		const header = await this.fetchHeader()
@@ -143,7 +167,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		await this.deletePackageIfExists(this.getMetadataPath(this.fullUrl))
 	}
 
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
@@ -156,9 +180,11 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			}
 		}
 
-		return undefined
+		return { success: true }
 	}
-	async setupPackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async setupPackageContainerMonitors(
+		packageContainerExp: PackageContainerExpectation
+	): Promise<AccessorHandlerResult> {
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
@@ -170,13 +196,13 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			}
 		}
 
-		return undefined
+		return { success: true }
 	}
 	async disposePackageContainerMonitors(
 		_packageContainerExp: PackageContainerExpectation
-	): Promise<string | undefined> {
+	): Promise<AccessorHandlerResult> {
 		// todo: implement monitors
-		return undefined
+		return { success: true }
 	}
 	get fullUrl(): string {
 		return [
@@ -185,15 +211,35 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		].join('/')
 	}
 
-	private checkAccessor(): string | undefined {
+	private checkAccessor(): AccessorHandlerResult {
 		if (this.accessor.type !== Accessor.AccessType.HTTP) {
-			return `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`,
+				},
+			}
 		}
-		if (!this.accessor.baseUrl) return `Accessor baseUrl not set`
+		if (!this.accessor.baseUrl)
+			return {
+				success: false,
+				reason: {
+					user: `Accessor baseUrl not set`,
+					tech: `Accessor baseUrl not set`,
+				},
+			}
 		if (!this.content.onlyContainerAccess) {
-			if (!this.filePath) return `filePath not set`
+			if (!this.filePath)
+				return {
+					success: false,
+					reason: {
+						user: `filePath not set`,
+						tech: `filePath not set`,
+					},
+				}
 		}
-		return undefined // all good
+		return { success: true }
 	}
 	private get baseUrl(): string {
 		if (!this.accessor.baseUrl) throw new Error(`HTTPAccessorHandle: accessor.baseUrl not set!`)

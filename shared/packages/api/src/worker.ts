@@ -2,24 +2,43 @@
  * This file contains API definitions for the Worker methods
  */
 
-export interface ReturnTypeDoYouSupportExpectation {
-	support: boolean
-	reason: string
-}
+import { Reason } from './methods'
+
+export type ReturnTypeDoYouSupportExpectation =
+	| {
+			support: true
+	  }
+	| {
+			support: false
+			reason: Reason
+	  }
 export type ReturnTypeGetCostFortExpectation = number
-export interface ReturnTypeIsExpectationReadyToStartWorkingOn {
-	ready: boolean
-	sourceExists?: boolean
-	reason?: string
-}
-export interface ReturnTypeIsExpectationFullfilled {
-	fulfilled: boolean
-	reason?: string
-}
-export interface ReturnTypeRemoveExpectation {
-	removed: boolean
-	reason?: string
-}
+export type ReturnTypeIsExpectationReadyToStartWorkingOn =
+	| {
+			ready: true
+			sourceExists?: boolean
+	  }
+	| {
+			ready: false
+			sourceExists?: boolean
+			reason: Reason
+	  }
+export type ReturnTypeIsExpectationFullfilled =
+	| {
+			fulfilled: true
+	  }
+	| {
+			fulfilled: false
+			reason: Reason
+	  }
+export type ReturnTypeRemoveExpectation =
+	| {
+			removed: true
+	  }
+	| {
+			removed: false
+			reason: Reason
+	  }
 
 /** Configurations for any of the workers */
 export interface WorkerAgentConfig {
@@ -38,23 +57,39 @@ export interface WorkerAgentConfig {
 	 */
 	windowsDriveLetters?: string[]
 }
-export interface ReturnTypeDoYouSupportPackageContainer {
-	support: boolean
-	reason: string
-}
-export interface ReturnTypeRunPackageContainerCronJob {
-	completed: boolean
-	reason?: string
-}
-export interface ReturnTypeDisposePackageContainerMonitors {
-	disposed: boolean
-	reason?: string
-}
-export interface ReturnTypeSetupPackageContainerMonitors {
-	setupOk: boolean
-	reason?: string
-	monitors?: { [monitorId: string]: MonitorProperties }
-}
+export type ReturnTypeDoYouSupportPackageContainer =
+	| {
+			support: true
+	  }
+	| {
+			support: false
+			reason: Reason
+	  }
+export type ReturnTypeRunPackageContainerCronJob =
+	| {
+			success: true
+	  }
+	| {
+			success: false
+			reason: Reason
+	  }
+export type ReturnTypeDisposePackageContainerMonitors =
+	| {
+			success: true
+	  }
+	| {
+			success: false
+			reason: Reason
+	  }
+export type ReturnTypeSetupPackageContainerMonitors =
+	| {
+			success: true
+			monitors: { [monitorId: string]: MonitorProperties }
+	  }
+	| {
+			success: false
+			reason: Reason
+	  }
 export interface MonitorProperties {
 	label: string
 }

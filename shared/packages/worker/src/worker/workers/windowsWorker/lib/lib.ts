@@ -7,11 +7,12 @@ import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandl
 import { GenericWorker } from '../../../worker'
 import { Expectation } from '@shared/api'
 import { prioritizeAccessors } from '../../../lib/lib'
+import { AccessorHandlerResult } from '../../../accessorHandlers/genericHandle'
 
 export function compareActualExpectVersions(
 	actualVersion: Expectation.Version.Any,
 	expectVersion: Expectation.Version.ExpectAny
-): undefined | string {
+): AccessorHandlerResult {
 	const expectProperties = makeUniversalVersion(expectVersion)
 	const actualProperties = makeUniversalVersion(actualVersion)
 
@@ -20,25 +21,37 @@ export function compareActualExpectVersions(
 		const actual = actualProperties[key] as VersionProperty
 
 		if (expect.value !== undefined && actual.value && expect.value !== actual.value) {
-			return `Actual ${actual.name} differ from expected (${expect.value}, ${actual.value})`
+			return {
+				success: false,
+				reason: {
+					user: 'Actual version differs from expected',
+					tech: `Actual ${actual.name} differ from expected (${expect.value}, ${actual.value})`,
+				},
+			}
 		}
 	}
 
-	return undefined // All good!
+	return { success: true }
 }
 export function compareUniversalVersions(
 	sourceVersion: UniversalVersion,
 	targetVersion: UniversalVersion
-): undefined | string {
+): AccessorHandlerResult {
 	for (const key of Object.keys(sourceVersion)) {
 		const source = sourceVersion[key] as VersionProperty
 		const target = targetVersion[key] as VersionProperty
 
 		if (source.value !== target.value) {
-			return `Target ${source.name} differ from source (${target.value}, ${source.value})`
+			return {
+				success: false,
+				reason: {
+					user: 'Target version differs from Source',
+					tech: `Target ${source.name} differ from source (${target.value}, ${source.value})`,
+				},
+			}
 		}
 	}
-	return undefined // All good!
+	return { success: true }
 }
 
 export function makeUniversalVersion(

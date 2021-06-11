@@ -1,7 +1,7 @@
 import { promisify } from 'util'
 import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { PackageReadInfo, PutPackageHandler } from './genericHandle'
+import { PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
@@ -70,32 +70,52 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		const accessor = accessor0 as AccessorOnPackage.FileShare
 		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): string | undefined {
+	checkHandleRead(): AccessorHandlerResult {
 		if (!this.accessor.allowRead) {
-			return `Not allowed to read`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to read`,
+					tech: `Not allowed to read`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): string | undefined {
+	checkHandleWrite(): AccessorHandlerResult {
 		if (!this.accessor.allowWrite) {
-			return `Not allowed to write`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to write`,
+					tech: `Not allowed to write`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	private checkAccessor(): string | undefined {
+	private checkAccessor(): AccessorHandlerResult {
 		if (this.accessor.type !== Accessor.AccessType.FILE_SHARE) {
-			return `FileShare Accessor type is not FILE_SHARE ("${this.accessor.type}")!`
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `FileShare Accessor type is not FILE_SHARE ("${this.accessor.type}")!`,
+				},
+			}
 		}
-		if (!this.accessor.folderPath) return `Folder path not set`
+		if (!this.accessor.folderPath)
+			return { success: false, reason: { user: `Folder path not set`, tech: `Folder path not set` } }
 		if (!this.content.onlyContainerAccess) {
-			if (!this.filePath) return `File path not set`
+			if (!this.filePath)
+				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<string | undefined> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		const readIssue = await this._checkPackageReadAccess()
-		if (readIssue) {
-			if (readIssue.match(/EPERM/)) {
+		if (!readIssue.success) {
+			if (readIssue.reason.tech.match(/EPERM/)) {
 				// "EPERM: operation not permitted"
 				if (this.accessor.userName) {
 					// Try resetting the access permissions:
@@ -108,9 +128,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				return readIssue
 			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async tryPackageRead(): Promise<string | undefined> {
+	async tryPackageRead(): Promise<AccessorHandlerResult> {
 		try {
 			// Check if we can open the file for reading:
 			const fd = await fsOpen(this.fullPath, 'r+')
@@ -119,16 +139,22 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			await fsClose(fd)
 		} catch (err) {
 			if (err && err.code === 'EBUSY') {
-				return `Not able to read file (busy)`
+				return {
+					success: false,
+					reason: { user: `Not able to read file (file is busy)`, tech: err.toString() },
+				}
 			} else if (err && err.code === 'ENOENT') {
-				return `File does not exist (ENOENT)`
+				return { success: false, reason: { user: `File does not exist`, tech: err.toString() } }
 			} else {
-				return `Not able to read file: ${err.toString()}`
+				return {
+					success: false,
+					reason: { user: `Not able to read file`, tech: err.toString() },
+				}
 			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	private async _checkPackageReadAccess(): Promise<string | undefined> {
+	private async _checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		await this.prepareFileAccess()
 
 		try {
@@ -136,20 +162,32 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// The file exists
 		} catch (err) {
 			// File is not readable
-			return `Not able to read file: ${err.toString()}`
+			return {
+				success: false,
+				reason: {
+					user: `File doesn't exist`,
+					tech: `Not able to read file: ${err.toString()}`,
+				},
+			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
 		await this.prepareFileAccess()
 		try {
 			await fsAccess(this.folderPath, fs.constants.W_OK)
 			// The file exists
 		} catch (err) {
-			// File is not readable
-			return `Not able to write to file: ${err.toString()}`
+			// File is not writeable
+			return {
+				success: false,
+				reason: {
+					user: `Not able to write to file`,
+					tech: `Not able to write to file: ${err.toString()}`,
+				},
+			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.FileOnDisk> {
 		await this.prepareFileAccess()
@@ -247,7 +285,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async removeMetadata(): Promise<void> {
 		await this.unlinkIfExists(this.metadataPath)
 	}
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
@@ -260,9 +298,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			}
 		}
 
-		return undefined
+		return { success: true }
 	}
-	async setupPackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async setupPackageContainerMonitors(
+		packageContainerExp: PackageContainerExpectation
+	): Promise<AccessorHandlerResult> {
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
@@ -274,11 +314,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			}
 		}
 
-		return undefined // all good
+		return { success: true }
 	}
 	async disposePackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
-	): Promise<string | undefined> {
+	): Promise<AccessorHandlerResult> {
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
@@ -289,7 +329,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				assertNever(monitor)
 			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
 	/** Called when the package is supposed to be in place */
 	async packageIsInPlace(): Promise<void> {

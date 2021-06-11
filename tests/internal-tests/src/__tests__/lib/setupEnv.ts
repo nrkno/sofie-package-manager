@@ -3,7 +3,7 @@
 import * as Workforce from '@shared/workforce'
 import * as Worker from '@shared/worker'
 import * as Winston from 'winston'
-import { Expectation, ExpectationManagerWorkerAgent, LoggerInstance, SingleAppConfig } from '@shared/api'
+import { Expectation, ExpectationManagerWorkerAgent, LoggerInstance, Reason, SingleAppConfig } from '@shared/api'
 // import deepExtend from 'deep-extend'
 import { ExpectationManager, ExpectationManagerCallbacks } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
@@ -120,7 +120,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			statusInfo: {
 				status?: string
 				progress?: number
-				statusReason?: string
+				statusReason?: Reason
 			}
 		) => {
 			if (!expectationStatuses[expectationId]) {
@@ -202,7 +202,7 @@ export interface ExpectationStatuses {
 		statusInfo: {
 			status?: string
 			progress?: number
-			statusReason?: string
+			statusReason?: Reason
 		}
 	}
 }
