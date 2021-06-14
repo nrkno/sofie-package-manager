@@ -2,6 +2,7 @@ import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integr
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
+import { FTPAccessorHandle } from './ftp'
 import { GenericAccessorHandle } from './genericHandle'
 import { HTTPAccessorHandle } from './http'
 import { LocalFolderAccessorHandle } from './localFolder'
@@ -34,6 +35,8 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		return FileShareAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.QUANTEL) {
 		return QuantelAccessorHandle
+	} else if (accessor.type === Accessor.AccessType.FTP) {
+		return FTPAccessorHandle
 	} else {
 		assertNever(accessor.type) // Assert  so as to not forget to add an if-clause above
 		throw new Error(`Unsupported Accessor type "${accessor.type}"`)
@@ -69,6 +72,12 @@ export function isQuantelClipAccessorHandle<Metadata>(
 	return accessorHandler.type === QuantelAccessorHandle.type
 }
 
+export function isFTPAccessorHandle<Metadata>(
+	accessorHandler: GenericAccessorHandle<Metadata>
+): accessorHandler is FTPAccessorHandle<Metadata> {
+	return accessorHandler.type === FTPAccessorHandle.type
+}
+
 /** Returns a generic value for how costly it is to use an Accessor type. A higher value means that it is more expensive to access the accessor */
 export function getAccessorCost(accessorType: Accessor.AccessType | undefined): number {
 	switch (accessorType) {
@@ -83,6 +92,7 @@ export function getAccessorCost(accessorType: Accessor.AccessType | undefined): 
 		case Accessor.AccessType.FILE_SHARE:
 			return 2
 		case Accessor.AccessType.HTTP:
+		case Accessor.AccessType.FTP:
 			return 3
 
 		case undefined:

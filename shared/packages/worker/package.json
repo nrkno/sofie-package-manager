@@ -21,6 +21,7 @@
     "dependencies": {
         "@shared/api": "*",
         "abort-controller": "^3.0.0",
+        "basic-ftp": "^4.6.6",
         "chokidar": "^3.5.1",
         "deep-diff": "^1.0.2",
         "form-data": "^4.0.0",

@@ -15,6 +15,7 @@ import {
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
+	isFTPAccessorHandle,
 	isHTTPAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
@@ -233,13 +234,15 @@ export const FileCopy: ExpectationWindowsHandler = {
 			if (
 				!isLocalFolderAccessorHandle(lookupSource.handle) &&
 				!isFileShareAccessorHandle(lookupSource.handle) &&
-				!isHTTPAccessorHandle(lookupSource.handle)
+				!isHTTPAccessorHandle(lookupSource.handle) &&
+				!isFTPAccessorHandle(lookupSource.handle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPAccessorHandle(targetHandle)
+				!isHTTPAccessorHandle(targetHandle) &&
+				!isFTPAccessorHandle(targetHandle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 

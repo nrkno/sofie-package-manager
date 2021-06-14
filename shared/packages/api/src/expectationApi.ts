@@ -262,6 +262,7 @@ export namespace Expectation {
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.FTP
 			}
 		}
 		/** Defines a PackageContainer for CorePackage (A collection in Sofie-Core accessible through an API). */
@@ -299,7 +300,7 @@ export namespace Expectation {
 			| ExpectedCorePackageInfo
 			| ExpectedHTTPFile
 			| ExpectedQuantelClip
-		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip
+		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip | FTPFile
 		export interface Base {
 			type: Type
 		}
@@ -312,6 +313,7 @@ export namespace Expectation {
 			QUANTEL_CLIP = 'quantel_clip',
 			QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
 			QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
+			FTP_FILE = 'ftp_file',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
 
@@ -388,5 +390,15 @@ export namespace Expectation {
 			height: number
 		}
 		export type ExpectedQuantelClipPreview = ExpectedType<QuantelClipPreview>
+
+		export interface FTPFile extends Base {
+			type: Type.FTP_FILE
+			contentType: string
+			contentLength: number
+			modified: number
+			etags: string[]
+		}
+
+		export type ExpectedFTPFile = ExpectedType<FTPFile>
 	}
 }

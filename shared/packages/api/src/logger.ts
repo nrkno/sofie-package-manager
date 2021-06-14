@@ -50,14 +50,14 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 		logger.info('Logging to Console')
 		// Hijack console.log:
 		// eslint-disable-next-line no-console
-		console.log = function (...args: any[]) {
-			// orgConsoleLog('a')
-			if (args.length >= 1) {
-				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-				// @ts-ignore one or more arguments
-				logger.debug(...args)
-			}
-		}
+		// console.log = function (...args: any[]) {
+		// 	// orgConsoleLog('a')
+		// 	if (args.length >= 1) {
+		// 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// 		// @ts-ignore one or more arguments
+		// 		logger.debug(...args)
+		// 	}
+		// }
 	}
 	function getCurrentTime() {
 		const v = Date.now()

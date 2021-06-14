@@ -1,70 +1,70 @@
 {
-    "name": "package-manager-monorepo",
-    "version": "1.0.0",
-    "repository": "https://github.com/nrkno/tv-automation-package-manager",
-    "private": true,
-    "workspaces": [
-        "shared/**",
-        "apps/**",
-        "tests/**"
-    ],
-    "scripts": {
-        "ci": "yarn install && yarn build && yarn lint && yarn test",
-        "setup": "lerna bootstrap",
-        "build": "lerna run build --stream",
-        "build:changed": "lerna run --since origin/master --include-dependents build",
-        "lint": "lerna exec -- eslint . --ext .ts,.tsx",
-        "lintfix": "yarn lint --fix",
-        "lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
-        "test": "lerna run test --stream",
-        "test:changed": "lerna run --since origin/master --include-dependents test",
-        "test:update": "lerna run test -- -u",
-        "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
-        "typecheck": "lerna exec -- tsc --noEmit",
-        "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
-        "build-win32": "lerna run build-win32",
-        "gather-built": "node scripts/gather-all-built.js",
-        "start:http-server": "lerna run start --stream --scope @http-server/app",
-        "start:workforce": "lerna run start --stream --scope @workforce/app",
-        "start:package-manager": "lerna run start --stream --scope @package-manager/app",
-        "start:worker": "lerna run start --stream --scope @worker/app",
-        "start:single-app": "lerna run start --stream --scope @single-app/app",
-        "postinstall": "node scripts/update-packages.js",
-        "do:build-win32": "yarn install && yarn build && yarn build-win32 && yarn gather-built"
-    },
-    "devDependencies": {
-        "@sofie-automation/code-standard-preset": "^0.2.2",
-        "@types/jest": "^26.0.20",
-        "deep-extend": "^0.6.0",
-        "eslint-plugin-prettier": "^3.3.1",
-        "eslint": "7.19.0",
-        "glob": "^7.1.6",
-        "husky": "^4.3.8",
-        "jest": "^26.6.3",
-        "lerna": "^3.22.1",
-        "lint-staged": "^10.5.3",
-        "prettier": "^2.2.1",
-        "rimraf": "^3.0.2",
-        "ts-jest": "^26.5.0",
-        "typescript": "^4.0.0",
-        "trash": "^7.1.0",
-        "mkdirp": "^1.0.4",
-        "find": "^0.3.0",
-        "fs-extra": "^9.1.0"
-    },
-    "engines": {
-        "node": ">=12.3.0"
-    },
-    "dependencies": {
-        "@sofie-automation/blueprints-integration": "1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0",
-        "@sofie-automation/server-core-integration": "1.35.0-nightly-feat-package-management-20210521-082825-31727c2.0"
-    },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-    "husky": {
-        "hooks": {
-            "pre-commit": [
-                "node scripts/update-packages.js && lerna run --concurrency 1 --stream precommit --since HEAD --exclude-dependents"
-            ]
-        }
-    }
+	"name": "package-manager-monorepo",
+	"version": "1.0.0",
+	"repository": "https://github.com/nrkno/tv-automation-package-manager",
+	"private": true,
+	"workspaces": [
+		"shared/**",
+		"apps/**",
+		"tests/**"
+	],
+	"scripts": {
+		"ci": "yarn install && yarn build && yarn lint && yarn test",
+		"setup": "lerna bootstrap",
+		"build": "lerna run build --stream",
+		"build:changed": "lerna run --since origin/master --include-dependents build",
+		"lint": "lerna exec -- eslint . --ext .ts,.tsx",
+		"lintfix": "yarn lint --fix",
+		"lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
+		"test": "lerna run test --stream",
+		"test:changed": "lerna run --since origin/master --include-dependents test",
+		"test:update": "lerna run test -- -u",
+		"test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
+		"typecheck": "lerna exec -- tsc --noEmit",
+		"typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
+		"build-win32": "lerna run build-win32",
+		"gather-built": "node scripts/gather-all-built.js",
+		"start:http-server": "lerna run start --stream --scope @http-server/app",
+		"start:workforce": "lerna run start --stream --scope @workforce/app",
+		"start:package-manager": "lerna run start --stream --scope @package-manager/app",
+		"start:worker": "lerna run start --stream --scope @worker/app",
+		"start:single-app": "lerna run start --stream --scope @single-app/app",
+		"postinstall": "node scripts/update-packages.js",
+		"do:build-win32": "yarn install && yarn build && yarn build-win32 && yarn gather-built"
+	},
+	"devDependencies": {
+		"@sofie-automation/code-standard-preset": "^0.2.2",
+		"@types/jest": "^26.0.20",
+		"deep-extend": "^0.6.0",
+		"eslint-plugin-prettier": "^3.3.1",
+		"eslint": "7.19.0",
+		"glob": "^7.1.6",
+		"husky": "^4.3.8",
+		"jest": "^26.6.3",
+		"lerna": "^3.22.1",
+		"lint-staged": "^10.5.3",
+		"prettier": "^2.2.1",
+		"rimraf": "^3.0.2",
+		"ts-jest": "^26.5.0",
+		"typescript": "^4.0.0",
+		"trash": "^7.1.0",
+		"mkdirp": "^1.0.4",
+		"find": "^0.3.0",
+		"fs-extra": "^9.1.0"
+	},
+	"engines": {
+		"node": ">=12.3.0"
+	},
+	"dependencies": {
+		"@sofie-automation/blueprints-integration": "1.35.0-nightly-feat-package-management-20210614-115601-a4e77bd.0",
+		"@sofie-automation/server-core-integration": "1.35.0-nightly-feat-package-management-20210614-115601-a4e77bd.0"
+	},
+	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+	"husky": {
+		"hooks": {
+			"pre-commit": [
+				"node scripts/update-packages.js && lerna run --concurrency 1 --stream precommit --since HEAD --exclude-dependents"
+			]
+		}
+	}
 }
