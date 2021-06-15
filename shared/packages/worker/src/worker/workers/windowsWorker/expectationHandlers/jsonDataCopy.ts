@@ -14,9 +14,8 @@ import {
 	ReturnTypeRemoveExpectation,
 } from '@shared/api'
 import {
+	isCorePackageInfoAccessorHandle,
 	isFileShareAccessorHandle,
-	isFTPAccessorHandle,
-	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
@@ -36,7 +35,7 @@ import { diff } from 'deep-diff'
 /**
  * Copies a file from one of the sources and into the target PackageContainer
  */
-export const FileCopy: ExpectationWindowsHandler = {
+export const JsonDataCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
@@ -47,61 +46,19 @@ export const FileCopy: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		worker: GenericWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
-		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
 		worker: GenericWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
-		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
-
-		let sourceIsOld = false
-		// Do a quick check first:
-		if (isLocalFolderAccessorHandle(lookupSource.handle) || isFileShareAccessorHandle(lookupSource.handle)) {
-			const version = await lookupSource.handle.getPackageActualVersion()
-			if (
-				version.modifiedDate <
-				Date.now() - 1000 * 3600 * 6 // 6 hours
-			) {
-				// The file seems to be fairly old, it should be safe to assume that it is no longer transferring
-				sourceIsOld = true
-			}
-		}
-
-		const sourcePackageStabilityThreshold: number = worker.genericConfig.sourcePackageStabilityThreshold ?? 4000 // Defaults to 4000 ms
-		if (sourcePackageStabilityThreshold !== 0 && !sourceIsOld) {
-			// Check that the source is stable (such as that the file size hasn't changed), to not start working on growing files.
-			// This is similar to chokidars' awaitWriteFinish.stabilityThreshold feature.
-
-			const actualSourceVersion0 = await lookupSource.handle.getPackageActualVersion()
-
-			await waitTime(sourcePackageStabilityThreshold)
-
-			const actualSourceVersion1 = await lookupSource.handle.getPackageActualVersion()
-
-			// Note for posterity:
-			// In local tests with a file share this doesn't seem to work that well
-			// as the fs.stats doesn't seem to update during file copy in Windows.
-
-			const versionDiff = diff(actualSourceVersion0, actualSourceVersion1)
-
-			if (versionDiff) {
-				return {
-					ready: false,
-					sourceExists: true,
-					reason: {
-						user: `Waiting for source file to stop growing`,
-						tech: `Source is not stable (${userReadableDiff(versionDiff)})`,
-					},
-				}
-			}
-		}
 
 		// Also check if we actually can read from the package,
 		// this might help in some cases if the file is currently transferring
@@ -111,10 +68,6 @@ export const FileCopy: ExpectationWindowsHandler = {
 		return {
 			ready: true,
 			sourceExists: true,
-			// reason: {
-			// 	user: 'Ready to start copying',
-			// 	tech: `${lookupSource.reason}, ${lookupTarget.reason}`,
-			// },
 		}
 	},
 	isExpectationFullfilled: async (
@@ -122,7 +75,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 		_wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<ReturnTypeIsExpectationFullfilled> => {
-		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -162,11 +115,10 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		return {
 			fulfilled: true,
-			// reason: `File "${exp.endRequirement.content.filePath}" already exists on target`,
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
-		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
 		const startTime = Date.now()
@@ -184,92 +136,19 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
 		if (
-			process.platform === 'win32' && // Robocopy is a windows-only feature
-			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE) &&
-			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE)
-		) {
-			// We can do RoboCopy
-			if (!isLocalFolderAccessorHandle(sourceHandle) && !isFileShareAccessorHandle(sourceHandle))
-				throw new Error(`Source AccessHandler type is wrong`)
-			if (!isLocalFolderAccessorHandle(targetHandle) && !isFileShareAccessorHandle(targetHandle))
-				throw new Error(`Source AccessHandler type is wrong`)
-
-			if (sourceHandle.fullPath === targetHandle.fullPath) {
-				throw new Error('Unable to copy: Source and Target file paths are the same!')
-			}
-
-			let wasCancelled = false
-			let copying: CancelablePromise<void> | undefined
-			const workInProgress = new WorkInProgress({ workLabel: 'Copying, using Robocopy' }, async () => {
-				// on cancel
-				wasCancelled = true
-				copying?.cancel()
-
-				// Wait a bit to allow freeing up of resources:
-				await waitTime(1000)
-
-				// Remove target files
-				await targetHandle.removePackage()
-			}).do(async () => {
-				await targetHandle.packageIsInPlace()
-
-				const sourcePath = sourceHandle.fullPath
-				const targetPath = exp.workOptions.useTemporaryFilePath
-					? targetHandle.temporaryFilePath
-					: targetHandle.fullPath
-
-				copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
-					workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
-				})
-
-				await copying
-				// The copy is done at this point
-
-				copying = undefined
-				if (wasCancelled) return // ignore
-
-				await targetHandle.finalizePackage()
-				await targetHandle.updateMetadata(actualSourceUVersion)
-
-				const duration = Date.now() - startTime
-				workInProgress._reportComplete(
-					actualSourceVersionHash,
-					{
-						user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
-						tech: `Copy completed at ${Date.now()}`,
-					},
-					undefined
-				)
-			})
-
-			return workInProgress
-		} else if (
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
-			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
+				lookupSource.accessor.type === Accessor.AccessType.HTTP) &&
+			lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
 		) {
-			// We can copy by using file streams
+			// We can copy by using streams:
 			if (
 				!isLocalFolderAccessorHandle(lookupSource.handle) &&
 				!isFileShareAccessorHandle(lookupSource.handle) &&
-				!isHTTPAccessorHandle(lookupSource.handle) &&
-				!isFTPAccessorHandle(lookupSource.handle) &&
 				!isHTTPProxyAccessorHandle(lookupSource.handle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
-			if (
-				!isLocalFolderAccessorHandle(targetHandle) &&
-				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPAccessorHandle(targetHandle) &&
-				!isFTPAccessorHandle(targetHandle) &&
-				!isHTTPProxyAccessorHandle(targetHandle)
-			)
-				throw new Error(`Source AccessHandler type is wrong`)
+			if (!isCorePackageInfoAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
 
 			let wasCancelled = false
 			let sourceStream: PackageReadStream | undefined = undefined
@@ -288,21 +167,13 @@ export const FileCopy: ExpectationWindowsHandler = {
 					writeStream?.abort()
 				})
 			}).do(async () => {
-				const fileSize: number =
-					typeof actualSourceUVersion.fileSize.value === 'number'
-						? actualSourceUVersion.fileSize.value
-						: parseInt(actualSourceUVersion.fileSize.value || '0', 10)
-
-				const byteCounter = new ByteCounter()
-				byteCounter.on('progress', (bytes: number) => {
-					if (fileSize) {
-						workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
-					}
-				})
+				workInProgress._reportProgress(actualSourceVersionHash, 0.1)
 
 				if (wasCancelled) return
 				sourceStream = await lookupSource.handle.getPackageReadStream()
-				writeStream = await targetHandle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
+				writeStream = await targetHandle.putPackageStream(sourceStream.readStream)
+
+				workInProgress._reportProgress(actualSourceVersionHash, 0.5)
 
 				sourceStream.readStream.on('error', (err) => {
 					workInProgress._reportError(err)
@@ -316,14 +187,14 @@ export const FileCopy: ExpectationWindowsHandler = {
 						// Copying is done
 						;(async () => {
 							await targetHandle.finalizePackage()
-							await targetHandle.updateMetadata(actualSourceUVersion)
+							// await targetHandle.updateMetadata()
 
 							const duration = Date.now() - startTime
 							workInProgress._reportComplete(
 								actualSourceVersionHash,
 								{
-									user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
-									tech: `Copy completed at ${Date.now()}`,
+									user: `Completed in ${Math.round(duration / 100) / 10}s`,
+									tech: `Completed at ${Date.now()}`,
 								},
 								undefined
 							)
@@ -337,12 +208,12 @@ export const FileCopy: ExpectationWindowsHandler = {
 			return workInProgress
 		} else {
 			throw new Error(
-				`FileCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+				`JsonDataCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
 			)
 		}
 	},
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
-		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
@@ -362,8 +233,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 			return {
 				removed: false,
 				reason: {
-					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove file: ${err.toString()}`,
+					user: `Cannot remove json-data due to an internal error`,
+					tech: `Cannot remove json-data: ${err.toString()}`,
 				},
 			}
 		}
@@ -374,13 +245,13 @@ export const FileCopy: ExpectationWindowsHandler = {
 		}
 	},
 }
-function isFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {
-	return exp.type === Expectation.Type.FILE_COPY
+function isJsonDataCopy(exp: Expectation.Any): exp is Expectation.JsonDataCopy {
+	return exp.type === Expectation.Type.JSON_DATA_COPY
 }
 
 function lookupCopySources(
 	worker: GenericWorker,
-	exp: Expectation.FileCopy
+	exp: Expectation.JsonDataCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
@@ -396,7 +267,7 @@ function lookupCopySources(
 }
 function lookupCopyTargets(
 	worker: GenericWorker,
-	exp: Expectation.FileCopy
+	exp: Expectation.JsonDataCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,

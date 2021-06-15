@@ -23,6 +23,7 @@ export namespace Expectation {
 		// | QuantelClipDeepScan
 		| QuantelClipThumbnail
 		| QuantelClipPreview
+		| JsonDataCopy
 
 	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
@@ -38,6 +39,8 @@ export namespace Expectation {
 		// QUANTEL_CLIP_DEEP_SCAN = 'quantel_clip_deep_scan',
 		QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
 		QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
+
+		JSON_DATA_COPY = 'json_data_copy',
 	}
 
 	/** Common attributes of all Expectations */
@@ -251,6 +254,22 @@ export namespace Expectation {
 		}
 		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
+	/** Defines a File Copy. A File is to be copied from one of the Sources, to the Target. */
+	export interface JsonDataCopy extends Base {
+		type: Type.JSON_DATA_COPY
+
+		startRequirement: {
+			sources: SpecificPackageContainerOnPackage.File[]
+		}
+		endRequirement: {
+			targets: [SpecificPackageContainerOnPackage.File]
+			content: {
+				path: string
+			}
+			version: Version.ExpectedFileOnDisk // maybe something else?
+		}
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+	}
 
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
 	// eslint-disable-next-line @typescript-eslint/no-namespace
@@ -262,6 +281,7 @@ export namespace Expectation {
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
 					| AccessorOnPackage.FTP
 			}
 		}

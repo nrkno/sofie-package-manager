@@ -23,6 +23,7 @@ import {
 	LoggerInstance,
 	PackageContainerExpectation,
 	literal,
+	Reason,
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -351,7 +352,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		statusInfo: {
 			status?: string
 			progress?: number
-			statusReason?: string
+			statusReason?: Reason
 		}
 	): void {
 		if (!expectaction) {
@@ -366,7 +367,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				...{
 					status: 'N/A',
 					progress: 0,
-					statusReason: '',
+					statusReason: { user: '', tech: '' },
 				},
 				// Previous properties:
 				...((this.toReportExpectationStatus[expectationId]?.workStatus ||
@@ -405,7 +406,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				...{
 					status: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY,
 					progress: 0,
-					statusReason: '',
+					statusReason: { user: '', tech: '' },
 				},
 				// pre-existing properties:
 				...(((this.toReportPackageStatus[packageContainerPackageId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in the outer spread-assignment more strict
@@ -419,12 +420,12 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	public reportPackageContainerExpectationStatus(
 		containerId: string,
 		_packageContainer: PackageContainerExpectation | null,
-		statusInfo: { statusReason?: string | undefined }
+		statusInfo: { statusReason?: Reason }
 	): void {
 		// This is not (yet) reported to Core.
 		// ...to be implemented...
 		this.logger.info(`PackageContainerStatus "${containerId}"`)
-		this.logger.info(statusInfo.statusReason || '>No reason<')
+		this.logger.info(statusInfo.statusReason?.tech || '>No reason<')
 	}
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {

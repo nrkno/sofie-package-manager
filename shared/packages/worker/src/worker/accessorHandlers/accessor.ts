@@ -5,6 +5,7 @@ import { FileShareAccessorHandle } from './fileShare'
 import { FTPAccessorHandle } from './ftp'
 import { GenericAccessorHandle } from './genericHandle'
 import { HTTPAccessorHandle } from './http'
+import { HTTPProxyAccessorHandle } from './httpProxy'
 import { LocalFolderAccessorHandle } from './localFolder'
 import { QuantelAccessorHandle } from './quantel'
 
@@ -29,6 +30,8 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		return LocalFolderAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
 		return CorePackageInfoAccessorHandle
+	} else if (accessor.type === Accessor.AccessType.HTTP_PROXY) {
+		return HTTPProxyAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.HTTP) {
 		return HTTPAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.FILE_SHARE) {
@@ -55,6 +58,11 @@ export function isCorePackageInfoAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is CorePackageInfoAccessorHandle<Metadata> {
 	return accessorHandler.type === CorePackageInfoAccessorHandle.type
+}
+export function isHTTPProxyAccessorHandle<Metadata>(
+	accessorHandler: GenericAccessorHandle<Metadata>
+): accessorHandler is HTTPProxyAccessorHandle<Metadata> {
+	return accessorHandler.type === HTTPProxyAccessorHandle.type
 }
 export function isHTTPAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
@@ -93,6 +101,7 @@ export function getAccessorCost(accessorType: Accessor.AccessType | undefined): 
 			return 2
 		case Accessor.AccessType.HTTP:
 		case Accessor.AccessType.FTP:
+		case Accessor.AccessType.HTTP_PROXY:
 			return 3
 
 		case undefined:

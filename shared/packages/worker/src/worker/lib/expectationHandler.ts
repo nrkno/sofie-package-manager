@@ -45,6 +45,7 @@ export interface ExpectationHandler {
 	 */
 	isExpectationFullfilled: (
 		exp: Expectation.Any,
+		/** If the caller believes that the expectation was fullfilled before */
 		wasFullfilled: boolean,
 		genericWorker: GenericWorker,
 		specificWorker: any

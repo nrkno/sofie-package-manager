@@ -41,7 +41,14 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
 		if (lookupTarget.accessor.type === Accessor.AccessType.QUANTEL) {
-			if (!lookupTarget.accessor.serverId) return { ready: false, reason: `Target Accessor has no serverId set` }
+			if (!lookupTarget.accessor.serverId)
+				return {
+					ready: false,
+					reason: {
+						user: `There is an issue in the settings: The Accessor "${lookupTarget.handle.accessorId}" has no serverId set`,
+						tech: `Target Accessor "${lookupTarget.handle.accessorId}" has no serverId set`,
+					},
+				}
 		}
 
 		// // Do a check, to ensure that the source and targets are Quantel:
@@ -51,13 +58,13 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		// 	return { ready: false, reason: `Target Accessor type not supported: ${lookupSource.accessor.type}` }
 
 		// Also check if we actually can read from the package:
-		const issueReading = await lookupSource.handle.tryPackageRead()
-		if (issueReading) return { ready: false, reason: issueReading }
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
 
 		return {
 			ready: true,
 			sourceExists: true,
-			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -69,16 +76,32 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready)
-			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
+					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
+				},
+			}
 
 		const issuePackage = await lookupTarget.handle.checkPackageReadAccess()
-		if (issuePackage) {
-			return { fulfilled: false, reason: `Clip not found: ${issuePackage.toString()}` }
+		if (!issuePackage.success) {
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Target package: ${issuePackage.reason.user}`,
+					tech: `Target package: ${issuePackage.reason.tech}`,
+				},
+			}
 		}
 
 		// Does the clip exist on the target?
 		const actualTargetVersion = await lookupTarget.handle.getPackageActualVersion()
-		if (!actualTargetVersion) return { fulfilled: false, reason: `No package found on target` }
+		if (!actualTargetVersion)
+			return {
+				fulfilled: false,
+				reason: { user: `No clip found on target`, tech: `No clip found on target` },
+			}
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
@@ -91,15 +114,12 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 			makeUniversalVersion(actualSourceVersion),
 			makeUniversalVersion(actualTargetVersion)
 		)
-		if (issueVersions) {
-			return { fulfilled: false, reason: issueVersions }
+		if (!issueVersions.success) {
+			return { fulfilled: false, reason: issueVersions.reason }
 		}
 
 		return {
 			fulfilled: true,
-			reason: `Clip "${
-				exp.endRequirement.content.guid || exp.endRequirement.content.title
-			}" already exists on target`,
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -210,7 +230,10 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 						const duration = Date.now() - startTime
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
-							`Copy completed in ${Math.round(duration / 100) / 10}s`,
+							{
+								user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
+								tech: `Completed at ${Date.now()}`,
+							},
 							undefined
 						)
 					})().catch((err) => {
@@ -232,18 +255,29 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) {
-			return { removed: false, reason: `No access to target: ${lookupTarget.reason}` }
+			return {
+				removed: false,
+				reason: {
+					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
+					tech: `No access to target: ${lookupTarget.reason.tech}`,
+				},
+			}
 		}
 
 		try {
 			await lookupTarget.handle.removePackage()
 		} catch (err) {
-			return { removed: false, reason: `Cannot remove clip: ${err.toString()}` }
+			return {
+				removed: false,
+				reason: {
+					user: `Cannot remove clip due to an internal error`,
+					tech: `Cannot remove preview clip: ${err.toString()}`,
+				},
+			}
 		}
 
 		return {
 			removed: true,
-			reason: `Removed clip "${exp.endRequirement.content.guid || exp.endRequirement.content.title}" from target`,
 		}
 	},
 }

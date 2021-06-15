@@ -14,7 +14,7 @@ import {
 import {
 	isCorePackageInfoAccessorHandle,
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 	isQuantelClipAccessorHandle,
 } from '../../../accessorHandlers/accessor'
@@ -33,7 +33,14 @@ export const PackageScan: ExpectationWindowsHandler = {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	): ReturnTypeDoYouSupportExpectation {
-		if (!windowsWorker.hasFFProbe) return { support: false, reason: 'Cannot access FFProbe executable' }
+		if (!windowsWorker.hasFFMpeg)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker: FFMpeg not found',
+					tech: 'Cannot access FFMpeg executable',
+				},
+			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
@@ -57,13 +64,12 @@ export const PackageScan: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupScanSources(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
-		const issueReading = await lookupSource.handle.tryPackageRead()
-		if (issueReading) return { ready: false, reason: issueReading }
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
 
 		return {
 			ready: true,
 			sourceExists: true,
-			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -75,10 +81,22 @@ export const PackageScan: ExpectationWindowsHandler = {
 
 		const lookupSource = await lookupScanSources(worker, exp)
 		if (!lookupSource.ready)
-			return { fulfilled: false, reason: `Not able to access source: ${lookupSource.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access source, due to ${lookupSource.reason.user}`,
+					tech: `Not able to access source: ${lookupSource.reason.tech}`,
+				},
+			}
 		const lookupTarget = await lookupScanTargets(worker, exp)
 		if (!lookupTarget.ready)
-			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access target, due to ${lookupTarget.reason.user}`,
+					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
+				},
+			}
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
@@ -98,7 +116,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
-			return { fulfilled: true, reason: packageInfoSynced.reason }
+			return { fulfilled: true }
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -123,22 +141,22 @@ export const PackageScan: ExpectationWindowsHandler = {
 			if (
 				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-					lookupSource.accessor.type === Accessor.AccessType.HTTP ||
+					lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY ||
 					lookupSource.accessor.type === Accessor.AccessType.QUANTEL) &&
 				lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
 			) {
 				if (
 					!isLocalFolderAccessorHandle(sourceHandle) &&
 					!isFileShareAccessorHandle(sourceHandle) &&
-					!isHTTPAccessorHandle(sourceHandle) &&
+					!isHTTPProxyAccessorHandle(sourceHandle) &&
 					!isQuantelClipAccessorHandle(sourceHandle)
 				)
 					throw new Error(`Source AccessHandler type is wrong`)
 				if (!isCorePackageInfoAccessorHandle(targetHandle))
 					throw new Error(`Target AccessHandler type is wrong`)
 
-				const issueReadPackage = await sourceHandle.checkPackageReadAccess()
-				if (issueReadPackage) throw new Error(issueReadPackage)
+				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
+				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
 
 				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
 				const sourceVersionHash = hashObj(actualSourceVersion)
@@ -164,7 +182,10 @@ export const PackageScan: ExpectationWindowsHandler = {
 				const duration = Date.now() - startTime
 				workInProgress._reportComplete(
 					sourceVersionHash,
-					`Scan completed in ${Math.round(duration / 100) / 10}s`,
+					{
+						user: `Scan completed in ${Math.round(duration / 100) / 10}s`,
+						tech: `Completed at ${Date.now()}`,
+					},
 					undefined
 				)
 			} else {
@@ -179,12 +200,29 @@ export const PackageScan: ExpectationWindowsHandler = {
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupScanTargets(worker, exp)
-		if (!lookupTarget.ready) return { removed: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+		if (!lookupTarget.ready)
+			return {
+				removed: false,
+				reason: {
+					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
+					tech: `No access to target: ${lookupTarget.reason.tech}`,
+				},
+			}
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
-		await lookupTarget.handle.removePackageInfo('scan', exp)
+		try {
+			await lookupTarget.handle.removePackageInfo('scan', exp)
+		} catch (err) {
+			return {
+				removed: false,
+				reason: {
+					user: `Cannot remove the scan result due to an internal error`,
+					tech: `Cannot remove CorePackageInfo: ${err.toString()}`,
+				},
+			}
+		}
 
-		return { removed: true, reason: 'Removed scan info from Store' }
+		return { removed: true }
 	},
 }
 function isPackageScan(exp: Expectation.Any): exp is Expectation.PackageScan {

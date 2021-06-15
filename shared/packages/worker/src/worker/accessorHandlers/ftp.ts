@@ -1,17 +1,16 @@
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
+import { AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import {
+	AccessorHandlerResult,
 	GenericAccessorHandle,
-	PackageReadInfo,
 	PackageReadInfoQuantelClip,
 	PackageReadInfoWrap,
-	PackageReadStream,
 	PutPackageHandler,
 } from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { Client, AccessOptions, FTPResponse } from 'basic-ftp'
 import { URL } from 'url'
-import { Readable, Writable, Duplex } from 'stream'
+import { Readable, Duplex } from 'stream'
 
 const METADATA_FILE_SUFFIX = '_metadata.json'
 
@@ -50,23 +49,34 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		}
 	}
 
-	checkHandleRead(): string | undefined {
+	checkHandleRead(): AccessorHandlerResult {
 		throw new Error('Method not implemented.')
 	}
-
-	checkHandleWrite(): string | undefined {
+	checkHandleWrite(): AccessorHandlerResult {
 		throw new Error('Method not implemented.')
 	}
-
-	checkPackageReadAccess(): Promise<string | undefined> {
+	checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		throw new Error('Method not implemented.')
 	}
-
-	tryPackageRead(): Promise<string | undefined> {
+	tryPackageRead(): Promise<AccessorHandlerResult> {
 		throw new Error('Method not implemented.')
 	}
-
-	checkPackageContainerWriteAccess(): Promise<string | undefined> {
+	checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+		throw new Error('Method not implemented.')
+	}
+	putPackageInfo(_readInfo: PackageReadInfoQuantelClip): Promise<PutPackageHandler> {
+		throw new Error('Method not implemented.')
+	}
+	finalizePackage(): Promise<void> {
+		throw new Error('Method not implemented.')
+	}
+	runCronJob(_packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+		throw new Error('Method not implemented.')
+	}
+	setupPackageContainerMonitors(_packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+		throw new Error('Method not implemented.')
+	}
+	disposePackageContainerMonitors(_packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
 		throw new Error('Method not implemented.')
 	}
 
@@ -149,26 +159,6 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 	getPackageReadInfo(): Promise<PackageReadInfoWrap> {
 		throw new Error('Method not implemented.')
 	}
-
-	putPackageInfo(readInfo: PackageReadInfoQuantelClip): Promise<PutPackageHandler> {
-		throw new Error('Method not implemented.')
-	}
-
-	finalizePackage(): Promise<void> {
-		throw new Error('Method not implemented.')
-	}
-
-	runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
-		throw new Error('Method not implemented.')
-	}
-
-	setupPackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
-		throw new Error('Method not implemented.')
-	}
-
-	disposePackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
-		throw new Error('Method not implemented.')
-	}
 }
 
 /**
@@ -177,12 +167,10 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
  * @param response {FTPResponse} - the response to check
  * @throws {Error} - if the response indicates a problem
  */
-function checkFtpResponse(response: FTPResponse) {
+function checkFtpResponse(response: FTPResponse): void {
 	// should check response code, see https://en.wikipedia.org/wiki/List_of_FTP_server_return_codes
 	// for now, just assume anything under 400 to be fine
 	if (response.code >= 400) {
 		throw new Error(`FTP error ${response.code}: ${response.message}`)
 	}
-
-	return
 }

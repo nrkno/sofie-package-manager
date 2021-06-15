@@ -5,7 +5,7 @@ import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { Diff } from 'deep-diff'
-import { Expectation, ReturnTypeDoYouSupportExpectation } from '@shared/api'
+import { Expectation, Reason, ReturnTypeDoYouSupportExpectation } from '@shared/api'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainersOnPackage(
@@ -22,9 +22,12 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 		if (!accessSourcePackageContainer) {
 			return {
 				support: false,
-				reason: `Doesn't have access to any of the source packageContainers (${checks.sources
-					.map((o) => o.containerId)
-					.join(', ')})`,
+				reason: {
+					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the source PackageContainers`,
+					tech: `Worker doesn't have access to any of the source packageContainers (${checks.sources
+						.map((o) => o.containerId)
+						.join(', ')})`,
+				},
 			}
 		}
 	}
@@ -35,43 +38,46 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 		if (!accessTargetPackageContainer) {
 			return {
 				support: false,
-				reason: `Doesn't have access to any of the target packageContainers (${checks.targets
-					.map((o) => o.containerId)
-					.join(', ')})`,
+				reason: {
+					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the target PackageContainers`,
+					tech: `Worker doesn't have access to any of the target packageContainers (${checks.targets
+						.map((o) => o.containerId)
+						.join(', ')})`,
+				},
 			}
 		}
 	}
 
-	const hasAccessTo: string[] = []
-	if (accessSourcePackageContainer) {
-		hasAccessTo.push(
-			`source "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}"`
-		)
-	}
-	if (accessTargetPackageContainer) {
-		hasAccessTo.push(
-			`target "${accessTargetPackageContainer.packageContainer.label}" through accessor "${accessTargetPackageContainer.accessorId}"`
-		)
-	}
+	// const hasAccessTo: string[] = []
+	// if (accessSourcePackageContainer) {
+	// 	hasAccessTo.push(
+	// 		`source "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}"`
+	// 	)
+	// }
+	// if (accessTargetPackageContainer) {
+	// 	hasAccessTo.push(
+	// 		`target "${accessTargetPackageContainer.packageContainer.label}" through accessor "${accessTargetPackageContainer.accessorId}"`
+	// 	)
+	// }
 
 	return {
 		support: true,
-		reason: `Has access to ${hasAccessTo.join(' and ')}`,
+		// reason: `Has access to ${hasAccessTo.join(' and ')}`,
 	}
 }
 
 export type LookupPackageContainer<Metadata> =
 	| {
+			ready: true
 			accessor: AccessorOnPackage.Any
 			handle: GenericAccessorHandle<Metadata>
-			ready: true
-			reason: string
+			// reason: Reason
 	  }
 	| {
-			accessor: undefined
-			handle: undefined
 			ready: false
-			reason: string
+			accessor: undefined
+			// handle: undefined
+			reason: Reason
 	  }
 interface LookupChecks {
 	/** Check that the accessor-handle supports reading */
@@ -95,7 +101,7 @@ export async function lookupAccessorHandles<Metadata>(
 	checks: LookupChecks
 ): Promise<LookupPackageContainer<Metadata>> {
 	/** undefined if all good, error string otherwise */
-	let errorReason: undefined | string = 'No target found'
+	let errorReason: undefined | Reason = { user: 'No target found', tech: 'No target found' }
 
 	// See if the file is available at any of the targets:
 	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
@@ -111,22 +117,33 @@ export async function lookupAccessorHandles<Metadata>(
 
 		if (checks.read) {
 			// Check that the accessor-handle supports reading:
-			const issueHandleRead = handle.checkHandleRead()
-			if (issueHandleRead) {
-				errorReason = `${packageContainer.label}: Accessor "${
-					accessor.label || accessorId
-				}": ${issueHandleRead}`
+			const readResult = handle.checkHandleRead()
+			if (!readResult.success) {
+				errorReason = {
+					user: `There is an issue with the configuration for the PackageContainer "${
+						packageContainer.label
+					}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						readResult.reason.tech
+					}`,
+				}
 				continue // Maybe next accessor works?
 			}
 		}
 
 		if (checks.readPackage) {
 			// Check that the Package can be read:
-			const issuePackageReadAccess = await handle.checkPackageReadAccess()
-			if (issuePackageReadAccess) {
-				errorReason = `${packageContainer.label}: Accessor "${
-					accessor.label || accessorId
-				}": ${issuePackageReadAccess}`
+			const readResult = await handle.checkPackageReadAccess()
+			if (!readResult.success) {
+				errorReason = {
+					user: `Can't read the Package from PackageContainer "${packageContainer.label}" (on accessor "${
+						accessor.label || accessorId
+					}"), due to: ${readResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						readResult.reason.tech
+					}`,
+				}
+
 				continue // Maybe next accessor works?
 			}
 		}
@@ -134,30 +151,45 @@ export async function lookupAccessorHandles<Metadata>(
 			// Check that the version of the Package is correct:
 			const actualSourceVersion = await handle.getPackageActualVersion()
 
-			const issuePackageVersion = compareActualExpectVersions(actualSourceVersion, checks.packageVersion)
-			if (issuePackageVersion) {
-				errorReason = `${packageContainer.label}: Accessor "${
-					accessor.label || accessorId
-				}": ${issuePackageVersion}`
+			const compareVersionResult = compareActualExpectVersions(actualSourceVersion, checks.packageVersion)
+			if (!compareVersionResult.success) {
+				errorReason = {
+					user: `Won't read from the package, due to: ${compareVersionResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						compareVersionResult.reason.tech
+					}`,
+				}
 				continue // Maybe next accessor works?
 			}
 		}
 
 		if (checks.write) {
 			// Check that the accessor-handle supports writing:
-			const issueHandleWrite = handle.checkHandleWrite()
-			if (issueHandleWrite) {
-				errorReason = `${packageContainer.label}: lookupTargets: Accessor "${
-					accessor.label || accessorId
-				}": ${issueHandleWrite}`
+			const writeResult = handle.checkHandleWrite()
+			if (!writeResult.success) {
+				errorReason = {
+					user: `There is an issue with the configuration for the PackageContainer "${
+						packageContainer.label
+					}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
+					tech: `${packageContainer.label}: lookupTargets: Accessor "${accessor.label || accessorId}": ${
+						writeResult.reason.tech
+					}`,
+				}
 				continue // Maybe next accessor works?
 			}
 		}
 		if (checks.writePackageContainer) {
 			// Check that it is possible to write to write to the package container:
-			const issuePackage = await handle.checkPackageContainerWriteAccess()
-			if (issuePackage) {
-				errorReason = `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${issuePackage}`
+			const writeAccessResult = await handle.checkPackageContainerWriteAccess()
+			if (!writeAccessResult.success) {
+				errorReason = {
+					user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${
+						accessor.label || accessorId
+					}"), due to: ${writeAccessResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						writeAccessResult.reason.tech
+					}`,
+				}
 				continue // Maybe next accessor works?
 			}
 		}
@@ -168,15 +200,14 @@ export async function lookupAccessorHandles<Metadata>(
 				accessor: accessor,
 				handle: handle,
 				ready: true,
-				reason: `Can access target "${packageContainer.label}" through accessor "${
-					accessor.label || accessorId
-				}"`,
+				// reason: `Can access target "${packageContainer.label}" through accessor "${
+				// 	accessor.label || accessorId
+				// }"`,
 			}
 		}
 	}
 	return {
 		accessor: undefined,
-		handle: undefined,
 		ready: false,
 		reason: errorReason,
 	}

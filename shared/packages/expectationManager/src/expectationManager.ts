@@ -10,6 +10,7 @@ import {
 	Hook,
 	LoggerInstance,
 	PackageContainerExpectation,
+	Reason,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
@@ -285,7 +286,7 @@ export class ExpectationManager {
 			wipEventDone: async (
 				wipId: number,
 				actualVersionHash: string,
-				reason: string,
+				reason: Reason,
 				_result: any
 			): Promise<void> => {
 				const wip = this.worksInProgress[`${clientId}_${wipId}`]
@@ -315,12 +316,12 @@ export class ExpectationManager {
 					delete this.worksInProgress[`${clientId}_${wipId}`]
 				}
 			},
-			wipEventError: async (wipId: number, error: string): Promise<void> => {
+			wipEventError: async (wipId: number, reason: Reason): Promise<void> => {
 				const wip = this.worksInProgress[`${clientId}_${wipId}`]
 				if (wip) {
 					if (wip.trackedExp.state === TrackedExpectationState.WORKING) {
 						wip.trackedExp.errorCount++
-						this.updateTrackedExpStatus(wip.trackedExp, TrackedExpectationState.WAITING, error)
+						this.updateTrackedExpStatus(wip.trackedExp, TrackedExpectationState.WAITING, reason)
 						this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
 							status: wip.trackedExp.state,
 							statusReason: wip.trackedExp.reason,
@@ -393,15 +394,24 @@ export class ExpectationManager {
 					availableWorkers: [],
 					lastEvaluationTime: 0,
 					errorCount: 0,
-					reason: '',
+					reason: {
+						user: '',
+						tech: '',
+					},
 					status: {},
 					session: null,
 				}
 				this.trackedExpectations[id] = trackedExp
 				if (isNew) {
-					this.updateTrackedExpStatus(trackedExp, undefined, 'Added just now')
+					this.updateTrackedExpStatus(trackedExp, undefined, {
+						user: `Added just now`,
+						tech: `Added ${Date.now()}`,
+					})
 				} else {
-					this.updateTrackedExpStatus(trackedExp, undefined, 'Updated just now')
+					this.updateTrackedExpStatus(trackedExp, undefined, {
+						user: `Updated just now`,
+						tech: `Updated ${Date.now()}`,
+					})
 				}
 			}
 		}
@@ -612,7 +622,10 @@ export class ExpectationManager {
 				trackedExp.availableWorkers = []
 				trackedExp.status = {}
 
-				let notSupportReason = 'No workers registered'
+				let notSupportReason: Reason = {
+					user: 'No workers registered (this is likely a configuration issue)',
+					tech: 'No workers registered',
+				}
 				await Promise.all(
 					Object.entries(this.workerAgents).map(async ([id, workerAgent]) => {
 						const support = await workerAgent.api.doYouSupportExpectation(trackedExp.exp)
@@ -625,18 +638,16 @@ export class ExpectationManager {
 					})
 				)
 				if (trackedExp.availableWorkers.length) {
-					this.updateTrackedExpStatus(
-						trackedExp,
-						TrackedExpectationState.WAITING,
-						`Found ${trackedExp.availableWorkers.length} workers who supports this Expectation`
-					)
+					this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.WAITING, {
+						user: `${trackedExp.availableWorkers.length} workers available, about to start...`,
+						tech: `Found ${trackedExp.availableWorkers.length} workers who supports this Expectation`,
+					})
 					trackedExp.session.triggerExpectationAgain = true
 				} else {
-					this.updateTrackedExpStatus(
-						trackedExp,
-						TrackedExpectationState.NEW,
-						`Found no workers who supports this Expectation: "${notSupportReason}"`
-					)
+					this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.NEW, {
+						user: `Found no workers who supports this Expectation, due to: ${notSupportReason.user}`,
+						tech: `Found no workers who supports this Expectation: "${notSupportReason.tech}"`,
+					})
 				}
 			} else if (trackedExp.state === TrackedExpectationState.WAITING) {
 				// Check if the expectation is ready to start:
@@ -651,7 +662,7 @@ export class ExpectationManager {
 					)
 					if (fulfilled.fulfilled) {
 						// The expectation is already fulfilled:
-						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.FULFILLED, fulfilled.reason)
+						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.FULFILLED, undefined)
 						if (this.handleTriggerByFullfilledIds(trackedExp)) {
 							// Something was triggered, run again ASAP:
 							trackedExp.session.triggerOtherExpectationsAgain = true
@@ -669,7 +680,10 @@ export class ExpectationManager {
 							this.updateTrackedExpStatus(
 								trackedExp,
 								TrackedExpectationState.READY,
-								'Ready to start',
+								{
+									user: 'About to start working..',
+									tech: 'About to start working..',
+								},
 								newStatus
 							)
 							trackedExp.session.triggerExpectationAgain = true
@@ -689,7 +703,7 @@ export class ExpectationManager {
 					this.updateTrackedExpStatus(
 						trackedExp,
 						undefined,
-						trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
+						this.getNoAssignedWorkerReason(trackedExp.session)
 					)
 				}
 			} else if (trackedExp.state === TrackedExpectationState.READY) {
@@ -728,7 +742,7 @@ export class ExpectationManager {
 					this.updateTrackedExpStatus(
 						trackedExp,
 						undefined,
-						trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
+						this.getNoAssignedWorkerReason(trackedExp.session)
 					)
 				}
 			} else if (trackedExp.state === TrackedExpectationState.WORKING) {
@@ -762,7 +776,7 @@ export class ExpectationManager {
 						this.updateTrackedExpStatus(
 							trackedExp,
 							undefined,
-							trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
+							this.getNoAssignedWorkerReason(trackedExp.session)
 						)
 					}
 				} else {
@@ -785,7 +799,7 @@ export class ExpectationManager {
 					this.updateTrackedExpStatus(
 						trackedExp,
 						undefined,
-						trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
+						this.getNoAssignedWorkerReason(trackedExp.session)
 					)
 				}
 			} else if (trackedExp.state === TrackedExpectationState.RESTARTED) {
@@ -794,7 +808,10 @@ export class ExpectationManager {
 					// Start by removing the expectation
 					const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
 					if (removed.removed) {
-						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.NEW, 'Ready to start')
+						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.NEW, {
+							user: 'Ready to start (after restart)',
+							tech: 'Ready to start (after restart)',
+						})
 						trackedExp.session.triggerExpectationAgain = true
 					} else {
 						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.RESTARTED, removed.reason)
@@ -805,7 +822,7 @@ export class ExpectationManager {
 					this.updateTrackedExpStatus(
 						trackedExp,
 						undefined,
-						trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
+						this.getNoAssignedWorkerReason(trackedExp.session)
 					)
 				}
 			} else if (trackedExp.state === TrackedExpectationState.ABORTED) {
@@ -815,7 +832,10 @@ export class ExpectationManager {
 					const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
 					if (removed.removed) {
 						// This will cause the expectation to be intentionally stuck in the ABORTED state.
-						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.ABORTED, 'Aborted')
+						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.ABORTED, {
+							user: 'Aborted',
+							tech: 'Aborted',
+						})
 					} else {
 						this.updateTrackedExpStatus(trackedExp, TrackedExpectationState.ABORTED, removed.reason)
 					}
@@ -825,7 +845,7 @@ export class ExpectationManager {
 					this.updateTrackedExpStatus(
 						trackedExp,
 						undefined,
-						trackedExp.session.noAssignedWorkerReason || 'Unknown reason'
+						this.getNoAssignedWorkerReason(trackedExp.session)
 					)
 				}
 			} else {
@@ -850,7 +870,7 @@ export class ExpectationManager {
 	private updateTrackedExpStatus(
 		trackedExp: TrackedExpectation,
 		state: TrackedExpectationState | undefined,
-		reason: string | undefined,
+		reason: Reason | undefined,
 		newStatus?: Partial<TrackedExpectation['status']>
 	) {
 		trackedExp.lastEvaluationTime = Date.now()
@@ -867,8 +887,8 @@ export class ExpectationManager {
 			updatedState = true
 		}
 
-		if (trackedExp.reason !== reason) {
-			trackedExp.reason = reason || ''
+		if (!_.isEqual(trackedExp.reason, reason)) {
+			trackedExp.reason = reason || { user: '', tech: '' }
 			updatedReason = true
 		}
 		const status = Object.assign({}, trackedExp.status, newStatus) // extend with new values
@@ -879,11 +899,11 @@ export class ExpectationManager {
 		// Log and report new states an reasons:
 		if (updatedState) {
 			this.logger.info(
-				`${trackedExp.exp.statusReport.label}: New state: "${prevState}"->"${trackedExp.state}", reason: "${trackedExp.reason}"`
+				`${trackedExp.exp.statusReport.label}: New state: "${prevState}"->"${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
 			)
 		} else if (updatedReason) {
 			this.logger.info(
-				`${trackedExp.exp.statusReport.label}: State: "${trackedExp.state}", reason: "${trackedExp.reason}"`
+				`${trackedExp.exp.statusReport.label}: State: "${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
 			)
 		}
 
@@ -943,7 +963,7 @@ export class ExpectationManager {
 		const minWorkerCount = batchSize / 2
 
 		if (!trackedExp.availableWorkers.length) {
-			session.noAssignedWorkerReason = 'No workers available'
+			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }
 		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
@@ -991,7 +1011,10 @@ export class ExpectationManager {
 			// Only allow starting if the job can start in a short while
 			session.assignedWorker = bestWorker
 		} else {
-			session.noAssignedWorkerReason = `Waiting for a free worker (${trackedExp.availableWorkers.length} busy)`
+			session.noAssignedWorkerReason = {
+				user: `Waiting for a free worker (${trackedExp.availableWorkers.length} workers are currently busy)`,
+				tech: `Waiting for a free worker (${trackedExp.availableWorkers.length} busy)`,
+			}
 		}
 	}
 	/**
@@ -1031,7 +1054,10 @@ export class ExpectationManager {
 			if (waitingFor) {
 				return {
 					ready: false,
-					reason: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+					reason: {
+						user: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+						tech: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+					},
 				}
 			}
 		}
@@ -1061,6 +1087,7 @@ export class ExpectationManager {
 					currentWorker: null,
 					isUpdated: true,
 					lastEvaluationTime: 0,
+					monitorIsSetup: false,
 					status: {
 						monitors: {},
 					},
@@ -1094,14 +1121,14 @@ export class ExpectationManager {
 				// If the packageContainer was newly updated, reset and set up again:
 				if (trackedPackageContainer.currentWorker) {
 					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
-					const dispose = await workerAgent.api.disposePackageContainerMonitors(
+					const disposeMonitorResult = await workerAgent.api.disposePackageContainerMonitors(
 						trackedPackageContainer.packageContainer
 					)
-					if (!dispose.disposed) {
-						this.updateTrackedPackageContainerStatus(
-							trackedPackageContainer,
-							'Unable to dispose: ' + dispose.reason
-						)
+					if (!disposeMonitorResult.success) {
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+							user: `Unable to remove monitor, due to ${disposeMonitorResult.reason}`,
+							tech: `Unable to dispose monitor: ${disposeMonitorResult.reason}`,
+						})
 						continue // Break further execution for this PackageContainer
 					}
 					trackedPackageContainer.currentWorker = null
@@ -1115,10 +1142,10 @@ export class ExpectationManager {
 					trackedPackageContainer.currentWorker = null
 				}
 			}
-			let currentWorkerIsNew = false
 			if (!trackedPackageContainer.currentWorker) {
-				// Find a worker
-				let notSupportReason: string | null = null
+				// Find a worker that supports this PackageContainer
+
+				let notSupportReason: Reason | null = null
 				await Promise.all(
 					Object.entries(this.workerAgents).map(async ([workerId, workerAgent]) => {
 						const support = await workerAgent.api.doYouSupportPackageContainer(
@@ -1127,7 +1154,6 @@ export class ExpectationManager {
 						if (!trackedPackageContainer.currentWorker) {
 							if (support.support) {
 								trackedPackageContainer.currentWorker = workerId
-								currentWorkerIsNew = true
 							} else {
 								notSupportReason = support.reason
 							}
@@ -1135,13 +1161,16 @@ export class ExpectationManager {
 					})
 				)
 				if (!trackedPackageContainer.currentWorker) {
-					notSupportReason = 'Found no worker that supports this packageContainer'
+					notSupportReason = {
+						user: 'Found no worker that supports this packageContainer',
+						tech: 'Found no worker that supports this packageContainer',
+					}
 				}
 				if (notSupportReason) {
-					this.updateTrackedPackageContainerStatus(
-						trackedPackageContainer,
-						'Not supported: ' + notSupportReason
-					)
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+						user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
+						tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
+					})
 					continue // Break further execution for this PackageContainer
 				}
 			}
@@ -1149,27 +1178,38 @@ export class ExpectationManager {
 			if (trackedPackageContainer.currentWorker) {
 				const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
 
-				if (currentWorkerIsNew) {
+				if (!trackedPackageContainer.monitorIsSetup) {
 					const monitorSetup = await workerAgent.api.setupPackageContainerMonitors(
 						trackedPackageContainer.packageContainer
 					)
 
 					trackedPackageContainer.status.monitors = {}
-					for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors ?? {})) {
-						trackedPackageContainer.status.monitors[monitorId] = {
-							label: monitor.label,
-							reason: 'Starting up',
+					if (monitorSetup.success) {
+						trackedPackageContainer.monitorIsSetup = true
+						for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
+							trackedPackageContainer.status.monitors[monitorId] = {
+								label: monitor.label,
+								reason: {
+									user: 'Starting up',
+									tech: 'Starting up',
+								},
+							}
 						}
+					} else {
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+							user: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.user}`,
+							tech: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.tech}`,
+						})
 					}
 				}
 				const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
 					trackedPackageContainer.packageContainer
 				)
-				if (!cronJobStatus.completed) {
-					this.updateTrackedPackageContainerStatus(
-						trackedPackageContainer,
-						'Cron job not completed: ' + cronJobStatus.reason
-					)
+				if (!cronJobStatus.success) {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+						user: 'Cron job not completed: ' + cronJobStatus.reason.user,
+						tech: 'Cron job not completed: ' + cronJobStatus.reason.tech,
+					})
 					continue
 				}
 			}
@@ -1177,7 +1217,7 @@ export class ExpectationManager {
 	}
 	private updateTrackedPackageContainerStatus(
 		trackedPackageContainer: TrackedPackageContainerExpectation,
-		reason: string | undefined
+		reason: Reason
 	) {
 		trackedPackageContainer.lastEvaluationTime = Date.now()
 
@@ -1203,6 +1243,18 @@ export class ExpectationManager {
 				}
 			)
 		}
+	}
+	private getNoAssignedWorkerReason(session: ExpectationStateHandlerSession): ExpectedPackageStatusAPI.Reason {
+		if (!session.noAssignedWorkerReason) {
+			this.logger.error(
+				`trackedExp.session.noAssignedWorkerReason is undefined, although assignedWorker was set..`
+			)
+			return {
+				user: 'Unknown reason (internal error)',
+				tech: 'Unknown reason',
+			}
+		}
+		return session.noAssignedWorkerReason
 	}
 }
 export type ExpectationManagerServerOptions =
@@ -1235,8 +1287,8 @@ interface TrackedExpectation {
 
 	/** The current State of the expectation. */
 	state: TrackedExpectationState
-	/** Human-readable reason for the current state. (To be used in GUIs) */
-	reason: string
+	/** Reason for the current state. */
+	reason: Reason
 
 	/** List of worker ids that supports this Expectation */
 	availableWorkers: string[]
@@ -1273,7 +1325,7 @@ interface ExpectationStateHandlerSession {
 
 	/** The Worker assigned to the Expectation during this evaluation-session */
 	assignedWorker?: WorkerAgentAssignment
-	noAssignedWorkerReason?: string
+	noAssignedWorkerReason?: Reason
 }
 interface WorkerAgentAssignment {
 	worker: WorkerAgentAPI
@@ -1291,7 +1343,7 @@ export interface ExpectationManagerCallbacks {
 		statusInfo: {
 			status?: string
 			progress?: number
-			statusReason?: string
+			statusReason?: Reason
 		}
 	) => void
 	reportPackageContainerPackageStatus: (
@@ -1303,7 +1355,7 @@ export interface ExpectationManagerCallbacks {
 		containerId: string,
 		packageContainer: PackageContainerExpectation | null,
 		statusInfo: {
-			statusReason?: string
+			statusReason?: Reason
 		}
 	) => void
 	messageFromWorker: MessageFromWorker
@@ -1322,13 +1374,17 @@ interface TrackedPackageContainerExpectation {
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
 
+	/** If the monitor is set up okay */
+	monitorIsSetup: boolean
+
 	/** These statuses are sent from the workers */
 	status: {
-		reason?: string
+		/** Reason for the status (used in GUIs) */
+		reason?: Reason
 		monitors: {
 			[monitorId: string]: {
 				label: string
-				reason: string
+				reason: Reason
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler } from './genericHandle'
-import { hashObj, Expectation } from '@shared/api'
+import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
+import { hashObj, Expectation, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 
 /** Accessor handle for accessing data store in Core */
@@ -28,31 +28,37 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	static doYouSupportAccess(): boolean {
 		return true // always has access
 	}
-	checkHandleRead(): string | undefined {
+	checkHandleRead(): AccessorHandlerResult {
 		// Note: We assume that we always have write access here, no need to check this.accessor.allowRead
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): string | undefined {
+	checkHandleWrite(): AccessorHandlerResult {
 		// Note: We assume that we always have write access here, no need to check this.accessor.allowWrite
 		return this.checkAccessor()
 	}
-	private checkAccessor(): string | undefined {
+	private checkAccessor(): AccessorHandlerResult {
 		if (this.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO) {
-			return `CorePackageInfo Accessor type is not CORE_PACKAGE_INFO ("${this.accessor.type}")!`
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `CorePackageInfo Accessor type is not CORE_PACKAGE_INFO ("${this.accessor.type}")!`,
+				},
+			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<string | undefined> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		// todo: add a check here?
-		return undefined // all good
+		return { success: true }
 	}
-	async tryPackageRead(): Promise<string | undefined> {
+	async tryPackageRead(): Promise<AccessorHandlerResult> {
 		// not needed
-		return undefined
+		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
 		// todo: add a check here?
-		return undefined // all good
+		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.CorePackageInfo> {
 		throw new Error('getPackageActualVersion not applicable for CorePackageInfo')
@@ -94,14 +100,29 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	async removeMetadata(): Promise<void> {
 		// Not applicable
 	}
-	async runCronJob(): Promise<string | undefined> {
-		return undefined // not applicable
+	async runCronJob(): Promise<AccessorHandlerResult> {
+		return {
+			success: false,
+			reason: { user: `There is an internal issue in Package Manager`, tech: 'runCronJob not supported' },
+		} // not applicable
 	}
-	async setupPackageContainerMonitors(): Promise<string | undefined> {
-		return undefined // not applicable
+	async setupPackageContainerMonitors(): Promise<AccessorHandlerResult> {
+		return {
+			success: false,
+			reason: {
+				user: `There is an internal issue in Package Manager`,
+				tech: 'setupPackageContainerMonitors, not supported',
+			},
+		} // not applicable
 	}
-	async disposePackageContainerMonitors(): Promise<string | undefined> {
-		return undefined // not applicable
+	async disposePackageContainerMonitors(): Promise<AccessorHandlerResult> {
+		return {
+			success: false,
+			reason: {
+				user: `There is an internal issue in Package Manager`,
+				tech: 'disposePackageContainerMonitors, not supported',
+			},
+		} // not applicable
 	}
 
 	public async findUnUpdatedPackageInfo(
@@ -110,7 +131,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		content: unknown,
 		actualSourceVersion: Expectation.Version.Any,
 		expectTargetVersion: unknown
-	): Promise<{ needsUpdate: boolean; reason: string }> {
+	): Promise<{ needsUpdate: false } | { needsUpdate: true; reason: Reason }> {
 		const actualContentVersionHash = this.getActualContentVersionHash(
 			content,
 			actualSourceVersion,
@@ -131,24 +152,32 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 			if (!packageInfo) {
 				return {
 					needsUpdate: true,
-					reason: `Package "${fromPackage.id}" not found in PackageInfo store`,
+					reason: {
+						user: 'Package info needs to be stored',
+						tech: `Package "${fromPackage.id}" not found in PackageInfo store`,
+					},
 				}
 			} else if (packageInfo.expectedContentVersionHash !== fromPackage.expectedContentVersionHash) {
 				return {
 					needsUpdate: true,
-					reason: `Package "${fromPackage.id}" expected version differs in PackageInfo store`,
+					reason: {
+						user: 'Package info needs to be updated',
+						tech: `Package "${fromPackage.id}" expected version differs in PackageInfo store`,
+					},
 				}
 			} else if (packageInfo.actualContentVersionHash !== actualContentVersionHash) {
 				return {
 					needsUpdate: true,
-					reason: `Package "${fromPackage.id}" actual version differs in PackageInfo store`,
+					reason: {
+						user: 'Package info needs to be re-synced',
+						tech: `Package "${fromPackage.id}" actual version differs in PackageInfo store`,
+					},
 				}
 			}
 		}
 
 		return {
 			needsUpdate: false,
-			reason: `All packages in PackageInfo store are in sync`,
 		}
 	}
 	public async updatePackageInfo(

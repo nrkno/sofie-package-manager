@@ -32,7 +32,7 @@ export class LinuxWorker extends GenericWorker {
 	async doYouSupportExpectation(_exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return {
 			support: false,
-			reason: `Not implemented yet`,
+			reason: { user: `Not implemented yet`, tech: `Not implemented yet` },
 		}
 	}
 	async init(): Promise<void> {
@@ -62,7 +62,7 @@ export class LinuxWorker extends GenericWorker {
 	): Promise<ReturnTypeDoYouSupportPackageContainer> {
 		return {
 			support: false,
-			reason: `Not implemented yet`,
+			reason: { user: `Not implemented yet`, tech: `Not implemented yet` },
 		}
 	}
 	async runPackageContainerCronJob(

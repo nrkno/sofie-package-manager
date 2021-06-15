@@ -13,12 +13,12 @@ import FormData from 'form-data'
 import AbortController from 'abort-controller'
 import { assertNever } from '../lib/lib'
 
-/** Accessor handle for accessing files in a local folder */
-export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
-	static readonly type = 'http'
+/** Accessor handle for accessing files in HTTP- */
+export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'http-proxy'
 	private content: {
 		onlyContainerAccess?: boolean
-		path?: string
+		filePath?: string
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
@@ -28,7 +28,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
-		super(worker, accessorId, accessor, content, HTTPAccessorHandle.type)
+		super(worker, accessorId, accessor, content, HTTPProxyAccessorHandle.type)
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
@@ -83,12 +83,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true }
 	}
 	async tryPackageRead(): Promise<AccessorHandlerResult> {
-		// TODO: Do a OPTIONS request?
-		fetch('the url', {
-			method: 'options',
-		})
-		// 204 or 404 is "not found"
-		// Access-Control-Allow-Methods should contain GET
+		// TODO: how to do this?
 		return { success: true }
 	}
 	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
@@ -119,8 +114,38 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			},
 		}
 	}
-	async putPackageStream(_sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
-		throw new Error('HTTP.putPackageStream: Not supported')
+	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
+		await this.clearPackageRemoval()
+
+		const formData = new FormData()
+		formData.append('file', sourceStream)
+
+		const controller = new AbortController()
+
+		const streamHandler: PutPackageHandler = new PutPackageHandler(() => {
+			controller.abort()
+		})
+
+		fetch(this.fullUrl, {
+			method: 'POST',
+			body: formData, // sourceStream.readStream,
+			signal: controller.signal,
+		})
+			.then((result) => {
+				if (result.status >= 400) {
+					throw new Error(
+						`Upload file: Bad response: [${result.status}]: ${result.statusText} POST "${this.fullUrl}"`
+					)
+				}
+			})
+			.then(() => {
+				streamHandler.emit('close')
+			})
+			.catch((error) => {
+				streamHandler.emit('error', error)
+			})
+
+		return streamHandler
 	}
 	async getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }> {
 		throw new Error('HTTP.getPackageReadInfo: Not supported')
@@ -133,13 +158,13 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
-		return undefined
+		return this.fetchJSON(this.getMetadataPath(this.fullUrl))
 	}
-	async updateMetadata(_metadata: Metadata): Promise<void> {
-		// Not supported
+	async updateMetadata(metadata: Metadata): Promise<void> {
+		await this.storeJSON(this.getMetadataPath(this.fullUrl), metadata)
 	}
 	async removeMetadata(): Promise<void> {
-		// Not supported
+		await this.deletePackageIfExists(this.getMetadataPath(this.fullUrl))
 	}
 
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
@@ -182,17 +207,17 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	get fullUrl(): string {
 		return [
 			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-			this.path.replace(/^\//, ''), // trim leading slash
+			this.filePath.replace(/^\//, ''), // trim leading slash
 		].join('/')
 	}
 
 	private checkAccessor(): AccessorHandlerResult {
-		if (this.accessor.type !== Accessor.AccessType.HTTP) {
+		if (this.accessor.type !== Accessor.AccessType.HTTP_PROXY) {
 			return {
 				success: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
-					tech: `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`,
+					tech: `HTTPProxy Accessor type is not HTTP_PROXY ("${this.accessor.type}")!`,
 				},
 			}
 		}
@@ -205,7 +230,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 				},
 			}
 		if (!this.content.onlyContainerAccess) {
-			if (!this.path)
+			if (!this.filePath)
 				return {
 					success: false,
 					reason: {
@@ -220,10 +245,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (!this.accessor.baseUrl) throw new Error(`HTTPAccessorHandle: accessor.baseUrl not set!`)
 		return this.accessor.baseUrl
 	}
-	get path(): string {
+	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
-		const filePath = this.accessor.url || this.content.path
-		if (!filePath) throw new Error(`HTTPAccessorHandle: path not set!`)
+		const filePath = this.accessor.url || this.content.filePath
+		if (!filePath) throw new Error(`HTTPAccessorHandle: filePath not set!`)
 		return filePath
 	}
 	private convertHeadersToVersion(headers: HTTPHeaders): Expectation.Version.HTTPFile {
@@ -263,7 +288,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async delayPackageRemoval(ttl: number): Promise<void> {
 		const packagesToRemove = await this.getPackagesToRemove()
 
-		const filePath = this.path
+		const filePath = this.filePath
 
 		// Search for a pre-existing entry:
 		let found = false
@@ -289,7 +314,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async clearPackageRemoval(): Promise<void> {
 		const packagesToRemove = await this.getPackagesToRemove()
 
-		const filePath = this.path
+		const filePath = this.filePath
 
 		let found = false
 		for (let i = 0; i < packagesToRemove.length; i++) {
