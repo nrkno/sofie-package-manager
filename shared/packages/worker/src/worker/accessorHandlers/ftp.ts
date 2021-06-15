@@ -9,7 +9,7 @@ import {
 } from './genericHandle'
 import { Expectation, PackageContainerExpectation } from '@shared/api'
 import { GenericWorker } from '../worker'
-import { Client, AccessOptions } from 'basic-ftp'
+import { Client, AccessOptions, FTPResponse } from 'basic-ftp'
 import { URL } from 'url'
 import { Readable, Writable, Duplex } from 'stream'
 
@@ -85,7 +85,7 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 
 		const stream = new Duplex()
 		const response = await this.ftpClient.downloadTo(stream, this.metadataPath)
-		// should check response code, see https://en.wikipedia.org/wiki/List_of_FTP_server_return_codes
+		checkFtpResponse(response)
 
 		const chunks = []
 		for await (const chunk of stream) {
@@ -101,11 +101,13 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		const metadataString = JSON.stringify(metadata)
 		const metadataStream = Readable.from(metadataString)
 
-		return this.ftpClient.uploadFrom(metadataStream, this.metadataPath).then(() => undefined)
+		const response = await this.ftpClient.uploadFrom(metadataStream, this.metadataPath)
+		checkFtpResponse(response)
 	}
 
 	async removeMetadata(): Promise<void> {
-		return this.ftpClient.remove(this.metadataPath, true).then(() => undefined)
+		const response = await this.ftpClient.remove(this.metadataPath, true)
+		checkFtpResponse(response)
 	}
 
 	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
@@ -115,7 +117,8 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		}
 		const writeStream = new Duplex()
 
-		await this.ftpClient.downloadTo(writeStream, this.accessor.path)
+		const response = await this.ftpClient.downloadTo(writeStream, this.accessor.path)
+		checkFtpResponse(response)
 
 		return {
 			readStream: writeStream,
@@ -133,7 +136,8 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		})
 
 		try {
-			await this.ftpClient.uploadFrom(readable, this.accessor.path)
+			const response = await this.ftpClient.uploadFrom(readable, this.accessor.path)
+			checkFtpResponse(response)
 			handler.emit('close')
 		} catch (err) {
 			handler.emit('error', err)
@@ -165,4 +169,20 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 	disposePackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
 		throw new Error('Method not implemented.')
 	}
+}
+
+/**
+ * Checks an FTPResponse and throws errors if there's a problem
+ *
+ * @param response {FTPResponse} - the response to check
+ * @throws {Error} - if the response indicates a problem
+ */
+function checkFtpResponse(response: FTPResponse) {
+	// should check response code, see https://en.wikipedia.org/wiki/List_of_FTP_server_return_codes
+	// for now, just assume anything under 400 to be fine
+	if (response.code >= 400) {
+		throw new Error(`FTP error ${response.code}: ${response.message}`)
+	}
+
+	return
 }
