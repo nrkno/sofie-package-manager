@@ -17,6 +17,7 @@ import { assertNever } from '../lib/lib'
 export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'http-proxy'
 	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
 		filePath?: string
 	}

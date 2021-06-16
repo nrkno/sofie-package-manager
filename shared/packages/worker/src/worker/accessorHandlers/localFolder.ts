@@ -22,6 +22,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	static readonly type = LocalFolderAccessorHandleType
 
 	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
 		filePath?: string
 	}

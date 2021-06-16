@@ -19,6 +19,7 @@ const MINIMUM_FRAMES = 10
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'quantel'
 	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
 		guid?: string
 		title?: string
