@@ -17,6 +17,7 @@ import { assertNever } from '../lib/lib'
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'http'
 	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
 		path?: string
 	}
@@ -83,12 +84,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true }
 	}
 	async tryPackageRead(): Promise<AccessorHandlerResult> {
-
-
 		// TODO: Do a OPTIONS request?
-		fetch(the url, {
-			method: 'options'
-		})
 		// 204 or 404 is "not found"
 		// Access-Control-Allow-Methods should contain GET
 		return { success: true }
