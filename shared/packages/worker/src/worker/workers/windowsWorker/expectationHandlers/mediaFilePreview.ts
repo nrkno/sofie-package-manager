@@ -67,7 +67,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		return {
 			ready: true,
 			sourceExists: true,
-			// reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -138,10 +138,10 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupPreviewTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle

@@ -1129,8 +1129,8 @@ export class ExpectationManager {
 					)
 					if (!disposeMonitorResult.success) {
 						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-							user: `Unable to remove monitor, due to ${disposeMonitorResult.reason}`,
-							tech: `Unable to dispose monitor: ${disposeMonitorResult.reason}`,
+							user: `Unable to remove monitor, due to ${disposeMonitorResult.reason.user}`,
+							tech: `Unable to dispose monitor: ${disposeMonitorResult.reason.tech}`,
 						})
 						continue // Break further execution for this PackageContainer
 					}
@@ -1233,7 +1233,7 @@ export class ExpectationManager {
 
 		if (updatedReason) {
 			this.logger.info(
-				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason}"`
+				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason.tech}"`
 			)
 		}
 

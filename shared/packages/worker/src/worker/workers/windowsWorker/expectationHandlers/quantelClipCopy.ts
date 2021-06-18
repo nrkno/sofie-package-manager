@@ -64,7 +64,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		return {
 			ready: true,
 			sourceExists: true,
-			// reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -104,7 +104,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 			}
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
 
 		// Check that the target clip is of the right version:
 
@@ -129,10 +129,10 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)

@@ -72,7 +72,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		return {
 			ready: true,
 			sourceExists: true,
-			// reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -140,10 +140,10 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		let ffMpegProcess: FFMpegProcess | undefined
 		const workInProgress = new WorkInProgress({ workLabel: 'Generating thumbnail' }, async () => {
