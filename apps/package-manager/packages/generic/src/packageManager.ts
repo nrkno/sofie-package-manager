@@ -628,7 +628,7 @@ function wrapExpectedPackage(
 			}
 
 			const accessorIds = _.uniq(
-				Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors))
+				Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors || {}))
 			)
 
 			for (const accessorId of accessorIds) {

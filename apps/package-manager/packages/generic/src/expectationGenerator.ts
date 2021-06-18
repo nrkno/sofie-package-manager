@@ -13,7 +13,7 @@ export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']>
 	}[]
 }
 export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
@@ -21,7 +21,7 @@ export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']>
 	}[]
 }
 export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
@@ -29,7 +29,7 @@ export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']>
 	}[]
 }
 
