@@ -28,6 +28,7 @@ import { QuantelClipPreview } from './expectationHandlers/quantelClipPreview'
 import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
 import { assertNever } from '../../lib/lib'
 import { hasFFMpeg, hasFFProbe } from './expectationHandlers/lib/ffmpeg'
+import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -92,6 +93,8 @@ export class WindowsWorker extends GenericWorker {
 				return QuantelThumbnail
 			case Expectation.Type.QUANTEL_CLIP_PREVIEW:
 				return QuantelClipPreview
+			case Expectation.Type.JSON_DATA_COPY:
+				return JsonDataCopy
 			default:
 				assertNever(exp)
 				// @ts-expect-error exp.type is never

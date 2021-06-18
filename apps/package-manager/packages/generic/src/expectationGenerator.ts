@@ -143,7 +143,7 @@ export function generateExpectations(
 		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
 			exp = generateQuantelCopy(managerId, packageWrap)
 		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
-			exp = generateJsonDataCopy(managerId, packageWrap)
+			exp = generateJsonDataCopy(managerId, packageWrap, settings)
 		}
 		if (exp) {
 			prioritizeExpectation(packageWrap, exp)
@@ -677,7 +677,7 @@ function generateJsonDataCopy(
 	managerId: string,
 	expWrap: ExpectedPackageWrap,
 	settings: PackageManagerSettings
-): Expectation.JSONDataCopy {
+): Expectation.JsonDataCopy {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapJSONData
 
 	const exp: Expectation.JsonDataCopy = {
@@ -706,10 +706,10 @@ function generateJsonDataCopy(
 		},
 
 		endRequirement: {
-			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.CorePackage],
+			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.File],
 			content: expWrapMediaFile.expectedPackage.content,
 			version: {
-				type: Expectation.Version.Type.CORE_PACKAGE_INFO,
+				type: Expectation.Version.Type.FILE_ON_DISK,
 				...expWrapMediaFile.expectedPackage.version,
 			},
 		},

@@ -3,6 +3,7 @@ import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
 import { GenericAccessorHandle } from './genericHandle'
+import { HTTPAccessorHandle } from './http'
 import { HTTPProxyAccessorHandle } from './httpProxy'
 import { LocalFolderAccessorHandle } from './localFolder'
 import { QuantelAccessorHandle } from './quantel'
@@ -28,6 +29,8 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		return LocalFolderAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
 		return CorePackageInfoAccessorHandle
+	} else if (accessor.type === Accessor.AccessType.HTTP) {
+		return HTTPAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.HTTP_PROXY) {
 		return HTTPProxyAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.FILE_SHARE) {
@@ -83,6 +86,7 @@ export function getAccessorCost(accessorType: Accessor.AccessType | undefined): 
 		case Accessor.AccessType.FILE_SHARE:
 			return 2
 		case Accessor.AccessType.HTTP_PROXY:
+		case Accessor.AccessType.HTTP:
 			return 3
 
 		case undefined:

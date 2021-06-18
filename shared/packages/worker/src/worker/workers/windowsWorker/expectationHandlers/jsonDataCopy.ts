@@ -1,7 +1,5 @@
 import { Accessor } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
-import { roboCopyFile } from '../lib/robocopy'
-// import { diff } from 'deep-diff'
 import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getStandardCost } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
@@ -19,18 +17,9 @@ import {
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
-import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import {
-	checkWorkerHasAccessToPackageContainersOnPackage,
-	lookupAccessorHandles,
-	LookupPackageContainer,
-	userReadableDiff,
-	waitTime,
-} from './lib'
-import { CancelablePromise } from '../../../lib/cancelablePromise'
+import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
-import { diff } from 'deep-diff'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
@@ -131,9 +120,9 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
-		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
+		// const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
-		const sourceHandle = lookupSource.handle
+		// const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
 		if (
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
