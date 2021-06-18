@@ -46,15 +46,7 @@ export class WindowsWorker extends GenericWorker {
 		super(logger, config, location, sendMessageToManager, WindowsWorker.type)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
-		try {
-			return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
-		} catch (err) {
-			// Does not support the type
-			return {
-				support: false,
-				reason: err.toString(),
-			}
-		}
+		return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
 	}
 	async init(): Promise<void> {
 		this.hasFFMpeg = !!(await hasFFMpeg())

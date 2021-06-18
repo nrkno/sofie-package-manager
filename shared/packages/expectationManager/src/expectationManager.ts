@@ -854,7 +854,10 @@ export class ExpectationManager {
 		} catch (err) {
 			this.logger.error('Error thrown in evaluateExpectationState')
 			this.logger.error(err)
-			this.updateTrackedExpStatus(trackedExp, undefined, err.toString())
+			this.updateTrackedExpStatus(trackedExp, undefined, {
+				user: 'Internal error in Package Manager',
+				tech: err.toString(),
+			})
 		}
 	}
 	/** Returns the appropriate time to wait before checking a fulfilled expectation again */
