@@ -411,4 +411,7 @@ export class CoreHandler {
 	abortExpectation(workId: string): void {
 		return this._packageManagerHandler?.abortExpectation(workId)
 	}
+	troubleshoot(): any {
+		return this._packageManagerHandler?.getDataSnapshot()
+	}
 }

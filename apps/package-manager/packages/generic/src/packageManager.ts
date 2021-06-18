@@ -51,6 +51,22 @@ export class PackageManagerHandler {
 	}
 	callbacksHandler: ExpectationManagerCallbacksHandler
 
+	private dataSnapshot: {
+		updated: number
+		expectedPackages: ResultingExpectedPackage[]
+		packageContainers: PackageContainers
+		expectations: {
+			[id: string]: Expectation.Any
+		}
+		packageContainerExpectations: { [id: string]: PackageContainerExpectation }
+	} = {
+		updated: 0,
+		expectedPackages: [],
+		packageContainers: {},
+		expectations: {},
+		packageContainerExpectations: {},
+	}
+
 	constructor(
 		public logger: LoggerInstance,
 		private managerId: string,
@@ -239,6 +255,9 @@ export class PackageManagerHandler {
 		this.logger.info(`Has ${expectedPackages.length} expectedPackages`)
 		// this.logger.info(JSON.stringify(expectedPackages, null, 2))
 
+		this.dataSnapshot.expectedPackages = expectedPackages
+		this.dataSnapshot.packageContainers = this.packageContainersCache
+
 		// Step 1: Generate expectations:
 		const expectations = generateExpectations(
 			this.logger,
@@ -250,14 +269,19 @@ export class PackageManagerHandler {
 			this.settings
 		)
 		this.logger.info(`Has ${Object.keys(expectations).length} expectations`)
+		// this.logger.info(JSON.stringify(expectations, null, 2))
+		this.dataSnapshot.expectations = expectations
+
 		const packageContainerExpectations = generatePackageContainerExpectations(
 			this.expectationManager.managerId,
 			this.packageContainersCache,
 			activePlaylist
 		)
 		this.logger.info(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
+		;(this.dataSnapshot.packageContainerExpectations = packageContainerExpectations),
+			(this.dataSnapshot.updated = Date.now())
+
 		this.ensureMandatoryPackageContainerExpectations(packageContainerExpectations)
-		// this.logger.info(JSON.stringify(expectations, null, 2))
 
 		// Step 2: Track and handle new expectations:
 		this.expectationManager.updatePackageContainerExpectations(packageContainerExpectations)
@@ -275,6 +299,9 @@ export class PackageManagerHandler {
 	public abortExpectation(workId: string): void {
 		// This method can be called from core
 		this.expectationManager.abortExpectation(workId)
+	}
+	public getDataSnapshot() {
+		return this.dataSnapshot
 	}
 
 	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
