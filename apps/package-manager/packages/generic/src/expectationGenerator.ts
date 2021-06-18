@@ -207,28 +207,35 @@ export function generateExpectations(
 			}
 
 			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-				const packageContainer: PackageContainer =
-					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
+					| PackageContainer
+					| undefined
 
-				const thumbnail = generateMediaFileThumbnail(
-					expectation,
-					expectation0.sideEffect.thumbnailContainerId,
-					expectation0.sideEffect.thumbnailPackageSettings,
-					packageContainer
-				)
-				expectations[thumbnail.id] = thumbnail
+				if (packageContainer) {
+					const thumbnail = generateMediaFileThumbnail(
+						expectation,
+						expectation0.sideEffect.thumbnailContainerId,
+						expectation0.sideEffect.thumbnailPackageSettings,
+						packageContainer
+					)
+					expectations[thumbnail.id] = thumbnail
+				}
 			}
 
 			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
+					| PackageContainer
+					| undefined
 
-				const preview = generateMediaFilePreview(
-					expectation,
-					expectation0.sideEffect.previewContainerId,
-					expectation0.sideEffect.previewPackageSettings,
-					packageContainer
-				)
-				expectations[preview.id] = preview
+				if (packageContainer) {
+					const preview = generateMediaFilePreview(
+						expectation,
+						expectation0.sideEffect.previewContainerId,
+						expectation0.sideEffect.previewPackageSettings,
+						packageContainer
+					)
+					expectations[preview.id] = preview
+				}
 			}
 		} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
 			const expectation = expectation0 as Expectation.QuantelClipCopy
@@ -244,28 +251,35 @@ export function generateExpectations(
 			}
 
 			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-				const packageContainer: PackageContainer =
-					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
+					| PackageContainer
+					| undefined
 
-				const thumbnail = generateQuantelClipThumbnail(
-					expectation,
-					expectation0.sideEffect.thumbnailContainerId,
-					expectation0.sideEffect.thumbnailPackageSettings,
-					packageContainer
-				)
-				expectations[thumbnail.id] = thumbnail
+				if (packageContainer) {
+					const thumbnail = generateQuantelClipThumbnail(
+						expectation,
+						expectation0.sideEffect.thumbnailContainerId,
+						expectation0.sideEffect.thumbnailPackageSettings,
+						packageContainer
+					)
+					expectations[thumbnail.id] = thumbnail
+				}
 			}
 
 			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
+					| PackageContainer
+					| undefined
 
-				const preview = generateQuantelClipPreview(
-					expectation,
-					expectation0.sideEffect.previewContainerId,
-					expectation0.sideEffect.previewPackageSettings,
-					packageContainer
-				)
-				expectations[preview.id] = preview
+				if (packageContainer) {
+					const preview = generateQuantelClipPreview(
+						expectation,
+						expectation0.sideEffect.previewContainerId,
+						expectation0.sideEffect.previewPackageSettings,
+						packageContainer
+					)
+					expectations[preview.id] = preview
+				}
 			}
 		}
 	}
@@ -298,9 +312,9 @@ function generateMediaFileCopy(
 		type: Expectation.Type.FILE_COPY,
 		statusReport: {
 			label: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
-			description: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}" to the playout-device "${
+			description: `Copy media file "${expWrapMediaFile.expectedPackage.content.filePath}" to the device "${
 				expWrapMediaFile.playoutDeviceId
-			}", from "${JSON.stringify(expWrapMediaFile.sources)}"`,
+			}", from ${expWrapMediaFile.sources.map((source) => `"${source.label}"`).join(', ')}`,
 			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
@@ -346,7 +360,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 			label: `Copy Quantel clip ${content.title || content.guid}`,
 			description: `Copy Quantel clip ${content.title || content.guid} to server for "${
 				expWrapQuantelClip.playoutDeviceId
-			}", from ${expWrapQuantelClip.sources}`,
+			}", from ${expWrapQuantelClip.sources.map((source) => `"${source.label}"`).join(', ')}`,
 			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
@@ -382,7 +396,7 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 
 		statusReport: {
 			label: `Scan ${expectation.statusReport.label}`,
-			description: `Scanning is used to provide Sofie GUI with status about the media`,
+			description: `Scanning the media, to provide data to the Sofie GUI (like for zebra-stripes, etc).`,
 			requiredForPlayout: false,
 			displayRank: 10,
 			sendReport: expectation.statusReport.sendReport,
@@ -428,7 +442,7 @@ function generatePackageDeepScan(
 
 		statusReport: {
 			label: `Deep Scan ${expectation.statusReport.label}`,
-			description: `Deep scanning includes scene-detection, black/freeze frames etc.`,
+			description: `Deep scanning media file, in order to detect scenes, black/freeze frames etc.`,
 			requiredForPlayout: false,
 			displayRank: 10,
 			sendReport: expectation.statusReport.sendReport,

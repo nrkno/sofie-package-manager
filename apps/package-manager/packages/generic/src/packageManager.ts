@@ -657,7 +657,6 @@ function wrapExpectedPackage(
 		if (packageContainerId) {
 			const lookedUpTarget = packageContainers[packageContainerId]
 			if (lookedUpTarget) {
-				// Todo: should the be any combination of properties here?
 				combinedTargets.push({
 					...omit(clone(lookedUpTarget), 'accessors'),
 					accessors: lookedUpTarget.accessors as {
