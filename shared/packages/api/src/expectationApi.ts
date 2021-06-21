@@ -413,10 +413,10 @@ export namespace Expectation {
 
 		export interface FTPFile extends Base {
 			type: Type.FTP_FILE
-			contentType: string
-			contentLength: number
+			/** File size in bytes */
+			fileSize: number
+			/** Timestamp for last time the file was modified as reported by the server */
 			modified: number
-			etags: string[]
 		}
 
 		export type ExpectedFTPFile = ExpectedType<FTPFile>
