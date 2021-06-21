@@ -13,7 +13,7 @@ export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']>
 	}[]
 }
 export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
@@ -21,7 +21,7 @@ export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']>
 	}[]
 }
 export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
@@ -29,7 +29,7 @@ export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']>
 	}[]
 }
 
@@ -143,7 +143,7 @@ export function generateExpectations(
 		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
 			exp = generateQuantelCopy(managerId, packageWrap)
 		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
-			exp = generateJsonDataCopy(managerId, packageWrap)
+			exp = generateJsonDataCopy(managerId, packageWrap, settings)
 		}
 		if (exp) {
 			prioritizeExpectation(packageWrap, exp)
@@ -207,28 +207,35 @@ export function generateExpectations(
 			}
 
 			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-				const packageContainer: PackageContainer =
-					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
+					| PackageContainer
+					| undefined
 
-				const thumbnail = generateMediaFileThumbnail(
-					expectation,
-					expectation0.sideEffect.thumbnailContainerId,
-					expectation0.sideEffect.thumbnailPackageSettings,
-					packageContainer
-				)
-				expectations[thumbnail.id] = thumbnail
+				if (packageContainer) {
+					const thumbnail = generateMediaFileThumbnail(
+						expectation,
+						expectation0.sideEffect.thumbnailContainerId,
+						expectation0.sideEffect.thumbnailPackageSettings,
+						packageContainer
+					)
+					expectations[thumbnail.id] = thumbnail
+				}
 			}
 
 			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
+					| PackageContainer
+					| undefined
 
-				const preview = generateMediaFilePreview(
-					expectation,
-					expectation0.sideEffect.previewContainerId,
-					expectation0.sideEffect.previewPackageSettings,
-					packageContainer
-				)
-				expectations[preview.id] = preview
+				if (packageContainer) {
+					const preview = generateMediaFilePreview(
+						expectation,
+						expectation0.sideEffect.previewContainerId,
+						expectation0.sideEffect.previewPackageSettings,
+						packageContainer
+					)
+					expectations[preview.id] = preview
+				}
 			}
 		} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
 			const expectation = expectation0 as Expectation.QuantelClipCopy
@@ -244,28 +251,35 @@ export function generateExpectations(
 			}
 
 			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-				const packageContainer: PackageContainer =
-					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
+					| PackageContainer
+					| undefined
 
-				const thumbnail = generateQuantelClipThumbnail(
-					expectation,
-					expectation0.sideEffect.thumbnailContainerId,
-					expectation0.sideEffect.thumbnailPackageSettings,
-					packageContainer
-				)
-				expectations[thumbnail.id] = thumbnail
+				if (packageContainer) {
+					const thumbnail = generateQuantelClipThumbnail(
+						expectation,
+						expectation0.sideEffect.thumbnailContainerId,
+						expectation0.sideEffect.thumbnailPackageSettings,
+						packageContainer
+					)
+					expectations[thumbnail.id] = thumbnail
+				}
 			}
 
 			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
+					| PackageContainer
+					| undefined
 
-				const preview = generateQuantelClipPreview(
-					expectation,
-					expectation0.sideEffect.previewContainerId,
-					expectation0.sideEffect.previewPackageSettings,
-					packageContainer
-				)
-				expectations[preview.id] = preview
+				if (packageContainer) {
+					const preview = generateQuantelClipPreview(
+						expectation,
+						expectation0.sideEffect.previewContainerId,
+						expectation0.sideEffect.previewPackageSettings,
+						packageContainer
+					)
+					expectations[preview.id] = preview
+				}
 			}
 		}
 	}
@@ -297,10 +311,10 @@ function generateMediaFileCopy(
 		],
 		type: Expectation.Type.FILE_COPY,
 		statusReport: {
-			label: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
-			description: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}" to the playout-device "${
+			label: `Copying media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
+			description: `Copy media file "${expWrapMediaFile.expectedPackage.content.filePath}" to the device "${
 				expWrapMediaFile.playoutDeviceId
-			}", from "${JSON.stringify(expWrapMediaFile.sources)}"`,
+			}", from ${expWrapMediaFile.sources.map((source) => `"${source.label}"`).join(', ')}`,
 			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
@@ -346,7 +360,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 			label: `Copy Quantel clip ${content.title || content.guid}`,
 			description: `Copy Quantel clip ${content.title || content.guid} to server for "${
 				expWrapQuantelClip.playoutDeviceId
-			}", from ${expWrapQuantelClip.sources}`,
+			}", from ${expWrapQuantelClip.sources.map((source) => `"${source.label}"`).join(', ')}`,
 			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
@@ -381,8 +395,8 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Scan ${expectation.statusReport.label}`,
-			description: `Scanning is used to provide Sofie GUI with status about the media`,
+			label: `Scanning`,
+			description: `Scanning the media, to provide data to the Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 10,
 			sendReport: expectation.statusReport.sendReport,
@@ -427,10 +441,10 @@ function generatePackageDeepScan(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Deep Scan ${expectation.statusReport.label}`,
-			description: `Deep scanning includes scene-detection, black/freeze frames etc.`,
+			label: `Deep Scanning`,
+			description: `Detecting scenes, black frames, freeze frames etc.`,
 			requiredForPlayout: false,
-			displayRank: 10,
+			displayRank: 11,
 			sendReport: expectation.statusReport.sendReport,
 		},
 
@@ -482,7 +496,7 @@ function generateMediaFileThumbnail(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate thumbnail for ${expectation.statusReport.label}`,
+			label: `Generating thumbnail`,
 			description: `Thumbnail is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 11,
@@ -533,7 +547,7 @@ function generateMediaFilePreview(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate preview for ${expectation.statusReport.label}`,
+			label: `Generating preview`,
 			description: `Preview is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 12,
@@ -584,7 +598,7 @@ function generateQuantelClipThumbnail(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate thumbnail for ${expectation.statusReport.label}`,
+			label: `Generating thumbnail`,
 			description: `Thumbnail is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 11,
@@ -634,7 +648,7 @@ function generateQuantelClipPreview(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate preview for ${expectation.statusReport.label}`,
+			label: `Generating preview`,
 			description: `Preview is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 12,
@@ -677,7 +691,7 @@ function generateJsonDataCopy(
 	managerId: string,
 	expWrap: ExpectedPackageWrap,
 	settings: PackageManagerSettings
-): Expectation.JSONDataCopy {
+): Expectation.JsonDataCopy {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapJSONData
 
 	const exp: Expectation.JsonDataCopy = {
@@ -692,7 +706,7 @@ function generateJsonDataCopy(
 		],
 		type: Expectation.Type.JSON_DATA_COPY,
 		statusReport: {
-			label: `Copy JSON data "${expWrapMediaFile.expectedPackage.content.path}"`,
+			label: `Copying JSON data`,
 			description: `Copy JSON data "${expWrapMediaFile.expectedPackage.content.path}" from "${JSON.stringify(
 				expWrapMediaFile.sources
 			)}"`,
@@ -706,10 +720,10 @@ function generateJsonDataCopy(
 		},
 
 		endRequirement: {
-			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.CorePackage],
+			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.File],
 			content: expWrapMediaFile.expectedPackage.content,
 			version: {
-				type: Expectation.Version.Type.CORE_PACKAGE_INFO,
+				type: Expectation.Version.Type.FILE_ON_DISK,
 				...expWrapMediaFile.expectedPackage.version,
 			},
 		},

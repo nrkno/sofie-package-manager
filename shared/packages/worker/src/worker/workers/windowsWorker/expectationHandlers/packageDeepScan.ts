@@ -72,7 +72,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		return {
 			ready: true,
 			sourceExists: true,
-			// reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -128,10 +128,10 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupDeepScanTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		let currentProcess: CancelablePromise<any> | undefined
 		const workInProgress = new WorkInProgress({ workLabel: 'Scanning file' }, async () => {

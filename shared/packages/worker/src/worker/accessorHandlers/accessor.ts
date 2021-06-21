@@ -30,6 +30,8 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		return LocalFolderAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
 		return CorePackageInfoAccessorHandle
+	} else if (accessor.type === Accessor.AccessType.HTTP) {
+		return HTTPAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.HTTP_PROXY) {
 		return HTTPProxyAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.HTTP) {
@@ -102,6 +104,7 @@ export function getAccessorCost(accessorType: Accessor.AccessType | undefined): 
 		case Accessor.AccessType.HTTP:
 		case Accessor.AccessType.FTP:
 		case Accessor.AccessType.HTTP_PROXY:
+		case Accessor.AccessType.HTTP:
 			return 3
 
 		case undefined:

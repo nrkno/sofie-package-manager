@@ -207,6 +207,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								],
 								sideEffect: options.sideEffect,
 							}
+							if (!expPackage.sources[0].accessors) {
+								expPackage.sources[0].accessors = {}
+							}
 							if (this._type === LocalFolderAccessorHandleType) {
 								expPackage.sources[0].accessors[
 									this.accessorId

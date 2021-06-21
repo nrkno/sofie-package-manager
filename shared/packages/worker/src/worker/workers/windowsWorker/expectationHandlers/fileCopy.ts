@@ -113,7 +113,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			sourceExists: true,
 			// reason: {
 			// 	user: 'Ready to start copying',
-			// 	tech: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// 	tech: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 			// },
 		}
 	},
@@ -151,7 +151,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
@@ -172,10 +172,10 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)

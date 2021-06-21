@@ -150,10 +150,10 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
@@ -175,7 +175,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 
 			// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail:
 			const thumbnailURL = await getThumbnailURL(exp, lookupSource)
-			if (!thumbnailURL.success) throw new Error(`Can't start working due to source: ${thumbnailURL.reason}`)
+			if (!thumbnailURL.success) throw new Error(`Can't start working due to source: ${thumbnailURL.reason.tech}`)
 			const sourceHTTPHandle = getSourceHTTPHandle(worker, sourceHandle, thumbnailURL)
 
 			let wasCancelled = false

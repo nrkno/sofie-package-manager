@@ -25,7 +25,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	constructor(
 		worker: GenericWorker,
 		public readonly accessorId: string,
-		private accessor: AccessorOnPackage.HTTP,
+		private accessor: AccessorOnPackage.HTTPProxy,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {

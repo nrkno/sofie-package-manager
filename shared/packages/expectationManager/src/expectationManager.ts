@@ -854,7 +854,10 @@ export class ExpectationManager {
 		} catch (err) {
 			this.logger.error('Error thrown in evaluateExpectationState')
 			this.logger.error(err)
-			this.updateTrackedExpStatus(trackedExp, undefined, err.toString())
+			this.updateTrackedExpStatus(trackedExp, undefined, {
+				user: 'Internal error in Package Manager',
+				tech: err.toString(),
+			})
 		}
 	}
 	/** Returns the appropriate time to wait before checking a fulfilled expectation again */
@@ -1126,8 +1129,8 @@ export class ExpectationManager {
 					)
 					if (!disposeMonitorResult.success) {
 						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-							user: `Unable to remove monitor, due to ${disposeMonitorResult.reason}`,
-							tech: `Unable to dispose monitor: ${disposeMonitorResult.reason}`,
+							user: `Unable to remove monitor, due to ${disposeMonitorResult.reason.user}`,
+							tech: `Unable to dispose monitor: ${disposeMonitorResult.reason.tech}`,
 						})
 						continue // Break further execution for this PackageContainer
 					}
@@ -1230,7 +1233,7 @@ export class ExpectationManager {
 
 		if (updatedReason) {
 			this.logger.info(
-				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason}"`
+				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason.tech}"`
 			)
 		}
 

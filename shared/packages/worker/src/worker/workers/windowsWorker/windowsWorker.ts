@@ -28,6 +28,7 @@ import { QuantelClipPreview } from './expectationHandlers/quantelClipPreview'
 import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
 import { assertNever } from '../../lib/lib'
 import { hasFFMpeg, hasFFProbe } from './expectationHandlers/lib/ffmpeg'
+import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -45,15 +46,7 @@ export class WindowsWorker extends GenericWorker {
 		super(logger, config, location, sendMessageToManager, WindowsWorker.type)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
-		try {
-			return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
-		} catch (err) {
-			// Does not support the type
-			return {
-				support: false,
-				reason: err.toString(),
-			}
-		}
+		return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
 	}
 	async init(): Promise<void> {
 		this.hasFFMpeg = !!(await hasFFMpeg())
@@ -92,6 +85,8 @@ export class WindowsWorker extends GenericWorker {
 				return QuantelThumbnail
 			case Expectation.Type.QUANTEL_CLIP_PREVIEW:
 				return QuantelClipPreview
+			case Expectation.Type.JSON_DATA_COPY:
+				return JsonDataCopy
 			default:
 				assertNever(exp)
 				// @ts-expect-error exp.type is never
