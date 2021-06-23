@@ -377,7 +377,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		expectaction: Expectation.Any | null,
 		actualVersionHash: string | null,
 		statusInfo: {
-			status?: string
+			status?: ExpectedPackageStatusAPI.WorkStatusState
 			progress?: number
 			statusReason?: Reason
 		}
@@ -389,10 +389,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
 
+			// Default properties:
 			const workStatus: ExpectedPackageStatusAPI.WorkStatus = {
-				// Default properties:
 				...{
-					status: 'N/A',
+					status: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					progress: 0,
 					statusReason: { user: '', tech: '' },
 				},
@@ -400,7 +400,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				...((this.toReportExpectationStatus[expectationId]?.workStatus ||
 					{}) as Partial<ExpectedPackageStatusAPI.WorkStatus>), // Intentionally cast to Partial<>, to make typings in const workStatus more strict
 
-				// Updated porperties:
+				// Updated properties:
 				...expectaction.statusReport,
 				...statusInfo,
 
