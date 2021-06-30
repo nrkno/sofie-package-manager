@@ -1368,7 +1368,7 @@ export interface ExpectationManagerCallbacks {
 	reportPackageContainerPackageStatus: (
 		containerId: string,
 		packageId: string,
-		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+		packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 	) => void
 	reportPackageContainerExpectationStatus: (
 		containerId: string,

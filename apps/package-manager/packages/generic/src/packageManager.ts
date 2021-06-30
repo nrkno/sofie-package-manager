@@ -389,16 +389,18 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
 
-			// Default properties:
+			const previouslyReported = this.toReportExpectationStatus[expectationId]?.workStatus
+
 			const workStatus: ExpectedPackageStatusAPI.WorkStatus = {
+				// Default properties:
 				...{
 					status: ExpectedPackageStatusAPI.WorkStatusState.NEW,
+					statusChanged: 0,
 					progress: 0,
 					statusReason: { user: '', tech: '' },
 				},
 				// Previous properties:
-				...((this.toReportExpectationStatus[expectationId]?.workStatus ||
-					{}) as Partial<ExpectedPackageStatusAPI.WorkStatus>), // Intentionally cast to Partial<>, to make typings in const workStatus more strict
+				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.WorkStatus>), // Intentionally cast to Partial<>, to make typings in const workStatus more strict
 
 				// Updated properties:
 				...expectaction.statusReport,
@@ -416,32 +418,55 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				}),
 			}
 
+			// Update statusChanged:
+			workStatus.statusChanged = previouslyReported?.statusChanged || Date.now()
+			if (
+				workStatus.status !== previouslyReported?.status ||
+				workStatus.progress !== previouslyReported?.progress
+				// (not checking statusReason, as that should not affect statusChanged)
+			) {
+				workStatus.statusChanged = Date.now()
+			}
+
 			this.triggerSendUpdateExpectationStatus(expectationId, workStatus)
 		}
 	}
 	public reportPackageContainerPackageStatus(
 		containerId: string,
 		packageId: string,
-		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+		packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 	): void {
 		const packageContainerPackageId = `${containerId}_${packageId}`
 		if (!packageStatus) {
 			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, null)
 		} else {
-			const o: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
+			const previouslyReported = this.toReportPackageStatus[packageContainerPackageId]?.packageStatus
+
+			const containerStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
 				// Default properties:
 				...{
 					status: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY,
 					progress: 0,
+					statusChanged: 0,
 					statusReason: { user: '', tech: '' },
 				},
 				// pre-existing properties:
-				...(((this.toReportPackageStatus[packageContainerPackageId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in the outer spread-assignment more strict
+				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.PackageContainerPackageStatus>), // Intentionally cast to Partial<>, to make typings in const containerStatus more strict
 				// Updated properties:
 				...packageStatus,
 			}
 
-			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, o)
+			// Update statusChanged:
+			containerStatus.statusChanged = previouslyReported?.statusChanged || Date.now()
+			if (
+				containerStatus.status !== previouslyReported?.status ||
+				containerStatus.progress !== previouslyReported?.progress
+				// (not checking statusReason, as that should not affect statusChanged)
+			) {
+				containerStatus.statusChanged = Date.now()
+			}
+
+			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, containerStatus)
 		}
 	}
 	public reportPackageContainerExpectationStatus(
