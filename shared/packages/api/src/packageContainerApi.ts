@@ -14,11 +14,12 @@ export interface PackageContainerExpectation extends PackageContainer {
 	cronjobs: {
 		/** How often the cronjob should run (approximately) */
 		interval?: number
+		/** Cronjob: Checks if there are any old (to-be-removed) packages, and removes them. */
 		cleanup?: any // {}
 	}
 	/** Defines which monitors are expected to run */
 	monitors: {
-		/** Monitor the packages of a PackageContainer */
+		/** Monitor the packages in a PackageContainer, and report back to ExpectationManager a list of the packages found. */
 		packages?: {
 			/** If set, ignore any files matching this. (Regular expression). */
 			ignore?: string

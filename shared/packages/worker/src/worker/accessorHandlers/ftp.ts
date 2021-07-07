@@ -2,7 +2,7 @@ import { AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import {
 	AccessorHandlerResult,
 	GenericAccessorHandle,
-	PackageReadInfoQuantelClip,
+	PackageReadInfo,
 	PackageReadInfoWrap,
 	PutPackageHandler,
 } from './genericHandle'
@@ -11,6 +11,7 @@ import { GenericWorker } from '../worker'
 import { Client, AccessOptions, FTPResponse } from 'basic-ftp'
 import { URL } from 'url'
 import { Readable, Duplex } from 'stream'
+import { assertNever } from '../lib/lib'
 
 const METADATA_FILE_SUFFIX = '_metadata.json'
 
@@ -25,12 +26,13 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		onlyContainerAccess?: boolean
 		filePath?: string
 	}
-
+	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
 		worker: GenericWorker,
 		public readonly accessorId: string,
 		private accessor: AccessorOnPackage.FTP,
-		content: any //TODO: what can be expected here?
+		content: any, // TODO: what can be expected here?
+		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
 		super(worker, accessorId, accessor, content, FTPAccessorHandle.type)
 
@@ -39,6 +41,10 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
 		}
 		this.content = content
+
+		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
+			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+		this.workOptions = workOptions
 
 		this.ftpClient = new Client()
 		try {
@@ -175,17 +181,37 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		return { success: true }
 	}
 
-	putPackageInfo(_readInfo: PackageReadInfoQuantelClip): Promise<PutPackageHandler> {
+	getPackageReadInfo(): Promise<PackageReadInfoWrap> {
+		throw new Error('FTP.getPackageReadInfo: Not supported, use streams instead.')
+	}
+	putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
+		throw new Error('FTP.putPackageInfo: Not supported, use streams instead.')
+	}
+	async finalizePackage(): Promise<void> {
+		// Not applicable
+	}
+	runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+		if (packageContainerExp.cronjobs.cleanup) {
+			// nothing?
+		}
+
 		throw new Error('Method not implemented.')
 	}
-	finalizePackage(): Promise<void> {
-		throw new Error('Method not implemented.')
-	}
-	runCronJob(_packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
-		throw new Error('Method not implemented.')
-	}
-	setupPackageContainerMonitors(_packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
-		throw new Error('Method not implemented.')
+	async setupPackageContainerMonitors(
+		packageContainerExp: PackageContainerExpectation
+	): Promise<AccessorHandlerResult> {
+		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
+		for (const monitor of monitors) {
+			if (monitor === 'packages') {
+				// todo: implement monitors
+				throw new Error('Not implemented yet')
+			} else {
+				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
+				assertNever(monitor)
+			}
+		}
+
+		return { success: true }
 	}
 	disposePackageContainerMonitors(_packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
 		throw new Error('Method not implemented.')
@@ -216,10 +242,13 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		if (this.ftpClient.closed) {
 			await this.ftpClient.access(this.clientOptions)
 		}
-		const response = await this.ftpClient.remove(this.getFilePath(), true)
-		checkFtpResponse(response)
-
-		await this.removeMetadata()
+		if (this.workOptions.removeDelay) {
+			// Don't delete imediately, instead mark for later removal
+		} else {
+			const response = await this.ftpClient.remove(this.getFilePath(), true)
+			checkFtpResponse(response)
+			await this.removeMetadata()
+		}
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
@@ -297,10 +326,6 @@ export class FTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata>
 		}
 
 		return handler
-	}
-
-	getPackageReadInfo(): Promise<PackageReadInfoWrap> {
-		throw new Error('Method not implemented.')
 	}
 }
 
