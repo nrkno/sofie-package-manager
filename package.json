@@ -53,7 +53,7 @@
         "fs-extra": "^9.1.0"
     },
     "engines": {
-        "node": ">=12.3.0"
+        "node": ">=12.11.0"
     },
     "dependencies": {
         "@sofie-automation/blueprints-integration": "1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0",
