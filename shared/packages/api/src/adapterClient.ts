@@ -30,7 +30,7 @@ export abstract class AdapterClient<ME, OTHER> {
 					// On message from other party:
 					const fcn = (clientMethods as any)[message.type]
 					if (fcn) {
-						return fcn(...message.args)
+						return fcn.call(clientMethods, ...message.args)
 					} else {
 						throw new Error(`Unknown method "${message.type}"`)
 					}
