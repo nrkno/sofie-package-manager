@@ -16,9 +16,9 @@ export class WorkerAgentAPI
 	}
 
 	async expectationManagerAvailable(id: string, url: string): Promise<void> {
-		return await this._sendMessage('expectationManagerAvailable', id, url)
+		return this._sendMessage('expectationManagerAvailable', id, url)
 	}
 	async expectationManagerGone(id: string): Promise<void> {
-		return await this._sendMessage('expectationManagerGone', id)
+		return this._sendMessage('expectationManagerGone', id)
 	}
 }

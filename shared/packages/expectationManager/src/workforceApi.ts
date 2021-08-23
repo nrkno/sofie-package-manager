@@ -13,6 +13,6 @@ export class WorkforceAPI
 	}
 	async registerExpectationManager(managerId: string, url: string): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
-		return await this._sendMessage('registerExpectationManager', managerId, url)
+		return this._sendMessage('registerExpectationManager', managerId, url)
 	}
 }

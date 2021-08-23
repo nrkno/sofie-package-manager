@@ -159,8 +159,6 @@ export class PackageManagerHandler {
 		this._observers.push(expectedPackagesObserver)
 	}
 	public triggerUpdatedExpectedPackages(): void {
-		this.logger.info('_triggerUpdatedExpectedPackages')
-
 		if (this._triggerUpdatedExpectedPackagesTimeout) {
 			clearTimeout(this._triggerUpdatedExpectedPackagesTimeout)
 			this._triggerUpdatedExpectedPackagesTimeout = null
@@ -168,7 +166,6 @@ export class PackageManagerHandler {
 
 		this._triggerUpdatedExpectedPackagesTimeout = setTimeout(() => {
 			this._triggerUpdatedExpectedPackagesTimeout = null
-			this.logger.info('_triggerUpdatedExpectedPackages inner')
 
 			const expectedPackages: ExpectedPackageWrap[] = []
 			const packageContainers: PackageContainers = {}

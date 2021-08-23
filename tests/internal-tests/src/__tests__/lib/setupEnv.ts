@@ -156,13 +156,13 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		messageFromWorker: async (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 			switch (message.type) {
 				case 'fetchPackageInfoMetadata':
-					return await coreApi.fetchPackageInfoMetadata(...message.arguments)
+					return coreApi.fetchPackageInfoMetadata(...message.arguments)
 				case 'updatePackageInfo':
-					return await coreApi.updatePackageInfo(...message.arguments)
+					return coreApi.updatePackageInfo(...message.arguments)
 				case 'removePackageInfo':
-					return await coreApi.removePackageInfo(...message.arguments)
+					return coreApi.removePackageInfo(...message.arguments)
 				case 'reportFromMonitorPackages':
-					return await coreApi.reportFromMonitorPackages(...message.arguments)
+					return coreApi.reportFromMonitorPackages(...message.arguments)
 				default:
 					// @ts-expect-error message.type is never
 					throw new Error(`Unsupported message type "${message.type}"`)

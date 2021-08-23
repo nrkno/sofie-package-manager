@@ -73,7 +73,7 @@ export class WorkerAgent {
 				const manager = this.expectationManagers[managerId]
 				if (!manager) throw new Error(`ExpectationManager "${managerId}" not found`)
 
-				return await manager.api.messageFromWorker(message)
+				return manager.api.messageFromWorker(message)
 			},
 			{
 				// todo: tmp:
