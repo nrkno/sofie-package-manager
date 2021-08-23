@@ -36,12 +36,13 @@ export class Connector {
 		this._process = new ProcessHandler(this._logger)
 		this.coreHandler = new CoreHandler(this._logger, this.config.packageManager)
 
-		const packageManagerServerOptions: ExpectationManagerServerOptions = config.packageManager.port
-			? {
-					type: 'websocket',
-					port: config.packageManager.port,
-			  }
-			: { type: 'internal' }
+		const packageManagerServerOptions: ExpectationManagerServerOptions =
+			config.packageManager.port !== null
+				? {
+						type: 'websocket',
+						port: config.packageManager.port,
+				  }
+				: { type: 'internal' }
 
 		const workForceConnectionOptions: ClientConnectionOptions = config.packageManager.workforceURL
 			? {

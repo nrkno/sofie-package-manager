@@ -97,31 +97,40 @@ export class ExpectationManager {
 		public readonly managerId: string,
 		private serverOptions: ExpectationManagerServerOptions,
 		/** At what url the ExpectationManager can be reached on */
-		private serverAccessUrl: string | undefined,
+		private serverAccessBaseUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
 		private callbacks: ExpectationManagerCallbacks
 	) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		if (this.serverOptions.type === 'websocket') {
-			this.logger.info(`Expectation Manager on port ${this.serverOptions.port}`)
 			this.websocketServer = new WebsocketServer(this.serverOptions.port, (client: ClientConnection) => {
 				// A new client has connected
 
-				this.logger.info(`New ${client.clientType} connected, id "${client.clientId}"`)
+				this.logger.info(`ExpectationManager: New ${client.clientType} connected, id "${client.clientId}"`)
 
-				if (client.clientType === 'workerAgent') {
-					const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
+				switch (client.clientType) {
+					case 'workerAgent': {
+						const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
 
-					const api = new WorkerAgentAPI(expectationManagerMethods, {
-						type: 'websocket',
-						clientConnection: client,
-					})
+						const api = new WorkerAgentAPI(expectationManagerMethods, {
+							type: 'websocket',
+							clientConnection: client,
+						})
 
-					this.workerAgents[client.clientId] = { api }
-				} else {
-					throw new Error(`Unknown clientType "${client.clientType}"`)
+						this.workerAgents[client.clientId] = { api }
+						break
+					}
+					case 'N/A':
+					case 'expectationManager':
+					case 'appContainer':
+						throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+					default: {
+						assertNever(client.clientType)
+						throw new Error(`ExpectationManager: Unknown clientType "${client.clientType}"`)
+					}
 				}
 			})
+			this.logger.info(`Expectation Manager running on port ${this.websocketServer.port}`)
 		} else {
 			// todo: handle direct connections
 		}
@@ -131,8 +140,16 @@ export class ExpectationManager {
 	async init(): Promise<void> {
 		await this.workforceAPI.init(this.managerId, this.workForceConnectionOptions, this)
 
-		const serverAccessUrl =
-			this.workForceConnectionOptions.type === 'internal' ? '__internal' : this.serverAccessUrl
+		let serverAccessUrl: string
+		if (this.workForceConnectionOptions.type === 'internal') {
+			serverAccessUrl = '__internal'
+		} else {
+			serverAccessUrl = this.serverAccessBaseUrl || 'ws://127.0.0.1'
+			if (this.serverOptions.type === 'websocket' && this.serverOptions.port === 0) {
+				// When the configured port i 0, the next free port is picked
+				serverAccessUrl += `:${this.websocketServer?.port}`
+			}
+		}
 
 		if (!serverAccessUrl) throw new Error(`ExpectationManager.serverAccessUrl not set!`)
 
@@ -1093,7 +1110,7 @@ export class ExpectationManager {
 			}
 		}
 
-		return await workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
+		return workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
 	}
 	private async _updateReceivedPackageContainerExpectations() {
 		this.receivedUpdates.packageContainersHasBeenUpdated = false

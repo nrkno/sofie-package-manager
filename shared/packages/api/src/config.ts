@@ -2,6 +2,7 @@ import { Options } from 'yargs'
 import yargs = require('yargs/yargs')
 import _ from 'underscore'
 import { WorkerAgentConfig } from './worker'
+import { AppContainerConfig } from './appContainer'
 
 /*
  * This file contains various CLI argument definitions, used by the various processes that together constitutes the Package Manager
@@ -124,6 +125,35 @@ const workerArguments = defineArguments({
 		describe: 'Identifier of the local networks this worker has access to ("networkA;networkB")',
 	},
 })
+/** CLI-argument-definitions for the AppContainer process */
+const appContainerArguments = defineArguments({
+	appContainerId: {
+		type: 'string',
+		default: process.env.APP_CONTAINER_ID || 'appContainer0',
+		describe: 'Unique id of the appContainer',
+	},
+	workforceURL: {
+		type: 'string',
+		default: process.env.WORKFORCE_URL || 'ws://localhost:8070',
+		describe: 'The URL to the Workforce',
+	},
+
+	resourceId: {
+		type: 'string',
+		default: process.env.WORKER_NETWORK_ID || 'default',
+		describe: 'Identifier of the local resource/computer this worker runs on',
+	},
+	networkIds: {
+		type: 'string',
+		default: process.env.WORKER_NETWORK_ID || 'default',
+		describe: 'Identifier of the local networks this worker has access to ("networkA;networkB")',
+	},
+	windowsDriveLetters: {
+		type: 'string',
+		default: process.env.WORKER_WINDOWS_DRIVE_LETTERS || 'X;Y;Z',
+		describe: 'Which Windows Drive letters can be used to map shares. ("X;Y;Z") ',
+	},
+})
 /** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
 	workerCount: {
@@ -199,7 +229,7 @@ export function getHTTPServerConfig(): HTTPServerConfig {
 	}).argv
 
 	if (!argv.apiKeyWrite && argv.apiKeyRead) {
-		throw `Error: When apiKeyRead is given, apiKeyWrite is required!`
+		throw new Error(`Error: When apiKeyRead is given, apiKeyWrite is required!`)
 	}
 
 	return {
@@ -278,6 +308,28 @@ export function getWorkerConfig(): WorkerConfig {
 		},
 	}
 }
+// Configuration for the AppContainer Application: ------------------------------
+export interface AppContainerProcessConfig {
+	process: ProcessConfig
+	appContainer: AppContainerConfig
+}
+export function getAppContainerConfig(): AppContainerProcessConfig {
+	const argv = yargs(process.argv.slice(2)).options({
+		...appContainerArguments,
+		...processOptions,
+	}).argv
+
+	return {
+		process: getProcessConfig(argv),
+		appContainer: {
+			appContainerId: argv.appContainerId,
+			workforceURL: argv.workforceURL,
+			resourceId: argv.resourceId,
+			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
+			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
+		},
+	}
+}
 
 // Configuration for the Single-app Application: ------------------------------
 export interface SingleAppConfig
@@ -285,6 +337,7 @@ export interface SingleAppConfig
 		HTTPServerConfig,
 		PackageManagerConfig,
 		WorkerConfig,
+		AppContainerProcessConfig,
 		QuantelHTTPTransformerProxyConfig {
 	singleApp: {
 		workerCount: number
@@ -299,6 +352,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		...workerArguments,
 		...processOptions,
 		...singleAppArguments,
+		...appContainerArguments,
 		...quantelHTTPTransformerProxyConfigArguments,
 	}
 	// Remove some that are not used in the Single-App, so that they won't show up when running '--help':
@@ -323,6 +377,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		singleApp: {
 			workerCount: argv.workerCount || 1,
 		},
+		appContainer: getAppContainerConfig().appContainer,
 		quantelHTTPTransformerProxy: getQuantelHTTPTransformerProxyConfig().quantelHTTPTransformerProxy,
 	}
 }

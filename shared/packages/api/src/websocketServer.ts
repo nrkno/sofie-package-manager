@@ -39,6 +39,13 @@ export class WebsocketServer {
 		this.clients.forEach((client) => client.close())
 		this.wss.close()
 	}
+	get port(): number {
+		const address = this.wss.address()
+		if (typeof address === 'string')
+			throw new Error(`Internal error: to be implemented: wss.address() as string "${address}"`)
+
+		return address.port
+	}
 }
 
 export class ClientConnection extends WebsocketConnection {

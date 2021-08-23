@@ -6,16 +6,21 @@ import {
 	Hook,
 	LoggerInstance,
 	WorkforceConfig,
+	assertNever,
+	WorkForceAppContainer,
+	AppContainer,
 } from '@shared/api'
+import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { WorkerAgentAPI } from './workerAgentApi'
+import { WorkerHandler } from './workerHandler'
 
 /**
  * The Workforce class tracks the status of which ExpectationManagers and WorkerAgents are online,
  * and mediates connections between the two.
  */
 export class Workforce {
-	private workerAgents: {
+	public workerAgents: {
 		[workerId: string]: {
 			api: WorkerAgentAPI
 		}
@@ -27,38 +32,78 @@ export class Workforce {
 			url?: string
 		}
 	} = {}
+	public appContainers: {
+		[id: string]: {
+			api: AppContainerAPI
+			initialized: boolean
+			runningApps: {
+				appId: string
+				appType: AppContainer.AppType
+			}[]
+			availableApps: {
+				appType: AppContainer.AppType
+			}[]
+		}
+	} = {}
 	private websocketServer?: WebsocketServer
 
-	constructor(private logger: LoggerInstance, config: WorkforceConfig) {
-		if (config.workforce.port) {
+	private availableApps: WorkerHandler
+
+	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
+		if (config.workforce.port !== null) {
 			this.websocketServer = new WebsocketServer(config.workforce.port, (client: ClientConnection) => {
 				// A new client has connected
 
-				this.logger.info(`New ${client.clientType} connected, id "${client.clientId}"`)
+				this.logger.info(`Workforce: New client "${client.clientType}" connected, id "${client.clientId}"`)
 
-				if (client.clientType === 'workerAgent') {
-					const workForceMethods = this.getWorkerAgentAPI()
-					const api = new WorkerAgentAPI(workForceMethods, {
-						type: 'websocket',
-						clientConnection: client,
-					})
-					this.workerAgents[client.clientId] = { api }
-				} else if (client.clientType === 'expectationManager') {
-					const workForceMethods = this.getExpectationManagerAPI()
-					const api = new ExpectationManagerAPI(workForceMethods, {
-						type: 'websocket',
-						clientConnection: client,
-					})
-					this.expectationManagers[client.clientId] = { api }
-				} else {
-					throw new Error(`Unknown clientType "${client.clientType}"`)
+				switch (client.clientType) {
+					case 'workerAgent': {
+						const workForceMethods = this.getWorkerAgentAPI()
+						const api = new WorkerAgentAPI(workForceMethods, {
+							type: 'websocket',
+							clientConnection: client,
+						})
+						this.workerAgents[client.clientId] = { api }
+						break
+					}
+					case 'expectationManager': {
+						const workForceMethods = this.getExpectationManagerAPI()
+						const api = new ExpectationManagerAPI(workForceMethods, {
+							type: 'websocket',
+							clientConnection: client,
+						})
+						this.expectationManagers[client.clientId] = { api }
+						break
+					}
+					case 'appContainer': {
+						const workForceMethods = this.getAppContainerAPI(client.clientId)
+						const api = new AppContainerAPI(workForceMethods, {
+							type: 'websocket',
+							clientConnection: client,
+						})
+						this.appContainers[client.clientId] = {
+							api,
+							availableApps: [],
+							runningApps: [],
+							initialized: false,
+						}
+						break
+					}
+
+					case 'N/A':
+						throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+					default:
+						assertNever(client.clientType)
+						throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 				}
 			})
 		}
+		this.availableApps = new WorkerHandler(this)
 	}
 
 	async init(): Promise<void> {
 		// Nothing to do here at the moment
+		this.availableApps.triggerUpdate()
 	}
 	terminate(): void {
 		this.websocketServer?.terminate()
@@ -94,6 +139,9 @@ export class Workforce {
 			return workForceMethods
 		}
 	}
+	getPort(): number | undefined {
+		return this.websocketServer?.port
+	}
 
 	/** Return the API-methods that the Workforce exposes to the WorkerAgent */
 	private getWorkerAgentAPI(): WorkForceWorkerAgent.WorkForce {
@@ -121,11 +169,21 @@ export class Workforce {
 			},
 		}
 	}
+	/** Return the API-methods that the Workforce exposes to the AppContainer */
+	private getAppContainerAPI(clientId: string): WorkForceAppContainer.WorkForce {
+		return {
+			registerAvailableApps: async (availableApps: { appType: AppContainer.AppType }[]): Promise<void> => {
+				await this.registerAvailableApps(clientId, availableApps)
+			},
+		}
+	}
 
 	public async registerExpectationManager(managerId: string, url: string): Promise<void> {
 		const em = this.expectationManagers[managerId]
 		if (!em || em.url !== url) {
 			// Added/Changed
+
+			this.logger.info(`Workforce: Register ExpectationManager (${managerId}) at url "${url}"`)
 
 			// Announce the new expectation manager to the workerAgents:
 			for (const workerAgent of Object.values(this.workerAgents)) {
@@ -143,5 +201,24 @@ export class Workforce {
 				await workerAgent.api.expectationManagerGone(managerId)
 			}
 		}
+	}
+	public async registerAvailableApps(
+		clientId: string,
+		availableApps: { appType: AppContainer.AppType }[]
+	): Promise<void> {
+		this.appContainers[clientId].availableApps = availableApps
+
+		// Ask the AppContainer for a list of its running apps:
+		this.appContainers[clientId].api
+			.getRunningApps()
+			.then((runningApps) => {
+				this.appContainers[clientId].runningApps = runningApps
+				this.appContainers[clientId].initialized = true
+				this.availableApps.triggerUpdate()
+			})
+			.catch((error) => {
+				this.logger.error('Workforce: Error in getRunningApps')
+				this.logger.error(error)
+			})
 	}
 }

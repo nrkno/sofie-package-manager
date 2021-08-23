@@ -1,5 +1,6 @@
 export * from './adapterClient'
 export * from './adapterServer'
+export * from './appContainer'
 export * from './config'
 export * from './expectationApi'
 export * from './lib'

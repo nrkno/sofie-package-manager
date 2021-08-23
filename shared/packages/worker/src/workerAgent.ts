@@ -83,6 +83,9 @@ export class WorkerAgent {
 		)
 	}
 	async init(): Promise<void> {
+		if (this.connectionOptions.type === 'websocket') {
+			this.logger.info(`Worker: Connecting to Workforce at "${this.connectionOptions.url}"`)
+		}
 		await this.workforceAPI.init(this.id, this.connectionOptions, this)
 
 		const list = await this.workforceAPI.getExpectationManagerList()
@@ -134,14 +137,14 @@ export class WorkerAgent {
 	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {
-		this.logger.info(`Connecting to Expectation Manager "${id}" at url "${url}"`)
+		this.logger.info(`Worker: Connecting to Expectation Manager "${id}" at url "${url}"`)
 		const expectedManager = (this.expectationManagers[id] = {
 			url: url,
 			api: new ExpectationManagerAPI(this.logger),
 		})
 		const methods: ExpectationManagerWorkerAgent.WorkerAgent = literal<ExpectationManagerWorkerAgent.WorkerAgent>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {
-				return await this._worker.doYouSupportExpectation(exp)
+				return this._worker.doYouSupportExpectation(exp)
 			},
 			getCostForExpectation: async (
 				exp: Expectation.Any
