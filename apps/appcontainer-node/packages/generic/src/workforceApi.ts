@@ -1,4 +1,4 @@
-import { AdapterClient, LoggerInstance, WorkForceAppContainer, AppContainer } from '@shared/api'
+import { AdapterClient, LoggerInstance, WorkForceAppContainer } from '@shared/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the AppContainer
@@ -11,7 +11,7 @@ export class WorkforceAPI
 	constructor(logger: LoggerInstance) {
 		super(logger, 'appContainer')
 	}
-	async registerAvailableApps(availableApps: { appType: AppContainer.AppType }[]): Promise<void> {
+	async registerAvailableApps(availableApps: { appType: string }[]): Promise<void> {
 		return this._sendMessage('registerAvailableApps', availableApps)
 	}
 }

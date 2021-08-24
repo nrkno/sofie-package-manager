@@ -7,6 +7,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	assertNever,
 } from '@shared/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -23,7 +24,6 @@ import {
 	lookupAccessorHandles,
 	LookupPackageContainer,
 } from './lib'
-import { assertNever } from '../../../lib/lib'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 

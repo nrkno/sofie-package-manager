@@ -1,9 +1,8 @@
-import { AppContainer } from '@shared/api'
 import { Workforce } from './workforce'
 
 const UPDATE_INTERVAL = 10 * 1000
 
-/** Is in charge of spinning up/down Workers */
+/** The WorkerHandler is in charge of spinning up/down Workers */
 export class WorkerHandler {
 	private updateTimeout: NodeJS.Timer | null = null
 	private updateAgain = false
@@ -104,11 +103,11 @@ export class WorkerHandler {
 	}
 }
 interface PlannedWorker {
-	appType: AppContainer.AppType
+	appType: string
 	appContainerId: string
 	appId?: string
 }
 interface AppTarget {
-	appType: AppContainer.AppType
+	appType: string
 	fulfilled?: boolean
 }

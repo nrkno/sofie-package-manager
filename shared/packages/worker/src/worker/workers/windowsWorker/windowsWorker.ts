@@ -13,6 +13,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
+	assertNever,
 } from '@shared/api'
 import { GenericWorker, WorkerLocation } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
@@ -26,7 +27,6 @@ import { QuantelClipCopy } from './expectationHandlers/quantelClipCopy'
 import * as PackageContainerExpHandler from './packageContainerExpectationHandler'
 import { QuantelClipPreview } from './expectationHandlers/quantelClipPreview'
 import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
-import { assertNever } from '../../lib/lib'
 import { hasFFMpeg, hasFFProbe } from './expectationHandlers/lib/ffmpeg'
 import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 

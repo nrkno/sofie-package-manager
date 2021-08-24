@@ -1,4 +1,5 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
+import { assertNever } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
@@ -41,9 +42,6 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		assertNever(accessor.type) // Assert  so as to not forget to add an if-clause above
 		throw new Error(`Unsupported Accessor type "${accessor.type}"`)
 	}
-}
-function assertNever(_shouldBeNever: never) {
-	// Nothing
 }
 
 export function isLocalFolderAccessorHandle<Metadata>(

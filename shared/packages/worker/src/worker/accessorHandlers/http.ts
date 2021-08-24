@@ -6,12 +6,11 @@ import {
 	PutPackageHandler,
 	AccessorHandlerResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation } from '@shared/api'
+import { Expectation, PackageContainerExpectation, assertNever } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
 import FormData from 'form-data'
 import AbortController from 'abort-controller'
-import { assertNever } from '../lib/lib'
 
 /** Accessor handle for accessing files in a local folder */
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {

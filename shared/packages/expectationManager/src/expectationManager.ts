@@ -11,6 +11,7 @@ import {
 	LoggerInstance,
 	PackageContainerExpectation,
 	Reason,
+	assertNever,
 	ExpectationManagerStatus,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
@@ -1490,7 +1491,4 @@ interface TrackedPackageContainerExpectation {
 			}
 		}
 	}
-}
-function assertNever(_shouldBeNever: never) {
-	// Nothing
 }

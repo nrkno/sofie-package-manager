@@ -3,9 +3,8 @@ import { promisify } from 'util'
 import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
-import { Expectation, PackageContainerExpectation } from '@shared/api'
+import { Expectation, PackageContainerExpectation, assertNever } from '@shared/api'
 import { GenericWorker } from '../worker'
-import { assertNever } from '../lib/lib'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 
 const fsStat = promisify(fs.stat)

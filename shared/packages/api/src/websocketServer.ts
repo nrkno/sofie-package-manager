@@ -103,4 +103,4 @@ export class ClientConnection extends WebsocketConnection {
 		this.ws?.close()
 	}
 }
-type ClientType = MessageIdentifyClient['clientType']
+export type ClientType = MessageIdentifyClient['clientType']

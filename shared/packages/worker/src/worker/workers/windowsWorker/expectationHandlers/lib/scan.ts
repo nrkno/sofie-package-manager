@@ -1,5 +1,5 @@
 import { exec, ChildProcess, spawn } from 'child_process'
-import { Expectation } from '@shared/api'
+import { Expectation, assertNever } from '@shared/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -9,7 +9,6 @@ import {
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { QuantelAccessorHandle } from '../../../../accessorHandlers/quantel'
 import { CancelablePromise } from '../../../../lib/cancelablePromise'
-import { assertNever } from '../../../../lib/lib'
 import { FieldOrder, ScanAnomaly } from './coreApi'
 import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'

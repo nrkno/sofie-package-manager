@@ -40,6 +40,7 @@ export function hash(str: string): string {
 	const hash0 = crypto.createHash('sha1')
 	return hash0.update(str).digest('hex')
 }
-export function assertNever(_never: never): void {
-	// Do nothing. This is a type guard
+/** Helper function to simply assert that the value is of the type never */
+export function assertNever(_value: never): void {
+	// does nothing
 }

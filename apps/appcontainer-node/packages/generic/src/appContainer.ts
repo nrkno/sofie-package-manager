@@ -1,12 +1,7 @@
 import * as ChildProcess from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import {
-	LoggerInstance,
-	AppContainerProcessConfig,
-	ClientConnectionOptions,
-	AppContainer as NSAppContainer,
-} from '@shared/api'
+import { LoggerInstance, AppContainerProcessConfig, ClientConnectionOptions } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 
 /** Mimimum time between app restarts */
@@ -21,7 +16,7 @@ export class AppContainer {
 	private apps: {
 		[appId: string]: {
 			process: ChildProcess.ChildProcess
-			appType: NSAppContainer.AppType
+			appType: string
 			toBeKilled: boolean
 			restarts: number
 			lastRestart: number
@@ -55,7 +50,7 @@ export class AppContainer {
 
 		await this.workforceAPI.registerAvailableApps(
 			Object.entries(this.availableApps).map((o) => {
-				const appType = o[0] as NSAppContainer.AppType
+				const appType = o[0] as string
 				return {
 					appType: appType,
 				}
@@ -100,7 +95,7 @@ export class AppContainer {
 
 			;(await fs.promises.readdir(dirPath)).forEach((fileName) => {
 				if (fileName.match(/worker/i)) {
-					this.availableApps['worker'] = {
+					this.availableApps[fileName] = {
 						file: path.join(dirPath, fileName),
 						args: (appId: string) => {
 							return [...getWorkerArgs(appId)]
@@ -143,7 +138,7 @@ export class AppContainer {
 		app.process.removeAllListeners()
 		delete this.apps[appId]
 	}
-	async getRunningApps(): Promise<{ appId: string; appType: NSAppContainer.AppType }[]> {
+	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
 		return Object.entries(this.apps).map((o) => {
 			const [appId, app] = o
 

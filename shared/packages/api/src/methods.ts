@@ -2,7 +2,6 @@
 import { ExpectedPackage, ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
-import { AppContainer as NSAppContainer } from './appContainer'
 import {
 	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
@@ -164,10 +163,10 @@ export namespace WorkForceAppContainer {
 			appType: 'worker' // | other
 		) => Promise<string>
 		spinDown: (appId: string) => Promise<void>
-		getRunningApps: () => Promise<{ appId: string; appType: NSAppContainer.AppType }[]>
+		getRunningApps: () => Promise<{ appId: string; appType: string }[]>
 	}
 	/** Methods on WorkForce, called by AppContainer */
 	export interface WorkForce {
-		registerAvailableApps: (availableApps: { appType: NSAppContainer.AppType }[]) => Promise<void>
+		registerAvailableApps: (availableApps: { appType: string }[]) => Promise<void>
 	}
 }

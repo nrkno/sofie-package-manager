@@ -8,7 +8,7 @@ import {
 	WorkforceConfig,
 	assertNever,
 	WorkForceAppContainer,
-	AppContainer,
+	WorkforceStatus,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -38,10 +38,10 @@ export class Workforce {
 			initialized: boolean
 			runningApps: {
 				appId: string
-				appType: AppContainer.AppType
+				appType: string
 			}[]
 			availableApps: {
-				appType: AppContainer.AppType
+				appType: string
 			}[]
 		}
 	} = {}
@@ -241,10 +241,7 @@ export class Workforce {
 			}
 		}
 	}
-	public async registerAvailableApps(
-		clientId: string,
-		availableApps: { appType: AppContainer.AppType }[]
-	): Promise<void> {
+	public async registerAvailableApps(clientId: string, availableApps: { appType: string }[]): Promise<void> {
 		this.appContainers[clientId].availableApps = availableApps
 
 		// Ask the AppContainer for a list of its running apps:

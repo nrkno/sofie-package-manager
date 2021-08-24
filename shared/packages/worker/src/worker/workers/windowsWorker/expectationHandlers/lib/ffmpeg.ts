@@ -7,7 +7,7 @@ import {
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
-import { assertNever } from '../../../../lib/lib'
+import { assertNever } from '@shared/api'
 import { WorkInProgress } from '../../../../lib/workInProgress'
 
 export interface FFMpegProcess {

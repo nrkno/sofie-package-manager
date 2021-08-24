@@ -1,4 +1,4 @@
-import { WorkForceAppContainer, AdapterServer, AdapterServerOptions, AppContainer } from '@shared/api'
+import { WorkForceAppContainer, AdapterServer, AdapterServerOptions } from '@shared/api'
 
 /**
  * Exposes the API-methods of a AppContainer, to be called from the Workforce
@@ -15,13 +15,13 @@ export class AppContainerAPI
 		super(methods, options)
 	}
 
-	async spinUp(appType: AppContainer.AppType): Promise<string> {
+	async spinUp(appType: string): Promise<string> {
 		return this._sendMessage('spinUp', appType)
 	}
 	async spinDown(appId: string): Promise<void> {
 		return this._sendMessage('spinDown', appId)
 	}
-	async getRunningApps(): Promise<{ appId: string; appType: AppContainer.AppType }[]> {
+	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
 		return this._sendMessage('getRunningApps')
 	}
 }
