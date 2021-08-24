@@ -9,7 +9,7 @@ export class WorkerHandler {
 	private updateInterval: NodeJS.Timeout
 	private terminated = false
 
-	private workers: PlannedWorker[] = []
+	private plannedWorkers: PlannedWorker[] = []
 
 	constructor(private workForce: Workforce) {
 		this.updateInterval = setInterval(() => {
@@ -40,6 +40,21 @@ export class WorkerHandler {
 		}
 	}
 	private async update(): Promise<void> {
+		// Update this.plannedWorkers
+		for (const [appContainerId, appContainer] of Object.entries(this.workForce.appContainers)) {
+			for (const runningApp of appContainer.runningApps) {
+				const plannedWorker = this.plannedWorkers.find((pw) => pw.appId === runningApp.appId)
+				if (!plannedWorker) {
+					this.plannedWorkers.push({
+						appContainerId: appContainerId,
+						appType: runningApp.appType,
+						appId: runningApp.appId,
+						isInUse: false,
+					})
+				}
+			}
+		}
+
 		// This is a temporary stupid implementation,
 		// to be reworked later..
 		const needs: AppTarget[] = [
@@ -53,17 +68,21 @@ export class WorkerHandler {
 				appType: 'worker',
 			},
 		]
-		const haves: PlannedWorker[] = this.workers.map((worker) => {
-			return Object.assign({}, worker)
-		})
+		// Reset plannedWorkers:
+		for (const plannedWorker of this.plannedWorkers) {
+			plannedWorker.isInUse = false
+		}
 
 		// Initial check to see which needs are already fulfilled:
 		for (const need of needs) {
 			// Do we have anything that fullfills the need?
-			for (const have of haves) {
-				if (have.appType === need.appType) {
+			for (const plannedWorker of this.plannedWorkers) {
+				if (plannedWorker.isInUse) continue
+
+				if (plannedWorker.appType === need.appType) {
 					// ^ Later, we'll add more checks here ^
 					need.fulfilled = true
+					plannedWorker.isInUse = true
 				}
 			}
 		}
@@ -87,8 +106,9 @@ export class WorkerHandler {
 						const newPlannedWorker: PlannedWorker = {
 							appContainerId: appContainerId,
 							appType: availableApp.appType,
+							isInUse: true,
 						}
-						this.workers.push(newPlannedWorker)
+						this.plannedWorkers.push(newPlannedWorker)
 
 						const appId = await appContainer.api.spinUp(availableApp.appType)
 
@@ -106,6 +126,8 @@ interface PlannedWorker {
 	appType: string
 	appContainerId: string
 	appId?: string
+
+	isInUse: boolean
 }
 interface AppTarget {
 	appType: string
