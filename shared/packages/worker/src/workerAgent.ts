@@ -135,6 +135,13 @@ export class WorkerAgent {
 	async expectationManagerGone(id: string): Promise<void> {
 		delete this.expectationManagers[id]
 	}
+	async _debugKill(): Promise<void> {
+		// This is for testing purposes only
+		setTimeout(() => {
+			// eslint-disable-next-line no-process-exit
+			process.exit(42)
+		}, 500)
+	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {
 		this.logger.info(`Worker: Connecting to Expectation Manager "${id}" at url "${url}"`)

@@ -21,4 +21,7 @@ export class WorkerAgentAPI
 	async expectationManagerGone(id: string): Promise<void> {
 		return this._sendMessage('expectationManagerGone', id)
 	}
+	async _debugKill(): Promise<void> {
+		return this._sendMessage('_debugKill')
+	}
 }

@@ -297,8 +297,14 @@ export class PackageManagerHandler {
 		// This method can be called from core
 		this.expectationManager.abortExpectation(workId)
 	}
-	public getDataSnapshot() {
+	public getDataSnapshot(): any {
 		return this.dataSnapshot
+	}
+	public async getExpetationManagerStatus(): Promise<any> {
+		return this.expectationManager.getStatus()
+	}
+	public async debugKillApp(appId: string): Promise<void> {
+		return this.expectationManager.debugKillApp(appId)
 	}
 
 	/** Ensures that the packageContainerExpectations containes the mandatory expectations */

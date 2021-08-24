@@ -167,12 +167,19 @@ export class Workforce {
 			registerExpectationManager: async (managerId: string, url: string): Promise<void> => {
 				await this.registerExpectationManager(managerId, url)
 			},
+
+			getStatus: async (): Promise<WorkforceStatus> => {
+				return this.getStatus()
+			},
+			_debugKillApp: async (appId: string): Promise<void> => {
+				return this._debugKillApp(appId)
+			},
 		}
 	}
 	/** Return the API-methods that the Workforce exposes to the AppContainer */
 	private getAppContainerAPI(clientId: string): WorkForceAppContainer.WorkForce {
 		return {
-			registerAvailableApps: async (availableApps: { appType: AppContainer.AppType }[]): Promise<void> => {
+			registerAvailableApps: async (availableApps: { appType: string }[]): Promise<void> => {
 				await this.registerAvailableApps(clientId, availableApps)
 			},
 		}
@@ -191,6 +198,38 @@ export class Workforce {
 			}
 		}
 		this.expectationManagers[managerId].url = url
+	}
+	public async getStatus(): Promise<WorkforceStatus> {
+		return {
+			workerAgents: Object.entries(this.workerAgents).map(([workerId, _workerAgent]) => {
+				return {
+					id: workerId,
+				}
+			}),
+			expectationManagers: Object.entries(this.expectationManagers).map(([id, expMan]) => {
+				return {
+					id: id,
+					url: expMan.url,
+				}
+			}),
+			appContainers: Object.entries(this.appContainers).map(([id, appContainer]) => {
+				return {
+					id: id,
+					initialized: appContainer.initialized,
+					availableApps: appContainer.availableApps.map((availableApp) => {
+						return {
+							appType: availableApp.appType,
+						}
+					}),
+				}
+			}),
+		}
+	}
+	public async _debugKillApp(appId: string): Promise<void> {
+		const workerAgent = this.workerAgents[appId]
+		if (!workerAgent) throw new Error(`Worker "${appId}" not found`)
+
+		return workerAgent.api._debugKill()
 	}
 	public async removeExpectationManager(managerId: string): Promise<void> {
 		const em = this.expectationManagers[managerId]

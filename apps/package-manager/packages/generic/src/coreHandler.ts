@@ -414,4 +414,10 @@ export class CoreHandler {
 	troubleshoot(): any {
 		return this._packageManagerHandler?.getDataSnapshot()
 	}
+	async getExpetationManagerStatus(): Promise<any> {
+		return this._packageManagerHandler?.getExpetationManagerStatus()
+	}
+	async debugKillApp(appId: string): Promise<void> {
+		return this._packageManagerHandler?.debugKillApp(appId)
+	}
 }

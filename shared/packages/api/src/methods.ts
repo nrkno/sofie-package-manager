@@ -13,6 +13,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
+import { WorkforceStatus } from './status'
 
 /** Contains textual descriptions for statuses. */
 export type Reason = ExpectedPackageStatusAPI.Reason
@@ -25,6 +26,9 @@ export namespace WorkForceExpectationManager {
 	/** Methods on WorkForce, called by ExpectationManager */
 	export interface WorkForce {
 		registerExpectationManager: (managerId: string, url: string) => Promise<void>
+
+		getStatus: () => Promise<WorkforceStatus>
+		_debugKillApp(appId: string): Promise<void>
 	}
 	/** Methods on ExpectationManager, called by WorkForce */
 	// eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -37,6 +41,8 @@ export namespace WorkForceWorkerAgent {
 	export interface WorkerAgent {
 		expectationManagerAvailable: (id: string, url: string) => Promise<void>
 		expectationManagerGone: (id: string) => Promise<void>
+
+		_debugKill: () => Promise<void>
 	}
 	/** Methods on WorkForce, called by WorkerAgent */
 	export interface WorkForce {

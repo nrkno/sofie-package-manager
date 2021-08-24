@@ -11,6 +11,7 @@ import {
 	LoggerInstance,
 	PackageContainerExpectation,
 	Reason,
+	ExpectationManagerStatus,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
@@ -92,6 +93,8 @@ export class ExpectationManager {
 	} = {}
 	private terminating = false
 
+	private status: ExpectationManagerStatus
+
 	constructor(
 		private logger: LoggerInstance,
 		public readonly managerId: string,
@@ -102,6 +105,7 @@ export class ExpectationManager {
 		private callbacks: ExpectationManagerCallbacks
 	) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
+		this.status = this.updateStatus()
 		if (this.serverOptions.type === 'websocket') {
 			this.websocketServer = new WebsocketServer(this.serverOptions.port, (client: ClientConnection) => {
 				// A new client has connected
@@ -224,6 +228,15 @@ export class ExpectationManager {
 		this.receivedUpdates.abortExpectations[expectationId] = true
 		this.receivedUpdates.expectationsHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
+	}
+	async getStatus(): Promise<any> {
+		return {
+			workforce: await this.workforceAPI.getStatus(),
+			expectationManager: this.status,
+		}
+	}
+	async debugKillApp(appId: string): Promise<void> {
+		return this.workforceAPI._debugKillApp(appId)
 	}
 	/**
 	 * Schedule the evaluateExpectations() to run
@@ -381,6 +394,8 @@ export class ExpectationManager {
 
 		// Iterate through all Expectations:
 		const runAgainASAP = await this._evaluateAllExpectations()
+
+		this.updateStatus()
 
 		if (runAgainASAP) {
 			this._triggerEvaluateExpectations(true)
@@ -1303,6 +1318,57 @@ export class ExpectationManager {
 			}
 		}
 		return session.noAssignedWorkerReason
+	}
+	private updateStatus(): ExpectationManagerStatus {
+		this.status = {
+			expectationStatistics: {
+				countTotal: 0,
+
+				countNew: 0,
+				countWaiting: 0,
+				countReady: 0,
+				countWorking: 0,
+				countFulfilled: 0,
+				countRemoved: 0,
+				countRestarted: 0,
+				countAborted: 0,
+
+				countNoAvailableWorkers: 0,
+				countError: 0,
+			},
+			workerAgents: Object.entries(this.workerAgents).map(([id, _workerAgent]) => {
+				return {
+					workerId: id,
+				}
+			}),
+		}
+		const expectationStatistics = this.status.expectationStatistics
+		for (const exp of Object.values(this.trackedExpectations)) {
+			expectationStatistics.countTotal++
+
+			if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
+				expectationStatistics.countNew++
+			} else if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) {
+				expectationStatistics.countWaiting++
+			} else if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) {
+				expectationStatistics.countReady++
+			} else if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
+				expectationStatistics.countWorking++
+			} else if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
+				expectationStatistics.countFulfilled++
+			} else if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.REMOVED) {
+				expectationStatistics.countRemoved++
+			} else if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.RESTARTED) {
+				expectationStatistics.countRestarted++
+			} else if (exp.state === ExpectedPackageStatusAPI.WorkStatusState.ABORTED) {
+				expectationStatistics.countAborted++
+			} else assertNever(exp.state)
+
+			if (!exp.availableWorkers.length) expectationStatistics.countNoAvailableWorkers
+			if (exp.errorCount > 0 && exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING)
+				expectationStatistics.countError++
+		}
+		return this.status
 	}
 }
 export type ExpectationManagerServerOptions =
