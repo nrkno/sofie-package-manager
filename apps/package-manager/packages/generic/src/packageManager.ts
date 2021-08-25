@@ -144,7 +144,7 @@ export class PackageManagerHandler {
 			})
 			this._observers = []
 		}
-		this.logger.info('Renewing observers')
+		this.logger.debug('Renewing observers')
 
 		const expectedPackagesObserver = this.coreHandler.core.observe('deviceExpectedPackages')
 		expectedPackagesObserver.added = () => {
@@ -658,7 +658,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			}
 		}
 
-		this.logger.info(
+		this.logger.debug(
 			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
 		)
 

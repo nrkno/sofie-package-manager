@@ -297,7 +297,7 @@ export class ExpectationManager {
 						wip.trackedExp.status.actualVersionHash = actualVersionHash
 						wip.trackedExp.status.workProgress = progress
 
-						this.logger.info(
+						this.logger.debug(
 							`Expectation "${JSON.stringify(
 								wip.trackedExp.exp.statusReport.label
 							)}" progress: ${progress}`
@@ -380,7 +380,7 @@ export class ExpectationManager {
 	 * Evaluates the Expectations and PackageContainerExpectations
 	 */
 	private async _evaluateExpectations(): Promise<void> {
-		this.logger.info(Date.now() / 1000 + ' _evaluateExpectations ----------')
+		this.logger.debug(Date.now() / 1000 + ' _evaluateExpectations ----------')
 
 		// First we're going to see if there is any new incoming data which needs to be pulled in.
 		if (this.receivedUpdates.expectationsHasBeenUpdated) {
@@ -423,7 +423,7 @@ export class ExpectationManager {
 
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
-						this.logger.info(`Cancelling ${trackedExp.id} due to update`)
+						this.logger.debug(`Cancelling ${trackedExp.id} due to update`)
 						await trackedExp.status.workInProgressCancel()
 					}
 				}
@@ -471,7 +471,7 @@ export class ExpectationManager {
 
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
-						this.logger.info(`Cancelling ${trackedExp.id} due to removed`)
+						this.logger.debug(`Cancelling ${trackedExp.id} due to removed`)
 						await trackedExp.status.workInProgressCancel()
 					}
 				}
@@ -494,7 +494,7 @@ export class ExpectationManager {
 			if (trackedExp) {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
-						this.logger.info(`Cancelling ${trackedExp.id} due to restart`)
+						this.logger.debug(`Cancelling ${trackedExp.id} due to restart`)
 						await trackedExp.status.workInProgressCancel()
 					}
 				}
@@ -511,7 +511,7 @@ export class ExpectationManager {
 			if (trackedExp) {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
-						this.logger.info(`Cancelling ${trackedExp.id} due to abort`)
+						this.logger.debug(`Cancelling ${trackedExp.id} due to abort`)
 						await trackedExp.status.workInProgressCancel()
 					}
 				}
@@ -584,7 +584,7 @@ export class ExpectationManager {
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
 
 			if (trackedWithState.length) {
-				this.logger.info(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
+				this.logger.debug(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
 			}
 
 			if (trackedWithState.length) {
@@ -606,7 +606,7 @@ export class ExpectationManager {
 			}
 		}
 
-		this.logger.info(`Handle other states..`)
+		this.logger.debug(`Handle other states..`)
 
 		// Step 1.5: Reset the session:
 		// Because during the next iteration, the worker-assignment need to be done in series
@@ -760,7 +760,7 @@ export class ExpectationManager {
 				if (trackedExp.session.assignedWorker) {
 					const assignedWorker = trackedExp.session.assignedWorker
 
-					this.logger.info(`workOnExpectation: "${trackedExp.exp.id}" (${trackedExp.exp.type})`)
+					this.logger.debug(`workOnExpectation: "${trackedExp.exp.id}" (${trackedExp.exp.type})`)
 
 					// Start working on the Expectation:
 					const wipInfo = await assignedWorker.worker.workOnExpectation(trackedExp.exp, assignedWorker.cost)
@@ -964,11 +964,11 @@ export class ExpectationManager {
 		}
 		// Log and report new states an reasons:
 		if (updatedState) {
-			this.logger.info(
+			this.logger.debug(
 				`${trackedExp.exp.statusReport.label}: New state: "${prevState}"->"${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
 			)
 		} else if (updatedReason) {
-			this.logger.info(
+			this.logger.debug(
 				`${trackedExp.exp.statusReport.label}: State: "${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
 			)
 		}
@@ -1295,7 +1295,7 @@ export class ExpectationManager {
 		}
 
 		if (updatedReason) {
-			this.logger.info(
+			this.logger.debug(
 				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason.tech}"`
 			)
 		}
