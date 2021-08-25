@@ -50,6 +50,13 @@ const defaultTestConfig: SingleAppConfig = {
 		port: 0,
 		transformerURL: '',
 	},
+	appContainer: {
+		appContainerId: 'appContainer0',
+		workforceURL: null,
+		resourceId: '',
+		networkIds: [],
+		windowsDriveLetters: ['X', 'Y', 'Z'],
+	},
 }
 
 export async function setupExpectationManager(
@@ -138,7 +145,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		reportPackageContainerPackageStatus: (
 			containerId: string,
 			packageId: string,
-			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+			packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 		) => {
 			if (!containerStatuses[containerId]) {
 				containerStatuses[containerId] = {
@@ -210,7 +217,7 @@ export interface ContainerStatuses {
 	[containerId: string]: {
 		packages: {
 			[packageId: string]: {
-				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			}
 		}
 	}
