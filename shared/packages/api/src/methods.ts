@@ -30,8 +30,7 @@ export namespace WorkForceExpectationManager {
 		_debugKillApp(appId: string): Promise<void>
 		getStatus: () => Promise<WorkforceStatus>
 
-		// This is a temporary function:
-		setWorkerCount: (count: number) => Promise<void>
+		requestResources: (exp: Expectation.Any) => Promise<boolean>
 
 		registerExpectationManager: (managerId: string, url: string) => Promise<void>
 	}
@@ -172,6 +171,7 @@ export namespace WorkForceAppContainer {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
 
+		requestAppTypeForExpectation: (exp: Expectation.Any) => Promise<{ appType: string; cost: number } | null>
 		spinUp: (
 			appType: 'worker' // | other
 		) => Promise<string>
@@ -181,5 +181,20 @@ export namespace WorkForceAppContainer {
 	/** Methods on WorkForce, called by AppContainer */
 	export interface WorkForce {
 		registerAvailableApps: (availableApps: { appType: string }[]) => Promise<void>
+	}
+}
+
+/** Methods used by AppContainer and WorkerAgent */
+export namespace AppContainerWorkerAgent {
+	/** Methods on WorkerAgent, called by AppContainer */
+	export interface WorkerAgent {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+
+		doYouSupportExpectation: (exp: Expectation.Any) => Promise<ReturnTypeDoYouSupportExpectation>
+	}
+	/** Methods on AppContainer, called by WorkerAgent */
+	export interface AppContainer {
+		ping: () => Promise<void>
 	}
 }

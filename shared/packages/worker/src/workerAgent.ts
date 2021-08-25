@@ -18,6 +18,7 @@ import {
 	ReturnTypeDisposePackageContainerMonitors,
 	LogLevel,
 } from '@shared/api'
+import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { IWorkInProgress } from './worker/lib/workInProgress'
 import { GenericWorker } from './worker/worker'
@@ -32,11 +33,13 @@ export class WorkerAgent {
 	// private _busyMethodCount = 0
 	private currentJobs: { cost: ExpectationManagerWorkerAgent.ExpectationCost; progress: number }[] = []
 	private workforceAPI: WorkforceAPI
+	private appContainerAPI: AppContainerAPI
 	private wipI = 0
 
 	private worksInProgress: { [wipId: string]: IWorkInProgress } = {}
 	private id: string
-	private connectionOptions: ClientConnectionOptions
+	private workForceConnectionOptions: ClientConnectionOptions
+	private appContainerConnectionOptions: ClientConnectionOptions | null
 
 	private expectationManagers: {
 		[id: string]: {
@@ -53,9 +56,10 @@ export class WorkerAgent {
 
 	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
+		this.appContainerAPI = new AppContainerAPI(this.logger)
 
 		this.id = config.worker.workerId
-		this.connectionOptions = this.config.worker.workforceURL
+		this.workForceConnectionOptions = this.config.worker.workforceURL
 			? {
 					type: 'websocket',
 					url: this.config.worker.workforceURL,
@@ -63,7 +67,12 @@ export class WorkerAgent {
 			: {
 					type: 'internal',
 			  }
-
+		this.appContainerConnectionOptions = this.config.worker.appContainerURL
+			? {
+					type: 'websocket',
+					url: this.config.worker.appContainerURL,
+			  }
+			: null
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
 			this.logger,
@@ -84,10 +93,19 @@ export class WorkerAgent {
 		)
 	}
 	async init(): Promise<void> {
-		if (this.connectionOptions.type === 'websocket') {
-			this.logger.info(`Worker: Connecting to Workforce at "${this.connectionOptions.url}"`)
+		// Connect to WorkForce:
+		if (this.workForceConnectionOptions.type === 'websocket') {
+			this.logger.info(`Worker: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
-		await this.workforceAPI.init(this.id, this.connectionOptions, this)
+		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+
+		// Connect to AppContainer (if applicable)
+		if (this.appContainerConnectionOptions) {
+			if (this.appContainerConnectionOptions.type === 'websocket') {
+				this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
+			}
+			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
+		}
 
 		const list = await this.workforceAPI.getExpectationManagerList()
 		await this.updateListOfExpectationManagers(list)
@@ -125,6 +143,9 @@ export class WorkerAgent {
 	// isFree(): boolean {
 	// 	return this._busyMethodCount === 0
 	// }
+	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
+		return this._worker.doYouSupportExpectation(exp)
+	}
 	async expectationManagerAvailable(id: string, url: string): Promise<void> {
 		const existing = this.expectationManagers[id]
 		if (existing) {

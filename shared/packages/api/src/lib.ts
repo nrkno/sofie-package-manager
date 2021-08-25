@@ -44,3 +44,8 @@ export function hash(str: string): string {
 export function assertNever(_value: never): void {
 	// does nothing
 }
+export function waitTime(duration: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, duration)
+	})
+}

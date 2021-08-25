@@ -37,6 +37,11 @@ export class ExpectationManager {
 	 */
 	private readonly ALLOW_SKIPPING_QUEUE_TIME = 30 * 1000 // ms
 
+	/** How long to wait before requesting more resources (workers) */
+	private readonly SCALE_UP_TIME = 5 * 1000 // ms
+	/** How many resources to request at a time */
+	private readonly SCALE_UP_COUNT = 1
+
 	private workforceAPI: WorkforceAPI
 
 	/** Store for various incoming data, to be processed on next iteration round */
@@ -414,6 +419,8 @@ export class ExpectationManager {
 
 		this.updateStatus()
 
+		this.checkIfNeedToScaleUp()
+
 		if (runAgainASAP) {
 			this._triggerEvaluateExpectations(true)
 		}
@@ -450,6 +457,7 @@ export class ExpectationManager {
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					availableWorkers: [],
 					lastEvaluationTime: 0,
+					waitingForWorkerTime: null,
 					errorCount: 0,
 					reason: {
 						user: '',
@@ -709,7 +717,7 @@ export class ExpectationManager {
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) {
 				// Check if the expectation is ready to start:
 
-				await this.assignWorkerToSession(trackedExp.session, trackedExp)
+				await this.assignWorkerToSession(trackedExp)
 
 				if (trackedExp.session.assignedWorker) {
 					// First, check if it is already fulfilled:
@@ -770,7 +778,7 @@ export class ExpectationManager {
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) {
 				// Start working on it:
 
-				await this.assignWorkerToSession(trackedExp.session, trackedExp)
+				await this.assignWorkerToSession(trackedExp)
 				if (trackedExp.session.assignedWorker) {
 					const assignedWorker = trackedExp.session.assignedWorker
 
@@ -813,7 +821,7 @@ export class ExpectationManager {
 				// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore?
 
 				if (timeSinceLastEvaluation > this.getFullfilledWaitTime()) {
-					await this.assignWorkerToSession(trackedExp.session, trackedExp)
+					await this.assignWorkerToSession(trackedExp)
 					if (trackedExp.session.assignedWorker) {
 						// Check if it is still fulfilled:
 						const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
@@ -848,7 +856,7 @@ export class ExpectationManager {
 					// Do nothing
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.REMOVED) {
-				await this.assignWorkerToSession(trackedExp.session, trackedExp)
+				await this.assignWorkerToSession(trackedExp)
 				if (trackedExp.session.assignedWorker) {
 					const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
 					if (removed.removed) {
@@ -872,7 +880,7 @@ export class ExpectationManager {
 					)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.RESTARTED) {
-				await this.assignWorkerToSession(trackedExp.session, trackedExp)
+				await this.assignWorkerToSession(trackedExp)
 				if (trackedExp.session.assignedWorker) {
 					// Start by removing the expectation
 					const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
@@ -899,7 +907,7 @@ export class ExpectationManager {
 					)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.ABORTED) {
-				await this.assignWorkerToSession(trackedExp.session, trackedExp)
+				await this.assignWorkerToSession(trackedExp)
 				if (trackedExp.session.assignedWorker) {
 					// Start by removing the expectation
 					const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
@@ -1031,10 +1039,9 @@ export class ExpectationManager {
 		}
 	}
 	/** Do a bidding between the available Workers and assign the cheapest one to use for the evaulation-session. */
-	private async assignWorkerToSession(
-		session: ExpectationStateHandlerSession,
-		trackedExp: TrackedExpectation
-	): Promise<void> {
+	private async assignWorkerToSession(trackedExp: TrackedExpectation): Promise<void> {
+		const session: ExpectationStateHandlerSession | null = trackedExp.session
+		if (!session) throw new Error('ExpectationManager: INternal error: Session not set')
 		if (session.assignedWorker) return // A worker has already been assigned
 
 		/** How many requests to send out simultaneously */
@@ -1388,6 +1395,35 @@ export class ExpectationManager {
 		}
 		return this.status
 	}
+	private async checkIfNeedToScaleUp(): Promise<void> {
+		const waitingExpectations: TrackedExpectation[] = []
+
+		for (const exp of Object.values(this.trackedExpectations)) {
+			if (
+				(exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
+					exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) &&
+				!exp.availableWorkers.length && // No workers supports it
+				!exp.session?.assignedWorker // No worker has time to work on it
+			) {
+				if (!exp.waitingForWorkerTime) {
+					exp.waitingForWorkerTime = Date.now()
+				}
+			} else {
+				exp.waitingForWorkerTime = null
+			}
+			if (exp.waitingForWorkerTime)
+				if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.SCALE_UP_TIME) {
+					if (waitingExpectations.length < this.SCALE_UP_COUNT) {
+						waitingExpectations.push(exp)
+					}
+				}
+		}
+
+		for (const exp of waitingExpectations) {
+			this.logger.info(`Requesting more resources to handle expectation "${exp.id}"`)
+			await this.workforceAPI.requestResources(exp.exp)
+		}
+	}
 }
 export type ExpectationManagerServerOptions =
 	| {
@@ -1414,6 +1450,8 @@ interface TrackedExpectation {
 	availableWorkers: string[]
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
+	/** Timestamp to be track how long the expectation has been awiting for a worker (can't start working) */
+	waitingForWorkerTime: number | null
 	/** The number of times the expectation has failed */
 	errorCount: number
 

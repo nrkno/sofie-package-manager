@@ -1,8 +1,20 @@
 import * as ChildProcess from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import { LoggerInstance, AppContainerProcessConfig, ClientConnectionOptions, LogLevel } from '@shared/api'
+import {
+	LoggerInstance,
+	AppContainerProcessConfig,
+	ClientConnectionOptions,
+	LogLevel,
+	WebsocketServer,
+	ClientConnection,
+	AppContainerWorkerAgent,
+	assertNever,
+	Expectation,
+	waitTime,
+} from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
+import { WorkerAgentAPI } from './workerAgentApi'
 
 /** Mimimum time between app restarts */
 const RESTART_COOLDOWN = 60 * 1000 // ms
@@ -10,7 +22,7 @@ const RESTART_COOLDOWN = 60 * 1000 // ms
 export class AppContainer {
 	private workforceAPI: WorkforceAPI
 	private id: string
-	private connectionOptions: ClientConnectionOptions
+	private workForceConnectionOptions: ClientConnectionOptions
 	private appId = 0
 
 	private apps: {
@@ -20,17 +32,52 @@ export class AppContainer {
 			toBeKilled: boolean
 			restarts: number
 			lastRestart: number
+			workerAgentApi?: WorkerAgentAPI
 		}
 	} = {}
 	private availableApps: {
 		[appType: string]: AvailableAppInfo
 	} = {}
+	private websocketServer?: WebsocketServer
 
 	constructor(private logger: LoggerInstance, private config: AppContainerProcessConfig) {
+		if (config.appContainer.port !== null) {
+			this.websocketServer = new WebsocketServer(config.appContainer.port, (client: ClientConnection) => {
+				// A new client has connected
+
+				this.logger.info(`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`)
+
+				switch (client.clientType) {
+					case 'workerAgent': {
+						const workForceMethods = this.getWorkerAgentAPI()
+						const api = new WorkerAgentAPI(workForceMethods, {
+							type: 'websocket',
+							clientConnection: client,
+						})
+						if (!this.apps[client.clientId]) {
+							throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
+						}
+						this.apps[client.clientId].workerAgentApi = api
+						client.on('close', () => {
+							delete this.apps[client.clientId].workerAgentApi
+						})
+						break
+					}
+					case 'expectationManager':
+					case 'appContainer':
+					case 'N/A':
+						throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+					default:
+						assertNever(client.clientType)
+						throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
+				}
+			})
+		}
+
 		this.workforceAPI = new WorkforceAPI(this.logger)
 
 		this.id = config.appContainer.appContainerId
-		this.connectionOptions = this.config.appContainer.workforceURL
+		this.workForceConnectionOptions = this.config.appContainer.workforceURL
 			? {
 					type: 'websocket',
 					url: this.config.appContainer.workforceURL,
@@ -40,13 +87,13 @@ export class AppContainer {
 			  }
 	}
 	async init(): Promise<void> {
-		if (this.connectionOptions.type === 'websocket') {
-			this.logger.info(`AppContainer: Connecting to Workforce at "${this.connectionOptions.url}"`)
+		if (this.workForceConnectionOptions.type === 'websocket') {
+			this.logger.info(`AppContainer: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
 
 		await this.setupAvailableApps()
 
-		await this.workforceAPI.init(this.id, this.connectionOptions, this)
+		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
 
 		await this.workforceAPI.registerAvailableApps(
 			Object.entries(this.availableApps).map((o) => {
@@ -64,11 +111,20 @@ export class AppContainer {
 		// * how many can be spun up
 		// * etc...
 	}
+	/** Return the API-methods that the AppContainer exposes to the WorkerAgent */
+	private getWorkerAgentAPI(): AppContainerWorkerAgent.AppContainer {
+		return {
+			ping: async (): Promise<void> => {
+				// todo: Set last seen
+			},
+		}
+	}
 	private async setupAvailableApps() {
 		const getWorkerArgs = (appId: string): string[] => {
 			return [
 				`--workerId=${appId}`,
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
+				`--appContainerURL=${'ws://127.0.0.1:' + this.websocketServer?.port}`,
 				this.config.appContainer.windowsDriveLetters
 					? `--windowsDriveLetters=${this.config.appContainer.windowsDriveLetters?.join(';')}`
 					: '',
@@ -85,6 +141,7 @@ export class AppContainer {
 				args: (appId: string) => {
 					return [path.resolve('.', '../../worker/app/dist/index.js'), ...getWorkerArgs(appId)]
 				},
+				cost: 0,
 			}
 		} else {
 			// Process is a compiled executable
@@ -100,6 +157,7 @@ export class AppContainer {
 						args: (appId: string) => {
 							return [...getWorkerArgs(appId)]
 						},
+						cost: 0,
 					}
 				}
 			})
@@ -107,6 +165,7 @@ export class AppContainer {
 	}
 	terminate(): void {
 		this.workforceAPI.terminate()
+		this.websocketServer?.terminate()
 
 		// kill child processes
 	}
@@ -121,7 +180,45 @@ export class AppContainer {
 		}, 1)
 	}
 
-	async spinUp(appType: AppType): Promise<string> {
+	async requestAppTypeForExpectation(exp: Expectation.Any): Promise<{ appType: string; cost: number } | null> {
+		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
+			// If we're at our limit, we can't possibly run anything else
+			return null
+		}
+
+		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
+			// Do we already have any instance of the appType running?
+			let runningApp = Object.values(this.apps).find((app) => {
+				return app.appType === appType
+			})
+
+			if (!runningApp) {
+				const newAppId = await this.spinUp(appType) // todo: make it not die too soon
+
+				// wait for the app to connect to us:
+				tryAfewTimes(async () => {
+					if (this.apps[newAppId].workerAgentApi) {
+						return true
+					}
+					await waitTime(200)
+					return false
+				}, 10)
+				runningApp = this.apps[newAppId]
+				if (!runningApp) throw new Error(`AppContainer: Worker "${newAppId}" didn't connect in time`)
+			}
+			if (runningApp?.workerAgentApi) {
+				const result = await runningApp.workerAgentApi.doYouSupportExpectation(exp)
+				if (result.support) {
+					return {
+						appType: appType,
+						cost: availableApp.cost,
+					}
+				}
+			}
+		}
+		return null
+	}
+	async spinUp(appType: string): Promise<string> {
 		const availableApp = this.availableApps[appType]
 		if (!availableApp) throw new Error(`Unknown appType "${appType}"`)
 
@@ -159,7 +256,7 @@ export class AppContainer {
 		})
 	}
 	private setupChildProcess(
-		appType: AppType,
+		appType: string,
 		appId: string,
 		availableApp: AvailableAppInfo
 	): ChildProcess.ChildProcess {
@@ -204,8 +301,17 @@ export class AppContainer {
 		return child
 	}
 }
-type AppType = 'worker' // | other
 interface AvailableAppInfo {
 	file: string
 	args: (appId: string) => string[]
+	/** Some kind of value, how much it costs to run it, per minute */
+	cost: number
+}
+
+async function tryAfewTimes(cb: () => Promise<boolean>, maxTries: number) {
+	for (let i = 0; i < maxTries; i++) {
+		if (await cb()) {
+			break
+		}
+	}
 }

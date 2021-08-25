@@ -1,4 +1,11 @@
-import { WorkForceExpectationManager, AdapterClient, LoggerInstance, LogLevel, WorkforceStatus } from '@shared/api'
+import {
+	WorkForceExpectationManager,
+	AdapterClient,
+	LoggerInstance,
+	LogLevel,
+	WorkforceStatus,
+	Expectation,
+} from '@shared/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the ExpectationManager
@@ -12,10 +19,6 @@ export class WorkforceAPI
 		super(logger, 'expectationManager')
 	}
 
-	async setWorkerCount(count: number): Promise<void> {
-		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
-		return this._sendMessage('setWorkerCount', count)
-	}
 	async registerExpectationManager(managerId: string, url: string): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('registerExpectationManager', managerId, url)
@@ -35,5 +38,9 @@ export class WorkforceAPI
 	async _debugKillApp(appId: string): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('_debugKillApp', appId)
+	}
+	async requestResources(exp: Expectation.Any): Promise<boolean> {
+		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
+		return this._sendMessage('requestResources', exp)
 	}
 }

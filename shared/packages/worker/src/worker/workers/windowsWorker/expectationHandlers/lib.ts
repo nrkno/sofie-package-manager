@@ -212,11 +212,7 @@ export async function lookupAccessorHandles<Metadata>(
 		reason: errorReason,
 	}
 }
-export function waitTime(duration: number): Promise<void> {
-	return new Promise((resolve) => {
-		setTimeout(resolve, duration)
-	})
-}
+
 /** Converts a diff to some kind of user-readable string */
 export function userReadableDiff<T>(diffs: Diff<T, T>[]): string {
 	const strs: string[] = []

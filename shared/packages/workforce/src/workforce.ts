@@ -10,6 +10,7 @@ import {
 	WorkForceAppContainer,
 	WorkforceStatus,
 	LogLevel,
+	Expectation,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -113,7 +114,7 @@ export class Workforce {
 
 	async init(): Promise<void> {
 		// Nothing to do here at the moment
-		this.workerHandler.triggerUpdate()
+		// this.workerHandler.triggerUpdate()
 	}
 	terminate(): void {
 		this.websocketServer?.terminate()
@@ -183,6 +184,9 @@ export class Workforce {
 			registerExpectationManager: async (managerId: string, url: string): Promise<void> => {
 				await this.registerExpectationManager(managerId, url)
 			},
+			requestResources: async (exp: Expectation.Any): Promise<boolean> => {
+				return this.requestResources(exp)
+			},
 
 			getStatus: async (): Promise<WorkforceStatus> => {
 				return this.getStatus()
@@ -221,6 +225,9 @@ export class Workforce {
 			}
 		}
 		this.expectationManagers[managerId].url = url
+	}
+	public async requestResources(exp: Expectation.Any): Promise<boolean> {
+		return this.workerHandler.requestResources(exp)
 	}
 	public async getStatus(): Promise<WorkforceStatus> {
 		return {
@@ -298,7 +305,7 @@ export class Workforce {
 			.then((runningApps) => {
 				this.appContainers[clientId].runningApps = runningApps
 				this.appContainers[clientId].initialized = true
-				this.workerHandler.triggerUpdate()
+				// this.workerHandler.triggerUpdate()
 			})
 			.catch((error) => {
 				this.logger.error('Workforce: Error in getRunningApps')

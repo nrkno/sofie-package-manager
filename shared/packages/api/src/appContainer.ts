@@ -4,7 +4,9 @@ import { WorkerAgentConfig } from './worker'
 
 export interface AppContainerConfig {
 	workforceURL: string | null
+	port: number | null
 	appContainerId: string
+	maxRunningApps: number
 
 	resourceId: string
 	networkIds: string[]

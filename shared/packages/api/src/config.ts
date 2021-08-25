@@ -109,6 +109,11 @@ const workerArguments = defineArguments({
 		default: process.env.WORKFORCE_URL || 'ws://localhost:8070',
 		describe: 'The URL to the Workforce',
 	},
+	appContainerURL: {
+		type: 'string',
+		default: process.env.APP_CONTAINER_URL || '', // 'ws://localhost:8090',
+		describe: 'The URL to the AppContainer',
+	},
 	windowsDriveLetters: {
 		type: 'string',
 		default: process.env.WORKER_WINDOWS_DRIVE_LETTERS || 'X;Y;Z',
@@ -136,6 +141,16 @@ const appContainerArguments = defineArguments({
 		type: 'string',
 		default: process.env.WORKFORCE_URL || 'ws://localhost:8070',
 		describe: 'The URL to the Workforce',
+	},
+	port: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_PORT || '', 10) || 8090,
+		describe: 'The port number to start the App Container websocket server on',
+	},
+	maxRunningApps: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_MAX_RUNNING_APPS || '', 10) || 3,
+		describe: 'How many apps the appContainer can run at the same time',
 	},
 
 	resourceId: {
@@ -287,6 +302,7 @@ export interface WorkerConfig {
 	process: ProcessConfig
 	worker: {
 		workforceURL: string | null
+		appContainerURL: string | null
 		resourceId: string
 		networkIds: string[]
 	} & WorkerAgentConfig
@@ -302,6 +318,7 @@ export function getWorkerConfig(): WorkerConfig {
 		worker: {
 			workerId: argv.workerId,
 			workforceURL: argv.workforceURL,
+			appContainerURL: argv.appContainerURL,
 			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
 			resourceId: argv.resourceId,
 			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
@@ -322,8 +339,11 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 	return {
 		process: getProcessConfig(argv),
 		appContainer: {
-			appContainerId: argv.appContainerId,
 			workforceURL: argv.workforceURL,
+			port: argv.port,
+			appContainerId: argv.appContainerId,
+			maxRunningApps: argv.maxRunningApps,
+
 			resourceId: argv.resourceId,
 			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
 			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
