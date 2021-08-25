@@ -11,6 +11,7 @@ export class ExpectationManagerAPI
 	constructor(logger: LoggerInstance) {
 		super(logger, 'workerAgent')
 	}
+
 	async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts
 		return this._sendMessage('messageFromWorker', message)

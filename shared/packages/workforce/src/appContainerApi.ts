@@ -1,4 +1,4 @@
-import { WorkForceAppContainer, AdapterServer, AdapterServerOptions } from '@shared/api'
+import { WorkForceAppContainer, AdapterServer, AdapterServerOptions, LogLevel } from '@shared/api'
 
 /**
  * Exposes the API-methods of a AppContainer, to be called from the Workforce
@@ -13,6 +13,13 @@ export class AppContainerAPI
 		options: AdapterServerOptions<WorkForceAppContainer.AppContainer>
 	) {
 		super(methods, options)
+	}
+
+	async setLogLevel(logLevel: LogLevel): Promise<void> {
+		return this._sendMessage('setLogLevel', logLevel)
+	}
+	async _debugKill(): Promise<void> {
+		return this._sendMessage('_debugKill')
 	}
 
 	async spinUp(appType: string): Promise<string> {

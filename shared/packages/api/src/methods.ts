@@ -13,6 +13,7 @@ import {
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
 import { WorkforceStatus } from './status'
+import { LogLevel } from './logger'
 
 /** Contains textual descriptions for statuses. */
 export type Reason = ExpectedPackageStatusAPI.Reason
@@ -24,24 +25,33 @@ export type Reason = ExpectedPackageStatusAPI.Reason
 export namespace WorkForceExpectationManager {
 	/** Methods on WorkForce, called by ExpectationManager */
 	export interface WorkForce {
-		registerExpectationManager: (managerId: string, url: string) => Promise<void>
-
-		getStatus: () => Promise<WorkforceStatus>
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		setLogLevelOfApp: (appId: string, logLevel: LogLevel) => Promise<void>
 		_debugKillApp(appId: string): Promise<void>
+		getStatus: () => Promise<WorkforceStatus>
+
+		// This is a temporary function:
+		setWorkerCount: (count: number) => Promise<void>
+
+		registerExpectationManager: (managerId: string, url: string) => Promise<void>
 	}
 	/** Methods on ExpectationManager, called by WorkForce */
 	// eslint-disable-next-line @typescript-eslint/no-empty-interface
-	export interface ExpectationManager {}
+	export interface ExpectationManager {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+	}
 }
 
 /** Methods used by WorkForce and WorkerAgent */
 export namespace WorkForceWorkerAgent {
 	/** Methods on WorkerAgent, called by WorkForce */
 	export interface WorkerAgent {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+
 		expectationManagerAvailable: (id: string, url: string) => Promise<void>
 		expectationManagerGone: (id: string) => Promise<void>
-
-		_debugKill: () => Promise<void>
 	}
 	/** Methods on WorkForce, called by WorkerAgent */
 	export interface WorkForce {
@@ -159,6 +169,9 @@ export namespace ExpectationManagerWorkerAgent {
 export namespace WorkForceAppContainer {
 	/** Methods on AppContainer, called by WorkForce */
 	export interface AppContainer {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+
 		spinUp: (
 			appType: 'worker' // | other
 		) => Promise<string>

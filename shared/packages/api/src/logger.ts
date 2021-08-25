@@ -79,3 +79,7 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 	})
 	return logger
 }
+export enum LogLevel {
+	INFO = 'info',
+	DEBUG = 'debug',
+}

@@ -13,6 +13,7 @@ import {
 	Reason,
 	assertNever,
 	ExpectationManagerStatus,
+	LogLevel,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
@@ -232,11 +233,24 @@ export class ExpectationManager {
 		this.receivedUpdates.expectationsHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
+	async setLogLevel(logLevel: LogLevel): Promise<void> {
+		this.logger.level = logLevel
+	}
+	async _debugKill(): Promise<void> {
+		// This is for testing purposes only
+		setTimeout(() => {
+			// eslint-disable-next-line no-process-exit
+			process.exit(42)
+		}, 1)
+	}
 	async getStatus(): Promise<any> {
 		return {
 			workforce: await this.workforceAPI.getStatus(),
 			expectationManager: this.status,
 		}
+	}
+	async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
+		return this.workforceAPI.setLogLevelOfApp(appId, logLevel)
 	}
 	async debugKillApp(appId: string): Promise<void> {
 		return this.workforceAPI._debugKillApp(appId)
@@ -1324,6 +1338,7 @@ export class ExpectationManager {
 	}
 	private updateStatus(): ExpectationManagerStatus {
 		this.status = {
+			id: this.managerId,
 			expectationStatistics: {
 				countTotal: 0,
 

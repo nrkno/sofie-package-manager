@@ -16,6 +16,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 	ReturnTypeDisposePackageContainerMonitors,
+	LogLevel,
 } from '@shared/api'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { IWorkInProgress } from './worker/lib/workInProgress'
@@ -135,12 +136,15 @@ export class WorkerAgent {
 	async expectationManagerGone(id: string): Promise<void> {
 		delete this.expectationManagers[id]
 	}
+	public async setLogLevel(logLevel: LogLevel): Promise<void> {
+		this.logger.level = logLevel
+	}
 	async _debugKill(): Promise<void> {
 		// This is for testing purposes only
 		setTimeout(() => {
 			// eslint-disable-next-line no-process-exit
 			process.exit(42)
-		}, 500)
+		}, 1)
 	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {

@@ -1,7 +1,7 @@
 import * as ChildProcess from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import { LoggerInstance, AppContainerProcessConfig, ClientConnectionOptions } from '@shared/api'
+import { LoggerInstance, AppContainerProcessConfig, ClientConnectionOptions, LogLevel } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 
 /** Mimimum time between app restarts */
@@ -110,6 +110,16 @@ export class AppContainer {
 
 		// kill child processes
 	}
+	async setLogLevel(logLevel: LogLevel): Promise<void> {
+		this.logger.level = logLevel
+	}
+	async _debugKill(): Promise<void> {
+		// This is for testing purposes only
+		setTimeout(() => {
+			// eslint-disable-next-line no-process-exit
+			process.exit(42)
+		}, 1)
+	}
 
 	async spinUp(appType: AppType): Promise<string> {
 		const availableApp = this.availableApps[appType]
@@ -153,6 +163,7 @@ export class AppContainer {
 		appId: string,
 		availableApp: AvailableAppInfo
 	): ChildProcess.ChildProcess {
+		this.logger.info(`Starting process "${appId}" (${appType}): "${availableApp.file}"`)
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.

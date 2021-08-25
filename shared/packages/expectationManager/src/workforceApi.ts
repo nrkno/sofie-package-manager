@@ -1,4 +1,4 @@
-import { AdapterClient, LoggerInstance, WorkForceExpectationManager, WorkforceStatus } from '@shared/api'
+import { WorkForceExpectationManager, AdapterClient, LoggerInstance, LogLevel, WorkforceStatus } from '@shared/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the ExpectationManager
@@ -11,6 +11,11 @@ export class WorkforceAPI
 	constructor(logger: LoggerInstance) {
 		super(logger, 'expectationManager')
 	}
+
+	async setWorkerCount(count: number): Promise<void> {
+		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
+		return this._sendMessage('setWorkerCount', count)
+	}
 	async registerExpectationManager(managerId: string, url: string): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('registerExpectationManager', managerId, url)
@@ -18,6 +23,14 @@ export class WorkforceAPI
 	async getStatus(): Promise<WorkforceStatus> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('getStatus')
+	}
+	async setLogLevel(logLevel: LogLevel): Promise<void> {
+		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
+		return this._sendMessage('setLogLevel', logLevel)
+	}
+	async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
+		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
+		return this._sendMessage('setLogLevelOfApp', appId, logLevel)
 	}
 	async _debugKillApp(appId: string): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts

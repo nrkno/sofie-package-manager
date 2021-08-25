@@ -301,7 +301,18 @@ export class PackageManagerHandler {
 		return this.dataSnapshot
 	}
 	public async getExpetationManagerStatus(): Promise<any> {
-		return this.expectationManager.getStatus()
+		return {
+			...(await this.expectationManager.getStatus()),
+			packageManager: {
+				workforceURL:
+					this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,
+				lastUpdated: this.dataSnapshot.updated,
+				countExpectedPackages: this.dataSnapshot.expectedPackages.length,
+				countPackageContainers: Object.keys(this.dataSnapshot.packageContainers).length,
+				countExpectations: Object.keys(this.dataSnapshot.expectations).length,
+				countPackageContainerExpectations: Object.keys(this.dataSnapshot.packageContainerExpectations).length,
+			},
+		}
 	}
 	public async debugKillApp(appId: string): Promise<void> {
 		return this.expectationManager.debugKillApp(appId)

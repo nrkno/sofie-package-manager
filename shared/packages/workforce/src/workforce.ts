@@ -9,6 +9,7 @@ import {
 	assertNever,
 	WorkForceAppContainer,
 	WorkforceStatus,
+	LogLevel,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -47,7 +48,7 @@ export class Workforce {
 	} = {}
 	private websocketServer?: WebsocketServer
 
-	private availableApps: WorkerHandler
+	private workerHandler: WorkerHandler
 
 	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
 		if (config.workforce.port !== null) {
@@ -107,12 +108,12 @@ export class Workforce {
 				}
 			})
 		}
-		this.availableApps = new WorkerHandler(this)
+		this.workerHandler = new WorkerHandler(this)
 	}
 
 	async init(): Promise<void> {
 		// Nothing to do here at the moment
-		this.availableApps.triggerUpdate()
+		this.workerHandler.triggerUpdate()
 	}
 	terminate(): void {
 		this.websocketServer?.terminate()
@@ -173,6 +174,12 @@ export class Workforce {
 	/** Return the API-methods that the Workforce exposes to the ExpectationManager */
 	private getExpectationManagerAPI(): WorkForceExpectationManager.WorkForce {
 		return {
+			setLogLevel: async (logLevel: LogLevel): Promise<void> => {
+				return this.setLogLevel(logLevel)
+			},
+			setLogLevelOfApp: async (appId: string, logLevel: LogLevel): Promise<void> => {
+				return this.setLogLevelOfApp(appId, logLevel)
+			},
 			registerExpectationManager: async (managerId: string, url: string): Promise<void> => {
 				await this.registerExpectationManager(managerId, url)
 			},
@@ -192,6 +199,13 @@ export class Workforce {
 				await this.registerAvailableApps(clientId, availableApps)
 			},
 		}
+	}
+	private _debugKill(): void {
+		// This is for testing purposes only
+		setTimeout(() => {
+			// eslint-disable-next-line no-process-exit
+			process.exit(42)
+		}, 1)
 	}
 
 	public async registerExpectationManager(managerId: string, url: string): Promise<void> {
@@ -234,12 +248,37 @@ export class Workforce {
 			}),
 		}
 	}
+
+	public setLogLevel(logLevel: LogLevel): void {
+		this.logger.level = logLevel
+	}
+	public async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
+		const workerAgent = this.workerAgents[appId]
+		if (workerAgent) return workerAgent.api.setLogLevel(logLevel)
+
+		const appContainer = this.appContainers[appId]
+		if (appContainer) return appContainer.api.setLogLevel(logLevel)
+
+		const expectationManager = this.expectationManagers[appId]
+		if (expectationManager) return expectationManager.api.setLogLevel(logLevel)
+
+		if (appId === 'workforce') return this.setLogLevel(logLevel)
+		throw new Error(`App with id "${appId}" not found`)
+	}
 	public async _debugKillApp(appId: string): Promise<void> {
 		const workerAgent = this.workerAgents[appId]
-		if (!workerAgent) throw new Error(`Worker "${appId}" not found`)
+		if (workerAgent) return workerAgent.api._debugKill()
 
-		return workerAgent.api._debugKill()
+		const appContainer = this.appContainers[appId]
+		if (appContainer) return appContainer.api._debugKill()
+
+		const expectationManager = this.expectationManagers[appId]
+		if (expectationManager) return expectationManager.api._debugKill()
+
+		if (appId === 'workforce') return this._debugKill()
+		throw new Error(`App with id "${appId}" not found`)
 	}
+
 	public async removeExpectationManager(managerId: string): Promise<void> {
 		const em = this.expectationManagers[managerId]
 		if (em) {
@@ -259,7 +298,7 @@ export class Workforce {
 			.then((runningApps) => {
 				this.appContainers[clientId].runningApps = runningApps
 				this.appContainers[clientId].initialized = true
-				this.availableApps.triggerUpdate()
+				this.workerHandler.triggerUpdate()
 			})
 			.catch((error) => {
 				this.logger.error('Workforce: Error in getRunningApps')
