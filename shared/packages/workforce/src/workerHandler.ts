@@ -83,6 +83,7 @@ export class WorkerHandler {
 					// ^ Later, we'll add more checks here ^
 					need.fulfilled = true
 					plannedWorker.isInUse = true
+					break
 				}
 			}
 		}
