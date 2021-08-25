@@ -64,6 +64,9 @@ export class Workforce {
 							clientConnection: client,
 						})
 						this.workerAgents[client.clientId] = { api }
+						client.on('close', () => {
+							delete this.workerAgents[client.clientId]
+						})
 						break
 					}
 					case 'expectationManager': {
@@ -73,6 +76,9 @@ export class Workforce {
 							clientConnection: client,
 						})
 						this.expectationManagers[client.clientId] = { api }
+						client.on('close', () => {
+							delete this.expectationManagers[client.clientId]
+						})
 						break
 					}
 					case 'appContainer': {
@@ -87,6 +93,9 @@ export class Workforce {
 							runningApps: [],
 							initialized: false,
 						}
+						client.on('close', () => {
+							delete this.appContainers[client.clientId]
+						})
 						break
 					}
 

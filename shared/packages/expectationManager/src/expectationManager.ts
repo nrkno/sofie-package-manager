@@ -121,8 +121,10 @@ export class ExpectationManager {
 							type: 'websocket',
 							clientConnection: client,
 						})
-
 						this.workerAgents[client.clientId] = { api }
+						client.on('close', () => {
+							delete this.workerAgents[client.clientId]
+						})
 						break
 					}
 					case 'N/A':
