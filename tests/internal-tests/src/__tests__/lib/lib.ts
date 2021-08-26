@@ -1,3 +1,3 @@
-export function waitSeconds(seconds: number) {
-	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+export function waitTime(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms))
 }

@@ -1,5 +1,6 @@
 // eslint-disable-next-line node/no-unpublished-import
 import fsMockType from 'windows-network-drive' // Note: this is a mocked module
+// import * as Path from 'path'
 
 /* eslint-disable no-console */
 const DEBUG_LOG = false
@@ -9,7 +10,7 @@ enum fsConstants {
 	W_OK = 4,
 }
 
-const fs = jest.createMockFromModule('fs') as any
+const fs: any = jest.createMockFromModule('fs')
 
 type MockAny = MockDirectory | MockFile
 interface MockBase {
@@ -34,7 +35,7 @@ const mockRoot: MockDirectory = {
 	content: {},
 }
 const openFileDescriptors: { [fd: string]: MockAny } = {}
-let fd = 0
+let fdId = 0
 
 function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 	dir = dir || mockRoot
@@ -75,7 +76,7 @@ function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 		path: path,
 	})
 }
-function setMock(path: string, create: MockAny, autoCreateTree: boolean, dir?: MockDirectory): void {
+function setMock(path: string, create: MockAny, autoCreateTree: boolean, force = false, dir?: MockDirectory): void {
 	dir = dir || mockRoot
 
 	const m = path.match(/([^/]+)\/(.*)/)
@@ -119,10 +120,20 @@ function setMock(path: string, create: MockAny, autoCreateTree: boolean, dir?: M
 		}
 
 		if (nextDir) {
-			return setMock(nextPath, create, autoCreateTree, nextDir)
+			return setMock(nextPath, create, autoCreateTree, force, nextDir)
 		}
 	} else {
 		const fileName = path
+		if (dir.content[fileName]) {
+			if (!dir.content[fileName].accessWrite && !force) {
+				throw Object.assign(new Error(`EACCESS: Not able to write to parent folder "${path}"`), {
+					errno: 0,
+					code: 'EACCESS',
+					syscall: 'mock',
+					path: path,
+				})
+			}
+		}
 		dir.content[fileName] = create
 
 		if (DEBUG_LOG) console.log('setMock', path, create)
@@ -175,8 +186,6 @@ export function __printAllFiles(): string {
 	const getPaths = (dir: MockDirectory, indent: string): string => {
 		const strs: any[] = []
 		for (const [name, file] of Object.entries(dir.content)) {
-			// const path = `${prevPath}/${name}`
-
 			if (file.isDirectory) {
 				strs.push(`${indent}${name}/`)
 				strs.push(getPaths(file, indent + '  '))
@@ -215,40 +224,39 @@ export function __mockReset(): void {
 }
 fs.__mockReset = __mockReset
 
-export function __mockSetFile(path: string, size: number): void {
+export function __mockSetFile(path: string, size: number, accessOptions?: FileAccess): void {
 	path = fixPath(path)
 	setMock(
 		path,
 		{
-			accessRead: true,
-			accessWrite: true,
+			accessRead: accessOptions?.accessRead ?? true,
+			accessWrite: accessOptions?.accessWrite ?? true,
+
 			isDirectory: false,
 			content: 'mockContent',
 			size: size,
 		},
+		true,
 		true
 	)
 }
 fs.__mockSetFile = __mockSetFile
-export function __mockSetDirectory(path: string): void {
+export function __mockSetDirectory(path: string, accessOptions?: FileAccess): void {
 	path = fixPath(path)
 	setMock(
 		path,
 		{
-			accessRead: true,
-			accessWrite: true,
+			accessRead: accessOptions?.accessRead ?? true,
+			accessWrite: accessOptions?.accessWrite ?? true,
+
 			isDirectory: true,
 			content: {},
 		},
+		true,
 		true
 	)
 }
 fs.__mockSetDirectory = __mockSetDirectory
-
-// export function readdirSync(directoryPath: string) {
-// 	return mockFiles[directoryPath] || []
-// }
-// fs.readdirSync = readdirSync
 
 export function stat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
@@ -391,10 +399,10 @@ export function open(path: string, _options: string, callback: (error: any, resu
 	if (DEBUG_LOG) console.log('fs.open', path)
 	try {
 		const file = getMock(path)
-		fd++
-		openFileDescriptors[fd + ''] = file
+		fdId++
+		openFileDescriptors[fdId + ''] = file
 
-		return callback(undefined, fd)
+		return callback(undefined, fdId)
 	} catch (err) {
 		callback(err)
 	}
@@ -440,5 +448,10 @@ export function rename(source: string, destination: string, callback: (error: an
 	}
 }
 fs.rename = rename
+
+interface FileAccess {
+	accessRead: boolean
+	accessWrite: boolean
+}
 
 module.exports = fs
