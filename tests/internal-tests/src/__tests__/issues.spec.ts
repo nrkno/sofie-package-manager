@@ -6,6 +6,7 @@ import type * as fsMockType from '../__mocks__/fs'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
 import { waitTime } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
+import { WorkerAgent } from '@shared/worker'
 jest.mock('fs')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
@@ -94,9 +95,6 @@ describe('Handle unhappy paths', () => {
 		expect(1).toEqual(1)
 	})
 	test('Wait for read access on source', async () => {
-		// To be written
-		expect(1).toEqual(1)
-
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234, {
 			accessRead: false,
 			accessWrite: false,
@@ -188,9 +186,57 @@ describe('Handle unhappy paths', () => {
 		// To be written
 		expect(1).toEqual(1)
 	})
-	test.skip('A worker crashes', async () => {
+	test('A worker crashes', async () => {
 		// A worker crashes while expectation waiting for a file
 		// A worker crashes while expectation work-in-progress
+
+		expect(env.workerAgents).toHaveLength(1)
+		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+		fs.__mockSetDirectory('/targets/target0')
+		let killedWorker: WorkerAgent | undefined
+		const listenToCopyFile = jest.fn(() => {
+			// While the copy is underway, kill off the worker:
+			// This simulates that the worker crashes, without telling anyone.
+			killedWorker = env.workerAgents[0]
+			killedWorker.terminate()
+		})
+
+		fs.__emitter().once('copyFile', listenToCopyFile)
+
+		addCopyFileExpectation(
+			env,
+			'copy0',
+			[getLocalSource('source0', 'file0Source.mp4')],
+			[getLocalTarget('target0', 'file0Target.mp4')]
+		)
+
+		await waitTime(env.WAIT_JOB_TIME)
+		// Expect the Expectation to be waiting:
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('working')
+		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
+
+		await waitTime(env.WORK_TIMEOUT_TIME)
+		await waitTime(env.WAIT_JOB_TIME)
+		// By now, the work should have been aborted, and restarted:
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('new')
+
+		// Add another worker:
+		env.addWorker()
+		await waitTime(env.WAIT_SCAN_TIME)
+
+		// Expect the copy to have completed by now:
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.containerStatuses['target0']).toBeTruthy()
+		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
+		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+		)
+
+		// Clean up:
+		if (killedWorker) env.removeWorker(killedWorker.id)
+	})
+	test.skip('One of the workers reply very slowly', async () => {
+		// The expectation should be picked up by one of the faster workers
 
 		// To be written
 		expect(1).toEqual(1)

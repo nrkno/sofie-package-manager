@@ -1,5 +1,6 @@
 // eslint-disable-next-line node/no-unpublished-import
 import fsMockType from 'windows-network-drive' // Note: this is a mocked module
+import { EventEmitter } from 'events' // Note: this is a mocked module
 // import * as Path from 'path'
 
 /* eslint-disable no-console */
@@ -36,6 +37,7 @@ const mockRoot: MockDirectory = {
 }
 const openFileDescriptors: { [fd: string]: MockAny } = {}
 let fdId = 0
+const fsMockEmitter = new EventEmitter()
 
 function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 	dir = dir || mockRoot
@@ -221,6 +223,7 @@ function fixPath(path: string) {
 
 export function __mockReset(): void {
 	Object.keys(mockRoot.content).forEach((filePath) => delete mockRoot.content[filePath])
+	fsMockEmitter.removeAllListeners()
 }
 fs.__mockReset = __mockReset
 
@@ -258,9 +261,15 @@ export function __mockSetDirectory(path: string, accessOptions?: FileAccess): vo
 }
 fs.__mockSetDirectory = __mockSetDirectory
 
+export function __emitter(): EventEmitter {
+	return fsMockEmitter
+}
+fs.__emitter = __emitter
+
 export function stat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.stat', path)
+	fsMockEmitter.emit('stat', path)
 	try {
 		const mockFile = getMock(path)
 		if (mockFile.isDirectory) {
@@ -281,6 +290,7 @@ fs.stat = stat
 export function access(path: string, mode: number | undefined, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.access', path, mode)
+	fsMockEmitter.emit('access', path, mode)
 	try {
 		const mockFile = getMock(path)
 		if (mode === fsConstants.R_OK && !mockFile.accessRead) {
@@ -299,6 +309,7 @@ fs.access = access
 export function unlink(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.unlink', path)
+	fsMockEmitter.emit('unlink', path)
 	try {
 		deleteMock(path)
 		return callback(undefined, null)
@@ -311,6 +322,7 @@ fs.unlink = unlink
 export function mkdir(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.mkdir', path)
+	fsMockEmitter.emit('mkdir', path)
 	try {
 		setMock(
 			path,
@@ -333,6 +345,7 @@ fs.mkdir = mkdir
 export function readdir(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.readdir', path)
+	fsMockEmitter.emit('readdir', path)
 	try {
 		const mockFile = getMock(path)
 		if (!mockFile.isDirectory) {
@@ -349,6 +362,7 @@ fs.readdir = readdir
 export function lstat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.lstat', path)
+	fsMockEmitter.emit('lstat', path)
 	try {
 		const mockFile = getMock(path)
 		return callback(undefined, {
@@ -364,6 +378,7 @@ fs.lstat = lstat
 export function writeFile(path: string, data: Buffer | string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.writeFile', path)
+	fsMockEmitter.emit('writeFile', path, data)
 	try {
 		setMock(
 			path,
@@ -385,6 +400,7 @@ fs.writeFile = writeFile
 function readFile(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.readFile', path)
+	fsMockEmitter.emit('readFile', path)
 	try {
 		const file = getMock(path)
 		return callback(undefined, file.content)
@@ -397,6 +413,7 @@ fs.readFile = readFile
 export function open(path: string, _options: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.open', path)
+	fsMockEmitter.emit('open', path)
 	try {
 		const file = getMock(path)
 		fdId++
@@ -410,6 +427,7 @@ export function open(path: string, _options: string, callback: (error: any, resu
 fs.open = open
 export function close(fd: number, callback: (error: any, result?: any) => void): void {
 	if (DEBUG_LOG) console.log('fs.close')
+	fsMockEmitter.emit('close', fd)
 	if (openFileDescriptors[fd + '']) {
 		delete openFileDescriptors[fd + '']
 		return callback(undefined, null)
@@ -422,6 +440,7 @@ export function copyFile(source: string, destination: string, callback: (error: 
 	source = fixPath(source)
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.copyFile', source, destination)
+	fsMockEmitter.emit('copyFile', source, destination)
 	try {
 		const mockFile = getMock(source)
 		if (DEBUG_LOG) console.log('source', source)
@@ -438,6 +457,7 @@ export function rename(source: string, destination: string, callback: (error: an
 	source = fixPath(source)
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.rename', source, destination)
+	fsMockEmitter.emit('rename', source, destination)
 	try {
 		const mockFile = getMock(source)
 		setMock(destination, mockFile, false)

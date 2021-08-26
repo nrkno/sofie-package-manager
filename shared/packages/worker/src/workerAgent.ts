@@ -37,7 +37,7 @@ export class WorkerAgent {
 	private wipI = 0
 
 	private worksInProgress: { [wipId: string]: IWorkInProgress } = {}
-	private id: string
+	public readonly id: string
 	private workForceConnectionOptions: ClientConnectionOptions
 	private appContainerConnectionOptions: ClientConnectionOptions | null
 
@@ -53,6 +53,7 @@ export class WorkerAgent {
 			ExpectationManagerWorkerAgent.WorkerAgent
 		>
 	} = {}
+	private terminated = false
 
 	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
@@ -113,6 +114,7 @@ export class WorkerAgent {
 		await this._worker.init()
 	}
 	terminate(): void {
+		this.terminated = true
 		this.workforceAPI.terminate()
 		Object.values(this.expectationManagers).forEach((expectationManager) => expectationManager.api.terminate())
 		// this._worker.terminate()
@@ -222,8 +224,10 @@ export class WorkerAgent {
 					workInProgress.on('progress', (actualVersionHash, progress: number) => {
 						currentjob.progress = progress
 						expectedManager.api.wipEventProgress(wipId, actualVersionHash, progress).catch((err) => {
-							this.logger.error('Error in wipEventProgress')
-							this.logger.error(err)
+							if (!this.terminated) {
+								this.logger.error('Error in wipEventProgress')
+								this.logger.error(err)
+							}
 						})
 					})
 					workInProgress.on('error', (error: string) => {
@@ -238,8 +242,10 @@ export class WorkerAgent {
 								tech: error,
 							})
 							.catch((err) => {
-								this.logger.error('Error in wipEventError')
-								this.logger.error(err)
+								if (!this.terminated) {
+									this.logger.error('Error in wipEventError')
+									this.logger.error(err)
+								}
 							})
 						delete this.worksInProgress[`${wipId}`]
 					})
@@ -250,8 +256,10 @@ export class WorkerAgent {
 						)
 
 						expectedManager.api.wipEventDone(wipId, actualVersionHash, reason, result).catch((err) => {
-							this.logger.error('Error in wipEventDone')
-							this.logger.error(err)
+							if (!this.terminated) {
+								this.logger.error('Error in wipEventDone')
+								this.logger.error(err)
+							}
 						})
 						delete this.worksInProgress[`${wipId}`]
 					})
@@ -302,8 +310,21 @@ export class WorkerAgent {
 				return this._worker.disposePackageContainerMonitors(packageContainer)
 			},
 		})
+		// Wrap the methods, so that we can cut off communication upon termination: (this is used in tests)
+		for (const key of Object.keys(methods) as Array<keyof ExpectationManagerWorkerAgent.WorkerAgent>) {
+			const fcn = methods[key] as any
+			methods[key] = ((...args: any[]) => {
+				if (this.terminated)
+					return new Promise((_resolve, reject) => {
+						// Simulate a timed out message:
+						setTimeout(() => {
+							reject('Timeout')
+						}, 200)
+					})
+				return fcn(...args)
+			}) as any
+		}
 		// Connect to the ExpectationManager:
-
 		if (url === '__internal') {
 			// This is used for an internal connection:
 			const managerHookHook = this.expectationManagerHooks[id]

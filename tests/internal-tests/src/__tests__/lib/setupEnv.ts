@@ -97,12 +97,14 @@ export async function setupExpectationManager(
 
 	// Initialize workers:
 	const workerAgents: Worker.WorkerAgent[] = []
-	for (let i = 0; i < workerCount; i++) {
+	let workerI = 0
+	const addWorker = async () => {
+		const workerId = defaultTestConfig.worker.workerId + '_' + workerI++
 		const workerAgent = new Worker.WorkerAgent(logger, {
 			...defaultTestConfig,
 			worker: {
 				...defaultTestConfig.worker,
-				workerId: defaultTestConfig.worker.workerId + '_' + i,
+				workerId: workerId,
 			},
 		})
 		workerAgents.push(workerAgent)
@@ -110,12 +112,32 @@ export async function setupExpectationManager(
 		workerAgent.hookToWorkforce(workforce.getWorkerAgentHook())
 		workerAgent.hookToExpectationManager(expectationManager.managerId, expectationManager.getWorkerAgentHook())
 		await workerAgent.init()
+
+		return workerId
+	}
+	const removeWorker = async (workerId: string) => {
+		const index = workerAgents.findIndex((wa) => wa.id === workerId)
+		if (index !== -1) {
+			const workerAgent = workerAgents[index]
+
+			expectationManager.removeWorkerAgentHook(workerAgent.id)
+
+			workerAgent.terminate()
+			// Remove from array:
+			workerAgents.splice(index, 1)
+		}
+	}
+
+	for (let i = 0; i < workerCount; i++) {
+		await addWorker()
 	}
 
 	return {
 		workforce,
 		workerAgents,
 		expectationManager,
+		addWorker,
+		removeWorker,
 	}
 }
 
@@ -126,6 +148,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 
 	const WAIT_JOB_TIME = 500 // ms
 	const WAIT_SCAN_TIME = 1000 // ms
+	const WORK_TIMEOUT_TIME = 900 // ms
 
 	const em = await setupExpectationManager(
 		debugLogging,
@@ -196,6 +219,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			constants: {
 				EVALUATE_INTERVAL: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
 				FULLFILLED_MONITOR_TIME: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
+				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
 			},
 		}
 	)
@@ -203,7 +227,10 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	return {
 		WAIT_JOB_TIME,
 		WAIT_SCAN_TIME,
+		WORK_TIMEOUT_TIME,
 		expectationManager: em.expectationManager,
+		workerAgents: em.workerAgents,
+		workforce: em.workforce,
 		coreApi,
 		expectationStatuses,
 		containerStatuses,
@@ -221,17 +248,24 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			em.workforce.terminate()
 			em.workerAgents.forEach((workerAgent) => workerAgent.terminate())
 		},
+		addWorker: em.addWorker,
+		removeWorker: em.removeWorker,
 	}
 }
 export interface TestEnviromnent {
 	WAIT_JOB_TIME: number
 	WAIT_SCAN_TIME: number
+	WORK_TIMEOUT_TIME: number
 	expectationManager: ExpectationManager
+	workerAgents: Worker.WorkerAgent[]
+	workforce: Workforce.Workforce
 	coreApi: CoreMockAPI
 	expectationStatuses: ExpectationStatuses
 	containerStatuses: ContainerStatuses
 	reset: () => void
 	terminate: () => void
+	addWorker: () => Promise<string>
+	removeWorker: (id: string) => Promise<void>
 }
 
 export interface ExpectationStatuses {

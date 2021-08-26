@@ -175,9 +175,13 @@ export class ExpectationManager {
 		this.workforceAPI.hook(hook)
 	}
 	terminate(): void {
-		this.terminating = true
+		this.terminated = true
 		if (this.websocketServer) {
 			this.websocketServer.terminate()
+		}
+		if (this._evaluateExpectationsTimeout) {
+			clearTimeout(this._evaluateExpectationsTimeout)
+			this._evaluateExpectationsTimeout = undefined
 		}
 	}
 	/** USED IN TESTS ONLY. Quickly reset the tracked work of the expectationManager. */
@@ -215,6 +219,15 @@ export class ExpectationManager {
 
 			return workerAgentMethods
 		}
+	}
+	removeWorkerAgentHook(clientId: string): void {
+		const workerAgent = this.workerAgents[clientId]
+		if (!workerAgent) throw new Error(`WorkerAgent "${clientId}" not found!`)
+
+		if (workerAgent.api.type !== 'internal')
+			throw new Error(`Cannot remove WorkerAgent "${clientId}", due to the type being "${workerAgent.api.type}"`)
+
+		delete this.workerAgents[clientId]
 	}
 	/** Called when there is an updated set of PackageContainerExpectations. */
 	updatePackageContainerExpectations(packageContainers: { [id: string]: PackageContainerExpectation }): void {
@@ -281,6 +294,8 @@ export class ExpectationManager {
 	 * @param asap If true, will re-schedule evaluateExpectations() to run as soon as possible
 	 */
 	private _triggerEvaluateExpectations(asap?: boolean): void {
+		if (this.terminated) return
+
 		if (asap) this._evaluateExpectationsRunAsap = true
 		if (this._evaluateExpectationsIsBusy) return
 
@@ -289,11 +304,9 @@ export class ExpectationManager {
 			this._evaluateExpectationsTimeout = undefined
 		}
 
-		if (this.terminating) return
-
 		this._evaluateExpectationsTimeout = setTimeout(
 			() => {
-				if (this.terminating) return
+				if (this.terminated) return
 
 				this._evaluateExpectationsRunAsap = false
 				this._evaluateExpectationsIsBusy = true
@@ -328,6 +341,7 @@ export class ExpectationManager {
 			): Promise<void> => {
 				const wip = this.worksInProgress[`${clientId}_${wipId}`]
 				if (wip) {
+					wip.lastUpdated = Date.now()
 					if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 						wip.trackedExp.status.actualVersionHash = actualVersionHash
 						wip.trackedExp.status.workProgress = progress
@@ -713,12 +727,21 @@ export class ExpectationManager {
 				}
 				await Promise.all(
 					Object.entries(this.workerAgents).map(async ([id, workerAgent]) => {
-						const support = await workerAgent.api.doYouSupportExpectation(trackedExp.exp)
+						try {
+							const support = await workerAgent.api.doYouSupportExpectation(trackedExp.exp)
 
-						if (support.support) {
-							trackedExp.availableWorkers.push(id)
-						} else {
-							notSupportReason = support.reason
+							if (support.support) {
+								trackedExp.availableWorkers.push(id)
+							} else {
+								notSupportReason = support.reason
+							}
+						} catch (err) {
+							if ((err + '').match(/timeout/i)) {
+								notSupportReason = {
+									user: 'Worker timed out',
+									tech: `Worker "${id} timeout"`,
+								}
+							} else throw err
 						}
 					})
 				)

@@ -1,4 +1,5 @@
-import { MessageBase } from './websocketConnection'
+import { promiseTimeout } from './lib'
+import { MessageBase, MESSAGE_TIMEOUT } from './websocketConnection'
 import { ClientConnection } from './websocketServer'
 
 /**
@@ -9,7 +10,11 @@ import { ClientConnection } from './websocketServer'
 export abstract class AdapterServer<ME, OTHER> {
 	protected _sendMessage: (type: keyof OTHER, ...args: any[]) => Promise<any>
 
+	public readonly type: string
+
 	constructor(serverMethods: ME, options: AdapterServerOptions<OTHER>) {
+		this.type = options.type
+
 		if (options.type === 'websocket') {
 			this._sendMessage = ((type: string, ...args: any[]) => options.clientConnection.send(type, ...args)) as any
 
@@ -27,7 +32,7 @@ export abstract class AdapterServer<ME, OTHER> {
 			this._sendMessage = (type: keyof OTHER, ...args: any[]) => {
 				const fcn = (clientHook[type] as unknown) as (...args: any[]) => any
 				if (fcn) {
-					return fcn(...args)
+					return promiseTimeout(fcn(...args), MESSAGE_TIMEOUT)
 				} else {
 					throw new Error(`Unknown method "${type}"`)
 				}

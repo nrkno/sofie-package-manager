@@ -18,6 +18,7 @@ export abstract class AdapterClient<ME, OTHER> {
 	constructor(protected logger: LoggerInstance, private clientType: MessageIdentifyClient['clientType']) {}
 
 	private conn?: WebsocketClient
+	private terminated = false
 
 	async init(id: string, connectionOptions: ClientConnectionOptions, clientMethods: ME): Promise<void> {
 		if (connectionOptions.type === 'websocket') {
@@ -48,12 +49,13 @@ export abstract class AdapterClient<ME, OTHER> {
 
 			await conn.connect()
 		} else {
-			// TODO
 			if (!this.serverHook)
 				throw new Error(`AdapterClient: can't init() an internal connection, call hook() first!`)
 
 			const serverHook: OTHER = this.serverHook(id, clientMethods)
 			this._sendMessage = (type: keyof OTHER, ...args: any[]) => {
+				if (this.terminated) throw new Error(`Can't send message due to being terminated`)
+
 				const fcn = serverHook[type] as any
 				if (fcn) {
 					return fcn(...args)
@@ -68,7 +70,9 @@ export abstract class AdapterClient<ME, OTHER> {
 		this.serverHook = serverHook
 	}
 	terminate(): void {
+		this.terminated = true
 		this.conn?.close()
+		delete this.serverHook
 	}
 }
 /** Options for an AdepterClient */
