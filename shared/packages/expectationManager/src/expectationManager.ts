@@ -83,9 +83,10 @@ export class ExpectationManager {
 			properties: ExpectationManagerWorkerAgent.WorkInProgressProperties
 			trackedExp: TrackedExpectation
 			worker: WorkerAgentAPI
+			lastUpdated: number
 		}
 	} = {}
-	private terminating = false
+	private terminated = false
 
 	private status: ExpectationManagerStatus
 
@@ -100,11 +101,14 @@ export class ExpectationManager {
 		options?: ExpectationManagerOptions
 	) {
 		this.constants = {
+			// Default values:
 			EVALUATE_INTERVAL: 10 * 1000,
 			FULLFILLED_MONITOR_TIME: 10 * 1000,
+			WORK_TIMEOUT_TIME: 30 * 1000,
 			ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
 			SCALE_UP_TIME: 5 * 1000,
 			SCALE_UP_COUNT: 1,
+
 			...options?.constants,
 		}
 		this.workforceAPI = new WorkforceAPI(this.logger)
@@ -159,9 +163,7 @@ export class ExpectationManager {
 				serverAccessUrl += `:${this.websocketServer?.port}`
 			}
 		}
-
 		if (!serverAccessUrl) throw new Error(`ExpectationManager.serverAccessUrl not set!`)
-
 		await this.workforceAPI.registerExpectationManager(this.managerId, serverAccessUrl)
 
 		this._triggerEvaluateExpectations(true)
@@ -357,6 +359,7 @@ export class ExpectationManager {
 			): Promise<void> => {
 				const wip = this.worksInProgress[`${clientId}_${wipId}`]
 				if (wip) {
+					wip.lastUpdated = Date.now()
 					if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 						wip.trackedExp.status.actualVersionHash = actualVersionHash
 						this.updateTrackedExpStatus(
@@ -389,6 +392,7 @@ export class ExpectationManager {
 			wipEventError: async (wipId: number, reason: Reason): Promise<void> => {
 				const wip = this.worksInProgress[`${clientId}_${wipId}`]
 				if (wip) {
+					wip.lastUpdated = Date.now()
 					if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 						wip.trackedExp.errorCount++
 						this.updateTrackedExpStatus(
@@ -427,6 +431,8 @@ export class ExpectationManager {
 
 		// Iterate through the PackageContainerExpectations:
 		await this._evaluateAllTrackedPackageContainers()
+
+		this.monitorWorksInProgress()
 
 		// Iterate through all Expectations:
 		const runAgainASAP = await this._evaluateAllExpectations()
@@ -811,6 +817,7 @@ export class ExpectationManager {
 						properties: wipInfo.properties,
 						trackedExp: trackedExp,
 						worker: assignedWorker.worker,
+						lastUpdated: Date.now(),
 					}
 
 					this.updateTrackedExpStatus(
@@ -951,7 +958,7 @@ export class ExpectationManager {
 				assertNever(trackedExp.state)
 			}
 		} catch (err) {
-			this.logger.error('Error thrown in evaluateExpectationState')
+			this.logger.error(`Error thrown in evaluateExpectationState for expectation "${trackedExp.id}"`)
 			this.logger.error(err)
 			this.updateTrackedExpStatus(trackedExp, undefined, {
 				user: 'Internal error in Package Manager',
@@ -1445,6 +1452,30 @@ export class ExpectationManager {
 			await this.workforceAPI.requestResources(exp.exp)
 		}
 	}
+	/**  */
+	private monitorWorksInProgress() {
+		for (const [wipId, wip] of Object.entries(this.worksInProgress)) {
+			if (
+				wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING &&
+				Date.now() - wip.lastUpdated > this.constants.WORK_TIMEOUT_TIME
+			) {
+				// It seems that the work has stalled..
+				// Restart the job:
+				const reason: Reason = {
+					tech: 'WorkInProgress timeout',
+					user: 'The job timed out',
+				}
+
+				wip.trackedExp.errorCount++
+				this.updateTrackedExpStatus(wip.trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, reason)
+				this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
+					status: wip.trackedExp.state,
+					statusReason: wip.trackedExp.reason,
+				})
+				delete this.worksInProgress[wipId]
+			}
+		}
+	}
 }
 export interface ExpectationManagerOptions {
 	constants: Partial<ExpectationManagerConstants>
@@ -1459,6 +1490,9 @@ export interface ExpectationManagerConstants {
 	 * allow skipping the rest of the queue in order to reiterate the high-prio expectations [ms]
 	 */
 	ALLOW_SKIPPING_QUEUE_TIME: number
+
+	/** If there has been no updated on a work-in-progress, time it out after this time */
+	WORK_TIMEOUT_TIME: number
 
 	/** How long to wait before requesting more resources (workers) [ms] */
 	SCALE_UP_TIME: number
