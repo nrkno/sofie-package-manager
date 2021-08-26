@@ -27,20 +27,7 @@ import PromisePool from '@supercharge/promise-pool'
  */
 
 export class ExpectationManager {
-	/** Time between iterations of the expectation queue */
-	private readonly EVALUATE_INTERVAL = 10 * 1000 // ms
-	/** Minimum time between re-evaluating fulfilled expectations */
-	private readonly FULLFILLED_MONITOR_TIME = 10 * 1000 // ms
-	/**
-	 * If the iteration of the queue has been going for this time
-	 * allow skipping the rest of the queue in order to reiterate the high-prio expectations
-	 */
-	private readonly ALLOW_SKIPPING_QUEUE_TIME = 30 * 1000 // ms
-
-	/** How long to wait before requesting more resources (workers) */
-	private readonly SCALE_UP_TIME = 5 * 1000 // ms
-	/** How many resources to request at a time */
-	private readonly SCALE_UP_COUNT = 1
+	private constants: ExpectationManagerConstants
 
 	private workforceAPI: WorkforceAPI
 
@@ -109,8 +96,17 @@ export class ExpectationManager {
 		/** At what url the ExpectationManager can be reached on */
 		private serverAccessBaseUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
-		private callbacks: ExpectationManagerCallbacks
+		private callbacks: ExpectationManagerCallbacks,
+		options?: ExpectationManagerOptions
 	) {
+		this.constants = {
+			EVALUATE_INTERVAL: 10 * 1000,
+			FULLFILLED_MONITOR_TIME: 10 * 1000,
+			ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
+			SCALE_UP_TIME: 5 * 1000,
+			SCALE_UP_COUNT: 1,
+			...options?.constants,
+		}
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.status = this.updateStatus()
 		if (this.serverOptions.type === 'websocket') {
@@ -181,6 +177,24 @@ export class ExpectationManager {
 		if (this.websocketServer) {
 			this.websocketServer.terminate()
 		}
+	}
+	/** USED IN TESTS ONLY. Quickly reset the tracked work of the expectationManager. */
+	resetWork(): void {
+		this.receivedUpdates = {
+			expectations: {},
+			expectationsHasBeenUpdated: false,
+			packageContainers: {},
+			packageContainersHasBeenUpdated: false,
+			restartExpectations: {},
+			abortExpectations: {},
+			restartAllExpectations: false,
+		}
+		this.trackedExpectations = {}
+		this.trackedExpectationsCount = 0
+		this.trackedPackageContainers = {}
+		// this.worksInProgress
+
+		this._triggerEvaluateExpectations(true)
 	}
 	/** Returns a Hook used to hook up a WorkerAgent to our API-methods. */
 	getWorkerAgentHook(): Hook<
@@ -293,7 +307,7 @@ export class ExpectationManager {
 						this._triggerEvaluateExpectations()
 					})
 			},
-			this._evaluateExpectationsRunAsap ? 1 : this.EVALUATE_INTERVAL
+			this._evaluateExpectationsRunAsap ? 1 : this.constants.EVALUATE_INTERVAL
 		)
 	}
 	/** Return the API-methods that the ExpectationManager exposes to the WorkerAgent */
@@ -657,7 +671,7 @@ export class ExpectationManager {
 					removeIds.push(trackedExp.id)
 				}
 			}
-			if (runAgainASAP && Date.now() - startTime > this.ALLOW_SKIPPING_QUEUE_TIME) {
+			if (runAgainASAP && Date.now() - startTime > this.constants.ALLOW_SKIPPING_QUEUE_TIME) {
 				// Skip the rest of the queue, so that we don't get stuck on evaluating low-prio expectations.
 				break
 			}
@@ -949,7 +963,7 @@ export class ExpectationManager {
 	private getFullfilledWaitTime(): number {
 		return (
 			// Default minimum time to wait:
-			this.FULLFILLED_MONITOR_TIME +
+			this.constants.FULLFILLED_MONITOR_TIME +
 			// Also add some more time, so that we don't check too often when we have a lot of expectations:
 			this.trackedExpectationsCount * 0.02
 		)
@@ -1389,9 +1403,16 @@ export class ExpectationManager {
 				expectationStatistics.countAborted++
 			} else assertNever(exp.state)
 
-			if (!exp.availableWorkers.length) expectationStatistics.countNoAvailableWorkers
-			if (exp.errorCount > 0 && exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING)
+			if (!exp.availableWorkers.length) {
+				expectationStatistics.countNoAvailableWorkers++
+			}
+			if (
+				exp.errorCount > 0 &&
+				exp.state !== ExpectedPackageStatusAPI.WorkStatusState.WORKING &&
+				exp.state !== ExpectedPackageStatusAPI.WorkStatusState.FULFILLED
+			) {
 				expectationStatistics.countError++
+			}
 		}
 		return this.status
 	}
@@ -1412,8 +1433,8 @@ export class ExpectationManager {
 				exp.waitingForWorkerTime = null
 			}
 			if (exp.waitingForWorkerTime)
-				if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.SCALE_UP_TIME) {
-					if (waitingExpectations.length < this.SCALE_UP_COUNT) {
+				if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME) {
+					if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
 						waitingExpectations.push(exp)
 					}
 				}
@@ -1424,6 +1445,25 @@ export class ExpectationManager {
 			await this.workforceAPI.requestResources(exp.exp)
 		}
 	}
+}
+export interface ExpectationManagerOptions {
+	constants: Partial<ExpectationManagerConstants>
+}
+export interface ExpectationManagerConstants {
+	/** Time between iterations of the expectation queue [ms] */
+	EVALUATE_INTERVAL: number
+	/** Minimum time between re-evaluating fulfilled expectations [ms] */
+	FULLFILLED_MONITOR_TIME: number
+	/**
+	 * If the iteration of the queue has been going for this time
+	 * allow skipping the rest of the queue in order to reiterate the high-prio expectations [ms]
+	 */
+	ALLOW_SKIPPING_QUEUE_TIME: number
+
+	/** How long to wait before requesting more resources (workers) [ms] */
+	SCALE_UP_TIME: number
+	/** How many resources to request at a time */
+	SCALE_UP_COUNT: number
 }
 export type ExpectationManagerServerOptions =
 	| {
