@@ -2,11 +2,16 @@ import { WorkerAgentConfig } from './worker'
 
 /** The AppContainer is a host application responsible for spawning other applications */
 
+/** How often the appContainer expect to be pinged by its child apps */
+export const APPCONTAINER_PING_TIME = 5000 // ms
+
 export interface AppContainerConfig {
 	workforceURL: string | null
 	port: number | null
 	appContainerId: string
+	minRunningApps: number
 	maxRunningApps: number
+	spinDownTime: number
 
 	resourceId: string
 	networkIds: string[]

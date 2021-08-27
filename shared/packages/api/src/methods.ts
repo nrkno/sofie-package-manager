@@ -192,9 +192,11 @@ export namespace AppContainerWorkerAgent {
 		_debugKill: () => Promise<void>
 
 		doYouSupportExpectation: (exp: Expectation.Any) => Promise<ReturnTypeDoYouSupportExpectation>
+		setSpinDownTime: (spinDownTime: number) => Promise<void>
 	}
 	/** Methods on AppContainer, called by WorkerAgent */
 	export interface AppContainer {
 		ping: () => Promise<void>
+		requestSpinDown: () => Promise<void>
 	}
 }

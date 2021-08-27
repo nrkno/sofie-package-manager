@@ -17,6 +17,7 @@ import {
 	ReturnTypeSetupPackageContainerMonitors,
 	ReturnTypeDisposePackageContainerMonitors,
 	LogLevel,
+	APPCONTAINER_PING_TIME,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -54,6 +55,10 @@ export class WorkerAgent {
 		>
 	} = {}
 	private terminated = false
+	private spinDownTime = 0
+	private intervalCheckTimer: NodeJS.Timer | null = null
+	private lastWorkTime = 0
+	private activeMonitors: { [monitorId: string]: true } = {}
 
 	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
@@ -113,12 +118,22 @@ export class WorkerAgent {
 		const list = await this.workforceAPI.getExpectationManagerList()
 		await this.updateListOfExpectationManagers(list)
 
+		this.IDidSomeWork()
 	}
 	terminate(): void {
 		this.terminated = true
 		this.workforceAPI.terminate()
-		Object.values(this.expectationManagers).forEach((expectationManager) => expectationManager.api.terminate())
-		// this._worker.terminate()
+
+		for (const expectationManager of Object.values(this.expectationManagers)) {
+			expectationManager.api.terminate()
+		}
+		for (const wipId of Object.keys(this.worksInProgress)) {
+			this.cancelWorkInProgress(wipId).catch((error) => {
+				this.logger.error('WorkerAgent.terminate: Error in cancelWorkInProgress')
+				this.logger.error(error)
+			})
+		}
+		if (this.intervalCheckTimer) clearInterval(this.intervalCheckTimer)
 		this._worker.terminate()
 	}
 	/** Called when running in the same-process-mode, it */
@@ -148,6 +163,7 @@ export class WorkerAgent {
 	// 	return this._busyMethodCount === 0
 	// }
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
+		this.IDidSomeWork()
 		return this._worker.doYouSupportExpectation(exp)
 	}
 	async expectationManagerAvailable(id: string, url: string): Promise<void> {
@@ -165,11 +181,18 @@ export class WorkerAgent {
 		this.logger.level = logLevel
 	}
 	async _debugKill(): Promise<void> {
+		this.terminate()
 		// This is for testing purposes only
 		setTimeout(() => {
 			// eslint-disable-next-line no-process-exit
 			process.exit(42)
 		}, 1)
+	}
+	public async setSpinDownTime(spinDownTime: number): Promise<void> {
+		this.spinDownTime = spinDownTime
+		this.IDidSomeWork()
+
+		this.setupIntervalCheck()
 	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {
@@ -201,12 +224,14 @@ export class WorkerAgent {
 				exp: Expectation.Any,
 				wasFullfilled: boolean
 			): Promise<ReturnTypeIsExpectationFullfilled> => {
+				this.IDidSomeWork()
 				return this._worker.isExpectationFullfilled(exp, wasFullfilled)
 			},
 			workOnExpectation: async (
 				exp: Expectation.Any,
 				cost: ExpectationManagerWorkerAgent.ExpectationCost
 			): Promise<ExpectationManagerWorkerAgent.WorkInProgressInfo> => {
+				this.IDidSomeWork()
 				const currentjob = {
 					cost: cost,
 					progress: 0,
@@ -224,6 +249,7 @@ export class WorkerAgent {
 					this.worksInProgress[`${wipId}`] = workInProgress
 
 					workInProgress.on('progress', (actualVersionHash, progress: number) => {
+						this.IDidSomeWork()
 						currentjob.progress = progress
 						expectedManager.api.wipEventProgress(wipId, actualVersionHash, progress).catch((err) => {
 							if (!this.terminated) {
@@ -233,6 +259,7 @@ export class WorkerAgent {
 						})
 					})
 					workInProgress.on('error', (error: string) => {
+						this.IDidSomeWork()
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
 						this.logger.debug(
 							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
@@ -252,6 +279,7 @@ export class WorkerAgent {
 						delete this.worksInProgress[`${wipId}`]
 					})
 					workInProgress.on('done', (actualVersionHash, reason, result) => {
+						this.IDidSomeWork()
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
 						this.logger.debug(
 							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), done. (${this.currentJobs.length})`
@@ -282,34 +310,46 @@ export class WorkerAgent {
 				}
 			},
 			removeExpectation: async (exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> => {
+				this.IDidSomeWork()
 				return this._worker.removeExpectation(exp)
 			},
 			cancelWorkInProgress: async (wipId: number): Promise<void> => {
-				const wip = this.worksInProgress[`${wipId}`]
-				if (wip) {
-					await wip.cancel()
-				}
-				delete this.worksInProgress[`${wipId}`]
+				this.IDidSomeWork()
+				return this.cancelWorkInProgress(wipId)
 			},
 			doYouSupportPackageContainer: (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeDoYouSupportPackageContainer> => {
+				this.IDidSomeWork()
 				return this._worker.doYouSupportPackageContainer(packageContainer)
 			},
 			runPackageContainerCronJob: (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeRunPackageContainerCronJob> => {
+				this.IDidSomeWork()
 				return this._worker.runPackageContainerCronJob(packageContainer)
 			},
-			setupPackageContainerMonitors: (
+			setupPackageContainerMonitors: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeSetupPackageContainerMonitors> => {
-				return this._worker.setupPackageContainerMonitors(packageContainer)
+				this.IDidSomeWork()
+				const monitors = await this._worker.setupPackageContainerMonitors(packageContainer)
+				if (monitors.success) {
+					for (const monitorId of Object.keys(monitors.monitors)) {
+						this.activeMonitors[monitorId] = true
+					}
+				}
+				return monitors
 			},
-			disposePackageContainerMonitors: (
+			disposePackageContainerMonitors: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeDisposePackageContainerMonitors> => {
-				return this._worker.disposePackageContainerMonitors(packageContainer)
+				this.IDidSomeWork()
+				const success = await this._worker.disposePackageContainerMonitors(packageContainer)
+				if (success.success) {
+					this.activeMonitors = {}
+				}
+				return success
 			},
 		})
 		// Wrap the methods, so that we can cut off communication upon termination: (this is used in tests)
@@ -362,5 +402,38 @@ export class WorkerAgent {
 				await this.expectationManagerGone(id)
 			}
 		}
+	}
+	private async cancelWorkInProgress(wipId: string | number): Promise<void> {
+		const wip = this.worksInProgress[`${wipId}`]
+		if (wip) {
+			await wip.cancel()
+		}
+		delete this.worksInProgress[`${wipId}`]
+	}
+	private setupIntervalCheck() {
+		if (!this.intervalCheckTimer) {
+			this.intervalCheckTimer = setInterval(() => {
+				this.intervalCheck()
+			}, APPCONTAINER_PING_TIME)
+		}
+	}
+	private intervalCheck() {
+		// Check the SpinDownTime:
+		if (this.spinDownTime) {
+			if (Date.now() - this.lastWorkTime > this.spinDownTime) {
+				this.IDidSomeWork() // so that we won't ask again until later
+
+				// Don's spin down if a monitor is active
+				if (!Object.keys(this.activeMonitors).length) {
+					this.logger.info(`Worker: is idle, requesting spinning down`)
+					this.appContainerAPI.requestSpinDown()
+				}
+			}
+		}
+		// Also ping the AppContainer
+		this.appContainerAPI.ping()
+	}
+	private IDidSomeWork() {
+		this.lastWorkTime = Date.now()
 	}
 }

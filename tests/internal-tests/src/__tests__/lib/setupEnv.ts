@@ -56,6 +56,7 @@ const defaultTestConfig: SingleAppConfig = {
 		workforceURL: null,
 		port: 0,
 		maxRunningApps: 1,
+		minRunningApps: 1,
 		resourceId: '',
 		networkIds: [],
 		windowsDriveLetters: ['X', 'Y', 'Z'],

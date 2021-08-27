@@ -12,6 +12,7 @@ import {
 	assertNever,
 	Expectation,
 	waitTime,
+	APPCONTAINER_PING_TIME,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
@@ -32,7 +33,10 @@ export class AppContainer {
 			toBeKilled: boolean
 			restarts: number
 			lastRestart: number
+			spinDownTime: number
 			workerAgentApi?: WorkerAgentAPI
+			monitorPing: boolean
+			lastPing: number
 		}
 	} = {}
 	private availableApps: {
@@ -40,27 +44,34 @@ export class AppContainer {
 	} = {}
 	private websocketServer?: WebsocketServer
 
+	private monitorAppsTimer: NodeJS.Timer | undefined
+
 	constructor(private logger: LoggerInstance, private config: AppContainerProcessConfig) {
 		if (config.appContainer.port !== null) {
 			this.websocketServer = new WebsocketServer(config.appContainer.port, (client: ClientConnection) => {
 				// A new client has connected
 
-				this.logger.info(`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`)
+				this.logger.debug(`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`)
 
 				switch (client.clientType) {
 					case 'workerAgent': {
-						const workForceMethods = this.getWorkerAgentAPI()
+						const workForceMethods = this.getWorkerAgentAPI(client.clientId)
 						const api = new WorkerAgentAPI(workForceMethods, {
 							type: 'websocket',
 							clientConnection: client,
 						})
-						if (!this.apps[client.clientId]) {
+						const app = this.apps[client.clientId]
+						if (!app) {
 							throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
 						}
-						this.apps[client.clientId].workerAgentApi = api
+						app.workerAgentApi = api
 						client.on('close', () => {
-							delete this.apps[client.clientId].workerAgentApi
+							delete app.workerAgentApi
 						})
+						// Set upp the app for pinging and automatic spin-down:
+						app.monitorPing = true
+						app.lastPing = Date.now()
+						api.setSpinDownTime(app.spinDownTime)
 						break
 					}
 					case 'expectationManager':
@@ -103,21 +114,36 @@ export class AppContainer {
 				}
 			})
 		)
-
-		// Todo later:
-		// Sent the workforce a list of:
-		// * the types of workers we can spin up
-		// * what the running cost is for them
-		// * how many can be spun up
-		// * etc...
+		this.monitorAppsTimer = setInterval(() => {
+			this.monitorApps()
+		}, APPCONTAINER_PING_TIME)
+		this.monitorApps() // Also run right away
 	}
 	/** Return the API-methods that the AppContainer exposes to the WorkerAgent */
-	private getWorkerAgentAPI(): AppContainerWorkerAgent.AppContainer {
+	private getWorkerAgentAPI(clientId: string): AppContainerWorkerAgent.AppContainer {
 		return {
 			ping: async (): Promise<void> => {
-				// todo: Set last seen
+				this.apps[clientId].lastPing = Date.now()
+			},
+			requestSpinDown: async (): Promise<void> => {
+				const app = this.apps[clientId]
+				if (app) {
+					if (this.getAppCount(app.appType) > this.config.appContainer.minRunningApps) {
+						this.spinDown(clientId).catch((error) => {
+							this.logger.error(`AppContainer: Error when spinning down app "${clientId}"`)
+							this.logger.error(error)
+						})
+					}
+				}
 			},
 		}
+	}
+	private getAppCount(appType: string): number {
+		let count = 0
+		for (const app of Object.values(this.apps)) {
+			if (app.appType === appType) count++
+		}
+		return count
 	}
 	private async setupAvailableApps() {
 		const getWorkerArgs = (appId: string): string[] => {
@@ -167,6 +193,11 @@ export class AppContainer {
 		this.workforceAPI.terminate()
 		this.websocketServer?.terminate()
 
+		if (this.monitorAppsTimer) {
+			clearInterval(this.monitorAppsTimer)
+			delete this.monitorAppsTimer
+		}
+
 		// kill child processes
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
@@ -181,7 +212,9 @@ export class AppContainer {
 	}
 
 	async requestAppTypeForExpectation(exp: Expectation.Any): Promise<{ appType: string; cost: number } | null> {
+		this.logger.debug(`AppContainer: Got request for resources, for exp "${exp.id}"`)
 		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
+			this.logger.debug(`AppContainer: Is already at our limit, no more resources available`)
 			// If we're at our limit, we can't possibly run anything else
 			return null
 		}
@@ -193,7 +226,7 @@ export class AppContainer {
 			})
 
 			if (!runningApp) {
-				const newAppId = await this.spinUp(appType) // todo: make it not die too soon
+				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
 
 				// wait for the app to connect to us:
 				tryAfewTimes(async () => {
@@ -214,11 +247,13 @@ export class AppContainer {
 						cost: availableApp.cost,
 					}
 				}
+			} else {
+				this.logger.debug(`AppContainer: appType "${appType}" not available`)
 			}
 		}
 		return null
 	}
-	async spinUp(appType: string): Promise<string> {
+	async spinUp(appType: string, longSpinDownTime = false): Promise<string> {
 		const availableApp = this.availableApps[appType]
 		if (!availableApp) throw new Error(`Unknown appType "${appType}"`)
 
@@ -231,12 +266,17 @@ export class AppContainer {
 			toBeKilled: false,
 			restarts: 0,
 			lastRestart: 0,
+			monitorPing: false,
+			lastPing: Date.now(),
+			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
 		}
 		return appId
 	}
 	async spinDown(appId: string): Promise<void> {
 		const app = this.apps[appId]
 		if (!app) throw new Error(`App "${appId}" not found`)
+
+		this.logger.debug(`AppContainer: Spinning down app "${appId}"`)
 
 		app.toBeKilled = true
 		const success = app.process.kill()
@@ -260,7 +300,7 @@ export class AppContainer {
 		appId: string,
 		availableApp: AvailableAppInfo
 	): ChildProcess.ChildProcess {
-		this.logger.info(`Starting process "${appId}" (${appType}): "${availableApp.file}"`)
+		this.logger.debug(`Starting process "${appId}" (${appType}): "${availableApp.file}"`)
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
@@ -299,6 +339,30 @@ export class AppContainer {
 		})
 
 		return child
+	}
+	private monitorApps() {
+		for (const [appId, app] of Object.entries(this.apps)) {
+			if (app.monitorPing) {
+				if (Date.now() - app.lastPing > APPCONTAINER_PING_TIME * 2.5) {
+					// The app seems to have crashed.
+					this.spinDown(appId).catch((error) => {
+						this.logger.error(`AppContainer: Error when spinning down app "${appId}"`)
+						this.logger.error(error)
+					})
+				}
+			}
+		}
+		this.spinUpMinimumApps().catch((error) => {
+			this.logger.error(`AppContainer: Error in spinUpMinimumApps`)
+			this.logger.error(error)
+		})
+	}
+	private async spinUpMinimumApps(): Promise<void> {
+		for (const appType of Object.keys(this.availableApps)) {
+			while (this.getAppCount(appType) < this.config.appContainer.minRunningApps) {
+				await this.spinUp(appType)
+			}
+		}
 	}
 }
 interface AvailableAppInfo {

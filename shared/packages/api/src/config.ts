@@ -152,6 +152,16 @@ const appContainerArguments = defineArguments({
 		default: parseInt(process.env.APP_CONTAINER_MAX_RUNNING_APPS || '', 10) || 3,
 		describe: 'How many apps the appContainer can run at the same time',
 	},
+	minRunningApps: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 0,
+		describe: 'Minimum amount of apps (of a certain appType) to be running',
+	},
+	spinDownTime: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_SPIN_DOWN_TIME || '', 10) || 60 * 1000,
+		describe: 'How long a Worker should stay idle before attempting to be spun down',
+	},
 
 	resourceId: {
 		type: 'string',
@@ -343,6 +353,8 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 			port: argv.port,
 			appContainerId: argv.appContainerId,
 			maxRunningApps: argv.maxRunningApps,
+			minRunningApps: argv.minRunningApps,
+			spinDownTime: argv.spinDownTime,
 
 			resourceId: argv.resourceId,
 			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
