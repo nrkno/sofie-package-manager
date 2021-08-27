@@ -797,51 +797,60 @@ export class ExpectationManager {
 				await this.assignWorkerToSession(trackedExp)
 
 				if (trackedExp.session.assignedWorker) {
-					// First, check if it is already fulfilled:
-					const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
-						trackedExp.exp,
-						false
-					)
-					if (fulfilled.fulfilled) {
-						// The expectation is already fulfilled:
-						this.updateTrackedExpStatus(
-							trackedExp,
-							ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
-							undefined
+					try {
+						// First, check if it is already fulfilled:
+						const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
+							trackedExp.exp,
+							false
 						)
-						if (this.handleTriggerByFullfilledIds(trackedExp)) {
-							// Something was triggered, run again ASAP:
-							trackedExp.session.triggerOtherExpectationsAgain = true
-						}
-					} else {
-						const readyToStart = await this.isExpectationReadyToStartWorkingOn(
-							trackedExp.session.assignedWorker.worker,
-							trackedExp
-						)
-
-						const newStatus: Partial<TrackedExpectation['status']> = {}
-						if (readyToStart.sourceExists !== undefined) newStatus.sourceExists = readyToStart.sourceExists
-
-						if (readyToStart.ready) {
+						if (fulfilled.fulfilled) {
+							// The expectation is already fulfilled:
 							this.updateTrackedExpStatus(
 								trackedExp,
-								ExpectedPackageStatusAPI.WorkStatusState.READY,
-								{
-									user: 'About to start working..',
-									tech: 'About to start working..',
-								},
-								newStatus
+								ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
+								undefined
 							)
-							trackedExp.session.triggerExpectationAgain = true
+							if (this.handleTriggerByFullfilledIds(trackedExp)) {
+								// Something was triggered, run again ASAP:
+								trackedExp.session.triggerOtherExpectationsAgain = true
+							}
 						} else {
-							// Not ready to start
-							this.updateTrackedExpStatus(
-								trackedExp,
-								ExpectedPackageStatusAPI.WorkStatusState.NEW,
-								readyToStart.reason,
-								newStatus
+							const readyToStart = await this.isExpectationReadyToStartWorkingOn(
+								trackedExp.session.assignedWorker.worker,
+								trackedExp
 							)
+
+							const newStatus: Partial<TrackedExpectation['status']> = {}
+							if (readyToStart.sourceExists !== undefined)
+								newStatus.sourceExists = readyToStart.sourceExists
+
+							if (readyToStart.ready) {
+								this.updateTrackedExpStatus(
+									trackedExp,
+									ExpectedPackageStatusAPI.WorkStatusState.READY,
+									{
+										user: 'About to start working..',
+										tech: 'About to start working..',
+									},
+									newStatus
+								)
+								trackedExp.session.triggerExpectationAgain = true
+							} else {
+								// Not ready to start
+								this.updateTrackedExpStatus(
+									trackedExp,
+									ExpectedPackageStatusAPI.WorkStatusState.NEW,
+									readyToStart.reason,
+									newStatus
+								)
+							}
 						}
+					} catch (error) {
+						// There was an error, clearly it's not ready to start
+						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
+							user: 'Restarting due to error',
+							tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+						})
 					}
 				} else {
 					// No worker is available at the moment.
@@ -859,30 +868,41 @@ export class ExpectationManager {
 				if (trackedExp.session.assignedWorker) {
 					const assignedWorker = trackedExp.session.assignedWorker
 
-					this.logger.debug(`workOnExpectation: "${trackedExp.exp.id}" (${trackedExp.exp.type})`)
+					try {
+						this.logger.debug(`workOnExpectation: "${trackedExp.exp.id}" (${trackedExp.exp.type})`)
 
-					// Start working on the Expectation:
-					const wipInfo = await assignedWorker.worker.workOnExpectation(trackedExp.exp, assignedWorker.cost)
+						// Start working on the Expectation:
+						const wipInfo = await assignedWorker.worker.workOnExpectation(
+							trackedExp.exp,
+							assignedWorker.cost
+						)
 
-					trackedExp.status.workInProgressCancel = async () => {
-						await assignedWorker.worker.cancelWorkInProgress(wipInfo.wipId)
-						delete trackedExp.status.workInProgressCancel
+						trackedExp.status.workInProgressCancel = async () => {
+							await assignedWorker.worker.cancelWorkInProgress(wipInfo.wipId)
+							delete trackedExp.status.workInProgressCancel
+						}
+
+						// trackedExp.status.workInProgress = new WorkInProgressReceiver(wipInfo.properties)
+						this.worksInProgress[`${assignedWorker.id}_${wipInfo.wipId}`] = {
+							properties: wipInfo.properties,
+							trackedExp: trackedExp,
+							worker: assignedWorker.worker,
+							lastUpdated: Date.now(),
+						}
+
+						this.updateTrackedExpStatus(
+							trackedExp,
+							ExpectedPackageStatusAPI.WorkStatusState.WORKING,
+							undefined,
+							wipInfo.properties
+						)
+					} catch (error) {
+						// There was an error
+						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
+							user: 'Restarting due to an error',
+							tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+						})
 					}
-
-					// trackedExp.status.workInProgress = new WorkInProgressReceiver(wipInfo.properties)
-					this.worksInProgress[`${assignedWorker.id}_${wipInfo.wipId}`] = {
-						properties: wipInfo.properties,
-						trackedExp: trackedExp,
-						worker: assignedWorker.worker,
-						lastUpdated: Date.now(),
-					}
-
-					this.updateTrackedExpStatus(
-						trackedExp,
-						ExpectedPackageStatusAPI.WorkStatusState.WORKING,
-						undefined,
-						wipInfo.properties
-					)
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
@@ -901,25 +921,34 @@ export class ExpectationManager {
 				if (timeSinceLastEvaluation > this.getFullfilledWaitTime()) {
 					await this.assignWorkerToSession(trackedExp)
 					if (trackedExp.session.assignedWorker) {
-						// Check if it is still fulfilled:
-						const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
-							trackedExp.exp,
-							true
-						)
-						if (fulfilled.fulfilled) {
-							// Yes it is still fullfiled
-							// No need to update the tracked state, since it's already fullfilled:
-							// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
-						} else {
-							// It appears like it's not fullfilled anymore
-							trackedExp.status.actualVersionHash = undefined
-							trackedExp.status.workProgress = undefined
-							this.updateTrackedExpStatus(
-								trackedExp,
-								ExpectedPackageStatusAPI.WorkStatusState.NEW,
-								fulfilled.reason
+						try {
+							// Check if it is still fulfilled:
+							const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
+								trackedExp.exp,
+								true
 							)
-							trackedExp.session.triggerExpectationAgain = true
+							if (fulfilled.fulfilled) {
+								// Yes it is still fullfiled
+								// No need to update the tracked state, since it's already fullfilled:
+								// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
+							} else {
+								// It appears like it's not fullfilled anymore
+								trackedExp.status.actualVersionHash = undefined
+								trackedExp.status.workProgress = undefined
+								this.updateTrackedExpStatus(
+									trackedExp,
+									ExpectedPackageStatusAPI.WorkStatusState.NEW,
+									fulfilled.reason
+								)
+								trackedExp.session.triggerExpectationAgain = true
+							}
+						} catch (error) {
+							// Do nothing, hopefully some will be available at a later iteration
+							// todo: Is this the right thing to do?
+							this.updateTrackedExpStatus(trackedExp, undefined, {
+								user: `Can't check if fulfilled, due to an error`,
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+							})
 						}
 					} else {
 						// No worker is available at the moment.
@@ -1132,6 +1161,7 @@ export class ExpectationManager {
 		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
+		let noCostReason: string | undefined = undefined
 
 		// Send a number of requests simultaneously:
 		await runInBatches(
@@ -1139,15 +1169,19 @@ export class ExpectationManager {
 			async (workerId: string, abort: () => void) => {
 				const workerAgent = this.workerAgents[workerId]
 				if (workerAgent) {
-					const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
+					try {
+						const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
 
-					if (cost.cost < Number.POSITIVE_INFINITY) {
-						workerCosts.push({
-							worker: workerAgent.api,
-							id: workerId,
-							cost,
-							randomCost: Math.random(), // To randomize if there are several with the same best cost
-						})
+						if (cost.cost < Number.POSITIVE_INFINITY) {
+							workerCosts.push({
+								worker: workerAgent.api,
+								id: workerId,
+								cost,
+								randomCost: Math.random(), // To randomize if there are several with the same best cost
+							})
+						}
+					} catch (error) {
+						noCostReason = error.toString()
 					}
 				}
 				if (workerCosts.length >= minWorkerCount) abort()
@@ -1179,7 +1213,9 @@ export class ExpectationManager {
 				user: `Waiting for a free worker (${
 					Object.keys(trackedExp.availableWorkers).length
 				} workers are currently busy)`,
-				tech: `Waiting for a free worker (${Object.keys(trackedExp.availableWorkers).length} busy)`,
+				tech: `Waiting for a free worker (${
+					Object.keys(trackedExp.availableWorkers).length
+				} busy) ${noCostReason}`,
 			}
 		}
 	}
