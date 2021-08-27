@@ -94,6 +94,8 @@ export class WorkerAgent {
 		)
 	}
 	async init(): Promise<void> {
+		await this._worker.init()
+
 		// Connect to WorkForce:
 		if (this.workForceConnectionOptions.type === 'websocket') {
 			this.logger.info(`Worker: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
@@ -111,13 +113,13 @@ export class WorkerAgent {
 		const list = await this.workforceAPI.getExpectationManagerList()
 		await this.updateListOfExpectationManagers(list)
 
-		await this._worker.init()
 	}
 	terminate(): void {
 		this.terminated = true
 		this.workforceAPI.terminate()
 		Object.values(this.expectationManagers).forEach((expectationManager) => expectationManager.api.terminate())
 		// this._worker.terminate()
+		this._worker.terminate()
 	}
 	/** Called when running in the same-process-mode, it */
 	hookToWorkforce(hook: Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>): void {

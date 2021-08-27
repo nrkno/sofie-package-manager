@@ -38,6 +38,9 @@ export abstract class GenericWorker {
 	}
 	/** Called upon startup */
 	abstract init(): Promise<void>
+
+	/** Called upon termination */
+	abstract terminate(): void
 	/**
 	 * Does the worker support this expectation?
 	 * This includes things like:
