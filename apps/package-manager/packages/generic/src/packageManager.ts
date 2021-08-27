@@ -249,8 +249,8 @@ export class PackageManagerHandler {
 			}
 		}
 
-		this.logger.info(`Has ${expectedPackages.length} expectedPackages`)
-		// this.logger.info(JSON.stringify(expectedPackages, null, 2))
+		this.logger.debug(`Has ${expectedPackages.length} expectedPackages`)
+		// this.logger.debug(JSON.stringify(expectedPackages, null, 2))
 
 		this.dataSnapshot.expectedPackages = expectedPackages
 		this.dataSnapshot.packageContainers = this.packageContainersCache
@@ -265,8 +265,8 @@ export class PackageManagerHandler {
 			expectedPackages,
 			this.settings
 		)
-		this.logger.info(`Has ${Object.keys(expectations).length} expectations`)
-		// this.logger.info(JSON.stringify(expectations, null, 2))
+		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
+		// this.logger.debug(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
 		const packageContainerExpectations = generatePackageContainerExpectations(
@@ -274,7 +274,7 @@ export class PackageManagerHandler {
 			this.packageContainersCache,
 			activePlaylist
 		)
-		this.logger.info(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
+		this.logger.debug(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
 		;(this.dataSnapshot.packageContainerExpectations = packageContainerExpectations),
 			(this.dataSnapshot.updated = Date.now())
 

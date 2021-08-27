@@ -43,7 +43,7 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 			json: true,
 			stringify: (obj) => {
 				obj.localTimestamp = getCurrentTime()
-				obj.randomId = Math.round(Math.random() * 10000)
+				// obj.randomId = Math.round(Math.random() * 10000)
 				return JSON.stringify(obj) // make single line
 			},
 		})
