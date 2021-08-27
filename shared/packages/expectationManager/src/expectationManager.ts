@@ -102,12 +102,13 @@ export class ExpectationManager {
 	) {
 		this.constants = {
 			// Default values:
-			EVALUATE_INTERVAL: 10 * 1000,
+			EVALUATE_INTERVAL: 5 * 1000,
 			FULLFILLED_MONITOR_TIME: 10 * 1000,
-			WORK_TIMEOUT_TIME: 30 * 1000,
+			WORK_TIMEOUT_TIME: 10 * 1000,
 			ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
 			SCALE_UP_TIME: 5 * 1000,
 			SCALE_UP_COUNT: 1,
+			WORKER_SUPPORT_TIME: 60 * 1000,
 
 			...options?.constants,
 		}
@@ -131,6 +132,8 @@ export class ExpectationManager {
 						client.on('close', () => {
 							delete this.workerAgents[client.clientId]
 						})
+
+						this._triggerEvaluateExpectations(true)
 						break
 					}
 					case 'N/A':
@@ -411,7 +414,7 @@ export class ExpectationManager {
 						wip.trackedExp.errorCount++
 						this.updateTrackedExpStatus(
 							wip.trackedExp,
-							ExpectedPackageStatusAPI.WorkStatusState.WAITING,
+							ExpectedPackageStatusAPI.WorkStatusState.NEW,
 							reason
 						)
 						this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
@@ -489,7 +492,12 @@ export class ExpectationManager {
 					id: id,
 					exp: exp,
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
-					availableWorkers: [],
+					queriedWorkers: {},
+					availableWorkers: {},
+					noAvailableWorkersReason: {
+						user: 'Unknown reason',
+						tech: 'N/A (init)',
+					},
 					lastEvaluationTime: 0,
 					waitingForWorkerTime: null,
 					errorCount: 0,
@@ -718,43 +726,69 @@ export class ExpectationManager {
 				// Check which workers might want to handle it:
 
 				// Reset properties:
-				trackedExp.availableWorkers = []
+				// trackedExp.availableWorkers = []
 				trackedExp.status = {}
 
-				let notSupportReason: Reason = {
-					user: 'No workers registered (this is likely a configuration issue)',
-					tech: 'No workers registered',
-				}
+				let hasQueriedAnyone = false
 				await Promise.all(
-					Object.entries(this.workerAgents).map(async ([id, workerAgent]) => {
-						try {
-							const support = await workerAgent.api.doYouSupportExpectation(trackedExp.exp)
+					Object.entries(this.workerAgents).map(async ([workerId, workerAgent]) => {
+						// Only ask each worker once:
+						if (
+							!trackedExp.queriedWorkers[workerId] ||
+							Date.now() - trackedExp.queriedWorkers[workerId] > this.constants.WORKER_SUPPORT_TIME
+						) {
+							trackedExp.queriedWorkers[workerId] = Date.now()
+							hasQueriedAnyone = true
+							try {
+								const support = await workerAgent.api.doYouSupportExpectation(trackedExp.exp)
 
-							if (support.support) {
-								trackedExp.availableWorkers.push(id)
-							} else {
-								notSupportReason = support.reason
-							}
-						} catch (err) {
-							if ((err + '').match(/timeout/i)) {
-								notSupportReason = {
-									user: 'Worker timed out',
-									tech: `Worker "${id} timeout"`,
+								if (support.support) {
+									trackedExp.availableWorkers[workerId] = true
+								} else {
+									delete trackedExp.availableWorkers[workerId]
+									trackedExp.noAvailableWorkersReason = support.reason
 								}
-							} else throw err
+							} catch (err) {
+								delete trackedExp.availableWorkers[workerId]
+
+								if ((err + '').match(/timeout/i)) {
+									trackedExp.noAvailableWorkersReason = {
+										user: 'Worker timed out',
+										tech: `Worker "${workerId} timeout"`,
+									}
+								} else throw err
+							}
 						}
 					})
 				)
-				if (trackedExp.availableWorkers.length) {
-					this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.WAITING, {
-						user: `${trackedExp.availableWorkers.length} workers available, about to start...`,
-						tech: `Found ${trackedExp.availableWorkers.length} workers who supports this Expectation`,
-					})
-					trackedExp.session.triggerExpectationAgain = true
+				const availableWorkersCount = Object.keys(trackedExp.availableWorkers).length
+				if (availableWorkersCount) {
+					if (hasQueriedAnyone) {
+						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.WAITING, {
+							user: `${availableWorkersCount} workers available, about to start...`,
+							tech: `Found ${availableWorkersCount} workers who supports this Expectation`,
+						})
+						trackedExp.session.triggerExpectationAgain = true
+					} else {
+						// If we didn't query anyone, just skip ahead to next state without being too verbose:
+						this.updateTrackedExpStatus(
+							trackedExp,
+							ExpectedPackageStatusAPI.WorkStatusState.WAITING,
+							undefined
+						)
+					}
 				} else {
+					if (!Object.keys(trackedExp.queriedWorkers).length) {
+						trackedExp.noAvailableWorkersReason = {
+							user: 'No workers registered (this is likely a configuration issue)',
+							tech: 'No workers registered',
+						}
+					}
 					this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
-						user: `Found no workers who supports this Expectation, due to: ${notSupportReason.user}`,
-						tech: `Found no workers who supports this Expectation: "${notSupportReason.tech}"`,
+						user: `Found no workers who supports this Expectation, due to: ${trackedExp.noAvailableWorkersReason.user}`,
+						tech: `Found no workers who supports this Expectation: "${
+							trackedExp.noAvailableWorkersReason.tech
+						}", have asked ${Object.keys(trackedExp.queriedWorkers).join(',')}`,
 					})
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) {
@@ -803,7 +837,7 @@ export class ExpectationManager {
 							// Not ready to start
 							this.updateTrackedExpStatus(
 								trackedExp,
-								ExpectedPackageStatusAPI.WorkStatusState.WAITING,
+								ExpectedPackageStatusAPI.WorkStatusState.NEW,
 								readyToStart.reason,
 								newStatus
 							)
@@ -814,7 +848,7 @@ export class ExpectationManager {
 					// Do nothing, hopefully some will be available at a later iteration
 					this.updateTrackedExpStatus(
 						trackedExp,
-						undefined,
+						ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						this.getNoAssignedWorkerReason(trackedExp.session)
 					)
 				}
@@ -882,7 +916,7 @@ export class ExpectationManager {
 							trackedExp.status.workProgress = undefined
 							this.updateTrackedExpStatus(
 								trackedExp,
-								ExpectedPackageStatusAPI.WorkStatusState.WAITING,
+								ExpectedPackageStatusAPI.WorkStatusState.NEW,
 								fulfilled.reason
 							)
 							trackedExp.session.triggerExpectationAgain = true
@@ -1093,34 +1127,33 @@ export class ExpectationManager {
 		/** How many answers we want to have to be content */
 		const minWorkerCount = batchSize / 2
 
-		if (!trackedExp.availableWorkers.length) {
+		if (!Object.keys(trackedExp.availableWorkers).length) {
 			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }
 		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
 
-		for (let i = 0; i < trackedExp.availableWorkers.length; i += batchSize) {
-			const batchOfWorkers = trackedExp.availableWorkers.slice(i, i + batchSize)
+		// Send a number of requests simultaneously:
+		await runInBatches(
+			Object.keys(trackedExp.availableWorkers),
+			async (workerId: string, abort: () => void) => {
+				const workerAgent = this.workerAgents[workerId]
+				if (workerAgent) {
+					const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
 
-			await Promise.all(
-				batchOfWorkers.map(async (workerId) => {
-					const workerAgent = this.workerAgents[workerId]
-					if (workerAgent) {
-						const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
-
-						if (cost.cost < Number.POSITIVE_INFINITY) {
-							workerCosts.push({
-								worker: workerAgent.api,
-								id: workerId,
-								cost,
-								randomCost: Math.random(), // To randomize if there are several with the same best cost
-							})
-						}
+					if (cost.cost < Number.POSITIVE_INFINITY) {
+						workerCosts.push({
+							worker: workerAgent.api,
+							id: workerId,
+							cost,
+							randomCost: Math.random(), // To randomize if there are several with the same best cost
+						})
 					}
-				})
-			)
-			if (workerCosts.length >= minWorkerCount) break
-		}
+				}
+				if (workerCosts.length >= minWorkerCount) abort()
+			},
+			batchSize
+		)
 
 		workerCosts.sort((a, b) => {
 			// Lowest cost first:
@@ -1143,8 +1176,10 @@ export class ExpectationManager {
 			session.assignedWorker = bestWorker
 		} else {
 			session.noAssignedWorkerReason = {
-				user: `Waiting for a free worker (${trackedExp.availableWorkers.length} workers are currently busy)`,
-				tech: `Waiting for a free worker (${trackedExp.availableWorkers.length} busy)`,
+				user: `Waiting for a free worker (${
+					Object.keys(trackedExp.availableWorkers).length
+				} workers are currently busy)`,
+				tech: `Waiting for a free worker (${Object.keys(trackedExp.availableWorkers).length} busy)`,
 			}
 		}
 	}
@@ -1173,6 +1208,22 @@ export class ExpectationManager {
 		trackedExp: TrackedExpectation
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		// First check if the Expectation depends on the fullfilled-status of another Expectation:
+		const waitingFor = this.isExpectationWaitingForOther(trackedExp)
+
+		if (waitingFor) {
+			return {
+				ready: false,
+				reason: {
+					user: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+					tech: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+				},
+			}
+		}
+
+		return workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
+	}
+	/** Checks if the expectation is waiting for another expectation, and returns the awaited Expectation, otherwise null */
+	private isExpectationWaitingForOther(trackedExp: TrackedExpectation): TrackedExpectation | null {
 		if (trackedExp.exp.dependsOnFullfilled?.length) {
 			// Check if those are fullfilled:
 			let waitingFor: TrackedExpectation | undefined = undefined
@@ -1183,17 +1234,10 @@ export class ExpectationManager {
 				}
 			}
 			if (waitingFor) {
-				return {
-					ready: false,
-					reason: {
-						user: `Waiting for "${waitingFor.exp.statusReport.label}"`,
-						tech: `Waiting for "${waitingFor.exp.statusReport.label}"`,
-					},
-				}
+				return waitingFor
 			}
 		}
-
-		return workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
+		return null
 	}
 	private async _updateReceivedPackageContainerExpectations() {
 		this.receivedUpdates.packageContainersHasBeenUpdated = false
@@ -1452,9 +1496,11 @@ export class ExpectationManager {
 		for (const exp of Object.values(this.trackedExpectations)) {
 			if (
 				(exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
-					exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) &&
-				!exp.availableWorkers.length && // No workers supports it
-				!exp.session?.assignedWorker // No worker has time to work on it
+					exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING ||
+					exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) &&
+				(!exp.availableWorkers.length || // No workers supports it
+					!exp.session?.assignedWorker) && // No worker has time to work on it
+				!this.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
 			) {
 				if (!exp.waitingForWorkerTime) {
 					exp.waitingForWorkerTime = Date.now()
@@ -1471,7 +1517,7 @@ export class ExpectationManager {
 		}
 
 		for (const exp of waitingExpectations) {
-			this.logger.info(`Requesting more resources to handle expectation "${exp.id}"`)
+			this.logger.debug(`Requesting more resources to handle expectation "${exp.id}"`)
 			await this.workforceAPI.requestResources(exp.exp)
 		}
 	}
@@ -1521,6 +1567,9 @@ export interface ExpectationManagerConstants {
 	SCALE_UP_TIME: number
 	/** How many resources to request at a time */
 	SCALE_UP_COUNT: number
+
+	/** How often to re-query a worker if it supports an expectation [ms] */
+	WORKER_SUPPORT_TIME: number
 }
 export type ExpectationManagerServerOptions =
 	| {
@@ -1543,8 +1592,11 @@ interface TrackedExpectation {
 	/** Reason for the current state. */
 	reason: Reason
 
+	/** List of worker ids that have gotten the question wether they support this expectation */
+	queriedWorkers: { [workerId: string]: number }
 	/** List of worker ids that supports this Expectation */
-	availableWorkers: string[]
+	availableWorkers: { [workerId: string]: true }
+	noAvailableWorkersReason: Reason
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
 	/** Timestamp to be track how long the expectation has been awiting for a worker (can't start working) */
@@ -1643,4 +1695,38 @@ interface TrackedPackageContainerExpectation {
 			}
 		}
 	}
+}
+/** Execute callback in batches */
+async function runInBatches<T, ReturnValue>(
+	values: T[],
+	cb: (value: T, abortAndReturn: (returnValue?: ReturnValue) => void) => Promise<void>,
+	batchSize: number
+): Promise<ReturnValue | undefined> {
+	const batches: T[][] = []
+	let batch: T[] = []
+	for (const value of values) {
+		batch.push(value)
+		if (batch.length >= batchSize) {
+			batches.push(batch)
+			batch = []
+		}
+	}
+	batches.push(batch)
+
+	let aborted = false
+	let returnValue: ReturnValue | undefined = undefined
+	const abortAndReturn = (value?: ReturnValue) => {
+		aborted = true
+		returnValue = value
+	}
+
+	for (const batch of batches) {
+		if (aborted) break
+		await Promise.all(
+			batch.map(async (value) => {
+				return cb(value, abortAndReturn)
+			})
+		)
+	}
+	return returnValue
 }
