@@ -57,6 +57,7 @@ const defaultTestConfig: SingleAppConfig = {
 		port: 0,
 		maxRunningApps: 1,
 		minRunningApps: 1,
+		spinDownTime: 0,
 		resourceId: '',
 		networkIds: [],
 		windowsDriveLetters: ['X', 'Y', 'Z'],

@@ -397,8 +397,17 @@ export function writeFile(path: string, data: Buffer | string, callback: (error:
 	}
 }
 fs.writeFile = writeFile
-function readFile(path: string, callback: (error: any, result?: any) => void): void {
+function readFile(path: string, ...args: any[]): void {
 	path = fixPath(path)
+
+	let callback: (error: any, result?: any) => void
+	if (args.length === 1) {
+		callback = args[0]
+	} else if (args.length === 2) {
+		// const options = args[0]
+		callback = args[1]
+	} else throw new Error(`Mock poorly implemented: ` + args)
+
 	if (DEBUG_LOG) console.log('fs.readFile', path)
 	fsMockEmitter.emit('readFile', path)
 	try {

@@ -132,7 +132,7 @@ describe('Handle unhappy paths', () => {
 		expect(env.expectationStatuses['copy0']).toMatchObject({
 			actualVersionHash: null,
 			statusInfo: {
-				status: 'waiting',
+				status: 'new',
 				statusReason: {
 					tech: /not able to access target/i,
 				},
@@ -211,14 +211,15 @@ describe('Handle unhappy paths', () => {
 		)
 
 		await waitTime(env.WAIT_JOB_TIME)
-		// Expect the Expectation to be waiting:
+		// Expect the Expectation to be still working
+		// (the worker has crashed, byt expectationManger hasn't noticed yet)
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('working')
 		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
 
 		await waitTime(env.WORK_TIMEOUT_TIME)
 		await waitTime(env.WAIT_JOB_TIME)
 		// By now, the work should have been aborted, and restarted:
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('new')
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
 
 		// Add another worker:
 		env.addWorker()

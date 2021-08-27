@@ -42,6 +42,8 @@ function spawn(command: string, args: string[] = []) {
 				spawned.emit('close', 9999)
 			})
 		})
+	} else if (command === 'taskkill') {
+		// mock killing a task?
 	} else {
 		throw new Error(`Mock child_process.spawn: command not implemented: "${command}"`)
 	}
@@ -52,6 +54,11 @@ child_process.spawn = spawn
 class SpawnedProcess extends EventEmitter {
 	public stdout = new EventEmitter()
 	public stderr = new EventEmitter()
+	public pid: number
+	constructor() {
+		super()
+		this.pid = Date.now()
+	}
 }
 async function robocopy(spawned: SpawnedProcess, args: string[]) {
 	let sourceFolder
