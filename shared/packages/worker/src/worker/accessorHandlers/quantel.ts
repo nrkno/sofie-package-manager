@@ -338,7 +338,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				success: false,
 				reason: {
 					user: `transformerURL is not set in settings`,
-					tech: `transformerURL not set`,
+					tech: `transformerURL not set on accessor ${this.accessorId}`,
 				},
 			}
 
@@ -384,6 +384,12 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!this.accessor.ISAUrls.length) throw new Error('accessor.ISAUrls array is empty')
 
 		const id = `${this.accessor.quantelGatewayUrl}`
+
+		// A little hack to fix a case where ISAUrls is a string, even though it shouldn't...
+		let ISAUrls: string[] = this.accessor.ISAUrls
+		if (!Array.isArray(ISAUrls) && typeof ISAUrls === 'string') {
+			ISAUrls = (ISAUrls as string).split(',')
+		}
 
 		let gateway: QuantelGateway = cacheGateways[id]
 

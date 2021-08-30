@@ -188,6 +188,10 @@ export class AppContainer {
 				}
 			})
 		}
+		this.logger.info(`AppContainer: Available apps`)
+		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
+			this.logger.info(`${appType}: ${availableApp.file}`)
+		}
 	}
 	terminate(): void {
 		this.workforceAPI.terminate()

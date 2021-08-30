@@ -4,8 +4,8 @@ const accessorTypePriority: { [key: string]: number } = {
 	[Accessor.AccessType.LOCAL_FOLDER]: 0,
 	[Accessor.AccessType.QUANTEL]: 1,
 	[Accessor.AccessType.FILE_SHARE]: 2,
-	[Accessor.AccessType.HTTP]: 3,
 	[Accessor.AccessType.HTTP_PROXY]: 3,
+	[Accessor.AccessType.HTTP]: 4,
 	[Accessor.AccessType.CORE_PACKAGE_INFO]: 99999,
 }
 

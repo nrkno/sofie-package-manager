@@ -304,7 +304,7 @@ async function getThumbnailURL(
 			success: false,
 			reason: {
 				user: `transformerURL is not set in settings`,
-				tech: `transformerURL not set`,
+				tech: `transformerURL not set on accessor ${lookupSource.handle.accessorId}`,
 			},
 		}
 
