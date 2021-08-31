@@ -6,7 +6,7 @@ import * as QuantelHTTPTransformerProxy from '@quantel-http-transformer-proxy/ge
 import * as PackageManager from '@package-manager/generic'
 import * as Workforce from '@shared/workforce'
 import * as AppConatainerNode from '@appcontainer-node/generic'
-import { getSingleAppConfig, setupLogging } from '@shared/api'
+import { getSingleAppConfig, ProcessHandler, setupLogging } from '@shared/api'
 // import { MessageToAppContainerSpinUp, MessageToAppContainerType } from './__api'
 
 export async function startSingleApp(): Promise<void> {
@@ -17,6 +17,9 @@ export async function startSingleApp(): Promise<void> {
 	config.packageManager.accessUrl = 'ws:127.0.0.1'
 	config.packageManager.workforceURL = null // Filled in later
 	config.workforce.port = 0 // 0 = Set the workforce port to whatever is available
+
+	const process = new ProcessHandler(logger)
+	process.init(config.process)
 
 	logger.info('------------------------------------------------------------------')
 	logger.info('Starting Package Manager - Single App')
@@ -41,7 +44,7 @@ export async function startSingleApp(): Promise<void> {
 	await appContainer.init()
 
 	logger.info('Initializing Package Manager Connector')
-	const connector = new PackageManager.Connector(logger, config)
+	const connector = new PackageManager.Connector(logger, config, process)
 	const expectationManager = connector.getExpectationManager()
 
 	logger.info('Initializing HTTP proxy Server')

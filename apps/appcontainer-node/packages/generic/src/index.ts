@@ -1,4 +1,4 @@
-import { getAppContainerConfig, setupLogging } from '@shared/api'
+import { getAppContainerConfig, ProcessHandler, setupLogging } from '@shared/api'
 import { AppContainer } from './appContainer'
 
 export { AppContainer } from './appContainer'
@@ -11,6 +11,9 @@ export async function startProcess(): Promise<void> {
 	logger.info('------------------------------------------------------------------')
 	logger.info('Starting AppContainer')
 	logger.info('------------------------------------------------------------------')
+
+	const process = new ProcessHandler(logger)
+	process.init(config.process)
 
 	const appContainer = new AppContainer(logger, config)
 

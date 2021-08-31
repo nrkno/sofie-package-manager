@@ -1,8 +1,7 @@
-import { ClientConnectionOptions, LoggerInstance, PackageManagerConfig } from '@shared/api'
+import { ClientConnectionOptions, LoggerInstance, PackageManagerConfig, ProcessHandler } from '@shared/api'
 import { ExpectationManager, ExpectationManagerServerOptions } from '@shared/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageManagerHandler } from './packageManager'
-import { ProcessHandler } from './process'
 import chokidar from 'chokidar'
 import fs from 'fs'
 import { promisify } from 'util'
@@ -30,10 +29,12 @@ export interface DeviceConfig {
 export class Connector {
 	private packageManagerHandler: PackageManagerHandler
 	private coreHandler: CoreHandler
-	private _process: ProcessHandler
 
-	constructor(private _logger: LoggerInstance, private config: PackageManagerConfig) {
-		this._process = new ProcessHandler(this._logger)
+	constructor(
+		private _logger: LoggerInstance,
+		private config: PackageManagerConfig,
+		private _process: ProcessHandler
+	) {
 		this.coreHandler = new CoreHandler(this._logger, this.config.packageManager)
 
 		const packageManagerServerOptions: ExpectationManagerServerOptions =
@@ -62,10 +63,6 @@ export class Connector {
 
 	public async init(): Promise<void> {
 		try {
-			this._logger.info('Initializing Process...')
-			this._process.init(this.config.process)
-			this._logger.info('Process initialized')
-
 			this._logger.info('Initializing Core...')
 			await this.coreHandler.init(this.config, this._process)
 			this._logger.info('Core initialized')

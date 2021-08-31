@@ -1,4 +1,4 @@
-import { getWorkerConfig, setupLogging } from '@shared/api'
+import { getWorkerConfig, ProcessHandler, setupLogging } from '@shared/api'
 import { WorkerAgent } from '@shared/worker'
 
 export async function startProcess(): Promise<void> {
@@ -9,6 +9,9 @@ export async function startProcess(): Promise<void> {
 	logger.info('------------------------------------------------------------------')
 	logger.info('Starting Worker')
 	logger.info('------------------------------------------------------------------')
+
+	const process = new ProcessHandler(logger)
+	process.init(config.process)
 
 	const workforce = new WorkerAgent(logger, config)
 
