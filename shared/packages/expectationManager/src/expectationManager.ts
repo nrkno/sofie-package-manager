@@ -1389,39 +1389,43 @@ export class ExpectationManager {
 			if (trackedPackageContainer.currentWorker) {
 				const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
 
-				if (!trackedPackageContainer.monitorIsSetup) {
-					const monitorSetup = await workerAgent.api.setupPackageContainerMonitors(
-						trackedPackageContainer.packageContainer
-					)
+				if (Object.keys(trackedPackageContainer.packageContainer.monitors).length !== 0) {
+					if (!trackedPackageContainer.monitorIsSetup) {
+						const monitorSetup = await workerAgent.api.setupPackageContainerMonitors(
+							trackedPackageContainer.packageContainer
+						)
 
-					trackedPackageContainer.status.monitors = {}
-					if (monitorSetup.success) {
-						trackedPackageContainer.monitorIsSetup = true
-						for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
-							trackedPackageContainer.status.monitors[monitorId] = {
-								label: monitor.label,
-								reason: {
-									user: 'Starting up',
-									tech: 'Starting up',
-								},
+						trackedPackageContainer.status.monitors = {}
+						if (monitorSetup.success) {
+							trackedPackageContainer.monitorIsSetup = true
+							for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
+								trackedPackageContainer.status.monitors[monitorId] = {
+									label: monitor.label,
+									reason: {
+										user: 'Starting up',
+										tech: 'Starting up',
+									},
+								}
 							}
+						} else {
+							this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+								user: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.user}`,
+								tech: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.tech}`,
+							})
 						}
-					} else {
-						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-							user: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.user}`,
-							tech: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.tech}`,
-						})
 					}
 				}
-				const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
-					trackedPackageContainer.packageContainer
-				)
-				if (!cronJobStatus.success) {
-					this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-						user: 'Cron job not completed: ' + cronJobStatus.reason.user,
-						tech: 'Cron job not completed: ' + cronJobStatus.reason.tech,
-					})
-					continue
+				if (Object.keys(trackedPackageContainer.packageContainer.cronjobs).length !== 0) {
+					const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
+						trackedPackageContainer.packageContainer
+					)
+					if (!cronJobStatus.success) {
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+							user: 'Cron job not completed: ' + cronJobStatus.reason.user,
+							tech: 'Cron job not completed: ' + cronJobStatus.reason.tech,
+						})
+						continue
+					}
 				}
 			}
 		}
