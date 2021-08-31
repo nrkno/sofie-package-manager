@@ -17,52 +17,62 @@ const fseCopy = promisify(fse.copy)
 /*
 	Runs a command in all lerna packages, one at a time
 */
-const commands = process.argv.slice(2)
-
-
+let commands = process.argv.slice(2)
+const lastCommand = commands[commands.length-1]
 
 ;(async () => {
 
-	log(`Running command "${commands.join(' ')}" in all packages...`)
+	let scopes = []
+	if (lastCommand.match(/scope/)) {
 
-	// List all Lerna packages:
-	const list = await exec('yarn lerna list -a --json')
-	const str = list.stdout.replace(/^\$.*$/gm, '').replace(/^Done in.*$/gm, '')
+		log(`Running command "${commands.join(' ')}" for ${lastCommand}`)
 
-	const packages = JSON.parse(str)
+		scopes = [lastCommand]
+		commands = commands.slice(0, -1)
+	} else {
 
-    for (const package of packages) {
-        const cmd = `${commands.join(' ')} --scope=${package.name}`
-        log(cmd)
+		log(`Running command "${commands.join(' ')}" in all packages...`)
+
+		// List all Lerna packages:
+		const list = await exec('yarn lerna list -a --json')
+		const str = list.stdout.replace(/^\$.*$/gm, '').replace(/^Done in.*$/gm, '')
+
+		const packages = JSON.parse(str)
+
+		scopes = packages.map((p) => `--scope=${p.name}`)
+	}
+
+	for (const scope of scopes) {
+		const cmd = `${commands.join(' ')} ${scope}`
+		log(cmd)
+
+		await new Promise((resolve, reject) => {
+			const process = cp.exec(cmd, {})
+			// const process = cp.spawn(commands[0], [commands.slice(1), `--scope=${package.name}`] )
+			process.stdout.on('data', (data) => {
+				log((data+'').trimEnd() )
+			})
+			process.stderr.on('data', (data) => {
+				log((data+'').trimEnd() )
+			})
+			process.on('error', (error) => {
+				reject(error)
+			})
+			process.on('close', (code) => {
+				if (code === 0) {
+					resolve()
+				} else {
+					reject('Process exited with code '+code)
+				}
+			})
+
+		})
 
 
-        await new Promise((resolve, reject) => {
-            const process = cp.exec(cmd, {})
-            // const process = cp.spawn(commands[0], [commands.slice(1), `--scope=${package.name}`] )
-            process.stdout.on('data', (data) => {
-                log((data+'').trimEnd() )
-            })
-            process.stderr.on('data', (data) => {
-                log((data+'').trimEnd() )
-            })
-            process.on('error', (error) => {
-                reject(error)
-            })
-            process.on('close', (code) => {
-                if (code === 0) {
-                    resolve()
-                } else {
-                    reject('Process exited with code '+code)
-                }
-            })
-
-        })
 
 
-
-
-    }
-    // log(packages)
+	}
+	// log(packages)
 
 
 	log(`...done!`)
