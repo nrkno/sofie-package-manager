@@ -1,5 +1,7 @@
 // eslint-disable-next-line node/no-unpublished-import
 import fsMockType from 'windows-network-drive' // Note: this is a mocked module
+import { EventEmitter } from 'events' // Note: this is a mocked module
+// import * as Path from 'path'
 
 /* eslint-disable no-console */
 const DEBUG_LOG = false
@@ -9,7 +11,7 @@ enum fsConstants {
 	W_OK = 4,
 }
 
-const fs = jest.createMockFromModule('fs') as any
+const fs: any = jest.createMockFromModule('fs')
 
 type MockAny = MockDirectory | MockFile
 interface MockBase {
@@ -34,7 +36,8 @@ const mockRoot: MockDirectory = {
 	content: {},
 }
 const openFileDescriptors: { [fd: string]: MockAny } = {}
-let fd = 0
+let fdId = 0
+const fsMockEmitter = new EventEmitter()
 
 function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 	dir = dir || mockRoot
@@ -75,7 +78,7 @@ function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 		path: path,
 	})
 }
-function setMock(path: string, create: MockAny, autoCreateTree: boolean, dir?: MockDirectory): void {
+function setMock(path: string, create: MockAny, autoCreateTree: boolean, force = false, dir?: MockDirectory): void {
 	dir = dir || mockRoot
 
 	const m = path.match(/([^/]+)\/(.*)/)
@@ -119,10 +122,20 @@ function setMock(path: string, create: MockAny, autoCreateTree: boolean, dir?: M
 		}
 
 		if (nextDir) {
-			return setMock(nextPath, create, autoCreateTree, nextDir)
+			return setMock(nextPath, create, autoCreateTree, force, nextDir)
 		}
 	} else {
 		const fileName = path
+		if (dir.content[fileName]) {
+			if (!dir.content[fileName].accessWrite && !force) {
+				throw Object.assign(new Error(`EACCESS: Not able to write to parent folder "${path}"`), {
+					errno: 0,
+					code: 'EACCESS',
+					syscall: 'mock',
+					path: path,
+				})
+			}
+		}
 		dir.content[fileName] = create
 
 		if (DEBUG_LOG) console.log('setMock', path, create)
@@ -175,8 +188,6 @@ export function __printAllFiles(): string {
 	const getPaths = (dir: MockDirectory, indent: string): string => {
 		const strs: any[] = []
 		for (const [name, file] of Object.entries(dir.content)) {
-			// const path = `${prevPath}/${name}`
-
 			if (file.isDirectory) {
 				strs.push(`${indent}${name}/`)
 				strs.push(getPaths(file, indent + '  '))
@@ -212,47 +223,53 @@ function fixPath(path: string) {
 
 export function __mockReset(): void {
 	Object.keys(mockRoot.content).forEach((filePath) => delete mockRoot.content[filePath])
+	fsMockEmitter.removeAllListeners()
 }
 fs.__mockReset = __mockReset
 
-export function __mockSetFile(path: string, size: number): void {
+export function __mockSetFile(path: string, size: number, accessOptions?: FileAccess): void {
 	path = fixPath(path)
 	setMock(
 		path,
 		{
-			accessRead: true,
-			accessWrite: true,
+			accessRead: accessOptions?.accessRead ?? true,
+			accessWrite: accessOptions?.accessWrite ?? true,
+
 			isDirectory: false,
 			content: 'mockContent',
 			size: size,
 		},
+		true,
 		true
 	)
 }
 fs.__mockSetFile = __mockSetFile
-export function __mockSetDirectory(path: string): void {
+export function __mockSetDirectory(path: string, accessOptions?: FileAccess): void {
 	path = fixPath(path)
 	setMock(
 		path,
 		{
-			accessRead: true,
-			accessWrite: true,
+			accessRead: accessOptions?.accessRead ?? true,
+			accessWrite: accessOptions?.accessWrite ?? true,
+
 			isDirectory: true,
 			content: {},
 		},
+		true,
 		true
 	)
 }
 fs.__mockSetDirectory = __mockSetDirectory
 
-// export function readdirSync(directoryPath: string) {
-// 	return mockFiles[directoryPath] || []
-// }
-// fs.readdirSync = readdirSync
+export function __emitter(): EventEmitter {
+	return fsMockEmitter
+}
+fs.__emitter = __emitter
 
 export function stat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.stat', path)
+	fsMockEmitter.emit('stat', path)
 	try {
 		const mockFile = getMock(path)
 		if (mockFile.isDirectory) {
@@ -273,6 +290,7 @@ fs.stat = stat
 export function access(path: string, mode: number | undefined, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.access', path, mode)
+	fsMockEmitter.emit('access', path, mode)
 	try {
 		const mockFile = getMock(path)
 		if (mode === fsConstants.R_OK && !mockFile.accessRead) {
@@ -291,6 +309,7 @@ fs.access = access
 export function unlink(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.unlink', path)
+	fsMockEmitter.emit('unlink', path)
 	try {
 		deleteMock(path)
 		return callback(undefined, null)
@@ -303,6 +322,7 @@ fs.unlink = unlink
 export function mkdir(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.mkdir', path)
+	fsMockEmitter.emit('mkdir', path)
 	try {
 		setMock(
 			path,
@@ -325,6 +345,7 @@ fs.mkdir = mkdir
 export function readdir(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.readdir', path)
+	fsMockEmitter.emit('readdir', path)
 	try {
 		const mockFile = getMock(path)
 		if (!mockFile.isDirectory) {
@@ -341,6 +362,7 @@ fs.readdir = readdir
 export function lstat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.lstat', path)
+	fsMockEmitter.emit('lstat', path)
 	try {
 		const mockFile = getMock(path)
 		return callback(undefined, {
@@ -356,6 +378,7 @@ fs.lstat = lstat
 export function writeFile(path: string, data: Buffer | string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.writeFile', path)
+	fsMockEmitter.emit('writeFile', path, data)
 	try {
 		setMock(
 			path,
@@ -374,9 +397,19 @@ export function writeFile(path: string, data: Buffer | string, callback: (error:
 	}
 }
 fs.writeFile = writeFile
-function readFile(path: string, callback: (error: any, result?: any) => void): void {
+function readFile(path: string, ...args: any[]): void {
 	path = fixPath(path)
+
+	let callback: (error: any, result?: any) => void
+	if (args.length === 1) {
+		callback = args[0]
+	} else if (args.length === 2) {
+		// const options = args[0]
+		callback = args[1]
+	} else throw new Error(`Mock poorly implemented: ` + args)
+
 	if (DEBUG_LOG) console.log('fs.readFile', path)
+	fsMockEmitter.emit('readFile', path)
 	try {
 		const file = getMock(path)
 		return callback(undefined, file.content)
@@ -389,12 +422,13 @@ fs.readFile = readFile
 export function open(path: string, _options: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.open', path)
+	fsMockEmitter.emit('open', path)
 	try {
 		const file = getMock(path)
-		fd++
-		openFileDescriptors[fd + ''] = file
+		fdId++
+		openFileDescriptors[fdId + ''] = file
 
-		return callback(undefined, fd)
+		return callback(undefined, fdId)
 	} catch (err) {
 		callback(err)
 	}
@@ -402,6 +436,7 @@ export function open(path: string, _options: string, callback: (error: any, resu
 fs.open = open
 export function close(fd: number, callback: (error: any, result?: any) => void): void {
 	if (DEBUG_LOG) console.log('fs.close')
+	fsMockEmitter.emit('close', fd)
 	if (openFileDescriptors[fd + '']) {
 		delete openFileDescriptors[fd + '']
 		return callback(undefined, null)
@@ -414,6 +449,7 @@ export function copyFile(source: string, destination: string, callback: (error: 
 	source = fixPath(source)
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.copyFile', source, destination)
+	fsMockEmitter.emit('copyFile', source, destination)
 	try {
 		const mockFile = getMock(source)
 		if (DEBUG_LOG) console.log('source', source)
@@ -430,6 +466,7 @@ export function rename(source: string, destination: string, callback: (error: an
 	source = fixPath(source)
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.rename', source, destination)
+	fsMockEmitter.emit('rename', source, destination)
 	try {
 		const mockFile = getMock(source)
 		setMock(destination, mockFile, false)
@@ -440,5 +477,10 @@ export function rename(source: string, destination: string, callback: (error: an
 	}
 }
 fs.rename = rename
+
+interface FileAccess {
+	accessRead: boolean
+	accessWrite: boolean
+}
 
 module.exports = fs

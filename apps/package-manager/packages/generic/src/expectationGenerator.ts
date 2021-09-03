@@ -344,6 +344,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
 	const content = expWrapQuantelClip.expectedPackage.content
+	const label = content.title && content.guid ? `${content.title} (${content.guid})` : content.title || content.guid
 	const exp: Expectation.QuantelClipCopy = {
 		id: '', // set later
 		priority: expWrap.priority * 10 || 0,
@@ -357,7 +358,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 		],
 
 		statusReport: {
-			label: `Copy Quantel clip ${content.title || content.guid}`,
+			label: `Copy Quantel clip ${label}`,
 			description: `Copy Quantel clip ${content.title || content.guid} to server for "${
 				expWrapQuantelClip.playoutDeviceId
 			}", from ${expWrapQuantelClip.sources.map((source) => `"${source.label}"`).join(', ')}`,

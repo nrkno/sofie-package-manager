@@ -40,3 +40,25 @@ export function hash(str: string): string {
 	const hash0 = crypto.createHash('sha1')
 	return hash0.update(str).digest('hex')
 }
+/** Helper function to simply assert that the value is of the type never */
+export function assertNever(_value: never): void {
+	// does nothing
+}
+export function waitTime(duration: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, duration)
+	})
+}
+export function promiseTimeout<T>(p: Promise<T>, timeoutTime: number): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const timeout = setTimeout(() => {
+			reject('Timeout')
+		}, timeoutTime)
+
+		p.then(resolve)
+			.catch(reject)
+			.finally(() => {
+				clearTimeout(timeout)
+			})
+	})
+}

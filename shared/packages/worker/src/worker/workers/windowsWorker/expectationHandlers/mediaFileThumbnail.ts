@@ -7,6 +7,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	assertNever,
 } from '@shared/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -23,7 +24,6 @@ import {
 	lookupAccessorHandles,
 	LookupPackageContainer,
 } from './lib'
-import { assertNever } from '../../../lib/lib'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
@@ -36,12 +36,12 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	): ReturnTypeDoYouSupportExpectation {
-		if (!windowsWorker.hasFFMpeg)
+		if (windowsWorker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
-					user: 'There is an issue with the Worker: FFMpeg not found',
-					tech: 'Cannot access FFMpeg executable',
+					user: 'There is an issue with the Worker (FFMpeg)',
+					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
 				},
 			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {

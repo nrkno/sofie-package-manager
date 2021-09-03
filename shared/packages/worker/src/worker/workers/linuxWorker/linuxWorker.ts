@@ -38,6 +38,9 @@ export class LinuxWorker extends GenericWorker {
 	async init(): Promise<void> {
 		throw new Error(`Not implemented yet`)
 	}
+	terminate(): void {
+		throw new Error(`Not implemented yet`)
+	}
 	getCostFortExpectation(_exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		throw new Error(`Not implemented yet`)
 	}

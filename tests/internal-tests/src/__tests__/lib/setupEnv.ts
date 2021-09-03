@@ -5,7 +5,7 @@ import * as Worker from '@shared/worker'
 import * as Winston from 'winston'
 import { Expectation, ExpectationManagerWorkerAgent, LoggerInstance, Reason, SingleAppConfig } from '@shared/api'
 // import deepExtend from 'deep-extend'
-import { ExpectationManager, ExpectationManagerCallbacks } from '@shared/expectation-manager'
+import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 
@@ -41,6 +41,7 @@ const defaultTestConfig: SingleAppConfig = {
 	worker: {
 		workerId: 'worker',
 		workforceURL: null,
+		appContainerURL: null,
 		resourceId: '',
 		networkIds: [],
 		windowsDriveLetters: ['X', 'Y', 'Z'],
@@ -50,16 +51,28 @@ const defaultTestConfig: SingleAppConfig = {
 		port: 0,
 		transformerURL: '',
 	},
+	appContainer: {
+		appContainerId: 'appContainer0',
+		workforceURL: null,
+		port: 0,
+		maxRunningApps: 1,
+		minRunningApps: 1,
+		spinDownTime: 0,
+		resourceId: '',
+		networkIds: [],
+		windowsDriveLetters: ['X', 'Y', 'Z'],
+	},
 }
 
 export async function setupExpectationManager(
 	debugLogging: boolean,
 	workerCount: number = 1,
-	callbacks: ExpectationManagerCallbacks
+	callbacks: ExpectationManagerCallbacks,
+	options?: ExpectationManagerOptions
 ) {
 	const logger = new Winston.Logger({}) as LoggerInstance
 	logger.add(Winston.transports.Console, {
-		level: debugLogging ? 'verbose' : 'warn',
+		level: debugLogging ? 'debug' : 'warn',
 	})
 
 	const expectationManager = new ExpectationManager(
@@ -68,7 +81,8 @@ export async function setupExpectationManager(
 		{ type: 'internal' },
 		undefined,
 		{ type: 'internal' },
-		callbacks
+		callbacks,
+		options
 	)
 
 	// Initializing HTTP proxy Server:
@@ -85,12 +99,14 @@ export async function setupExpectationManager(
 
 	// Initialize workers:
 	const workerAgents: Worker.WorkerAgent[] = []
-	for (let i = 0; i < workerCount; i++) {
+	let workerI = 0
+	const addWorker = async () => {
+		const workerId = defaultTestConfig.worker.workerId + '_' + workerI++
 		const workerAgent = new Worker.WorkerAgent(logger, {
 			...defaultTestConfig,
 			worker: {
 				...defaultTestConfig.worker,
-				workerId: defaultTestConfig.worker.workerId + '_' + i,
+				workerId: workerId,
 			},
 		})
 		workerAgents.push(workerAgent)
@@ -98,12 +114,32 @@ export async function setupExpectationManager(
 		workerAgent.hookToWorkforce(workforce.getWorkerAgentHook())
 		workerAgent.hookToExpectationManager(expectationManager.managerId, expectationManager.getWorkerAgentHook())
 		await workerAgent.init()
+
+		return workerId
+	}
+	const removeWorker = async (workerId: string) => {
+		const index = workerAgents.findIndex((wa) => wa.id === workerId)
+		if (index !== -1) {
+			const workerAgent = workerAgents[index]
+
+			expectationManager.removeWorkerAgentHook(workerAgent.id)
+
+			workerAgent.terminate()
+			// Remove from array:
+			workerAgents.splice(index, 1)
+		}
+	}
+
+	for (let i = 0; i < workerCount; i++) {
+		await addWorker()
 	}
 
 	return {
 		workforce,
 		workerAgents,
 		expectationManager,
+		addWorker,
+		removeWorker,
 	}
 }
 
@@ -112,70 +148,99 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	const containerStatuses: ContainerStatuses = {}
 	const coreApi = new CoreMockAPI()
 
-	const em = await setupExpectationManager(debugLogging, 1, {
-		reportExpectationStatus: (
-			expectationId: string,
-			_expectaction: Expectation.Any | null,
-			actualVersionHash: string | null,
-			statusInfo: {
-				status?: string
-				progress?: number
-				statusReason?: Reason
-			}
-		) => {
-			if (!expectationStatuses[expectationId]) {
-				expectationStatuses[expectationId] = {
-					actualVersionHash: null,
-					statusInfo: {},
+	const WAIT_JOB_TIME = 500 // ms
+	const WAIT_SCAN_TIME = 1000 // ms
+	const WORK_TIMEOUT_TIME = 900 // ms
+
+	const em = await setupExpectationManager(
+		debugLogging,
+		1,
+		{
+			reportExpectationStatus: (
+				expectationId: string,
+				_expectaction: Expectation.Any | null,
+				actualVersionHash: string | null,
+				statusInfo: {
+					status?: string
+					progress?: number
+					statusReason?: Reason
 				}
-			}
-			const o = expectationStatuses[expectationId]
-			if (actualVersionHash) o.actualVersionHash = actualVersionHash
-			if (statusInfo.status) o.statusInfo.status = statusInfo.status
-			if (statusInfo.progress) o.statusInfo.progress = statusInfo.progress
-			if (statusInfo.statusReason) o.statusInfo.statusReason = statusInfo.statusReason
-		},
-		reportPackageContainerPackageStatus: (
-			containerId: string,
-			packageId: string,
-			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-		) => {
-			if (!containerStatuses[containerId]) {
-				containerStatuses[containerId] = {
-					packages: {},
+			) => {
+				if (debugLogging) console.log('reportExpectationStatus', expectationId, actualVersionHash, statusInfo)
+
+				if (!expectationStatuses[expectationId]) {
+					expectationStatuses[expectationId] = {
+						actualVersionHash: null,
+						statusInfo: {},
+					}
 				}
-			}
-			const container = containerStatuses[containerId]
-			container.packages[packageId] = {
-				packageStatus: packageStatus,
-			}
+				const o = expectationStatuses[expectationId]
+				if (actualVersionHash) o.actualVersionHash = actualVersionHash
+				if (statusInfo.status) o.statusInfo.status = statusInfo.status
+				if (statusInfo.progress) o.statusInfo.progress = statusInfo.progress
+				if (statusInfo.statusReason) o.statusInfo.statusReason = statusInfo.statusReason
+			},
+			reportPackageContainerPackageStatus: (
+				containerId: string,
+				packageId: string,
+				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
+			) => {
+				if (debugLogging)
+					console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
+				if (!containerStatuses[containerId]) {
+					containerStatuses[containerId] = {
+						packages: {},
+					}
+				}
+				const container = containerStatuses[containerId]
+				container.packages[packageId] = {
+					packageStatus: packageStatus,
+				}
+			},
+			reportPackageContainerExpectationStatus: () => {
+				// todo
+				// if (debugLogging) console.log('reportPackageContainerExpectationStatus', containerId, packageId, packageStatus)
+			},
+			messageFromWorker: async (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
+				switch (message.type) {
+					case 'fetchPackageInfoMetadata':
+						return coreApi.fetchPackageInfoMetadata(...message.arguments)
+					case 'updatePackageInfo':
+						return coreApi.updatePackageInfo(...message.arguments)
+					case 'removePackageInfo':
+						return coreApi.removePackageInfo(...message.arguments)
+					case 'reportFromMonitorPackages':
+						return coreApi.reportFromMonitorPackages(...message.arguments)
+					default:
+						// @ts-expect-error message.type is never
+						throw new Error(`Unsupported message type "${message.type}"`)
+				}
+			},
 		},
-		reportPackageContainerExpectationStatus: () => {
-			// todo
-		},
-		messageFromWorker: async (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
-			switch (message.type) {
-				case 'fetchPackageInfoMetadata':
-					return await coreApi.fetchPackageInfoMetadata(...message.arguments)
-				case 'updatePackageInfo':
-					return await coreApi.updatePackageInfo(...message.arguments)
-				case 'removePackageInfo':
-					return await coreApi.removePackageInfo(...message.arguments)
-				case 'reportFromMonitorPackages':
-					return await coreApi.reportFromMonitorPackages(...message.arguments)
-				default:
-					// @ts-expect-error message.type is never
-					throw new Error(`Unsupported message type "${message.type}"`)
-			}
-		},
-	})
+		{
+			constants: {
+				EVALUATE_INTERVAL: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
+				FULLFILLED_MONITOR_TIME: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
+				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
+			},
+		}
+	)
 
 	return {
+		WAIT_JOB_TIME,
+		WAIT_SCAN_TIME,
+		WORK_TIMEOUT_TIME,
 		expectationManager: em.expectationManager,
+		workerAgents: em.workerAgents,
+		workforce: em.workforce,
 		coreApi,
 		expectationStatuses,
 		containerStatuses,
 		reset: () => {
+			if (debugLogging) {
+				console.log('RESET ENVIRONMENT')
+			}
+			em.expectationManager.resetWork()
 			Object.keys(expectationStatuses).forEach((id) => delete expectationStatuses[id])
 			Object.keys(containerStatuses).forEach((id) => delete containerStatuses[id])
 			coreApi.reset()
@@ -185,15 +250,24 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			em.workforce.terminate()
 			em.workerAgents.forEach((workerAgent) => workerAgent.terminate())
 		},
+		addWorker: em.addWorker,
+		removeWorker: em.removeWorker,
 	}
 }
 export interface TestEnviromnent {
+	WAIT_JOB_TIME: number
+	WAIT_SCAN_TIME: number
+	WORK_TIMEOUT_TIME: number
 	expectationManager: ExpectationManager
+	workerAgents: Worker.WorkerAgent[]
+	workforce: Workforce.Workforce
 	coreApi: CoreMockAPI
 	expectationStatuses: ExpectationStatuses
 	containerStatuses: ContainerStatuses
 	reset: () => void
 	terminate: () => void
+	addWorker: () => Promise<string>
+	removeWorker: (id: string) => Promise<void>
 }
 
 export interface ExpectationStatuses {
@@ -210,7 +284,7 @@ export interface ContainerStatuses {
 	[containerId: string]: {
 		packages: {
 			[packageId: string]: {
-				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			}
 		}
 	}

@@ -2,12 +2,11 @@ import { promisify } from 'util'
 import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
-import { Expectation, PackageContainerExpectation } from '@shared/api'
+import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
 import networkDrive from 'windows-network-drive'
 import { exec } from 'child_process'
-import { assertNever } from '../lib/lib'
 import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
 
 const fsStat = promisify(fs.stat)
@@ -288,18 +287,20 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	}
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
+		let badReason: Reason | null = null
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
-				await this.removeDuePackages()
+				badReason = await this.removeDuePackages()
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
 			}
 		}
 
-		return { success: true }
+		if (!badReason) return { success: true }
+		else return { success: false, reason: badReason }
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation

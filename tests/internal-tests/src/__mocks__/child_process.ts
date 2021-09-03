@@ -6,8 +6,7 @@ import path from 'path'
 /* eslint-disable no-console */
 
 const fsCopyFile = promisify(fs.copyFile)
-// @ts-expect-error mock
-const fs__mockSetDirectory = fs.__mockSetDirectory
+const fsMkdir = promisify(fs.mkdir)
 
 const child_process: any = jest.createMockFromModule('child_process')
 
@@ -43,6 +42,8 @@ function spawn(command: string, args: string[] = []) {
 				spawned.emit('close', 9999)
 			})
 		})
+	} else if (command === 'taskkill') {
+		// mock killing a task?
 	} else {
 		throw new Error(`Mock child_process.spawn: command not implemented: "${command}"`)
 	}
@@ -53,6 +54,11 @@ child_process.spawn = spawn
 class SpawnedProcess extends EventEmitter {
 	public stdout = new EventEmitter()
 	public stderr = new EventEmitter()
+	public pid: number
+	constructor() {
+		super()
+		this.pid = Date.now()
+	}
 }
 async function robocopy(spawned: SpawnedProcess, args: string[]) {
 	let sourceFolder
@@ -123,14 +129,14 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 			const source = path.join(sourceFolder, file)
 			const destination = path.join(destinationFolder, file)
 
-			fs__mockSetDirectory(destinationFolder) // robocopy automatically creates the destination folder
+			await fsMkdir(destinationFolder) // robocopy automatically creates the destination folder
 
 			await fsCopyFile(source, destination)
 		}
 		spawned.emit('close', 1) // OK
 	} catch (err) {
-		console.log(err)
-		spawned.emit('close', 9999)
+		// console.log(err)
+		spawned.emit('close', 16) // Serious error. Robocopy did not copy any files.
 	}
 }
 async function ffmpeg(spawned: SpawnedProcess, args: string[]) {

@@ -6,6 +6,7 @@ import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getSt
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	hashObj,
+	waitTime,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
@@ -25,7 +26,6 @@ import {
 	lookupAccessorHandles,
 	LookupPackageContainer,
 	userReadableDiff,
-	waitTime,
 } from './lib'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'

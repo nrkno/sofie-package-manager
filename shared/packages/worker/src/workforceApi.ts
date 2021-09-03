@@ -12,6 +12,6 @@ export class WorkforceAPI
 		super(logger, 'workerAgent')
 	}
 	async getExpectationManagerList(): Promise<{ id: string; url: string }[]> {
-		return await this._sendMessage('getExpectationManagerList', undefined)
+		return this._sendMessage('getExpectationManagerList', undefined)
 	}
 }

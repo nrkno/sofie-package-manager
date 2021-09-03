@@ -35,12 +35,12 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	): ReturnTypeDoYouSupportExpectation {
-		if (!windowsWorker.hasFFMpeg)
+		if (windowsWorker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
-					user: 'There is an issue with the Worker: FFMpeg not found',
-					tech: 'Cannot access FFMpeg executable',
+					user: 'There is an issue with the Worker (FFMpeg)',
+					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
 				},
 			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {

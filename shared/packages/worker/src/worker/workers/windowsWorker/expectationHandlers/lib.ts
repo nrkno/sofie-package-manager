@@ -18,6 +18,15 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 	let accessSourcePackageContainer: ReturnType<typeof findBestPackageContainerWithAccessToPackage>
 	// Check that we have access to the packageContainers
 	if (checks.sources !== undefined) {
+		if (checks.sources.length === 0) {
+			return {
+				support: false,
+				reason: {
+					user: `No sources configured`,
+					tech: `No sources configured`,
+				},
+			}
+		}
 		accessSourcePackageContainer = findBestPackageContainerWithAccessToPackage(genericWorker, checks.sources)
 		if (!accessSourcePackageContainer) {
 			return {
@@ -25,7 +34,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 				reason: {
 					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the source PackageContainers`,
 					tech: `Worker doesn't have access to any of the source packageContainers (${checks.sources
-						.map((o) => o.containerId)
+						.map((o) => `${o.containerId} "${o.label}"`)
 						.join(', ')})`,
 				},
 			}
@@ -34,6 +43,15 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 
 	let accessTargetPackageContainer: ReturnType<typeof findBestPackageContainerWithAccessToPackage>
 	if (checks.targets !== undefined) {
+		if (checks.targets.length === 0) {
+			return {
+				support: false,
+				reason: {
+					user: `No targets configured`,
+					tech: `No targets configured`,
+				},
+			}
+		}
 		accessTargetPackageContainer = findBestPackageContainerWithAccessToPackage(genericWorker, checks.targets)
 		if (!accessTargetPackageContainer) {
 			return {
@@ -212,11 +230,7 @@ export async function lookupAccessorHandles<Metadata>(
 		reason: errorReason,
 	}
 }
-export function waitTime(duration: number): Promise<void> {
-	return new Promise((resolve) => {
-		setTimeout(resolve, duration)
-	})
-}
+
 /** Converts a diff to some kind of user-readable string */
 export function userReadableDiff<T>(diffs: Diff<T, T>[]): string {
 	const strs: string[] = []

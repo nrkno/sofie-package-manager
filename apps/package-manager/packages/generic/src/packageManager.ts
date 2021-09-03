@@ -144,7 +144,7 @@ export class PackageManagerHandler {
 			})
 			this._observers = []
 		}
-		this.logger.info('Renewing observers')
+		this.logger.debug('Renewing observers')
 
 		const expectedPackagesObserver = this.coreHandler.core.observe('deviceExpectedPackages')
 		expectedPackagesObserver.added = () => {
@@ -159,8 +159,6 @@ export class PackageManagerHandler {
 		this._observers.push(expectedPackagesObserver)
 	}
 	public triggerUpdatedExpectedPackages(): void {
-		this.logger.info('_triggerUpdatedExpectedPackages')
-
 		if (this._triggerUpdatedExpectedPackagesTimeout) {
 			clearTimeout(this._triggerUpdatedExpectedPackagesTimeout)
 			this._triggerUpdatedExpectedPackagesTimeout = null
@@ -168,7 +166,6 @@ export class PackageManagerHandler {
 
 		this._triggerUpdatedExpectedPackagesTimeout = setTimeout(() => {
 			this._triggerUpdatedExpectedPackagesTimeout = null
-			this.logger.info('_triggerUpdatedExpectedPackages inner')
 
 			const expectedPackages: ExpectedPackageWrap[] = []
 			const packageContainers: PackageContainers = {}
@@ -252,8 +249,8 @@ export class PackageManagerHandler {
 			}
 		}
 
-		this.logger.info(`Has ${expectedPackages.length} expectedPackages`)
-		// this.logger.info(JSON.stringify(expectedPackages, null, 2))
+		this.logger.debug(`Has ${expectedPackages.length} expectedPackages`)
+		// this.logger.debug(JSON.stringify(expectedPackages, null, 2))
 
 		this.dataSnapshot.expectedPackages = expectedPackages
 		this.dataSnapshot.packageContainers = this.packageContainersCache
@@ -268,8 +265,8 @@ export class PackageManagerHandler {
 			expectedPackages,
 			this.settings
 		)
-		this.logger.info(`Has ${Object.keys(expectations).length} expectations`)
-		// this.logger.info(JSON.stringify(expectations, null, 2))
+		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
+		// this.logger.debug(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
 		const packageContainerExpectations = generatePackageContainerExpectations(
@@ -277,7 +274,7 @@ export class PackageManagerHandler {
 			this.packageContainersCache,
 			activePlaylist
 		)
-		this.logger.info(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
+		this.logger.debug(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
 		;(this.dataSnapshot.packageContainerExpectations = packageContainerExpectations),
 			(this.dataSnapshot.updated = Date.now())
 
@@ -300,8 +297,25 @@ export class PackageManagerHandler {
 		// This method can be called from core
 		this.expectationManager.abortExpectation(workId)
 	}
-	public getDataSnapshot() {
+	public getDataSnapshot(): any {
 		return this.dataSnapshot
+	}
+	public async getExpetationManagerStatus(): Promise<any> {
+		return {
+			...(await this.expectationManager.getStatus()),
+			packageManager: {
+				workforceURL:
+					this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,
+				lastUpdated: this.dataSnapshot.updated,
+				countExpectedPackages: this.dataSnapshot.expectedPackages.length,
+				countPackageContainers: Object.keys(this.dataSnapshot.packageContainers).length,
+				countExpectations: Object.keys(this.dataSnapshot.expectations).length,
+				countPackageContainerExpectations: Object.keys(this.dataSnapshot.packageContainerExpectations).length,
+			},
+		}
+	}
+	public async debugKillApp(appId: string): Promise<void> {
+		return this.expectationManager.debugKillApp(appId)
 	}
 
 	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
@@ -655,7 +669,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			}
 		}
 
-		this.logger.info(
+		this.logger.debug(
 			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
 		)
 

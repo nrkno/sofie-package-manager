@@ -7,22 +7,22 @@ import {
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
-import { assertNever } from '../../../../lib/lib'
+import { assertNever } from '@shared/api'
 import { WorkInProgress } from '../../../../lib/workInProgress'
 
 export interface FFMpegProcess {
 	cancel: () => void
 }
-/** Check if FFMpeg is available */
-export function hasFFMpeg(): Promise<string | null> {
-	return hasFFExecutable(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+/** Check if FFMpeg is available, returns null if no error found */
+export function testFFMpeg(): Promise<string | null> {
+	return testFFExecutable(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
 }
 /** Check if FFProbe is available */
-export function hasFFProbe(): Promise<string | null> {
-	return hasFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
+export function testFFProbe(): Promise<string | null> {
+	return testFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
 }
-export function hasFFExecutable(ffExecutable: string): Promise<string | null> {
-	return new Promise<string | null>((resolve, reject) => {
+export function testFFExecutable(ffExecutable: string): Promise<string | null> {
+	return new Promise<string | null>((resolve) => {
 		const ffMpegProcess: ChildProcess = spawn(ffExecutable, ['-version'], {
 			shell: true,
 		})
@@ -36,15 +36,19 @@ export function hasFFExecutable(ffExecutable: string): Promise<string | null> {
 			output += str
 		})
 		ffMpegProcess.on('error', (err) => {
-			reject(err)
+			resolve(`Process ${ffExecutable} emitted error: ${err}`)
 		})
 		ffMpegProcess.on('close', (code) => {
 			const m = output.match(/version ([\w-]+)/) // version N-102494-g2899fb61d2
 
-			if (code === 0 && m) {
-				resolve(m[1])
+			if (code === 0) {
+				if (m) {
+					resolve(null)
+				} else {
+					resolve(`Process ${ffExecutable} bad version: ${output}`)
+				}
 			} else {
-				reject(null)
+				resolve(`Process ${ffExecutable} exited with code ${code}`)
 			}
 		})
 	})

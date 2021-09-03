@@ -1478,10 +1478,10 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.36.0-nightly-feat-package-management-20210623-061004-51788bc.0":
-  version "1.36.0-nightly-feat-package-management-20210623-061004-51788bc.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.36.0-nightly-feat-package-management-20210623-061004-51788bc.0.tgz#ef204f6fa1ead29e8e566c3232804357e5250c89"
-  integrity sha512-zxwHV+eHaRaDPvSDiXDCoL8y/1NaqvDlmYQsAi7ZGi9ayGYTbluNbOaGYxD/6Q/Elqze4oC+9wSgmoep6l6Wmg==
+"@sofie-automation/blueprints-integration@1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0":
+  version "1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0.tgz#5b4a71e36514107a8c69ffee7e9425aab360b460"
+  integrity sha512-QbPOaYbkoca3UCq3UYOcYrUjjKL/sDpTH3CcLMKCCBxVgsfzLAdsRkzbfOmrgbsx1LS4s4Yv9c+YK68AKzcrvw==
   dependencies:
     timeline-state-resolver-types "6.0.0-nightly-release35-20210608-165921-e8c0d0dbb.0"
     tslib "^2.1.0"
@@ -1505,10 +1505,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.36.0-nightly-feat-package-management-20210623-061004-51788bc.0":
-  version "1.36.0-nightly-feat-package-management-20210623-061004-51788bc.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.36.0-nightly-feat-package-management-20210623-061004-51788bc.0.tgz#1e575cd953dda3a30dc8a66e38c50e327cf3701f"
-  integrity sha512-ZnPwYBeXcYBR8971XKZxYDfbxPgvq+/BKZGvVmJxot1JEmPiOtybZncSwbn5XkhOig4mJA3VOc+efYIBpEpqVw==
+"@sofie-automation/server-core-integration@1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0":
+  version "1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0.tgz#51f5cdfe38d50fc58862800eef5f9a370f7171cb"
+  integrity sha512-Xd3gnz/LxZ3ZlekEPovKnGM4yQL1/+xUBIB67cfMdHBcej9tjMTNbeLxgOA7ZnemjVVEeiikwmMJvwNUiLc+JA==
   dependencies:
     data-store "^4.0.3"
     ejson "^2.2.0"

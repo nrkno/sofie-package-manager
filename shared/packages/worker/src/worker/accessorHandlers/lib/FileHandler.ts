@@ -1,12 +1,11 @@
 import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
-import { Expectation, hashObj, literal, PackageContainerExpectation } from '@shared/api'
+import { Expectation, hashObj, literal, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
 import { Accessor, AccessorOnPackage, ExpectedPackage } from '@sofie-automation/blueprints-integration'
 import { GenericAccessorHandle } from '../genericHandle'
-import { assertNever } from '../../lib/lib'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -75,7 +74,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 	}
 	/** Remove any packages that are due for removal */
-	async removeDuePackages(): Promise<void> {
+	async removeDuePackages(): Promise<Reason | null> {
 		let packagesToRemove = await this.getPackagesToRemove()
 
 		const removedFilePaths: string[] = []
@@ -108,6 +107,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		if (changed) {
 			await this.storePackagesToRemove(packagesToRemove)
 		}
+		return null
 	}
 	/** Unlink (remove) a file, if it exists. */
 	async unlinkIfExists(filePath: string): Promise<void> {

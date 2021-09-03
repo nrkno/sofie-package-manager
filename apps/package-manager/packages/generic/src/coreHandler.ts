@@ -9,9 +9,7 @@ import {
 import { DeviceConfig } from './connector'
 
 import fs from 'fs'
-import { LoggerInstance, PackageManagerConfig } from '@shared/api'
-
-import { ProcessHandler } from './process'
+import { LoggerInstance, PackageManagerConfig, ProcessHandler } from '@shared/api'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
@@ -413,5 +411,11 @@ export class CoreHandler {
 	}
 	troubleshoot(): any {
 		return this._packageManagerHandler?.getDataSnapshot()
+	}
+	async getExpetationManagerStatus(): Promise<any> {
+		return this._packageManagerHandler?.getExpetationManagerStatus()
+	}
+	async debugKillApp(appId: string): Promise<void> {
+		return this._packageManagerHandler?.debugKillApp(appId)
 	}
 }

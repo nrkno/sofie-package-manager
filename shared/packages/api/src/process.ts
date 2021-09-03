@@ -1,6 +1,8 @@
-import { LoggerInstance } from '@shared/api'
+import { ProcessConfig } from './config'
 import fs from 'fs'
-import { ProcessConfig } from './connector'
+import { LoggerInstance } from './logger'
+
+// export function setupProcess(config: ProcessConfig): void {}
 
 export class ProcessHandler {
 	logger: LoggerInstance
