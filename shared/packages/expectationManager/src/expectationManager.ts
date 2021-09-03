@@ -724,7 +724,6 @@ export class ExpectationManager {
 		try {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
 				// Check which workers might want to handle it:
-
 				// Reset properties:
 				// trackedExp.availableWorkers = []
 				trackedExp.status = {}
@@ -779,17 +778,25 @@ export class ExpectationManager {
 					}
 				} else {
 					if (!Object.keys(trackedExp.queriedWorkers).length) {
-						trackedExp.noAvailableWorkersReason = {
-							user: 'No workers registered (this is likely a configuration issue)',
-							tech: 'No workers registered',
+						if (!Object.keys(this.workerAgents).length) {
+							this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
+								user: `No Workers available (this is likely a configuration issue)`,
+								tech: `No Workers available`,
+							})
+						} else {
+							this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
+								user: `No Workers available (this is likely a configuration issue)`,
+								tech: `No Workers queried, ${Object.keys(this.workerAgents).length} available`,
+							})
 						}
+					} else {
+						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
+							user: `Found no workers who supports this Expectation, due to: ${trackedExp.noAvailableWorkersReason.user}`,
+							tech: `Found no workers who supports this Expectation: "${
+								trackedExp.noAvailableWorkersReason.tech
+							}", have asked workers: [${Object.keys(trackedExp.queriedWorkers).join(',')}]`,
+						})
 					}
-					this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
-						user: `Found no workers who supports this Expectation, due to: ${trackedExp.noAvailableWorkersReason.user}`,
-						tech: `Found no workers who supports this Expectation: "${
-							trackedExp.noAvailableWorkersReason.tech
-						}", have asked ${Object.keys(trackedExp.queriedWorkers).join(',')}`,
-					})
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) {
 				// Check if the expectation is ready to start:
