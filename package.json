@@ -10,6 +10,9 @@
     ],
     "scripts": {
         "ci": "yarn install && yarn build && yarn lint && yarn test",
+        "release:first-release": "lerna version --no-push",
+        "release:bump-release": "lerna version --conventional-commits --conventional-graduate --no-push",
+        "release:bump-prerelease": "lerna version --conventional-commits --conventional-prerelease --no-push",
         "setup": "lerna bootstrap",
         "reset": "node scripts/reset.js",
         "build": "lerna run build --stream",
