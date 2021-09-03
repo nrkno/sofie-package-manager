@@ -103,7 +103,7 @@ export interface MessageReply {
 }
 export interface MessageIdentifyClient {
 	internalType: 'identify_client'
-	clientType: 'N/A' | 'workerAgent' | 'expectationManager'
+	clientType: 'N/A' | 'workerAgent' | 'expectationManager' | 'appContainer'
 	id: string
 }
 

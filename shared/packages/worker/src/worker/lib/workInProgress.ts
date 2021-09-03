@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events'
-import { ExpectationManagerWorkerAgent } from '@shared/api'
+import { ExpectationManagerWorkerAgent, Reason } from '@shared/api'
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
 	progress: (actualVersionHash: string | null, progress: number) => void
-	done: (actualVersionHash: string, reason: string, result: any) => void
-	error: (error: string) => void
+	done: (actualVersionHash: string, reason: Reason, result: any) => void
+	error: (reason: string) => void
 }
 export declare interface IWorkInProgress {
 	properties: ExpectationManagerWorkerAgent.WorkInProgressProperties
@@ -49,7 +49,7 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 		}
 	}
 	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-	_reportComplete(actualVersionHash: string, reason: string, result: any): void {
+	_reportComplete(actualVersionHash: string, reason: Reason, result: any): void {
 		this.emit('done', actualVersionHash, reason, result)
 	}
 	_reportError(err: Error): void {

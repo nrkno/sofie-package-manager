@@ -6,7 +6,7 @@
     "scripts": {
         "build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & node scripts/build-win32.js && node scripts/copy-natives.js win32-x64",
+        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.js package-manager-single-app.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
         "start": "node dist/index.js",
         "precommit": "lint-staged"
@@ -16,6 +16,7 @@
         "lint-staged": "^7.2.0"
     },
     "dependencies": {
+        "@appcontainer-node/generic": "*",
         "@http-server/generic": "*",
         "@package-manager/generic": "*",
         "@quantel-http-transformer-proxy/generic": "*",
@@ -29,7 +30,7 @@
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
-        "node": ">=12.3.0"
+        "node": ">=12.20.0"
     },
     "lint-staged": {
         "*.{js,css,json,md,scss}": [

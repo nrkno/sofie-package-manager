@@ -6,6 +6,7 @@ import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getSt
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	hashObj,
+	waitTime,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
@@ -15,7 +16,7 @@ import {
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { ByteCounter } from '../../../lib/streamByteCounter'
@@ -25,7 +26,6 @@ import {
 	lookupAccessorHandles,
 	LookupPackageContainer,
 	userReadableDiff,
-	waitTime,
 } from './lib'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
@@ -93,20 +93,26 @@ export const FileCopy: ExpectationWindowsHandler = {
 				return {
 					ready: false,
 					sourceExists: true,
-					reason: `Source is not stable (${userReadableDiff(versionDiff)})`,
+					reason: {
+						user: `Waiting for source file to stop growing`,
+						tech: `Source is not stable (${userReadableDiff(versionDiff)})`,
+					},
 				}
 			}
 		}
 
 		// Also check if we actually can read from the package,
 		// this might help in some cases if the file is currently transferring
-		const issueReading = await lookupSource.handle.tryPackageRead()
-		if (issueReading) return { ready: false, reason: issueReading }
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
 
 		return {
 			ready: true,
 			sourceExists: true,
-			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
+			// reason: {
+			// 	user: 'Ready to start copying',
+			// 	tech: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
+			// },
 		}
 	},
 	isExpectationFullfilled: async (
@@ -118,30 +124,43 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready)
-			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
+					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
+				},
+			}
 
 		const issuePackage = await lookupTarget.handle.checkPackageReadAccess()
-		if (issuePackage) {
-			return { fulfilled: false, reason: `File does not exist: ${issuePackage.toString()}` }
+		if (!issuePackage.success) {
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Target package: ${issuePackage.reason.user}`,
+					tech: `Target package: ${issuePackage.reason.tech}`,
+				},
+			}
 		}
 
 		// check that the file is of the right version:
 		const actualTargetVersion = await lookupTarget.handle.fetchMetadata()
-		if (!actualTargetVersion) return { fulfilled: false, reason: `Metadata missing` }
+		if (!actualTargetVersion)
+			return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
 		const issueVersions = compareUniversalVersions(makeUniversalVersion(actualSourceVersion), actualTargetVersion)
-		if (issueVersions) {
-			return { fulfilled: false, reason: issueVersions }
+		if (!issueVersions.success) {
+			return { fulfilled: false, reason: issueVersions.reason }
 		}
 
 		return {
 			fulfilled: true,
-			reason: `File "${exp.endRequirement.content.filePath}" already exists on target`,
+			// reason: `File "${exp.endRequirement.content.filePath}" already exists on target`,
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -151,10 +170,10 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
@@ -172,10 +191,11 @@ export const FileCopy: ExpectationWindowsHandler = {
 			// We can do RoboCopy
 			if (!isLocalFolderAccessorHandle(sourceHandle) && !isFileShareAccessorHandle(sourceHandle))
 				throw new Error(`Source AccessHandler type is wrong`)
-			if (!isLocalFolderAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isLocalFolderAccessorHandle(targetHandle) && !isFileShareAccessorHandle(targetHandle))
+				throw new Error(`Source AccessHandler type is wrong`)
 
 			if (sourceHandle.fullPath === targetHandle.fullPath) {
-				throw new Error('Unable to copy: source and Target file paths are the same!')
+				throw new Error('Unable to copy: Source and Target file paths are the same!')
 			}
 
 			let wasCancelled = false
@@ -194,24 +214,30 @@ export const FileCopy: ExpectationWindowsHandler = {
 				await targetHandle.packageIsInPlace()
 
 				const sourcePath = sourceHandle.fullPath
-				const targetPath = targetHandle.fullPath
+				const targetPath = exp.workOptions.useTemporaryFilePath
+					? targetHandle.temporaryFilePath
+					: targetHandle.fullPath
 
 				copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
 					workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
 				})
 
 				await copying
-				// The copy is done
+				// The copy is done at this point
+
 				copying = undefined
 				if (wasCancelled) return // ignore
 
-				const duration = Date.now() - startTime
-
+				await targetHandle.finalizePackage()
 				await targetHandle.updateMetadata(actualSourceUVersion)
 
+				const duration = Date.now() - startTime
 				workInProgress._reportComplete(
 					actualSourceVersionHash,
-					`Copy completed in ${Math.round(duration / 100) / 10}s`,
+					{
+						user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
+						tech: `Copy completed at ${Date.now()}`,
+					},
 					undefined
 				)
 			})
@@ -220,22 +246,22 @@ export const FileCopy: ExpectationWindowsHandler = {
 		} else if (
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupSource.accessor.type === Accessor.AccessType.HTTP) &&
+				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP)
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 		) {
 			// We can copy by using file streams
 			if (
 				!isLocalFolderAccessorHandle(lookupSource.handle) &&
 				!isFileShareAccessorHandle(lookupSource.handle) &&
-				!isHTTPAccessorHandle(lookupSource.handle)
+				!isHTTPProxyAccessorHandle(lookupSource.handle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPAccessorHandle(targetHandle)
+				!isHTTPProxyAccessorHandle(targetHandle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
 
@@ -282,20 +308,22 @@ export const FileCopy: ExpectationWindowsHandler = {
 					if (wasCancelled) return // ignore
 					setImmediate(() => {
 						// Copying is done
-						const duration = Date.now() - startTime
+						;(async () => {
+							await targetHandle.finalizePackage()
+							await targetHandle.updateMetadata(actualSourceUVersion)
 
-						targetHandle
-							.updateMetadata(actualSourceUVersion)
-							.then(() => {
-								workInProgress._reportComplete(
-									actualSourceVersionHash,
-									`Copy completed in ${Math.round(duration / 100) / 10}s`,
-									undefined
-								)
-							})
-							.catch((err) => {
-								workInProgress._reportError(err)
-							})
+							const duration = Date.now() - startTime
+							workInProgress._reportComplete(
+								actualSourceVersionHash,
+								{
+									user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
+									tech: `Copy completed at ${Date.now()}`,
+								},
+								undefined
+							)
+						})().catch((err) => {
+							workInProgress._reportError(err)
+						})
 					})
 				})
 			})
@@ -313,16 +341,31 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) {
-			return { removed: false, reason: `No access to target: ${lookupTarget.reason}` }
+			return {
+				removed: false,
+				reason: {
+					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
+					tech: `No access to target: ${lookupTarget.reason.tech}`,
+				},
+			}
 		}
 
 		try {
 			await lookupTarget.handle.removePackage()
 		} catch (err) {
-			return { removed: false, reason: `Cannot remove file: ${err.toString()}` }
+			return {
+				removed: false,
+				reason: {
+					user: `Cannot remove file due to an internal error`,
+					tech: `Cannot remove file: ${err.toString()}`,
+				},
+			}
 		}
 
-		return { removed: true, reason: `Removed file "${exp.endRequirement.content.filePath}" from target` }
+		return {
+			removed: true,
+			// reason: `Removed file "${exp.endRequirement.content.filePath}" from target`
+		}
 	},
 }
 function isFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {

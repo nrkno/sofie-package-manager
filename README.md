@@ -10,24 +10,26 @@ The packages in [shared/packages](shared/packages) are helper libraries, used by
 
 The packages in [apps/](apps/) can be run as individual applications.
 
+The packages in [tests/](tests/) contain unit/integration tests.
+
 ### Applications
 
-| Name  | Location | Description |
-| ----- | -------- | ----------- |
-| **Workforce**       | [apps/workforce/app](apps/workforce/app)             | Mediates connections between the Workers and the Package Managers. _(Later: Will handle spin-up/down of workers according to the current need.)_  |
+| Name                | Location                                             | Description                                                                                                                                                                                                                      |
+| ------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Workforce**       | [apps/workforce/app](apps/workforce/app)             | Mediates connections between the Workers and the Package Managers. _(Later: Will handle spin-up/down of workers according to the current need.)_                                                                                 |
 | **Package Manager** | [apps/package-manager/app](apps/package-manager/app) | The Package Manager receives `expectedPackages` from a [Sofie Core](https://github.com/nrkno/tv-automation-server-core), converts them into `Expectations`. Keeps track of work statues and distributes the work to the Workers. |
-| **Worker**          | [apps/worker/app](apps/worker/app)                   | Executes work orders from the Package Manager |
-| **HTTP-server**     | [apps/http-server/app](apps/http-server/app)         | A simple HTTP server, where files can be uploaded to and served from. (Often used for thumbnails & previews) |
-| **Single-app**      | [apps/single-app/app](apps/single-app/app)           | Runs one of each of the above in a single application. |
+| **Worker**          | [apps/worker/app](apps/worker/app)                   | Executes work orders from the Package Manager                                                                                                                                                                                    |
+| **HTTP-server**     | [apps/http-server/app](apps/http-server/app)         | A simple HTTP server, where files can be uploaded to and served from. (Often used for thumbnails & previews)                                                                                                                     |
+| **Single-app**      | [apps/single-app/app](apps/single-app/app)           | Runs one of each of the above in a single application.                                                                                                                                                                           |
 
 ### Packages (Libraries)
 
-| Name | Location | Description |
-| -- | -- | -- |
-| **API**                | [shared/packages/api](shared/packages/api)                               | Various interfaces used by the other libraries |
+| Name                   | Location                                                                 | Description                                                             |
+| ---------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| **API**                | [shared/packages/api](shared/packages/api)                               | Various interfaces used by the other libraries                          |
 | **ExpectationManager** | [shared/packages/expectationManager](shared/packages/expectationManager) | The ExpectationManager class is used by the Package Manager application |
-| **Worker**             | [shared/packages/worker](shared/packages/worker)                         | The Worker class is used by the Worker application |
-| **Workforce**          | [shared/packages/Workforce](shared/packages/Workforce)                   | The Workforce class is used by the Worker application |
+| **Worker**             | [shared/packages/worker](shared/packages/worker)                         | The Worker class is used by the Worker application                      |
+| **Workforce**          | [shared/packages/Workforce](shared/packages/Workforce)                   | The Workforce class is used by the Worker application                   |
 
 ## For Developers
 

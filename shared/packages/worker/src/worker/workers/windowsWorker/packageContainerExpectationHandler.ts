@@ -4,6 +4,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 	ReturnTypeDisposePackageContainerMonitors,
+	Reason,
 } from '@shared/api'
 import { Accessor, PackageContainer, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 import { GenericAccessorHandle } from '../../accessorHandlers/genericHandle'
@@ -21,36 +22,45 @@ export async function runPackageContainerCronJob(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeRunPackageContainerCronJob> {
+	// Quick-check: If there are no cronjobs at all, no need to check:
+	if (!Object.keys(packageContainer.cronjobs).length) {
+		return { success: true } // all good
+	}
+
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'cronjob')
-	if (!lookup.ready) return { completed: lookup.ready, reason: lookup.reason }
+	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
 
 	const result = await lookup.handle.runCronJob(packageContainer)
 
-	if (result) return { completed: false, reason: result }
-	else return { completed: true } // all good
+	if (!result.success) return { success: false, reason: result.reason }
+	else return { success: true } // all good
 }
 export async function setupPackageContainerMonitors(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeSetupPackageContainerMonitors> {
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
-	if (!lookup.ready) return { setupOk: lookup.ready, reason: lookup.reason }
+	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
 
 	const result = await lookup.handle.setupPackageContainerMonitors(packageContainer)
 
-	if (result) return { setupOk: false, reason: result, monitors: {} }
-	else return { setupOk: true } // all good
+	if (!result.success) return { success: false, reason: result.reason }
+	else
+		return {
+			success: true,
+			monitors: {}, // To me implemented: monitor ids
+		}
 }
 export async function disposePackageContainerMonitors(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeDisposePackageContainerMonitors> {
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
-	if (!lookup.ready) return { disposed: lookup.ready, reason: lookup.reason }
+	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
 
 	const result = await lookup.handle.disposePackageContainerMonitors(packageContainer)
-	if (result) return { disposed: false, reason: result }
-	else return { disposed: true } // all good
+	if (!result.success) return { success: false, reason: result.reason }
+	else return { success: true } // all good
 }
 
 function checkWorkerHasAccessToPackageContainer(
@@ -67,12 +77,15 @@ function checkWorkerHasAccessToPackageContainer(
 	if (accessSourcePackageContainer) {
 		return {
 			support: true,
-			reason: `Has access to packageContainer "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}"`,
+			// reason: `Has access to packageContainer "${accessSourcePackageContainer.packageContainer.label}" through accessor "${accessSourcePackageContainer.accessorId}"`,
 		}
 	} else {
 		return {
 			support: false,
-			reason: `Doesn't have access to the packageContainer (${containerId})`,
+			reason: {
+				user: `Worker doesn't support working with PackageContainer "${containerId}" (check settings?)`,
+				tech: `Worker doesn't have any access to the PackageContainer "${containerId}"`,
+			},
 		}
 	}
 }
@@ -116,11 +129,11 @@ export type LookupPackageContainer =
 			accessor: Accessor.Any
 			handle: GenericAccessorHandle<void>
 			ready: true
-			reason: string
+			reason: Reason
 	  }
 	| {
 			accessor: undefined
 			handle: undefined
 			ready: false
-			reason: string
+			reason: Reason
 	  }

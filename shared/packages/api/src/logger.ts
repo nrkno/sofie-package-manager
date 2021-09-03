@@ -43,20 +43,21 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 			json: true,
 			stringify: (obj) => {
 				obj.localTimestamp = getCurrentTime()
-				obj.randomId = Math.round(Math.random() * 10000)
+				// obj.randomId = Math.round(Math.random() * 10000)
 				return JSON.stringify(obj) // make single line
 			},
 		})
 		logger.info('Logging to Console')
 		// Hijack console.log:
-		console.log = function (...args: any[]) {
-			// orgConsoleLog('a')
-			if (args.length >= 1) {
-				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-				// @ts-ignore one or more arguments
-				logger.debug(...args)
-			}
-		}
+		// eslint-disable-next-line no-console
+		// console.log = function (...args: any[]) {
+		// 	// orgConsoleLog('a')
+		// 	if (args.length >= 1) {
+		// 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// 		// @ts-ignore one or more arguments
+		// 		logger.debug(...args)
+		// 	}
+		// }
 	}
 	function getCurrentTime() {
 		const v = Date.now()
@@ -77,4 +78,8 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 		logger.error('error.stack', e.stack)
 	})
 	return logger
+}
+export enum LogLevel {
+	INFO = 'info',
+	DEBUG = 'debug',
 }

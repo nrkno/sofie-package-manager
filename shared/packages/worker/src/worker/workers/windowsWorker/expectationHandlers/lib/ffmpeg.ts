@@ -1,28 +1,28 @@
 import { ChildProcess, spawn } from 'child_process'
 import {
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../../accessorHandlers/accessor'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
-import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
+import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
-import { assertNever } from '../../../../lib/lib'
+import { assertNever } from '@shared/api'
 import { WorkInProgress } from '../../../../lib/workInProgress'
 
 export interface FFMpegProcess {
 	cancel: () => void
 }
-/** Check if FFMpeg is available */
-export function hasFFMpeg(): Promise<string | null> {
-	return hasFFExecutable(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+/** Check if FFMpeg is available, returns null if no error found */
+export function testFFMpeg(): Promise<string | null> {
+	return testFFExecutable(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
 }
 /** Check if FFProbe is available */
-export function hasFFProbe(): Promise<string | null> {
-	return hasFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
+export function testFFProbe(): Promise<string | null> {
+	return testFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
 }
-export function hasFFExecutable(ffExecutable: string): Promise<string | null> {
-	return new Promise<string | null>((resolve, reject) => {
+export function testFFExecutable(ffExecutable: string): Promise<string | null> {
+	return new Promise<string | null>((resolve) => {
 		const ffMpegProcess: ChildProcess = spawn(ffExecutable, ['-version'], {
 			shell: true,
 		})
@@ -36,15 +36,19 @@ export function hasFFExecutable(ffExecutable: string): Promise<string | null> {
 			output += str
 		})
 		ffMpegProcess.on('error', (err) => {
-			reject(err)
+			resolve(`Process ${ffExecutable} emitted error: ${err}`)
 		})
 		ffMpegProcess.on('close', (code) => {
 			const m = output.match(/version ([\w-]+)/) // version N-102494-g2899fb61d2
 
-			if (code === 0 && m) {
-				resolve(m[1])
+			if (code === 0) {
+				if (m) {
+					resolve(null)
+				} else {
+					resolve(`Process ${ffExecutable} bad version: ${output}`)
+				}
 			} else {
-				reject(null)
+				resolve(`Process ${ffExecutable} exited with code ${code}`)
 			}
 		})
 	})
@@ -58,7 +62,7 @@ export async function runffMpeg<Metadata>(
 	targetHandle:
 		| LocalFolderAccessorHandle<Metadata>
 		| FileShareAccessorHandle<Metadata>
-		| HTTPAccessorHandle<Metadata>,
+		| HTTPProxyAccessorHandle<Metadata>,
 	actualSourceVersionHash: string,
 	onDone: () => Promise<void>
 ): Promise<FFMpegProcess> {
@@ -79,7 +83,7 @@ export async function runffMpeg<Metadata>(
 	} else if (isFileShareAccessorHandle(targetHandle)) {
 		await targetHandle.prepareFileAccess()
 		args.push(`"${targetHandle.fullPath}"`)
-	} else if (isHTTPAccessorHandle(targetHandle)) {
+	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
 		pipeStdOut = true
 		args.push('pipe:1') // pipe output to stdout
 	} else {
@@ -102,6 +106,7 @@ export async function runffMpeg<Metadata>(
 		})
 		writeStream.once('close', () => {
 			uploadIsDone = true
+
 			maybeDone()
 		})
 	} else {

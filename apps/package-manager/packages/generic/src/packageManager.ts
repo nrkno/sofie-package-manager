@@ -10,7 +10,11 @@ import {
 	PackageContainerOnPackage,
 } from '@sofie-automation/blueprints-integration'
 import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
-import { ExpectationManager, ExpectationManagerServerOptions } from '@shared/expectation-manager'
+import {
+	ExpectationManager,
+	ExpectationManagerCallbacks,
+	ExpectationManagerServerOptions,
+} from '@shared/expectation-manager'
 import {
 	ClientConnectionOptions,
 	Expectation,
@@ -19,51 +23,48 @@ import {
 	LoggerInstance,
 	PackageContainerExpectation,
 	literal,
+	Reason,
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
 
 export class PackageManagerHandler {
-	private _coreHandler!: CoreHandler
+	public coreHandler!: CoreHandler
 	private _observers: Array<any> = []
 
-	private _expectationManager: ExpectationManager
+	public expectationManager: ExpectationManager
 
 	private expectedPackageCache: { [id: string]: ExpectedPackageWrap } = {}
-	private packageContainersCache: PackageContainers = {}
-
-	private reportedWorkStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
-	private toReportExpectationStatus: {
-		[id: string]: {
-			workStatus: ExpectedPackageStatusAPI.WorkStatus | null
-			/** If the status is new and needs to be reported to Core */
-			isUpdated: boolean
-		}
-	} = {}
-	private sendUpdateExpectationStatusTimeouts: NodeJS.Timeout | undefined
-
-	private reportedPackageStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
-	private toReportPackageStatus: {
-		[key: string]: {
-			containerId: string
-			packageId: string
-			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-			/** If the status is new and needs to be reported to Core */
-			isUpdated: boolean
-		}
-	} = {}
-	private sendUpdatePackageContainerPackageStatusTimeouts: NodeJS.Timeout | undefined
+	public packageContainersCache: PackageContainers = {}
 
 	private externalData: { packageContainers: PackageContainers; expectedPackages: ExpectedPackageWrap[] } = {
 		packageContainers: {},
 		expectedPackages: [],
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
-	private monitoredPackages: {
+	public monitoredPackages: {
 		[monitorId: string]: ResultingExpectedPackage[]
 	} = {}
 	settings: PackageManagerSettings = {
 		delayRemoval: 0,
+		useTemporaryFilePath: false,
+	}
+	callbacksHandler: ExpectationManagerCallbacksHandler
+
+	private dataSnapshot: {
+		updated: number
+		expectedPackages: ResultingExpectedPackage[]
+		packageContainers: PackageContainers
+		expectations: {
+			[id: string]: Expectation.Any
+		}
+		packageContainerExpectations: { [id: string]: PackageContainerExpectation }
+	} = {
+		updated: 0,
+		expectedPackages: [],
+		packageContainers: {},
+		expectations: {},
+		packageContainerExpectations: {},
 	}
 
 	constructor(
@@ -73,42 +74,22 @@ export class PackageManagerHandler {
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions
 	) {
-		this._expectationManager = new ExpectationManager(
+		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this)
+
+		this.expectationManager = new ExpectationManager(
 			this.logger,
 			this.managerId,
 			this.serverOptions,
 			this.serverAccessUrl,
 			this.workForceConnectionOptions,
-			(
-				expectationId: string,
-				expectaction: Expectation.Any | null,
-				actualVersionHash: string | null,
-				statusInfo: {
-					status?: string
-					progress?: number
-					statusReason?: string
-				}
-			) => this.updateExpectationStatus(expectationId, expectaction, actualVersionHash, statusInfo),
-			(
-				containerId: string,
-				packageId: string,
-				packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-			) => this.updatePackageContainerPackageStatus(containerId, packageId, packageStatus),
-			(
-				containerId: string,
-				packageContainer: PackageContainerExpectation | null,
-				statusInfo: {
-					statusReason?: string
-				}
-			) => this.updatePackageContainerStatus(containerId, packageContainer, statusInfo),
-			(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => this.onMessageFromWorker(message)
+			this.callbacksHandler
 		)
 	}
 
 	async init(_config: PackageManagerConfig, coreHandler: CoreHandler): Promise<void> {
-		this._coreHandler = coreHandler
+		this.coreHandler = coreHandler
 
-		this._coreHandler.setPackageManagerHandler(this)
+		this.coreHandler.setPackageManagerHandler(this)
 
 		this.logger.info('PackageManagerHandler init')
 
@@ -121,99 +102,29 @@ export class PackageManagerHandler {
 		})
 		this.setupObservers()
 		this.onSettingsChanged()
-		this._triggerUpdatedExpectedPackages()
+		this.triggerUpdatedExpectedPackages()
 
-		await this.cleanReportedExpectations()
-		await this._expectationManager.init()
+		await this.callbacksHandler.cleanReportedExpectations()
+		await this.expectationManager.init()
 
 		this.logger.info('PackageManagerHandler initialized')
 	}
 	onSettingsChanged(): void {
 		this.settings = {
-			delayRemoval: this._coreHandler.delayRemoval,
+			delayRemoval: this.coreHandler.delayRemoval,
+			useTemporaryFilePath: this.coreHandler.useTemporaryFilePath,
 		}
+		this.triggerUpdatedExpectedPackages()
 	}
 	getExpectationManager(): ExpectationManager {
-		return this._expectationManager
+		return this.expectationManager
 	}
-	private wrapExpectedPackage(
-		packageContainers: PackageContainers,
-		expectedPackage: ExpectedPackage.Any
-	): ExpectedPackageWrap | undefined {
-		const combinedSources: PackageContainerOnPackage[] = []
-		for (const packageSource of expectedPackage.sources) {
-			const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
-			if (lookedUpSource) {
-				// We're going to combine the accessor attributes set on the Package with the ones defined on the source:
-				const combinedSource: PackageContainerOnPackage = {
-					...omit(clone(lookedUpSource), 'accessors'),
-					accessors: {},
-					containerId: packageSource.containerId,
-				}
 
-				const accessorIds = _.uniq(
-					Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors))
-				)
-
-				for (const accessorId of accessorIds) {
-					const sourceAccessor = lookedUpSource.accessors[accessorId] as Accessor.Any | undefined
-
-					const packageAccessor = packageSource.accessors[accessorId] as AccessorOnPackage.Any | undefined
-
-					if (packageAccessor && sourceAccessor && packageAccessor.type === sourceAccessor.type) {
-						combinedSource.accessors[accessorId] = deepExtend({}, sourceAccessor, packageAccessor)
-					} else if (packageAccessor) {
-						combinedSource.accessors[accessorId] = clone<AccessorOnPackage.Any>(packageAccessor)
-					} else if (sourceAccessor) {
-						combinedSource.accessors[accessorId] = clone<Accessor.Any>(
-							sourceAccessor
-						) as AccessorOnPackage.Any
-					}
-				}
-				combinedSources.push(combinedSource)
-			}
-		}
-		// Lookup Package targets:
-		const combinedTargets: PackageContainerOnPackage[] = []
-
-		for (const layer of expectedPackage.layers) {
-			// Hack: we use the layer name as a 1-to-1 relation to a target containerId
-			const packageContainerId: string = layer
-
-			if (packageContainerId) {
-				const lookedUpTarget = packageContainers[packageContainerId]
-				if (lookedUpTarget) {
-					// Todo: should the be any combination of properties here?
-					combinedTargets.push({
-						...omit(clone(lookedUpTarget), 'accessors'),
-						accessors: lookedUpTarget.accessors as {
-							[accessorId: string]: AccessorOnPackage.Any
-						},
-						containerId: packageContainerId,
-					})
-				}
-			}
-		}
-
-		if (combinedSources.length) {
-			if (combinedTargets.length) {
-				return {
-					expectedPackage: expectedPackage,
-					priority: 999, // lowest priority
-					sources: combinedSources,
-					targets: combinedTargets,
-					playoutDeviceId: '',
-					external: true,
-				}
-			}
-		}
-		return undefined
-	}
 	setExternalData(packageContainers: PackageContainers, expectedPackages: ExpectedPackage.Any[]): void {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
-			const wrap = this.wrapExpectedPackage(packageContainers, expectedPackage)
+			const wrap = wrapExpectedPackage(packageContainers, expectedPackage)
 			if (wrap) {
 				expectedPackagesWraps.push(wrap)
 			}
@@ -223,7 +134,7 @@ export class PackageManagerHandler {
 			packageContainers: packageContainers,
 			expectedPackages: expectedPackagesWraps,
 		}
-		this._triggerUpdatedExpectedPackages()
+		this.triggerUpdatedExpectedPackages()
 	}
 	private setupObservers(): void {
 		if (this._observers.length) {
@@ -233,23 +144,21 @@ export class PackageManagerHandler {
 			})
 			this._observers = []
 		}
-		this.logger.info('Renewing observers')
+		this.logger.debug('Renewing observers')
 
-		const expectedPackagesObserver = this._coreHandler.core.observe('deviceExpectedPackages')
+		const expectedPackagesObserver = this.coreHandler.core.observe('deviceExpectedPackages')
 		expectedPackagesObserver.added = () => {
-			this._triggerUpdatedExpectedPackages()
+			this.triggerUpdatedExpectedPackages()
 		}
 		expectedPackagesObserver.changed = () => {
-			this._triggerUpdatedExpectedPackages()
+			this.triggerUpdatedExpectedPackages()
 		}
 		expectedPackagesObserver.removed = () => {
-			this._triggerUpdatedExpectedPackages()
+			this.triggerUpdatedExpectedPackages()
 		}
 		this._observers.push(expectedPackagesObserver)
 	}
-	private _triggerUpdatedExpectedPackages() {
-		this.logger.info('_triggerUpdatedExpectedPackages')
-
+	public triggerUpdatedExpectedPackages(): void {
 		if (this._triggerUpdatedExpectedPackagesTimeout) {
 			clearTimeout(this._triggerUpdatedExpectedPackagesTimeout)
 			this._triggerUpdatedExpectedPackagesTimeout = null
@@ -257,12 +166,11 @@ export class PackageManagerHandler {
 
 		this._triggerUpdatedExpectedPackagesTimeout = setTimeout(() => {
 			this._triggerUpdatedExpectedPackagesTimeout = null
-			this.logger.info('_triggerUpdatedExpectedPackages inner')
 
 			const expectedPackages: ExpectedPackageWrap[] = []
 			const packageContainers: PackageContainers = {}
 
-			const objs = this._coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
+			const objs = this.coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
 
 			const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
 			if (!activePlaylistObj) {
@@ -341,41 +249,151 @@ export class PackageManagerHandler {
 			}
 		}
 
-		this.logger.info(`Has ${expectedPackages.length} expectedPackages`)
-		// this.logger.info(JSON.stringify(expectedPackages, null, 2))
+		this.logger.debug(`Has ${expectedPackages.length} expectedPackages`)
+		// this.logger.debug(JSON.stringify(expectedPackages, null, 2))
+
+		this.dataSnapshot.expectedPackages = expectedPackages
+		this.dataSnapshot.packageContainers = this.packageContainersCache
 
 		// Step 1: Generate expectations:
 		const expectations = generateExpectations(
-			this._expectationManager.managerId,
+			this.logger,
+			this.expectationManager.managerId,
 			this.packageContainersCache,
 			activePlaylist,
 			activeRundowns,
 			expectedPackages,
 			this.settings
 		)
-		this.logger.info(`Has ${Object.keys(expectations).length} expectations`)
+		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
+		// this.logger.debug(JSON.stringify(expectations, null, 2))
+		this.dataSnapshot.expectations = expectations
+
 		const packageContainerExpectations = generatePackageContainerExpectations(
-			this._expectationManager.managerId,
+			this.expectationManager.managerId,
 			this.packageContainersCache,
 			activePlaylist
 		)
-		this.logger.info(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
+		this.logger.debug(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
+		;(this.dataSnapshot.packageContainerExpectations = packageContainerExpectations),
+			(this.dataSnapshot.updated = Date.now())
+
 		this.ensureMandatoryPackageContainerExpectations(packageContainerExpectations)
-		// this.logger.info(JSON.stringify(expectations, null, 2))
 
 		// Step 2: Track and handle new expectations:
-		this._expectationManager.updatePackageContainerExpectations(packageContainerExpectations)
+		this.expectationManager.updatePackageContainerExpectations(packageContainerExpectations)
 
-		this._expectationManager.updateExpectations(expectations)
+		this.expectationManager.updateExpectations(expectations)
 	}
-	public updateExpectationStatus(
+	public restartExpectation(workId: string): void {
+		// This method can be called from core
+		this.expectationManager.restartExpectation(workId)
+	}
+	public restartAllExpectations(): void {
+		// This method can be called from core
+		this.expectationManager.restartAllExpectations()
+	}
+	public abortExpectation(workId: string): void {
+		// This method can be called from core
+		this.expectationManager.abortExpectation(workId)
+	}
+	public getDataSnapshot(): any {
+		return this.dataSnapshot
+	}
+	public async getExpetationManagerStatus(): Promise<any> {
+		return {
+			...(await this.expectationManager.getStatus()),
+			packageManager: {
+				workforceURL:
+					this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,
+				lastUpdated: this.dataSnapshot.updated,
+				countExpectedPackages: this.dataSnapshot.expectedPackages.length,
+				countPackageContainers: Object.keys(this.dataSnapshot.packageContainers).length,
+				countExpectations: Object.keys(this.dataSnapshot.expectations).length,
+				countPackageContainerExpectations: Object.keys(this.dataSnapshot.packageContainerExpectations).length,
+			},
+		}
+	}
+	public async debugKillApp(appId: string): Promise<void> {
+		return this.expectationManager.debugKillApp(appId)
+	}
+
+	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
+	private ensureMandatoryPackageContainerExpectations(packageContainerExpectations: {
+		[id: string]: PackageContainerExpectation
+	}): void {
+		for (const [containerId, packageContainer] of Object.entries(this.packageContainersCache)) {
+			/** Is the Container writeable */
+			let isWriteable = false
+			for (const accessor of Object.values(packageContainer.accessors)) {
+				if (accessor.allowWrite) {
+					isWriteable = true
+					break
+				}
+			}
+			// All writeable packageContainers should have the clean up cronjob:
+			if (isWriteable) {
+				if (!packageContainerExpectations[containerId]) {
+					// todo: Maybe should not all package-managers monitor,
+					// this should perhaps be coordinated with the Workforce-manager, who should monitor who?
+
+					// Add default packageContainerExpectation:
+					packageContainerExpectations[containerId] = literal<PackageContainerExpectation>({
+						...packageContainer,
+						id: containerId,
+						managerId: this.expectationManager.managerId,
+						cronjobs: {
+							interval: 0,
+						},
+						monitors: {},
+					})
+				}
+				packageContainerExpectations[containerId].cronjobs.cleanup = {} // Add cronjob to clean up
+			}
+		}
+	}
+}
+export function omit<T, P extends keyof T>(obj: T, ...props: P[]): Omit<T, P> {
+	return _.omit(obj, ...(props as string[])) as any
+}
+
+/** This class handles data and requests that comes from ExpectationManager. */
+class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks {
+	reportedWorkStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
+	toReportExpectationStatus: {
+		[id: string]: {
+			workStatus: ExpectedPackageStatusAPI.WorkStatus | null
+			/** If the status is new and needs to be reported to Core */
+			isUpdated: boolean
+		}
+	} = {}
+	sendUpdateExpectationStatusTimeouts: NodeJS.Timeout | undefined
+
+	reportedPackageStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
+	toReportPackageStatus: {
+		[key: string]: {
+			containerId: string
+			packageId: string
+			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+			/** If the status is new and needs to be reported to Core */
+			isUpdated: boolean
+		}
+	} = {}
+	sendUpdatePackageContainerPackageStatusTimeouts: NodeJS.Timeout | undefined
+
+	logger: LoggerInstance
+	constructor(private packageManager: PackageManagerHandler) {
+		this.logger = this.packageManager.logger
+	}
+
+	public reportExpectationStatus(
 		expectationId: string,
 		expectaction: Expectation.Any | null,
 		actualVersionHash: string | null,
 		statusInfo: {
-			status?: string
+			status?: ExpectedPackageStatusAPI.WorkStatusState
 			progress?: number
-			statusReason?: string
+			statusReason?: Reason
 		}
 	): void {
 		if (!expectaction) {
@@ -385,16 +403,20 @@ export class PackageManagerHandler {
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
 
+			const previouslyReported = this.toReportExpectationStatus[expectationId]?.workStatus
+
 			const workStatus: ExpectedPackageStatusAPI.WorkStatus = {
 				// Default properties:
 				...{
-					status: 'N/A',
+					status: ExpectedPackageStatusAPI.WorkStatusState.NEW,
+					statusChanged: 0,
 					progress: 0,
-					statusReason: '',
+					statusReason: { user: '', tech: '' },
 				},
 				// Previous properties:
-				...(((this.toReportExpectationStatus[expectationId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in const packageStatus more strict
-				// Updated porperties:
+				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.WorkStatus>), // Intentionally cast to Partial<>, to make typings in const workStatus more strict
+
+				// Updated properties:
 				...expectaction.statusReport,
 				...statusInfo,
 
@@ -410,8 +432,100 @@ export class PackageManagerHandler {
 				}),
 			}
 
+			// Update statusChanged:
+			workStatus.statusChanged = previouslyReported?.statusChanged || Date.now()
+			if (
+				workStatus.status !== previouslyReported?.status ||
+				workStatus.progress !== previouslyReported?.progress
+				// (not checking statusReason, as that should not affect statusChanged)
+			) {
+				workStatus.statusChanged = Date.now()
+			}
+
 			this.triggerSendUpdateExpectationStatus(expectationId, workStatus)
 		}
+	}
+	public reportPackageContainerPackageStatus(
+		containerId: string,
+		packageId: string,
+		packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
+	): void {
+		const packageContainerPackageId = `${containerId}_${packageId}`
+		if (!packageStatus) {
+			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, null)
+		} else {
+			const previouslyReported = this.toReportPackageStatus[packageContainerPackageId]?.packageStatus
+
+			const containerStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
+				// Default properties:
+				...{
+					status: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY,
+					progress: 0,
+					statusChanged: 0,
+					statusReason: { user: '', tech: '' },
+				},
+				// pre-existing properties:
+				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.PackageContainerPackageStatus>), // Intentionally cast to Partial<>, to make typings in const containerStatus more strict
+				// Updated properties:
+				...packageStatus,
+			}
+
+			// Update statusChanged:
+			containerStatus.statusChanged = previouslyReported?.statusChanged || Date.now()
+			if (
+				containerStatus.status !== previouslyReported?.status ||
+				containerStatus.progress !== previouslyReported?.progress
+				// (not checking statusReason, as that should not affect statusChanged)
+			) {
+				containerStatus.statusChanged = Date.now()
+			}
+
+			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, containerStatus)
+		}
+	}
+	public reportPackageContainerExpectationStatus(
+		containerId: string,
+		_packageContainer: PackageContainerExpectation | null,
+		statusInfo: { statusReason?: Reason }
+	): void {
+		// This is not (yet) reported to Core.
+		// ...to be implemented...
+		this.logger.info(`PackageContainerStatus "${containerId}"`)
+		this.logger.info(statusInfo.statusReason?.tech || '>No reason<')
+	}
+	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
+		switch (message.type) {
+			case 'fetchPackageInfoMetadata':
+				return this.packageManager.coreHandler.core.callMethod(
+					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
+					message.arguments
+				)
+			case 'updatePackageInfo':
+				return this.packageManager.coreHandler.core.callMethod(
+					PeripheralDeviceAPI.methods.updatePackageInfo,
+					message.arguments
+				)
+			case 'removePackageInfo':
+				return this.packageManager.coreHandler.core.callMethod(
+					PeripheralDeviceAPI.methods.removePackageInfo,
+					message.arguments
+				)
+			case 'reportFromMonitorPackages':
+				this.reportMonitoredPackages(...message.arguments)
+				break
+
+			default:
+				// @ts-expect-error message is never
+				throw new Error(`Unsupported message type "${message.type}"`)
+		}
+	}
+	public async cleanReportedExpectations() {
+		// Clean out all reported statuses, this is an easy way to sync a clean state with core
+		this.reportedWorkStatuses = {}
+		await this.packageManager.coreHandler.core.callMethod(
+			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
+			[]
+		)
 	}
 	private triggerSendUpdateExpectationStatus(
 		expectationId: string,
@@ -477,45 +591,12 @@ export class PackageManagerHandler {
 		}
 
 		if (changesTosend.length) {
-			this._coreHandler.core
+			this.packageManager.coreHandler.core
 				.callMethod(PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses, [changesTosend])
 				.catch((err) => {
 					this.logger.error('Error when calling method updateExpectedPackageWorkStatuses:')
 					this.logger.error(err)
 				})
-		}
-	}
-	private async cleanReportedExpectations() {
-		// Clean out all reported statuses, this is an easy way to sync a clean state with core
-		this.reportedWorkStatuses = {}
-		await this._coreHandler.core.callMethod(
-			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
-			[]
-		)
-	}
-	public updatePackageContainerPackageStatus(
-		containerId: string,
-		packageId: string,
-		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-	): void {
-		const packageContainerPackageId = `${containerId}_${packageId}`
-		if (!packageStatus) {
-			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, null)
-		} else {
-			const o: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
-				// Default properties:
-				...{
-					status: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY,
-					progress: 0,
-					statusReason: '',
-				},
-				// pre-existing properties:
-				...(((this.toReportPackageStatus[packageContainerPackageId] || {}) as any) as Record<string, unknown>), // Intentionally cast to Any, to make typings in the outer spread-assignment more strict
-				// Updated properties:
-				...packageStatus,
-			}
-
-			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, o)
 		}
 	}
 	private triggerSendUpdatePackageContainerPackageStatus(
@@ -539,7 +620,7 @@ export class PackageManagerHandler {
 			}, 300)
 		}
 	}
-	public sendUpdatePackageContainerPackageStatus(): void {
+	private sendUpdatePackageContainerPackageStatus(): void {
 		const changesTosend: UpdatePackageContainerPackageStatusesChanges = []
 
 		for (const [key, o] of Object.entries(this.toReportPackageStatus)) {
@@ -570,7 +651,7 @@ export class PackageManagerHandler {
 		}
 
 		if (changesTosend.length) {
-			this._coreHandler.core
+			this.packageManager.coreHandler.core
 				.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerPackageStatuses, [changesTosend])
 				.catch((err) => {
 					this.logger.error('Error when calling method updatePackageContainerPackageStatuses:')
@@ -578,105 +659,94 @@ export class PackageManagerHandler {
 				})
 		}
 	}
-	public updatePackageContainerStatus(
-		containerId: string,
-		_packageContainer: PackageContainerExpectation | null,
-		statusInfo: { statusReason?: string | undefined }
-	): void {
-		this.logger.info(`PackageContainerStatus "${containerId}"`)
-		this.logger.info(statusInfo.statusReason || '>No reason<')
-	}
-	private async onMessageFromWorker(
-		message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any
-	): Promise<any> {
-		switch (message.type) {
-			case 'fetchPackageInfoMetadata':
-				return this._coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
-					message.arguments
-				)
-			case 'updatePackageInfo':
-				return this._coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.updatePackageInfo,
-					message.arguments
-				)
-			case 'removePackageInfo':
-				return this._coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.removePackageInfo,
-					message.arguments
-				)
-			case 'reportFromMonitorPackages':
-				this.reportMonitoredPackages(...message.arguments)
-				break
-
-			default:
-				// @ts-expect-error message is never
-				throw new Error(`Unsupported message type "${message.type}"`)
-		}
-	}
-	public restartExpectation(workId: string): void {
-		// This method can be called from core
-		this._expectationManager.restartExpectation(workId)
-	}
-	public restartAllExpectations(): void {
-		// This method can be called from core
-		this._expectationManager.restartAllExpectations()
-	}
-	public abortExpectation(workId: string): void {
-		// This method can be called from core
-		this._expectationManager.abortExpectation(workId)
-	}
-	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
-	private ensureMandatoryPackageContainerExpectations(packageContainerExpectations: {
-		[id: string]: PackageContainerExpectation
-	}): void {
-		for (const [containerId, packageContainer] of Object.entries(this.packageContainersCache)) {
-			/** Is the Container writeable */
-			let isWriteable = false
-			for (const accessor of Object.values(packageContainer.accessors)) {
-				if (accessor.allowWrite) {
-					isWriteable = true
-					break
-				}
-			}
-			// All writeable packageContainers should have the clean up cronjob:
-			if (isWriteable) {
-				if (!packageContainerExpectations[containerId]) {
-					// todo: Maybe should not all package-managers monitor,
-					// this should perhaps be coordinated with the Workforce-manager, who should monitor who?
-
-					// Add default packageContainerExpectation:
-					packageContainerExpectations[containerId] = literal<PackageContainerExpectation>({
-						...packageContainer,
-						id: containerId,
-						managerId: this._expectationManager.managerId,
-						cronjobs: {
-							interval: 0,
-						},
-						monitors: {},
-					})
-				}
-				packageContainerExpectations[containerId].cronjobs.cleanup = {} // Add cronjob to clean up
-			}
-		}
-	}
 	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
-			const wrap = this.wrapExpectedPackage(this.packageContainersCache, expectedPackage)
+			const wrap = wrapExpectedPackage(this.packageManager.packageContainersCache, expectedPackage)
 			if (wrap) {
 				expectedPackagesWraps.push(wrap)
 			}
 		}
 
-		this.monitoredPackages[monitorId] = expectedPackagesWraps
+		this.logger.debug(
+			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
+		)
 
-		this._triggerUpdatedExpectedPackages()
+		this.packageManager.monitoredPackages[monitorId] = expectedPackagesWraps
+
+		this.packageManager.triggerUpdatedExpectedPackages()
 	}
 }
-export function omit<T, P extends keyof T>(obj: T, ...props: P[]): Omit<T, P> {
-	return _.omit(obj, ...(props as string[])) as any
+function wrapExpectedPackage(
+	packageContainers: PackageContainers,
+	expectedPackage: ExpectedPackage.Any
+): ExpectedPackageWrap | undefined {
+	const combinedSources: PackageContainerOnPackage[] = []
+	for (const packageSource of expectedPackage.sources) {
+		const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
+		if (lookedUpSource) {
+			// We're going to combine the accessor attributes set on the Package with the ones defined on the source:
+			const combinedSource: PackageContainerOnPackage = {
+				...omit(clone(lookedUpSource), 'accessors'),
+				accessors: {},
+				containerId: packageSource.containerId,
+			}
+
+			const accessorIds = _.uniq(
+				Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors || {}))
+			)
+
+			for (const accessorId of accessorIds) {
+				const sourceAccessor = lookedUpSource.accessors[accessorId] as Accessor.Any | undefined
+
+				const packageAccessor = packageSource.accessors[accessorId] as AccessorOnPackage.Any | undefined
+
+				if (packageAccessor && sourceAccessor && packageAccessor.type === sourceAccessor.type) {
+					combinedSource.accessors[accessorId] = deepExtend({}, sourceAccessor, packageAccessor)
+				} else if (packageAccessor) {
+					combinedSource.accessors[accessorId] = clone<AccessorOnPackage.Any>(packageAccessor)
+				} else if (sourceAccessor) {
+					combinedSource.accessors[accessorId] = clone<Accessor.Any>(sourceAccessor) as AccessorOnPackage.Any
+				}
+			}
+			combinedSources.push(combinedSource)
+		}
+	}
+	// Lookup Package targets:
+	const combinedTargets: PackageContainerOnPackage[] = []
+
+	for (const layer of expectedPackage.layers) {
+		// Hack: we use the layer name as a 1-to-1 relation to a target containerId
+		const packageContainerId: string = layer
+
+		if (packageContainerId) {
+			const lookedUpTarget = packageContainers[packageContainerId]
+			if (lookedUpTarget) {
+				combinedTargets.push({
+					...omit(clone(lookedUpTarget), 'accessors'),
+					accessors: lookedUpTarget.accessors as {
+						[accessorId: string]: AccessorOnPackage.Any
+					},
+					containerId: packageContainerId,
+				})
+			}
+		}
+	}
+
+	if (combinedSources.length) {
+		if (combinedTargets.length) {
+			return {
+				expectedPackage: expectedPackage,
+				priority: 999, // lowest priority
+				sources: combinedSources,
+				targets: combinedTargets,
+				playoutDeviceId: '',
+				external: true,
+			}
+		}
+	}
+	return undefined
 }
 
 interface ResultingExpectedPackage {
@@ -707,6 +777,7 @@ export interface ActiveRundown {
 }
 export interface PackageManagerSettings {
 	delayRemoval: number
+	useTemporaryFilePath: boolean
 }
 
 /** Note: This is based on the Core method updateExpectedPackageWorkStatuses. */

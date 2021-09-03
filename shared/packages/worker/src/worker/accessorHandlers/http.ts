@@ -1,18 +1,24 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageReadInfo, PackageReadStream, PutPackageHandler } from './genericHandle'
-import { Expectation, PackageContainerExpectation } from '@shared/api'
+import {
+	GenericAccessorHandle,
+	PackageReadInfo,
+	PackageReadStream,
+	PutPackageHandler,
+	AccessorHandlerResult,
+} from './genericHandle'
+import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
 import FormData from 'form-data'
 import AbortController from 'abort-controller'
-import { assertNever } from '../lib/lib'
 
 /** Accessor handle for accessing files in a local folder */
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'http'
 	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
-		filePath?: string
+		path?: string
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
@@ -29,6 +35,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
 		}
 		this.content = content
+
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
 		this.workOptions = workOptions
@@ -37,33 +44,53 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		const accessor = accessor0 as AccessorOnPackage.HTTP
 		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): string | undefined {
+	checkHandleRead(): AccessorHandlerResult {
 		if (!this.accessor.allowRead) {
-			return `Not allowed to read`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to read`,
+					tech: `Not allowed to read`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): string | undefined {
+	checkHandleWrite(): AccessorHandlerResult {
 		if (!this.accessor.allowWrite) {
-			return `Not allowed to write`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to write`,
+					tech: `Not allowed to write`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	async checkPackageReadAccess(): Promise<string | undefined> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		const header = await this.fetchHeader()
 
 		if (header.status >= 400) {
-			return `Error when requesting url "${this.fullUrl}": [${header.status}]: ${header.statusText}`
+			return {
+				success: false,
+				reason: {
+					user: `Got error code ${header.status} when trying to fetch package`,
+					tech: `Error when requesting url "${this.fullUrl}": [${header.status}]: ${header.statusText}`,
+				},
+			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async tryPackageRead(): Promise<string | undefined> {
-		// TODO: how to do this?
-		return undefined
+	async tryPackageRead(): Promise<AccessorHandlerResult> {
+		// TODO: Do a OPTIONS request?
+		// 204 or 404 is "not found"
+		// Access-Control-Allow-Methods should contain GET
+		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
 		// todo: how to check this?
-		return undefined // all good
+		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.HTTPFile> {
 		const header = await this.fetchHeader()
@@ -89,38 +116,8 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			},
 		}
 	}
-	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
-		await this.clearPackageRemoval()
-
-		const formData = new FormData()
-		formData.append('file', sourceStream)
-
-		const controller = new AbortController()
-
-		const streamHandler: PutPackageHandler = new PutPackageHandler(() => {
-			controller.abort()
-		})
-
-		fetch(this.fullUrl, {
-			method: 'POST',
-			body: formData, // sourceStream.readStream,
-			signal: controller.signal,
-		})
-			.then((result) => {
-				if (result.status >= 400) {
-					throw new Error(
-						`Upload file: Bad response: [${result.status}]: ${result.statusText} POST "${this.fullUrl}"`
-					)
-				}
-			})
-			.then(() => {
-				streamHandler.emit('close')
-			})
-			.catch((error) => {
-				streamHandler.emit('error', error)
-			})
-
-		return streamHandler
+	async putPackageStream(_sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
+		throw new Error('HTTP.putPackageStream: Not supported')
 	}
 	async getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }> {
 		throw new Error('HTTP.getPackageReadInfo: Not supported')
@@ -128,33 +125,40 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('HTTP.putPackageInfo: Not supported')
 	}
+	async finalizePackage(): Promise<void> {
+		// do nothing
+	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
-		return this.fetchJSON(this.fullUrl + '_metadata.json')
+		return undefined
 	}
-	async updateMetadata(metadata: Metadata): Promise<void> {
-		await this.storeJSON(this.fullUrl + '_metadata.json', metadata)
+	async updateMetadata(_metadata: Metadata): Promise<void> {
+		// Not supported
 	}
 	async removeMetadata(): Promise<void> {
-		await this.deletePackageIfExists(this.fullUrl + '_metadata.json')
+		// Not supported
 	}
 
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+		let badReason: Reason | null = null
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
-				await this.removeDuePackages()
+				badReason = await this.removeDuePackages()
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
 			}
 		}
 
-		return undefined
+		if (!badReason) return { success: true }
+		else return { success: false, reason: badReason }
 	}
-	async setupPackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async setupPackageContainerMonitors(
+		packageContainerExp: PackageContainerExpectation
+	): Promise<AccessorHandlerResult> {
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
@@ -166,39 +170,59 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			}
 		}
 
-		return undefined
+		return { success: true }
 	}
 	async disposePackageContainerMonitors(
 		_packageContainerExp: PackageContainerExpectation
-	): Promise<string | undefined> {
+	): Promise<AccessorHandlerResult> {
 		// todo: implement monitors
-		return undefined
+		return { success: true }
 	}
 	get fullUrl(): string {
 		return [
 			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-			this.filePath.replace(/^\//, ''), // trim leading slash
+			this.path.replace(/^\//, ''), // trim leading slash
 		].join('/')
 	}
 
-	private checkAccessor(): string | undefined {
+	private checkAccessor(): AccessorHandlerResult {
 		if (this.accessor.type !== Accessor.AccessType.HTTP) {
-			return `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`,
+				},
+			}
 		}
-		if (!this.accessor.baseUrl) return `Accessor baseUrl not set`
+		if (!this.accessor.baseUrl)
+			return {
+				success: false,
+				reason: {
+					user: `Accessor baseUrl not set`,
+					tech: `Accessor baseUrl not set`,
+				},
+			}
 		if (!this.content.onlyContainerAccess) {
-			if (!this.filePath) return `filePath not set`
+			if (!this.path)
+				return {
+					success: false,
+					reason: {
+						user: `filePath not set`,
+						tech: `filePath not set`,
+					},
+				}
 		}
-		return undefined // all good
+		return { success: true }
 	}
 	private get baseUrl(): string {
 		if (!this.accessor.baseUrl) throw new Error(`HTTPAccessorHandle: accessor.baseUrl not set!`)
 		return this.accessor.baseUrl
 	}
-	private get filePath(): string {
+	get path(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
-		const filePath = this.accessor.url || this.content.filePath
-		if (!filePath) throw new Error(`HTTPAccessorHandle: filePath not set!`)
+		const filePath = this.accessor.url || this.content.path
+		if (!filePath) throw new Error(`HTTPAccessorHandle: path not set!`)
 		return filePath
 	}
 	private convertHeadersToVersion(headers: HTTPHeaders): Expectation.Version.HTTPFile {
@@ -214,6 +238,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	private async fetchHeader() {
 		const controller = new AbortController()
 		const res = await fetch(this.fullUrl, { signal: controller.signal })
+
+		res.body.on('error', () => {
+			// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
+		})
 
 		const headers: HTTPHeaders = {
 			contentType: res.headers.get('content-type'),
@@ -234,7 +262,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async delayPackageRemoval(ttl: number): Promise<void> {
 		const packagesToRemove = await this.getPackagesToRemove()
 
-		const filePath = this.filePath
+		const filePath = this.path
 
 		// Search for a pre-existing entry:
 		let found = false
@@ -260,7 +288,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async clearPackageRemoval(): Promise<void> {
 		const packagesToRemove = await this.getPackagesToRemove()
 
-		const filePath = this.filePath
+		const filePath = this.path
 
 		let found = false
 		for (let i = 0; i < packagesToRemove.length; i++) {
@@ -276,7 +304,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 	}
 	/** Remove any packages that are due for removal */
-	async removeDuePackages(): Promise<void> {
+	async removeDuePackages(): Promise<Reason | null> {
 		let packagesToRemove = await this.getPackagesToRemove()
 
 		const removedFilePaths: string[] = []
@@ -289,7 +317,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 					entry.filePath,
 				].join('/')
 
-				await this.deletePackageIfExists(fullUrl + '_metadata.json')
+				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)
 				removedFilePaths.push(entry.filePath)
 			}
@@ -310,6 +338,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (changed) {
 			await this.storePackagesToRemove(packagesToRemove)
 		}
+		return null
 	}
 	private async deletePackageIfExists(url: string): Promise<void> {
 		const result = await fetch(url, {
@@ -359,6 +388,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			const text = await result.text()
 			throw new Error(`storeJSON: Bad response: [${result.status}]: ${result.statusText}, POST ${url}, ${text}`)
 		}
+	}
+	/** Full path to the metadata file */
+	private getMetadataPath(fullUrl: string) {
+		return fullUrl + '_metadata.json'
 	}
 }
 interface HTTPHeaders {

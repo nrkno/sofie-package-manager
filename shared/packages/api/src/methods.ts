@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { ExpectedPackage } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackage, ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -12,7 +12,11 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
+import { WorkforceStatus } from './status'
+import { LogLevel } from './logger'
 
+/** Contains textual descriptions for statuses. */
+export type Reason = ExpectedPackageStatusAPI.Reason
 /*
  * This file contains API definitions for the methods used to communicate between the Workforce, Worker and Expectation-Manager.
  */
@@ -21,17 +25,30 @@ import {
 export namespace WorkForceExpectationManager {
 	/** Methods on WorkForce, called by ExpectationManager */
 	export interface WorkForce {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		setLogLevelOfApp: (appId: string, logLevel: LogLevel) => Promise<void>
+		_debugKillApp(appId: string): Promise<void>
+		getStatus: () => Promise<WorkforceStatus>
+
+		requestResources: (exp: Expectation.Any) => Promise<boolean>
+
 		registerExpectationManager: (managerId: string, url: string) => Promise<void>
 	}
 	/** Methods on ExpectationManager, called by WorkForce */
 	// eslint-disable-next-line @typescript-eslint/no-empty-interface
-	export interface ExpectationManager {}
+	export interface ExpectationManager {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+	}
 }
 
 /** Methods used by WorkForce and WorkerAgent */
 export namespace WorkForceWorkerAgent {
 	/** Methods on WorkerAgent, called by WorkForce */
 	export interface WorkerAgent {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+
 		expectationManagerAvailable: (id: string, url: string) => Promise<void>
 		expectationManagerGone: (id: string) => Promise<void>
 	}
@@ -79,8 +96,8 @@ export namespace ExpectationManagerWorkerAgent {
 
 		// Events emitted from a workInProgress:
 		wipEventProgress: (wipId: number, actualVersionHash: string | null, progress: number) => Promise<void>
-		wipEventDone: (wipId: number, actualVersionHash: string, reason: string, result: any) => Promise<void>
-		wipEventError: (wipId: number, error: string) => Promise<void>
+		wipEventDone: (wipId: number, actualVersionHash: string, reason: Reason, result: any) => Promise<void>
+		wipEventError: (wipId: number, reason: Reason) => Promise<void>
 	}
 	export interface WorkInProgressInfo {
 		wipId: number
@@ -145,5 +162,41 @@ export namespace ExpectationManagerWorkerAgent {
 	export interface ReplyToWorker {
 		error?: string
 		result?: any
+	}
+}
+/** Methods used by WorkForce and AppContainer */
+export namespace WorkForceAppContainer {
+	/** Methods on AppContainer, called by WorkForce */
+	export interface AppContainer {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+
+		requestAppTypeForExpectation: (exp: Expectation.Any) => Promise<{ appType: string; cost: number } | null>
+		spinUp: (
+			appType: 'worker' // | other
+		) => Promise<string>
+		spinDown: (appId: string) => Promise<void>
+		getRunningApps: () => Promise<{ appId: string; appType: string }[]>
+	}
+	/** Methods on WorkForce, called by AppContainer */
+	export interface WorkForce {
+		registerAvailableApps: (availableApps: { appType: string }[]) => Promise<void>
+	}
+}
+
+/** Methods used by AppContainer and WorkerAgent */
+export namespace AppContainerWorkerAgent {
+	/** Methods on WorkerAgent, called by AppContainer */
+	export interface WorkerAgent {
+		setLogLevel: (logLevel: LogLevel) => Promise<void>
+		_debugKill: () => Promise<void>
+
+		doYouSupportExpectation: (exp: Expectation.Any) => Promise<ReturnTypeDoYouSupportExpectation>
+		setSpinDownTime: (spinDownTime: number) => Promise<void>
+	}
+	/** Methods on AppContainer, called by WorkerAgent */
+	export interface AppContainer {
+		ping: () => Promise<void>
+		requestSpinDown: () => Promise<void>
 	}
 }

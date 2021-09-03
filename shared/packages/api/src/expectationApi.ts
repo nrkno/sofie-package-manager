@@ -23,6 +23,7 @@ export namespace Expectation {
 		// | QuantelClipDeepScan
 		| QuantelClipThumbnail
 		| QuantelClipPreview
+		| JsonDataCopy
 
 	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
@@ -38,6 +39,8 @@ export namespace Expectation {
 		// QUANTEL_CLIP_DEEP_SCAN = 'quantel_clip_deep_scan',
 		QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
 		QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
+
+		JSON_DATA_COPY = 'json_data_copy',
 	}
 
 	/** Common attributes of all Expectations */
@@ -48,7 +51,7 @@ export namespace Expectation {
 		/** Id of the ExpectationManager the expectation was created from */
 		managerId: string
 
-		/** Expectation priority. Lower will be handled first */
+		/** Expectation priority. Lower will be handled first. Note: This is not absolute, the actual execution order might vary. */
 		priority: number
 
 		/** A list of which expectedPackages that resultet in this expectation */
@@ -101,7 +104,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedFileOnDisk
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Scan of a Media file. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface PackageScan extends Base {
@@ -177,7 +180,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFileThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Media file. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFilePreview extends Base {
@@ -195,7 +198,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFilePreview
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 
 	/** Defines a Quantel clip. A Quantel clip is to be copied from one of the Sources, to the Target. */
@@ -231,7 +234,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedQuantelClipThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Quantel Clip. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface QuantelClipPreview extends Base {
@@ -249,7 +252,23 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedQuantelClipPreview
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+	}
+	/** Defines a File Copy. A File is to be copied from one of the Sources, to the Target. */
+	export interface JsonDataCopy extends Base {
+		type: Type.JSON_DATA_COPY
+
+		startRequirement: {
+			sources: SpecificPackageContainerOnPackage.File[]
+		}
+		endRequirement: {
+			targets: [SpecificPackageContainerOnPackage.File]
+			content: {
+				path: string
+			}
+			version: Version.ExpectedFileOnDisk // maybe something else?
+		}
+		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
@@ -262,6 +281,7 @@ export namespace Expectation {
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
 			}
 		}
 		/** Defines a PackageContainer for CorePackage (A collection in Sofie-Core accessible through an API). */
@@ -283,6 +303,10 @@ export namespace Expectation {
 		export interface RemoveDelay {
 			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */
 			removeDelay?: number
+		}
+		export interface UseTemporaryFilePath {
+			/** When set, will work on a temporary package first, then move the package to the right place */
+			useTemporaryFilePath?: boolean
 		}
 	}
 

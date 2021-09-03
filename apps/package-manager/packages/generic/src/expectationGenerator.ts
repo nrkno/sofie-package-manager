@@ -6,14 +6,14 @@ import {
 	PackageContainers,
 	PackageManagerSettings,
 } from './packageManager'
-import { Expectation, hashObj, PackageContainerExpectation } from '@shared/api'
+import { Expectation, hashObj, PackageContainerExpectation, literal, LoggerInstance } from '@shared/api'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']>
 	}[]
 }
 export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
@@ -21,7 +21,15 @@ export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 	sources: {
 		containerId: string
 		label: string
-		accessors: ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']>
+	}[]
+}
+export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
+	expectedPackage: ExpectedPackage.ExpectedPackageJSONData
+	sources: {
+		containerId: string
+		label: string
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']>
 	}[]
 }
 
@@ -30,6 +38,7 @@ type GenerateExpectation = Expectation.Base & {
 	external?: boolean
 }
 export function generateExpectations(
+	logger: LoggerInstance,
 	managerId: string,
 	packageContainers: PackageContainers,
 	_activePlaylist: ActivePlaylist,
@@ -55,63 +64,130 @@ export function generateExpectations(
 		activeRundownMap.set(activeRundown._id, activeRundown)
 	}
 
-	for (const expWrap of expectedPackages) {
+	function prioritizeExpectation(packageWrap: ExpectedPackageWrap, exp: Expectation.Any): void {
+		// Prioritize
+		/*
+		0: Things that are to be played out like RIGHT NOW
+		10: Things that are to be played out pretty soon (things that could be cued anytime now)
+		100: Other things that affect users (GUI things)
+		1000+: Other things that can be played out
+		*/
+
+		let prioAdd = 1000
+		const activeRundown: ActiveRundown | undefined = packageWrap.expectedPackage.rundownId
+			? activeRundownMap.get(packageWrap.expectedPackage.rundownId)
+			: undefined
+
+		if (activeRundown) {
+			// The expected package is in an active rundown
+			prioAdd = 0 + activeRundown._rank // Earlier rundowns should have higher priority
+		}
+		exp.priority += prioAdd
+	}
+	function addExpectation(packageWrap: ExpectedPackageWrap, exp: Expectation.Any) {
+		const existingExp = expectations[exp.id]
+		if (existingExp) {
+			// There is already an expectation pointing at the same place.
+
+			existingExp.priority = Math.min(existingExp.priority, exp.priority)
+
+			const existingPackage = existingExp.fromPackages[0]
+			const newPackage = exp.fromPackages[0]
+
+			if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
+				// log warning:
+				logger.warn(`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`)
+				logger.warn(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
+				logger.warn(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
+				logger.warn(`${JSON.stringify(exp.startRequirement)}`)
+
+				// TODO: log better warnings!
+			} else {
+				existingExp.fromPackages.push(exp.fromPackages[0])
+			}
+		} else {
+			expectations[exp.id] = {
+				...exp,
+				sideEffect: packageWrap.expectedPackage.sideEffect,
+				external: packageWrap.external,
+			}
+		}
+	}
+
+	const smartbullExpectations: ExpectedPackageWrap[] = [] // Hack, Smartbull
+	let orgSmartbullExpectation: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
+
+	for (const packageWrap of expectedPackages) {
 		let exp: Expectation.Any | undefined = undefined
 
-		if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-			exp = generateMediaFileCopy(managerId, expWrap, settings)
-		} else if (expWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
-			exp = generateQuantelCopy(managerId, expWrap)
+		// Temporary hacks: handle smartbull:
+		if (packageWrap.expectedPackage._id.match(/smartbull_auto_clip/)) {
+			// hack
+			orgSmartbullExpectation = packageWrap
+			continue
+		}
+		if (
+			packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE &&
+			packageWrap.sources.find((source) => source.containerId === 'source-smartbull')
+		) {
+			if ((packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/)) {
+				// the files are on the form "smartbull_TIMESTAMP.mxf/mp4"
+				smartbullExpectations.push(packageWrap)
+			}
+			// (any other files in the "source-smartbull"-container are to be ignored)
+			continue
+		}
+
+		if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+			exp = generateMediaFileCopy(managerId, packageWrap, settings)
+		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
+			exp = generateQuantelCopy(managerId, packageWrap)
+		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
+			exp = generateJsonDataCopy(managerId, packageWrap, settings)
 		}
 		if (exp) {
-			// Prioritize
-			/*
-			0: Things that are to be played out like RIGHT NOW
-			10: Things that are to be played out pretty soon (things that could be cued anytime now)
-			100: Other things that affect users (GUI things)
-			1000+: Other things that can be played out
-			*/
+			prioritizeExpectation(packageWrap, exp)
+			addExpectation(packageWrap, exp)
+		}
+	}
 
-			let prioAdd = 1000
-			const activeRundown: ActiveRundown | undefined = expWrap.expectedPackage.rundownId
-				? activeRundownMap.get(expWrap.expectedPackage.rundownId)
-				: undefined
+	// hack: handle Smartbull:
+	if (orgSmartbullExpectation) {
+		// Sort alphabetically on filePath:
+		smartbullExpectations.sort((a, b) => {
+			const expA = a.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
+			const expB = b.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
 
-			if (activeRundown) {
-				// The expected package is in an active rundown
-				prioAdd = 0 + activeRundown._rank // Earlier rundowns should have higher priority
-			}
-			exp.priority += prioAdd
+			// lowest first:
+			if (expA.content.filePath > expB.content.filePath) return 1
+			if (expA.content.filePath < expB.content.filePath) return -1
 
-			const existingExp = expectations[exp.id]
-			if (existingExp) {
-				// There is already an expectation pointing at the same place.
+			return 0
+		})
+		// Pick the last one:
+		const bestSmartbull = smartbullExpectations[smartbullExpectations.length - 1] as
+			| ExpectedPackageWrapMediaFile
+			| undefined
+		if (bestSmartbull) {
+			if (orgSmartbullExpectation.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+				const org = orgSmartbullExpectation as ExpectedPackageWrapMediaFile
 
-				existingExp.priority = Math.min(existingExp.priority, exp.priority)
-
-				const existingPackage = existingExp.fromPackages[0]
-				const newPackage = exp.fromPackages[0]
-
-				if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
-					// log warning:
-					console.log(
-						`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`
-					)
-					console.log(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
-					console.log(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
-					console.log(`${JSON.stringify(exp.startRequirement)}`)
-
-					// TODO: log better warnings!
-				} else {
-					existingExp.fromPackages.push(exp.fromPackages[0])
+				const newPackage: ExpectedPackageWrapMediaFile = {
+					...org,
+					expectedPackage: {
+						...org.expectedPackage,
+						// Take these from bestSmartbull:
+						content: bestSmartbull.expectedPackage.content,
+						version: {}, // Don't even use bestSmartbull.expectedPackage.version,
+						sources: bestSmartbull.expectedPackage.sources,
+					},
 				}
-			} else {
-				expectations[exp.id] = {
-					...exp,
-					sideEffect: expWrap.expectedPackage.sideEffect,
-					external: expWrap.external,
+				const exp = generateMediaFileCopy(managerId, newPackage, settings)
+				if (exp) {
+					prioritizeExpectation(newPackage, exp)
+					addExpectation(newPackage, exp)
 				}
-			}
+			} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
 		}
 	}
 
@@ -131,28 +207,35 @@ export function generateExpectations(
 			}
 
 			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-				const packageContainer: PackageContainer =
-					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
+					| PackageContainer
+					| undefined
 
-				const thumbnail = generateMediaFileThumbnail(
-					expectation,
-					expectation0.sideEffect.thumbnailContainerId,
-					expectation0.sideEffect.thumbnailPackageSettings,
-					packageContainer
-				)
-				expectations[thumbnail.id] = thumbnail
+				if (packageContainer) {
+					const thumbnail = generateMediaFileThumbnail(
+						expectation,
+						expectation0.sideEffect.thumbnailContainerId,
+						expectation0.sideEffect.thumbnailPackageSettings,
+						packageContainer
+					)
+					expectations[thumbnail.id] = thumbnail
+				}
 			}
 
 			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
+					| PackageContainer
+					| undefined
 
-				const preview = generateMediaFilePreview(
-					expectation,
-					expectation0.sideEffect.previewContainerId,
-					expectation0.sideEffect.previewPackageSettings,
-					packageContainer
-				)
-				expectations[preview.id] = preview
+				if (packageContainer) {
+					const preview = generateMediaFilePreview(
+						expectation,
+						expectation0.sideEffect.previewContainerId,
+						expectation0.sideEffect.previewPackageSettings,
+						packageContainer
+					)
+					expectations[preview.id] = preview
+				}
 			}
 		} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
 			const expectation = expectation0 as Expectation.QuantelClipCopy
@@ -168,28 +251,35 @@ export function generateExpectations(
 			}
 
 			if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-				const packageContainer: PackageContainer =
-					packageContainers[expectation0.sideEffect.thumbnailContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
+					| PackageContainer
+					| undefined
 
-				const thumbnail = generateQuantelClipThumbnail(
-					expectation,
-					expectation0.sideEffect.thumbnailContainerId,
-					expectation0.sideEffect.thumbnailPackageSettings,
-					packageContainer
-				)
-				expectations[thumbnail.id] = thumbnail
+				if (packageContainer) {
+					const thumbnail = generateQuantelClipThumbnail(
+						expectation,
+						expectation0.sideEffect.thumbnailContainerId,
+						expectation0.sideEffect.thumbnailPackageSettings,
+						packageContainer
+					)
+					expectations[thumbnail.id] = thumbnail
+				}
 			}
 
 			if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-				const packageContainer: PackageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
+				const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
+					| PackageContainer
+					| undefined
 
-				const preview = generateQuantelClipPreview(
-					expectation,
-					expectation0.sideEffect.previewContainerId,
-					expectation0.sideEffect.previewPackageSettings,
-					packageContainer
-				)
-				expectations[preview.id] = preview
+				if (packageContainer) {
+					const preview = generateQuantelClipPreview(
+						expectation,
+						expectation0.sideEffect.previewContainerId,
+						expectation0.sideEffect.previewPackageSettings,
+						packageContainer
+					)
+					expectations[preview.id] = preview
+				}
 			}
 		}
 	}
@@ -221,10 +311,10 @@ function generateMediaFileCopy(
 		],
 		type: Expectation.Type.FILE_COPY,
 		statusReport: {
-			label: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
-			description: `Copy media "${expWrapMediaFile.expectedPackage.content.filePath}" to the playout-device "${
+			label: `Copying media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
+			description: `Copy media file "${expWrapMediaFile.expectedPackage.content.filePath}" to the device "${
 				expWrapMediaFile.playoutDeviceId
-			}", from "${JSON.stringify(expWrapMediaFile.sources)}"`,
+			}", from ${expWrapMediaFile.sources.map((source) => `"${source.label}"`).join(', ')}`,
 			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
@@ -244,6 +334,7 @@ function generateMediaFileCopy(
 		},
 		workOptions: {
 			removeDelay: settings.delayRemoval,
+			useTemporaryFilePath: settings.useTemporaryFilePath,
 		},
 	}
 	exp.id = hashObj(exp.endRequirement)
@@ -253,6 +344,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
 	const content = expWrapQuantelClip.expectedPackage.content
+	const label = content.title && content.guid ? `${content.title} (${content.guid})` : content.title || content.guid
 	const exp: Expectation.QuantelClipCopy = {
 		id: '', // set later
 		priority: expWrap.priority * 10 || 0,
@@ -266,10 +358,10 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 		],
 
 		statusReport: {
-			label: `Copy Quantel clip ${content.title || content.guid}`,
+			label: `Copy Quantel clip ${label}`,
 			description: `Copy Quantel clip ${content.title || content.guid} to server for "${
 				expWrapQuantelClip.playoutDeviceId
-			}", from ${expWrapQuantelClip.sources}`,
+			}", from ${expWrapQuantelClip.sources.map((source) => `"${source.label}"`).join(', ')}`,
 			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
@@ -296,7 +388,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	return exp
 }
 function generatePackageScan(expectation: Expectation.FileCopy | Expectation.QuantelClipCopy): Expectation.PackageScan {
-	const scan: Expectation.PackageScan = {
+	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
 		priority: expectation.priority + 100,
 		managerId: expectation.managerId,
@@ -304,8 +396,8 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Scan ${expectation.statusReport.label}`,
-			description: `Scanning is used to provide Sofie GUI with status about the media`,
+			label: `Scanning`,
+			description: `Scanning the media, to provide data to the Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 10,
 			sendReport: expectation.statusReport.sendReport,
@@ -337,14 +429,12 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return scan
+	})
 }
 function generatePackageDeepScan(
 	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy
 ): Expectation.PackageDeepScan {
-	const deepScan: Expectation.PackageDeepScan = {
+	return literal<Expectation.PackageDeepScan>({
 		id: expectation.id + '_deepscan',
 		priority: expectation.priority + 1001,
 		managerId: expectation.managerId,
@@ -352,10 +442,10 @@ function generatePackageDeepScan(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Deep Scan ${expectation.statusReport.label}`,
-			description: `Deep scanning includes scene-detection, black/freeze frames etc.`,
+			label: `Deep Scanning`,
+			description: `Detecting scenes, black frames, freeze frames etc.`,
 			requiredForPlayout: false,
-			displayRank: 10,
+			displayRank: 11,
 			sendReport: expectation.statusReport.sendReport,
 		},
 
@@ -390,9 +480,7 @@ function generatePackageDeepScan(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return deepScan
+	})
 }
 
 function generateMediaFileThumbnail(
@@ -401,7 +489,7 @@ function generateMediaFileThumbnail(
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFileThumbnail {
-	const thumbnail: Expectation.MediaFileThumbnail = {
+	return literal<Expectation.MediaFileThumbnail>({
 		id: expectation.id + '_thumbnail',
 		priority: expectation.priority + 1002,
 		managerId: expectation.managerId,
@@ -409,7 +497,7 @@ function generateMediaFileThumbnail(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate thumbnail for ${expectation.statusReport.label}`,
+			label: `Generating thumbnail`,
 			description: `Thumbnail is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 11,
@@ -444,9 +532,7 @@ function generateMediaFileThumbnail(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return thumbnail
+	})
 }
 function generateMediaFilePreview(
 	expectation: Expectation.FileCopy,
@@ -454,7 +540,7 @@ function generateMediaFilePreview(
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFilePreview {
-	const preview: Expectation.MediaFilePreview = {
+	return literal<Expectation.MediaFilePreview>({
 		id: expectation.id + '_preview',
 		priority: expectation.priority + 1003,
 		managerId: expectation.managerId,
@@ -462,7 +548,7 @@ function generateMediaFilePreview(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate preview for ${expectation.statusReport.label}`,
+			label: `Generating preview`,
 			description: `Preview is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 12,
@@ -496,8 +582,7 @@ function generateMediaFilePreview(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-	return preview
+	})
 }
 
 function generateQuantelClipThumbnail(
@@ -506,7 +591,7 @@ function generateQuantelClipThumbnail(
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
 ): Expectation.QuantelClipThumbnail {
-	const thumbnail: Expectation.QuantelClipThumbnail = {
+	return literal<Expectation.QuantelClipThumbnail>({
 		id: expectation.id + '_thumbnail',
 		priority: expectation.priority + 1002,
 		managerId: expectation.managerId,
@@ -514,7 +599,7 @@ function generateQuantelClipThumbnail(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate thumbnail for ${expectation.statusReport.label}`,
+			label: `Generating thumbnail`,
 			description: `Thumbnail is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 11,
@@ -548,9 +633,7 @@ function generateQuantelClipThumbnail(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
-	}
-
-	return thumbnail
+	})
 }
 function generateQuantelClipPreview(
 	expectation: Expectation.QuantelClipCopy,
@@ -558,7 +641,7 @@ function generateQuantelClipPreview(
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
 ): Expectation.QuantelClipPreview {
-	const preview: Expectation.QuantelClipPreview = {
+	return literal<Expectation.QuantelClipPreview>({
 		id: expectation.id + '_preview',
 		priority: expectation.priority + 1003,
 		managerId: expectation.managerId,
@@ -566,7 +649,7 @@ function generateQuantelClipPreview(
 		fromPackages: expectation.fromPackages,
 
 		statusReport: {
-			label: `Generate preview for ${expectation.statusReport.label}`,
+			label: `Generating preview`,
 			description: `Preview is used in Sofie GUI`,
 			requiredForPlayout: false,
 			displayRank: 12,
@@ -594,9 +677,6 @@ function generateQuantelClipPreview(
 			},
 			version: {
 				type: Expectation.Version.Type.QUANTEL_CLIP_PREVIEW,
-				// bitrate: string // default: '40k'
-				// width: number
-				// height: number
 			},
 		},
 		workOptions: {
@@ -605,8 +685,56 @@ function generateQuantelClipPreview(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
+	})
+}
+
+function generateJsonDataCopy(
+	managerId: string,
+	expWrap: ExpectedPackageWrap,
+	settings: PackageManagerSettings
+): Expectation.JsonDataCopy {
+	const expWrapMediaFile = expWrap as ExpectedPackageWrapJSONData
+
+	const exp: Expectation.JsonDataCopy = {
+		id: '', // set later
+		priority: expWrap.priority * 10 || 0,
+		managerId: managerId,
+		fromPackages: [
+			{
+				id: expWrap.expectedPackage._id,
+				expectedContentVersionHash: expWrap.expectedPackage.contentVersionHash,
+			},
+		],
+		type: Expectation.Type.JSON_DATA_COPY,
+		statusReport: {
+			label: `Copying JSON data`,
+			description: `Copy JSON data "${expWrapMediaFile.expectedPackage.content.path}" from "${JSON.stringify(
+				expWrapMediaFile.sources
+			)}"`,
+			requiredForPlayout: true,
+			displayRank: 0,
+			sendReport: !expWrap.external,
+		},
+
+		startRequirement: {
+			sources: expWrapMediaFile.sources,
+		},
+
+		endRequirement: {
+			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.File],
+			content: expWrapMediaFile.expectedPackage.content,
+			version: {
+				type: Expectation.Version.Type.FILE_ON_DISK,
+				...expWrapMediaFile.expectedPackage.version,
+			},
+		},
+		workOptions: {
+			removeDelay: settings.delayRemoval,
+			useTemporaryFilePath: settings.useTemporaryFilePath,
+		},
 	}
-	return preview
+	exp.id = hashObj(exp.endRequirement)
+	return exp
 }
 
 // function generateMediaFileHTTPCopy(expectation: Expectation.FileCopy): Expectation.FileCopy {
@@ -663,9 +791,9 @@ export function generatePackageContainerExpectations(
 ): { [id: string]: PackageContainerExpectation } {
 	const o: { [id: string]: PackageContainerExpectation } = {}
 
-	// This is temporary, to test/show how the
 	for (const [containerId, packageContainer] of Object.entries(packageContainers)) {
-		if (containerId === 'source0') {
+		// This is temporary, to test/show how a monitor would work:
+		if (containerId === 'source_monitor') {
 			o[containerId] = {
 				...packageContainer,
 				id: containerId,
@@ -680,6 +808,25 @@ export function generatePackageContainerExpectations(
 				},
 			}
 		}
+
+		// This is a hard-coded hack for the "smartbull" feature,
+		// to be replaced or moved out later:
+		if (containerId === 'source-smartbull') {
+			o[containerId] = {
+				...packageContainer,
+				id: containerId,
+				managerId: managerId,
+				cronjobs: {},
+				monitors: {
+					packages: {
+						targetLayers: ['source-smartbull'], // not used, since the layers of the original smartbull-package are used
+						usePolling: 2000,
+						awaitWriteFinishStabilityThreshold: 2000,
+					},
+				},
+			}
+		}
 	}
+
 	return o
 }

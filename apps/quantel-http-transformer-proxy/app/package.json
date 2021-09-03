@@ -6,7 +6,7 @@
     "scripts": {
         "build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & rimraf deploy/quantel-http-transformer-proxy.exe  && nexe dist/index.js -t windows-x64-12.18.1 -o deploy/quantel-http-transformer-proxy.exe && node scripts/copy-natives.js win32-x64",
+        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.js quantel-http-transformer-proxy.exe && node ../../../scripts/copy-natives.js win32-x64",
         "start": "node dist/index.js",
         "precommit": "lint-staged"
     },
@@ -22,7 +22,7 @@
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
-        "node": ">=12.3.0"
+        "node": ">=12.20.0"
     },
     "lint-staged": {
         "*.{js,css,json,md,scss}": [

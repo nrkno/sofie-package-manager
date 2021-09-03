@@ -1,9 +1,11 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
+import { assertNever } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
 import { GenericAccessorHandle } from './genericHandle'
 import { HTTPAccessorHandle } from './http'
+import { HTTPProxyAccessorHandle } from './httpProxy'
 import { LocalFolderAccessorHandle } from './localFolder'
 import { QuantelAccessorHandle } from './quantel'
 
@@ -30,6 +32,8 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		return CorePackageInfoAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.HTTP) {
 		return HTTPAccessorHandle
+	} else if (accessor.type === Accessor.AccessType.HTTP_PROXY) {
+		return HTTPProxyAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.FILE_SHARE) {
 		return FileShareAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.QUANTEL) {
@@ -38,9 +42,6 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		assertNever(accessor.type) // Assert  so as to not forget to add an if-clause above
 		throw new Error(`Unsupported Accessor type "${accessor.type}"`)
 	}
-}
-function assertNever(_shouldBeNever: never) {
-	// Nothing
 }
 
 export function isLocalFolderAccessorHandle<Metadata>(
@@ -53,10 +54,10 @@ export function isCorePackageInfoAccessorHandle<Metadata>(
 ): accessorHandler is CorePackageInfoAccessorHandle<Metadata> {
 	return accessorHandler.type === CorePackageInfoAccessorHandle.type
 }
-export function isHTTPAccessorHandle<Metadata>(
+export function isHTTPProxyAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
-): accessorHandler is HTTPAccessorHandle<Metadata> {
-	return accessorHandler.type === HTTPAccessorHandle.type
+): accessorHandler is HTTPProxyAccessorHandle<Metadata> {
+	return accessorHandler.type === HTTPProxyAccessorHandle.type
 }
 export function isFileShareAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
@@ -82,6 +83,7 @@ export function getAccessorCost(accessorType: Accessor.AccessType | undefined): 
 		// --------------------------------------------------------
 		case Accessor.AccessType.FILE_SHARE:
 			return 2
+		case Accessor.AccessType.HTTP_PROXY:
 		case Accessor.AccessType.HTTP:
 			return 3
 

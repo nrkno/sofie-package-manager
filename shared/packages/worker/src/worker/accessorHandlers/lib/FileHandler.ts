@@ -1,12 +1,11 @@
 import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
-import { Expectation, hashObj, literal, PackageContainerExpectation } from '@shared/api'
+import { Expectation, hashObj, literal, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
 import { Accessor, AccessorOnPackage, ExpectedPackage } from '@sofie-automation/blueprints-integration'
 import { GenericAccessorHandle } from '../genericHandle'
-import { assertNever } from '../../lib/lib'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -75,7 +74,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 	}
 	/** Remove any packages that are due for removal */
-	async removeDuePackages(): Promise<void> {
+	async removeDuePackages(): Promise<Reason | null> {
 		let packagesToRemove = await this.getPackagesToRemove()
 
 		const removedFilePaths: string[] = []
@@ -108,6 +107,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		if (changed) {
 			await this.storePackagesToRemove(packagesToRemove)
 		}
+		return null
 	}
 	/** Unlink (remove) a file, if it exists. */
 	async unlinkIfExists(filePath: string): Promise<void> {
@@ -132,11 +132,22 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		const options = packageContainerExp.monitors.packages
 		if (!options) throw new Error('Options not set (this should never happen)')
 
-		const watcher = chokidar.watch(this.folderPath, {
+		const chokidarOptions: chokidar.WatchOptions = {
 			ignored: options.ignore ? new RegExp(options.ignore) : undefined,
-
 			persistent: true,
-		})
+		}
+		if (options.usePolling) {
+			chokidarOptions.usePolling = true
+			chokidarOptions.interval = 2000
+			chokidarOptions.binaryInterval = 2000
+		}
+		if (options.awaitWriteFinishStabilityThreshold) {
+			chokidarOptions.awaitWriteFinish = {
+				stabilityThreshold: options.awaitWriteFinishStabilityThreshold,
+				pollInterval: options.awaitWriteFinishStabilityThreshold,
+			}
+		}
+		const watcher = chokidar.watch(this.folderPath, chokidarOptions)
 
 		const monitorId = `${this.worker.genericConfig.workerId}_${this.worker.uniqueId}_${Date.now()}`
 		const seenFiles = new Map<string, Expectation.Version.FileOnDisk | null>()
@@ -170,7 +181,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 								seenFiles.set(filePath, version)
 							} catch (err) {
-								console.log('error', err)
+								version = null
+								this.worker.logger.error(err)
 							}
 						}
 
@@ -194,6 +206,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 									},
 								],
 								sideEffect: options.sideEffect,
+							}
+							if (!expPackage.sources[0].accessors) {
+								expPackage.sources[0].accessors = {}
 							}
 							if (this._type === LocalFolderAccessorHandleType) {
 								expPackage.sources[0].accessors[
@@ -225,7 +240,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					triggerSendUpdateIsRunning = false
 				})().catch((err) => {
 					triggerSendUpdateIsRunning = false
-					console.log('error', err)
+					this.worker.logger.error(err)
 				})
 			}, 1000) // Wait just a little bit, to avoid doing multiple updates
 		}
@@ -242,15 +257,33 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					triggerSendUpdate()
 				}
 			})
-			.on('unlink', (fullPath) => {
+			.on('change', (fullPath) => {
 				const localPath = getFilePath(fullPath)
 				if (localPath) {
-					seenFiles.delete(localPath)
+					seenFiles.set(localPath, null) // This will cause triggerSendUpdate() to update the version
 					triggerSendUpdate()
 				}
 			})
+			.on('unlink', (fullPath) => {
+				// We don't trust chokidar, so we'll check it ourselves first..
+				// (We've seen an issue where removing a single file from a folder causes chokidar to emit unlink for ALL the files)
+				fsAccess(fullPath, fs.constants.R_OK)
+					.then(() => {
+						// The file seems to exist, even though chokidar says it doesn't.
+						// Ignore the event, then
+					})
+					.catch(() => {
+						// The file truly doesn't exist
+
+						const localPath = getFilePath(fullPath)
+						if (localPath) {
+							seenFiles.delete(localPath)
+							triggerSendUpdate()
+						}
+					})
+			})
 			.on('error', (error) => {
-				console.log('error', error)
+				this.worker.logger.error(error.toString())
 			})
 
 		/** Persistant store for Monitors */

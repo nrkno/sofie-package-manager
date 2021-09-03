@@ -9,9 +9,7 @@ import {
 import { DeviceConfig } from './connector'
 
 import fs from 'fs'
-import { LoggerInstance, PackageManagerConfig } from '@shared/api'
-
-import { ProcessHandler } from './process'
+import { LoggerInstance, PackageManagerConfig, ProcessHandler } from '@shared/api'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
@@ -44,6 +42,7 @@ export class CoreHandler {
 	public deviceSettings: { [key: string]: any } = {}
 
 	public delayRemoval = 0
+	public useTemporaryFilePath = false
 
 	private _deviceOptions: DeviceConfig
 	private _onConnected?: () => any
@@ -231,6 +230,9 @@ export class CoreHandler {
 			if (this.deviceSettings['delayRemoval'] !== this.delayRemoval) {
 				this.delayRemoval = this.deviceSettings['delayRemoval']
 			}
+			if (this.deviceSettings['useTemporaryFilePath'] !== this.useTemporaryFilePath) {
+				this.useTemporaryFilePath = this.deviceSettings['useTemporaryFilePath']
+			}
 
 			if (this._packageManagerHandler) {
 				this._packageManagerHandler.onSettingsChanged()
@@ -406,5 +408,14 @@ export class CoreHandler {
 	}
 	abortExpectation(workId: string): void {
 		return this._packageManagerHandler?.abortExpectation(workId)
+	}
+	troubleshoot(): any {
+		return this._packageManagerHandler?.getDataSnapshot()
+	}
+	async getExpetationManagerStatus(): Promise<any> {
+		return this._packageManagerHandler?.getExpetationManagerStatus()
+	}
+	async debugKillApp(appId: string): Promise<void> {
+		return this._packageManagerHandler?.debugKillApp(appId)
 	}
 }

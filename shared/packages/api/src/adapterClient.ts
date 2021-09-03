@@ -1,3 +1,4 @@
+import { LoggerInstance } from './logger'
 import { WebsocketClient } from './websocketClient'
 import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
 
@@ -14,13 +15,15 @@ export abstract class AdapterClient<ME, OTHER> {
 		throw new Error('.init() must be called first!')
 	}
 
-	constructor(private clientType: MessageIdentifyClient['clientType']) {}
+	constructor(protected logger: LoggerInstance, private clientType: MessageIdentifyClient['clientType']) {}
 
 	private conn?: WebsocketClient
+	private terminated = false
 
 	async init(id: string, connectionOptions: ClientConnectionOptions, clientMethods: ME): Promise<void> {
 		if (connectionOptions.type === 'websocket') {
 			const conn = new WebsocketClient(
+				this.logger,
 				id,
 				connectionOptions.url,
 				this.clientType,
@@ -28,7 +31,7 @@ export abstract class AdapterClient<ME, OTHER> {
 					// On message from other party:
 					const fcn = (clientMethods as any)[message.type]
 					if (fcn) {
-						return fcn(...message.args)
+						return fcn.call(clientMethods, ...message.args)
 					} else {
 						throw new Error(`Unknown method "${message.type}"`)
 					}
@@ -37,21 +40,22 @@ export abstract class AdapterClient<ME, OTHER> {
 			this.conn = conn
 
 			conn.on('connected', () => {
-				console.log('Websocket client connected')
+				this.logger.debug('Websocket client connected')
 			})
 			conn.on('disconnected', () => {
-				console.log('Websocket client disconnected')
+				this.logger.debug('Websocket client disconnected')
 			})
 			this._sendMessage = ((type: string, ...args: any[]) => conn.send(type, ...args)) as any
 
 			await conn.connect()
 		} else {
-			// TODO
 			if (!this.serverHook)
 				throw new Error(`AdapterClient: can't init() an internal connection, call hook() first!`)
 
 			const serverHook: OTHER = this.serverHook(id, clientMethods)
 			this._sendMessage = (type: keyof OTHER, ...args: any[]) => {
+				if (this.terminated) throw new Error(`Can't send message due to being terminated`)
+
 				const fcn = serverHook[type] as any
 				if (fcn) {
 					return fcn(...args)
@@ -66,7 +70,9 @@ export abstract class AdapterClient<ME, OTHER> {
 		this.serverHook = serverHook
 	}
 	terminate(): void {
+		this.terminated = true
 		this.conn?.close()
+		delete this.serverHook
 	}
 }
 /** Options for an AdepterClient */

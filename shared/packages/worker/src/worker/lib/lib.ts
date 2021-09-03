@@ -4,7 +4,8 @@ const accessorTypePriority: { [key: string]: number } = {
 	[Accessor.AccessType.LOCAL_FOLDER]: 0,
 	[Accessor.AccessType.QUANTEL]: 1,
 	[Accessor.AccessType.FILE_SHARE]: 2,
-	[Accessor.AccessType.HTTP]: 3,
+	[Accessor.AccessType.HTTP_PROXY]: 3,
+	[Accessor.AccessType.HTTP]: 4,
 	[Accessor.AccessType.CORE_PACKAGE_INFO]: 99999,
 }
 
@@ -36,9 +37,4 @@ export interface AccessorWithPackageContainer<T extends PackageContainerOnPackag
 	accessor: AccessorOnPackage.Any
 	accessorId: string
 	prio: number
-}
-
-/** Helper function to simply assert that the value is of the type never */
-export function assertNever(_value: never): void {
-	// does nothing
 }

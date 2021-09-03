@@ -8,6 +8,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	literal,
+	Reason,
 } from '@shared/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -15,14 +16,14 @@ import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	getAccessorHandle,
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
+	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 	isQuantelClipAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { GenericAccessorHandle, PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
-import { HTTPAccessorHandle } from '../../../accessorHandlers/http'
+import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -34,7 +35,14 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	): ReturnTypeDoYouSupportExpectation {
-		if (!windowsWorker.hasFFMpeg) return { support: false, reason: 'Cannot access FFMpeg executable' }
+		if (windowsWorker.testFFMpeg)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker (FFMpeg)',
+					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+				},
+			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
@@ -57,21 +65,24 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
-		const issueReading = await lookupSource.handle.tryPackageRead()
-		if (issueReading) return { ready: false, reason: issueReading }
+		const tryResult = await lookupSource.handle.tryPackageRead()
+		if (!tryResult.success) return { ready: false, reason: tryResult.reason }
 
 		// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail:
 		const thumbnailURL = await getThumbnailURL(exp, lookupSource)
-		if (!thumbnailURL) return { ready: false, reason: `Thumbnail source not found` }
+		if (!thumbnailURL.success)
+			return {
+				ready: false,
+				reason: thumbnailURL.reason,
+			}
 		const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, thumbnailURL)
 
-		const issueReadingHTTP = await sourceHTTPHandle.tryPackageRead()
-		if (issueReadingHTTP) return { ready: false, reason: issueReadingHTTP }
+		const tryReadingHTTP = await sourceHTTPHandle.tryPackageRead()
+		if (!tryReadingHTTP.success) return { ready: false, reason: tryReadingHTTP.reason }
 
 		return {
 			ready: true,
 			sourceExists: true,
-			reason: `${lookupSource.reason}, ${lookupTarget.reason}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -83,13 +94,32 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready)
-			return { fulfilled: false, reason: `Not able to access source: ${lookupSource.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access source, due to ${lookupSource.reason.user}`,
+					tech: `Not able to access source: ${lookupSource.reason.tech}`,
+				},
+			}
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready)
-			return { fulfilled: false, reason: `Not able to access target: ${lookupTarget.reason}` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
+					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
+				},
+			}
 
 		const issueReadPackage = await lookupTarget.handle.checkPackageReadAccess()
-		if (issueReadPackage) return { fulfilled: false, reason: `Thumbnail does not exist: ${issueReadPackage}` }
+		if (!issueReadPackage.success)
+			return {
+				fulfilled: false,
+				reason: {
+					user: `Issue with target: ${issueReadPackage.reason.user}`,
+					tech: `Issue with target: ${issueReadPackage.reason.tech}`,
+				},
+			}
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const expectedTargetMetadata: Metadata = getMetadata(exp, actualSourceVersion)
@@ -97,11 +127,20 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		const targetMetadata = await lookupTarget.handle.fetchMetadata()
 
 		if (!targetMetadata) {
-			return { fulfilled: false, reason: 'No thumbnail file found' }
+			return {
+				fulfilled: false,
+				reason: { user: `The thumbnail needs to be re-generated`, tech: `No thumbnail metadata file found` },
+			}
 		} else if (targetMetadata.sourceVersionHash !== expectedTargetMetadata.sourceVersionHash) {
-			return { fulfilled: false, reason: `Thumbnail version hash doesn't match thumnail file` }
+			return {
+				fulfilled: false,
+				reason: {
+					user: `The thumbnail needs to be re-generated`,
+					tech: `Thumbnail version doesn't match thumbnail file`,
+				},
+			}
 		} else {
-			return { fulfilled: true, reason: 'Thumbnail already matches thumnail file' }
+			return { fulfilled: true }
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -111,10 +150,10 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		const startTime = Date.now()
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
-		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason}`)
+		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
@@ -123,20 +162,20 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP)
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 		) {
 			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPAccessorHandle(targetHandle)
+				!isHTTPProxyAccessorHandle(targetHandle)
 			)
 				throw new Error(`Target AccessHandler type is wrong`)
 
 			// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail:
 			const thumbnailURL = await getThumbnailURL(exp, lookupSource)
-			if (!thumbnailURL) throw new Error(`Can't start working due to source: Thumbnail url not found`)
+			if (!thumbnailURL.success) throw new Error(`Can't start working due to source: ${thumbnailURL.reason.tech}`)
 			const sourceHTTPHandle = getSourceHTTPHandle(worker, sourceHandle, thumbnailURL)
 
 			let wasCancelled = false
@@ -176,20 +215,23 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 					if (wasCancelled) return // ignore
 					setImmediate(() => {
 						// Copying is done
-						const duration = Date.now() - startTime
 
-						lookupTarget.handle
-							.updateMetadata(targetMetadata)
-							.then(() => {
-								workInProgress._reportComplete(
-									targetMetadata.sourceVersionHash,
-									`Thumbnail fetched in ${Math.round(duration / 100) / 10}s`,
-									undefined
-								)
-							})
-							.catch((err) => {
-								workInProgress._reportError(err)
-							})
+						;(async () => {
+							await lookupTarget.handle.finalizePackage()
+							await lookupTarget.handle.updateMetadata(targetMetadata)
+
+							const duration = Date.now() - startTime
+							workInProgress._reportComplete(
+								targetMetadata.sourceVersionHash,
+								{
+									user: `Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+									tech: `Completed at ${Date.now()}`,
+								},
+								undefined
+							)
+						})().catch((err) => {
+							workInProgress._reportError(err)
+						})
 					})
 				})
 			})
@@ -204,11 +246,29 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
-		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason}`)
+		if (!lookupTarget.ready) {
+			return {
+				removed: false,
+				reason: {
+					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
+					tech: `No access to target: ${lookupTarget.reason.tech}`,
+				},
+			}
+		}
 
-		await lookupTarget.handle.removePackage()
+		try {
+			await lookupTarget.handle.removePackage()
+		} catch (err) {
+			return {
+				removed: false,
+				reason: {
+					user: `Cannot remove file due to an internal error`,
+					tech: `Cannot remove preview file: ${err.toString()}`,
+				},
+			}
+		}
 
-		return { removed: true, reason: 'Removed thumbnail' }
+		return { removed: true }
 	},
 }
 function isQuantelClipThumbnail(exp: Expectation.Any): exp is Expectation.QuantelClipThumbnail {
@@ -233,13 +293,20 @@ function getMetadata(exp: Expectation.QuantelClipThumbnail, actualSourceVersion:
 async function getThumbnailURL(
 	exp: Expectation.QuantelClipThumbnail,
 	lookupSource: LookupPackageContainer<any>
-): Promise<{ baseURL: string; url: string } | undefined> {
+): Promise<{ success: true; baseURL: string; url: string } | { success: false; reason: Reason }> {
 	if (!lookupSource.accessor) throw new Error(`Source accessor not set!`)
 	if (lookupSource.accessor.type !== Accessor.AccessType.QUANTEL)
 		throw new Error(`Source accessor should have been a Quantel ("${lookupSource.accessor.type}")`)
 	if (!isQuantelClipAccessorHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
 
-	if (!lookupSource.accessor.transformerURL) return undefined
+	if (!lookupSource.accessor.transformerURL)
+		return {
+			success: false,
+			reason: {
+				user: `transformerURL is not set in settings`,
+				tech: `transformerURL not set on accessor ${lookupSource.handle.accessorId}`,
+			},
+		}
 
 	const clip = await lookupSource.handle.getClip()
 	if (clip) {
@@ -255,25 +322,33 @@ async function getThumbnailURL(
 		}
 
 		return {
+			success: true,
 			baseURL: lookupSource.accessor.transformerURL,
 			url: `/quantel/homezone/clips/stills/${clip.ClipID}/${frame}.${width ? width + '.' : ''}jpg`,
 		}
+	} else {
+		return {
+			success: false,
+			reason: {
+				user: `Source clip not found`,
+				tech: `Source clip not found`,
+			},
+		}
 	}
-	return undefined
 }
 export function getSourceHTTPHandle(
 	worker: GenericWorker,
 	sourceHandle: GenericAccessorHandle<any>,
 	thumbnailURL: { baseURL: string; url: string }
-): HTTPAccessorHandle<any> {
+): HTTPProxyAccessorHandle<any> {
 	// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail,
 	// so we have a QUANTEL source, but we construct an HTTP source from it to use instead:
 
 	const handle = getAccessorHandle<Metadata>(
 		worker,
 		sourceHandle.accessorId + '__http',
-		literal<AccessorOnPackage.HTTP>({
-			type: Accessor.AccessType.HTTP,
+		literal<AccessorOnPackage.HTTPProxy>({
+			type: Accessor.AccessType.HTTP_PROXY,
 			baseUrl: thumbnailURL.baseURL,
 			// networkId?: string
 			url: thumbnailURL.url,
@@ -281,7 +356,7 @@ export function getSourceHTTPHandle(
 		{ filePath: thumbnailURL.url },
 		{}
 	)
-	if (!isHTTPAccessorHandle(handle)) throw new Error(`getSourceHTTPHandle: got a non-HTTP handle!`)
+	if (!isHTTPProxyAccessorHandle(handle)) throw new Error(`getSourceHTTPHandle: got a non-HTTP handle!`)
 	return handle
 }
 

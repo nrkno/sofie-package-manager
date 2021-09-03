@@ -1,0 +1,43 @@
+{
+    "name": "@tests/internal-tests",
+    "version": "1.0.0",
+    "description": "Internal tests",
+    "private": true,
+    "scripts": {
+        "build": "rimraf dist && yarn build:main",
+        "build:main": "tsc -p tsconfig.json",
+        "test": "jest --runInBand",
+        "precommit": "lint-staged"
+    },
+    "devDependencies": {
+        "deep-extend": "^0.6.0",
+        "nexe": "^3.3.7",
+        "lint-staged": "^7.2.0",
+        "tv-automation-quantel-gateway-client": "^2.0.2",
+        "windows-network-drive": "^3.0.1"
+    },
+    "dependencies": {
+        "@http-server/generic": "*",
+        "@package-manager/generic": "*",
+        "@shared/api": "*",
+        "@shared/expectation-manager": "*",
+        "@shared/workforce": "*",
+        "@shared/worker": "*",
+        "underscore": "^1.12.0"
+    },
+    "peerDependencies": {
+        "@sofie-automation/blueprints-integration": "*"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "engines": {
+        "node": ">=12.20.0"
+    },
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    }
+}

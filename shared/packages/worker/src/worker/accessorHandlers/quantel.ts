@@ -6,8 +6,9 @@ import {
 	PackageReadInfoBaseType,
 	PackageReadInfoQuantelClip,
 	PutPackageHandler,
+	AccessorHandlerResult,
 } from './genericHandle'
-import { Expectation, literal } from '@shared/api'
+import { Expectation, literal, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
@@ -18,12 +19,13 @@ const MINIMUM_FRAMES = 10
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'quantel'
 	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
 		guid?: string
 		title?: string
 	}
 	// @ts-expect-error unused variable
-	private workOptions: any // {}
+	private workOptions: any
 	constructor(
 		worker: GenericWorker,
 		accessorId: string,
@@ -41,44 +43,70 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				throw new Error('Bad input data: content.title must be a string!')
 		}
 		this.content = content
-		// if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
-		//	throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+
 		this.workOptions = workOptions
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.Quantel
 		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): string | undefined {
+	checkHandleRead(): AccessorHandlerResult {
 		if (!this.accessor.allowRead) {
-			return `Not allowed to read`
+			return { success: false, reason: { user: `Not allowed to read`, tech: `Not allowed to read` } }
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): string | undefined {
+	checkHandleWrite(): AccessorHandlerResult {
 		if (!this.accessor.allowWrite) {
-			return `Not allowed to write`
+			return { success: false, reason: { user: `Not allowed to write`, tech: `Not allowed to write` } }
 		}
 		if (!this.accessor.serverId) {
-			return `serverId not set (required for target)`
+			return {
+				success: false,
+				reason: {
+					user: `serverId not set, this is required for a target`,
+					tech: `serverId not set (required for target)`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	private checkAccessor(): string | undefined {
+	private checkAccessor(): AccessorHandlerResult {
 		if (this.accessor.type !== Accessor.AccessType.QUANTEL) {
-			return `Quantel Accessor type is not QUANTEL ("${this.accessor.type}")!`
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `Quantel Accessor type is not QUANTEL ("${this.accessor.type}")!`,
+				},
+			}
 		}
-		if (!this.accessor.quantelGatewayUrl) return `Accessor quantelGatewayUrl not set`
-		if (!this.accessor.ISAUrls) return `Accessor ISAUrls not set`
-		if (!this.accessor.ISAUrls.length) return `Accessor ISAUrls is empty`
+		if (!this.accessor.quantelGatewayUrl)
+			return {
+				success: false,
+				reason: { user: `Quantel GatewayUrl not set in settings`, tech: `Accessor quantelGatewayUrl not set` },
+			}
+		if (!this.accessor.ISAUrls)
+			return { success: false, reason: { user: `ISAUrls not set in settings`, tech: `Accessor ISAUrls not set` } }
+		if (!this.accessor.ISAUrls.length)
+			return {
+				success: false,
+				reason: { user: `ISAUrls is empty in settings`, tech: `Accessor ISAUrls is empty` },
+			}
 		if (!this.content.onlyContainerAccess) {
 			if (!this.content.guid && this.content.title)
-				return `Neither guid or title are set (at least one should be)`
+				return {
+					success: false,
+					reason: {
+						user: `Neither guid or title are set on the package (at least one should be)`,
+						tech: `Neither guid or title are set (at least one should be)`,
+					},
+				}
 		}
 
-		return undefined // all good
+		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<string | undefined> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		const quantel = await this.getQuantelGateway()
 
 		// Search for a clip that match:
@@ -86,24 +114,42 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		if (clipSummary) {
 			// There is at least one clip that matches the query
-			return undefined // all good
+			return { success: true }
 		} else {
-			return `Quantel clip "${this.content.guid || this.content.title}" not found`
+			return {
+				success: false,
+				reason: {
+					user: `Quantel clip "${this.content.guid || this.content.title}" not found`,
+					tech: `Quantel clip "${this.content.guid || this.content.title}" not found`,
+				},
+			}
 		}
 	}
-	async tryPackageRead(): Promise<string | undefined> {
+	async tryPackageRead(): Promise<AccessorHandlerResult> {
 		const quantel = await this.getQuantelGateway()
 
 		const clipSummary = await this.searchForLatestClip(quantel)
 
-		if (!clipSummary) return `No clip found`
+		if (!clipSummary) return { success: false, reason: { user: `No clip found`, tech: `No clip found` } }
 
 		if (!parseInt(clipSummary.Frames, 10)) {
-			return `Clip "${clipSummary.ClipGUID}" has no frames`
+			return {
+				success: false,
+				reason: {
+					user: `The clip has no frames`,
+					tech: `Clip "${clipSummary.ClipGUID}" has no frames`,
+				},
+			}
 		}
 		if (parseInt(clipSummary.Frames, 10) < MINIMUM_FRAMES) {
 			// Check that it is meaningfully playable
-			return `Clip "${clipSummary.ClipGUID}" hasn't received enough frames`
+			return {
+				success: false,
+				reason: {
+					user: `The clip hasn't received enough frames`,
+					tech: `Clip "${clipSummary.ClipGUID}" hasn't received enough frames (${clipSummary.Frames})`,
+				},
+			}
 		}
 		// 5/5/21: Removed check for completed - OA tests shoes it does nothing for placeholders / Richard
 		// if (!clipSummary.Completed || !clipSummary.Completed.length) {
@@ -111,9 +157,9 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		// 	return `Clip "${clipSummary.ClipGUID}" is not completed`
 		// }
 
-		return undefined
+		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
 		const quantel = await this.getQuantelGateway()
 
 		const server = await quantel.getServer()
@@ -124,7 +170,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!server.pools.length) throw new Error(`Server ${this.accessor.serverId} has no disk pools!`)
 		if (server.down) throw new Error(`Server ${this.accessor.serverId} is down!`)
 
-		return undefined // all good
+		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.QuantelClip> {
 		const quantel = await this.getQuantelGateway()
@@ -234,6 +280,9 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		return streamHandler
 	}
+	async finalizePackage(): Promise<void> {
+		// do nothing
+	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
 		throw new Error('Quantel.fetchMetadata: Not supported')
@@ -244,33 +293,61 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	async removeMetadata(): Promise<void> {
 		// Not supported, do nothing
 	}
-	async runCronJob(): Promise<string | undefined> {
-		return undefined // not applicable
+	async runCronJob(): Promise<AccessorHandlerResult> {
+		return {
+			success: false,
+			reason: { user: `There is an internal issue in Package Manager`, tech: 'runCronJob not supported' },
+		} // not applicable
 	}
-	async setupPackageContainerMonitors(): Promise<string | undefined> {
-		return undefined // not applicable
+	async setupPackageContainerMonitors(): Promise<AccessorHandlerResult> {
+		return {
+			success: false,
+			reason: {
+				user: `There is an internal issue in Package Manager`,
+				tech: 'setupPackageContainerMonitors, not supported',
+			},
+		} // not applicable
 	}
-	async disposePackageContainerMonitors(): Promise<string | undefined> {
-		return undefined // not applicable
+	async disposePackageContainerMonitors(): Promise<AccessorHandlerResult> {
+		return {
+			success: false,
+			reason: {
+				user: `There is an internal issue in Package Manager`,
+				tech: 'disposePackageContainerMonitors, not supported',
+			},
+		} // not applicable
 	}
 
 	async getClip(): Promise<ClipDataSummary | undefined> {
 		const quantel = await this.getQuantelGateway()
-		return await this.searchForLatestClip(quantel)
+		return this.searchForLatestClip(quantel)
 	}
 	async getClipDetails(clipId: number): Promise<ClipData | null> {
 		const quantel = await this.getQuantelGateway()
-		return await quantel.getClip(clipId)
+		return quantel.getClip(clipId)
 	}
 
-	async getTransformerStreamURL(): Promise<{ baseURL: string; url: string; fullURL: string } | undefined> {
-		if (!this.accessor.transformerURL) return undefined
+	get transformerURL(): string | undefined {
+		return this.accessor.transformerURL
+	}
+	async getTransformerStreamURL(): Promise<
+		{ success: true; baseURL: string; url: string; fullURL: string } | { success: false; reason: Reason }
+	> {
+		if (!this.accessor.transformerURL)
+			return {
+				success: false,
+				reason: {
+					user: `transformerURL is not set in settings`,
+					tech: `transformerURL not set on accessor ${this.accessorId}`,
+				},
+			}
 
 		const clip = await this.getClip()
 		if (clip) {
 			const baseURL = this.accessor.transformerURL
 			const url = `/quantel/homezone/clips/streams/${clip.ClipID}/stream.mpd`
 			return {
+				success: true,
 				baseURL,
 				url,
 				fullURL: [
@@ -278,8 +355,15 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 					url.replace(/^\//, ''), // trim leading slash
 				].join('/'),
 			}
+		} else {
+			return {
+				success: false,
+				reason: {
+					user: `no clip found`,
+					tech: `no clip found`,
+				},
+			}
 		}
-		return undefined
 	}
 
 	private convertClipSummaryToVersion(clipSummary: ClipDataSummary): Expectation.Version.QuantelClip {
@@ -298,9 +382,14 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
 		if (!this.accessor.ISAUrls) throw new Error('accessor.ISAUrls is not set')
 		if (!this.accessor.ISAUrls.length) throw new Error('accessor.ISAUrls array is empty')
-		// if (!this.accessor.serverId) throw new Error('accessor.serverId is not set')
 
 		const id = `${this.accessor.quantelGatewayUrl}`
+
+		// A little hack to fix a case where ISAUrls is a string, even though it shouldn't...
+		let ISAUrls: string[] = this.accessor.ISAUrls
+		if (!Array.isArray(ISAUrls) && typeof ISAUrls === 'string') {
+			ISAUrls = (ISAUrls as string).split(',')
+		}
 
 		let gateway: QuantelGateway = cacheGateways[id]
 
@@ -313,10 +402,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				this.accessor.serverId
 			)
 
-			// @todo: this should be emitted somehow:
-			gateway.on('error', (e) => console.log(`Quantel.QuantelGateway`, e))
-			// @todo: We should be able to emit statuses somehow:
-			// gateway.monitorServerStatus(() => {})
+			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway`, e))
 
 			cacheGateways[id] = gateway
 		}

@@ -1,13 +1,12 @@
 import { promisify } from 'util'
 import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { PackageReadInfo, PutPackageHandler } from './genericHandle'
-import { Expectation, PackageContainerExpectation } from '@shared/api'
+import { PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
+import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
 import networkDrive from 'windows-network-drive'
 import { exec } from 'child_process'
-import { assertNever } from '../lib/lib'
 import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
 
 const fsStat = promisify(fs.stat)
@@ -16,6 +15,8 @@ const fsOpen = promisify(fs.open)
 const fsClose = promisify(fs.close)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
+const fsRename = promisify(fs.rename)
+const fsUnlink = promisify(fs.unlink)
 const pExec = promisify(exec)
 
 /** Accessor handle for accessing files on a network share */
@@ -28,10 +29,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	} = {}
 
 	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
 		filePath?: string
 	}
-	private workOptions: Expectation.WorkOptions.RemoveDelay
+	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
 	constructor(
 		worker: GenericWorker,
@@ -48,8 +50,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
 		}
 		this.content = content
+
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
+		if (workOptions.useTemporaryFilePath && typeof workOptions.useTemporaryFilePath !== 'boolean')
+			throw new Error('Bad input data: workOptions.useTemporaryFilePath is not a boolean!')
 		this.workOptions = workOptions
 	}
 	/** Path to the PackageContainer, ie the folder on the share */
@@ -65,32 +70,52 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		const accessor = accessor0 as AccessorOnPackage.FileShare
 		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): string | undefined {
+	checkHandleRead(): AccessorHandlerResult {
 		if (!this.accessor.allowRead) {
-			return `Not allowed to read`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to read`,
+					tech: `Not allowed to read`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): string | undefined {
+	checkHandleWrite(): AccessorHandlerResult {
 		if (!this.accessor.allowWrite) {
-			return `Not allowed to write`
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to write`,
+					tech: `Not allowed to write`,
+				},
+			}
 		}
 		return this.checkAccessor()
 	}
-	private checkAccessor(): string | undefined {
+	private checkAccessor(): AccessorHandlerResult {
 		if (this.accessor.type !== Accessor.AccessType.FILE_SHARE) {
-			return `FileShare Accessor type is not FILE_SHARE ("${this.accessor.type}")!`
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `FileShare Accessor type is not FILE_SHARE ("${this.accessor.type}")!`,
+				},
+			}
 		}
-		if (!this.accessor.folderPath) return `Folder path not set`
+		if (!this.accessor.folderPath)
+			return { success: false, reason: { user: `Folder path not set`, tech: `Folder path not set` } }
 		if (!this.content.onlyContainerAccess) {
-			if (!this.filePath) return `File path not set`
+			if (!this.filePath)
+				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<string | undefined> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		const readIssue = await this._checkPackageReadAccess()
-		if (readIssue) {
-			if (readIssue.match(/EPERM/)) {
+		if (!readIssue.success) {
+			if (readIssue.reason.tech.match(/EPERM/)) {
 				// "EPERM: operation not permitted"
 				if (this.accessor.userName) {
 					// Try resetting the access permissions:
@@ -103,9 +128,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				return readIssue
 			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async tryPackageRead(): Promise<string | undefined> {
+	async tryPackageRead(): Promise<AccessorHandlerResult> {
 		try {
 			// Check if we can open the file for reading:
 			const fd = await fsOpen(this.fullPath, 'r+')
@@ -114,16 +139,22 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			await fsClose(fd)
 		} catch (err) {
 			if (err && err.code === 'EBUSY') {
-				return `Not able to read file (busy)`
+				return {
+					success: false,
+					reason: { user: `Not able to read file (file is busy)`, tech: err.toString() },
+				}
 			} else if (err && err.code === 'ENOENT') {
-				return `File does not exist (ENOENT)`
+				return { success: false, reason: { user: `File does not exist`, tech: err.toString() } }
 			} else {
-				return `Not able to read file: ${err.toString()}`
+				return {
+					success: false,
+					reason: { user: `Not able to read file`, tech: err.toString() },
+				}
 			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	private async _checkPackageReadAccess(): Promise<string | undefined> {
+	private async _checkPackageReadAccess(): Promise<AccessorHandlerResult> {
 		await this.prepareFileAccess()
 
 		try {
@@ -131,20 +162,32 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// The file exists
 		} catch (err) {
 			// File is not readable
-			return `Not able to read file: ${err.toString()}`
+			return {
+				success: false,
+				reason: {
+					user: `File doesn't exist`,
+					tech: `Not able to read file: ${err.toString()}`,
+				},
+			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<string | undefined> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
 		await this.prepareFileAccess()
 		try {
 			await fsAccess(this.folderPath, fs.constants.W_OK)
 			// The file exists
 		} catch (err) {
-			// File is not readable
-			return `Not able to write to file: ${err.toString()}`
+			// File is not writeable
+			return {
+				success: false,
+				reason: {
+					user: `Not able to write to file`,
+					tech: `Not able to write to file: ${err.toString()}`,
+				},
+			}
 		}
-		return undefined // all good
+		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.FileOnDisk> {
 		await this.prepareFileAccess()
@@ -181,6 +224,19 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		await this.prepareFileAccess()
 		await this.clearPackageRemoval(this.filePath)
 
+		const fullPath = this.workOptions.useTemporaryFilePath ? this.temporaryFilePath : this.fullPath
+
+		// Remove the file if it exists:
+		let exists = false
+		try {
+			await fsAccess(fullPath, fs.constants.R_OK)
+			// The file exists
+			exists = true
+		} catch (err) {
+			// Ignore
+		}
+		if (exists) await fsUnlink(fullPath)
+
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
 		const streamWrapper: PutPackageHandler = new PutPackageHandler(() => {
@@ -199,6 +255,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		// await this.removeDeferRemovePackage()
 		throw new Error('FileShare.putPackageInfo: Not supported')
+	}
+
+	async finalizePackage(): Promise<void> {
+		if (this.workOptions.useTemporaryFilePath) {
+			await fsRename(this.temporaryFilePath, this.fullPath)
+		}
 	}
 
 	// Note: We handle metadata by storing a metadata json-file to the side of the file.
@@ -223,22 +285,26 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async removeMetadata(): Promise<void> {
 		await this.unlinkIfExists(this.metadataPath)
 	}
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
+		let badReason: Reason | null = null
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
-				await this.removeDuePackages()
+				badReason = await this.removeDuePackages()
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
 			}
 		}
 
-		return undefined
+		if (!badReason) return { success: true }
+		else return { success: false, reason: badReason }
 	}
-	async setupPackageContainerMonitors(packageContainerExp: PackageContainerExpectation): Promise<string | undefined> {
+	async setupPackageContainerMonitors(
+		packageContainerExp: PackageContainerExpectation
+	): Promise<AccessorHandlerResult> {
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
@@ -250,11 +316,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			}
 		}
 
-		return undefined // all good
+		return { success: true }
 	}
 	async disposePackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
-	): Promise<string | undefined> {
+	): Promise<AccessorHandlerResult> {
 		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
 		for (const monitor of monitors) {
 			if (monitor === 'packages') {
@@ -265,17 +331,24 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				assertNever(monitor)
 			}
 		}
-		return undefined // all good
+		return { success: true }
+	}
+	/** Called when the package is supposed to be in place */
+	async packageIsInPlace(): Promise<void> {
+		await this.clearPackageRemoval(this.filePath)
 	}
 	/** Local path to the Package, ie the File */
-	private get filePath(): string {
+	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 
 		const filePath = this.accessor.filePath || this.content.filePath
 		if (!filePath) throw new Error(`FileShareAccessor: filePath not set!`)
 		return filePath
 	}
-
+	/** Full path to a temporary file */
+	get temporaryFilePath(): string {
+		return this.fullPath + '.pmtemp'
+	}
 	private get metadataPath() {
 		return this.getMetadataPath(this.filePath)
 	}

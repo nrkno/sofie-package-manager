@@ -2,6 +2,7 @@ import { Options } from 'yargs'
 import yargs = require('yargs/yargs')
 import _ from 'underscore'
 import { WorkerAgentConfig } from './worker'
+import { AppContainerConfig } from './appContainer'
 
 /*
  * This file contains various CLI argument definitions, used by the various processes that together constitutes the Package Manager
@@ -108,6 +109,11 @@ const workerArguments = defineArguments({
 		default: process.env.WORKFORCE_URL || 'ws://localhost:8070',
 		describe: 'The URL to the Workforce',
 	},
+	appContainerURL: {
+		type: 'string',
+		default: process.env.APP_CONTAINER_URL || '', // 'ws://localhost:8090',
+		describe: 'The URL to the AppContainer',
+	},
 	windowsDriveLetters: {
 		type: 'string',
 		default: process.env.WORKER_WINDOWS_DRIVE_LETTERS || 'X;Y;Z',
@@ -122,6 +128,55 @@ const workerArguments = defineArguments({
 		type: 'string',
 		default: process.env.WORKER_NETWORK_ID || 'default',
 		describe: 'Identifier of the local networks this worker has access to ("networkA;networkB")',
+	},
+})
+/** CLI-argument-definitions for the AppContainer process */
+const appContainerArguments = defineArguments({
+	appContainerId: {
+		type: 'string',
+		default: process.env.APP_CONTAINER_ID || 'appContainer0',
+		describe: 'Unique id of the appContainer',
+	},
+	workforceURL: {
+		type: 'string',
+		default: process.env.WORKFORCE_URL || 'ws://localhost:8070',
+		describe: 'The URL to the Workforce',
+	},
+	port: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_PORT || '', 10) || 8090,
+		describe: 'The port number to start the App Container websocket server on',
+	},
+	maxRunningApps: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_MAX_RUNNING_APPS || '', 10) || 3,
+		describe: 'How many apps the appContainer can run at the same time',
+	},
+	minRunningApps: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 0,
+		describe: 'Minimum amount of apps (of a certain appType) to be running',
+	},
+	spinDownTime: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_SPIN_DOWN_TIME || '', 10) || 60 * 1000,
+		describe: 'How long a Worker should stay idle before attempting to be spun down',
+	},
+
+	resourceId: {
+		type: 'string',
+		default: process.env.WORKER_NETWORK_ID || 'default',
+		describe: 'Identifier of the local resource/computer this worker runs on',
+	},
+	networkIds: {
+		type: 'string',
+		default: process.env.WORKER_NETWORK_ID || 'default',
+		describe: 'Identifier of the local networks this worker has access to ("networkA;networkB")',
+	},
+	windowsDriveLetters: {
+		type: 'string',
+		default: process.env.WORKER_WINDOWS_DRIVE_LETTERS || 'X;Y;Z',
+		describe: 'Which Windows Drive letters can be used to map shares. ("X;Y;Z") ',
 	},
 })
 /** CLI-argument-definitions for the "Single" process */
@@ -199,7 +254,7 @@ export function getHTTPServerConfig(): HTTPServerConfig {
 	}).argv
 
 	if (!argv.apiKeyWrite && argv.apiKeyRead) {
-		throw `Error: When apiKeyRead is given, apiKeyWrite is required!`
+		throw new Error(`Error: When apiKeyRead is given, apiKeyWrite is required!`)
 	}
 
 	return {
@@ -257,6 +312,7 @@ export interface WorkerConfig {
 	process: ProcessConfig
 	worker: {
 		workforceURL: string | null
+		appContainerURL: string | null
 		resourceId: string
 		networkIds: string[]
 	} & WorkerAgentConfig
@@ -272,9 +328,37 @@ export function getWorkerConfig(): WorkerConfig {
 		worker: {
 			workerId: argv.workerId,
 			workforceURL: argv.workforceURL,
+			appContainerURL: argv.appContainerURL,
 			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
 			resourceId: argv.resourceId,
 			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
+		},
+	}
+}
+// Configuration for the AppContainer Application: ------------------------------
+export interface AppContainerProcessConfig {
+	process: ProcessConfig
+	appContainer: AppContainerConfig
+}
+export function getAppContainerConfig(): AppContainerProcessConfig {
+	const argv = yargs(process.argv.slice(2)).options({
+		...appContainerArguments,
+		...processOptions,
+	}).argv
+
+	return {
+		process: getProcessConfig(argv),
+		appContainer: {
+			workforceURL: argv.workforceURL,
+			port: argv.port,
+			appContainerId: argv.appContainerId,
+			maxRunningApps: argv.maxRunningApps,
+			minRunningApps: argv.minRunningApps,
+			spinDownTime: argv.spinDownTime,
+
+			resourceId: argv.resourceId,
+			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
+			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
 		},
 	}
 }
@@ -285,6 +369,7 @@ export interface SingleAppConfig
 		HTTPServerConfig,
 		PackageManagerConfig,
 		WorkerConfig,
+		AppContainerProcessConfig,
 		QuantelHTTPTransformerProxyConfig {
 	singleApp: {
 		workerCount: number
@@ -299,6 +384,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		...workerArguments,
 		...processOptions,
 		...singleAppArguments,
+		...appContainerArguments,
 		...quantelHTTPTransformerProxyConfigArguments,
 	}
 	// Remove some that are not used in the Single-App, so that they won't show up when running '--help':
@@ -323,6 +409,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		singleApp: {
 			workerCount: argv.workerCount || 1,
 		},
+		appContainer: getAppContainerConfig().appContainer,
 		quantelHTTPTransformerProxy: getQuantelHTTPTransformerProxyConfig().quantelHTTPTransformerProxy,
 	}
 }

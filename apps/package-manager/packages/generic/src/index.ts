@@ -1,5 +1,5 @@
 import { Connector, Config } from './connector'
-import { getPackageManagerConfig, LoggerInstance, setupLogging } from '@shared/api'
+import { getPackageManagerConfig, LoggerInstance, ProcessHandler, setupLogging } from '@shared/api'
 
 export { Connector, Config }
 export function startProcess(startInInternalMode?: boolean): { logger: LoggerInstance; connector: Connector } {
@@ -15,7 +15,11 @@ export function startProcess(startInInternalMode?: boolean): { logger: LoggerIns
 		config.packageManager.accessUrl = null
 		config.packageManager.workforceURL = null
 	}
-	const connector = new Connector(logger, config)
+
+	const process = new ProcessHandler(logger)
+	process.init(config.process)
+
+	const connector = new Connector(logger, config, process)
 
 	logger.info('Core:          ' + config.packageManager.coreHost + ':' + config.packageManager.corePort)
 	logger.info('------------------------------------------------------------------')

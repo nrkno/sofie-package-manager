@@ -1,6 +1,7 @@
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
+	LoggerInstance,
 	PackageContainerExpectation,
 	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
@@ -24,6 +25,7 @@ export abstract class GenericWorker {
 	private _uniqueId = 0
 
 	constructor(
+		public logger: LoggerInstance,
 		public readonly genericConfig: WorkerAgentConfig,
 		public readonly location: WorkerLocation,
 		public sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
@@ -36,6 +38,9 @@ export abstract class GenericWorker {
 	}
 	/** Called upon startup */
 	abstract init(): Promise<void>
+
+	/** Called upon termination */
+	abstract terminate(): void
 	/**
 	 * Does the worker support this expectation?
 	 * This includes things like:

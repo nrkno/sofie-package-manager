@@ -1,6 +1,7 @@
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
+	LoggerInstance,
 	PackageContainerExpectation,
 	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
@@ -12,6 +13,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
+	assertNever,
 } from '@shared/api'
 import { GenericWorker, WorkerLocation } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
@@ -25,37 +27,49 @@ import { QuantelClipCopy } from './expectationHandlers/quantelClipCopy'
 import * as PackageContainerExpHandler from './packageContainerExpectationHandler'
 import { QuantelClipPreview } from './expectationHandlers/quantelClipPreview'
 import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
-import { assertNever } from '../../lib/lib'
-import { hasFFMpeg, hasFFProbe } from './expectationHandlers/lib/ffmpeg'
+import { testFFMpeg, testFFProbe } from './expectationHandlers/lib/ffmpeg'
+import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
 	static readonly type = 'windowsWorker'
 
-	public hasFFMpeg = false
-	public hasFFProbe = false
+	/** null = all is well */
+	public testFFMpeg: null | string = 'Not initialized'
+	/** null = all is well */
+	public testFFProbe: null | string = 'Not initialized'
+
+	private monitor: NodeJS.Timer | undefined
 
 	constructor(
+		logger: LoggerInstance,
 		public readonly config: WorkerAgentConfig,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
-		super(config, location, sendMessageToManager, WindowsWorker.type)
+		super(logger, config, location, sendMessageToManager, WindowsWorker.type)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
-		try {
-			return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
-		} catch (err) {
-			// Does not support the type
-			return {
-				support: false,
-				reason: err.toString(),
-			}
-		}
+		return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
 	}
 	async init(): Promise<void> {
-		this.hasFFMpeg = !!(await hasFFMpeg())
-		this.hasFFProbe = !!(await hasFFProbe())
+		await this.checkExecutables()
+		this.monitor = setInterval(() => {
+			this.checkExecutables().catch((err) => {
+				this.logger.error('Error in checkExecutables')
+				this.logger.error(err)
+			})
+		}, 10 * 1000)
+	}
+	terminate(): void {
+		if (this.monitor) {
+			clearInterval(this.monitor)
+			delete this.monitor
+		}
+	}
+	private async checkExecutables() {
+		this.testFFMpeg = await testFFMpeg()
+		this.testFFProbe = await testFFProbe()
 	}
 	getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		return this.getExpectationHandler(exp).getCostForExpectation(exp, this, this)
@@ -90,6 +104,8 @@ export class WindowsWorker extends GenericWorker {
 				return QuantelThumbnail
 			case Expectation.Type.QUANTEL_CLIP_PREVIEW:
 				return QuantelClipPreview
+			case Expectation.Type.JSON_DATA_COPY:
+				return JsonDataCopy
 			default:
 				assertNever(exp)
 				// @ts-expect-error exp.type is never
