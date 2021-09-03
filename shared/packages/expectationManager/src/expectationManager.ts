@@ -1328,105 +1328,112 @@ export class ExpectationManager {
 	}
 	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of Object.values(this.trackedPackageContainers)) {
-			if (trackedPackageContainer.isUpdated) {
-				// If the packageContainer was newly updated, reset and set up again:
+			try {
+				if (trackedPackageContainer.isUpdated) {
+					// If the packageContainer was newly updated, reset and set up again:
+					if (trackedPackageContainer.currentWorker) {
+						const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
+						const disposeMonitorResult = await workerAgent.api.disposePackageContainerMonitors(
+							trackedPackageContainer.packageContainer
+						)
+						if (!disposeMonitorResult.success) {
+							this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+								user: `Unable to remove monitor, due to ${disposeMonitorResult.reason.user}`,
+								tech: `Unable to dispose monitor: ${disposeMonitorResult.reason.tech}`,
+							})
+							continue // Break further execution for this PackageContainer
+						}
+						trackedPackageContainer.currentWorker = null
+					}
+					trackedPackageContainer.isUpdated = false
+				}
+
 				if (trackedPackageContainer.currentWorker) {
-					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
-					const disposeMonitorResult = await workerAgent.api.disposePackageContainerMonitors(
-						trackedPackageContainer.packageContainer
+					// Check that the worker still exists:
+					if (!this.workerAgents[trackedPackageContainer.currentWorker]) {
+						trackedPackageContainer.currentWorker = null
+					}
+				}
+				if (!trackedPackageContainer.currentWorker) {
+					// Find a worker that supports this PackageContainer
+
+					let notSupportReason: Reason | null = null
+					await Promise.all(
+						Object.entries(this.workerAgents).map(async ([workerId, workerAgent]) => {
+							const support = await workerAgent.api.doYouSupportPackageContainer(
+								trackedPackageContainer.packageContainer
+							)
+							if (!trackedPackageContainer.currentWorker) {
+								if (support.support) {
+									trackedPackageContainer.currentWorker = workerId
+								} else {
+									notSupportReason = support.reason
+								}
+							}
+						})
 					)
-					if (!disposeMonitorResult.success) {
+					if (!trackedPackageContainer.currentWorker) {
+						notSupportReason = {
+							user: 'Found no worker that supports this packageContainer',
+							tech: 'Found no worker that supports this packageContainer',
+						}
+					}
+					if (notSupportReason) {
 						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-							user: `Unable to remove monitor, due to ${disposeMonitorResult.reason.user}`,
-							tech: `Unable to dispose monitor: ${disposeMonitorResult.reason.tech}`,
+							user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
+							tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
 						})
 						continue // Break further execution for this PackageContainer
 					}
-					trackedPackageContainer.currentWorker = null
 				}
-				trackedPackageContainer.isUpdated = false
-			}
 
-			if (trackedPackageContainer.currentWorker) {
-				// Check that the worker still exists:
-				if (!this.workerAgents[trackedPackageContainer.currentWorker]) {
-					trackedPackageContainer.currentWorker = null
-				}
-			}
-			if (!trackedPackageContainer.currentWorker) {
-				// Find a worker that supports this PackageContainer
+				if (trackedPackageContainer.currentWorker) {
+					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
 
-				let notSupportReason: Reason | null = null
-				await Promise.all(
-					Object.entries(this.workerAgents).map(async ([workerId, workerAgent]) => {
-						const support = await workerAgent.api.doYouSupportPackageContainer(
-							trackedPackageContainer.packageContainer
-						)
-						if (!trackedPackageContainer.currentWorker) {
-							if (support.support) {
-								trackedPackageContainer.currentWorker = workerId
-							} else {
-								notSupportReason = support.reason
-							}
-						}
-					})
-				)
-				if (!trackedPackageContainer.currentWorker) {
-					notSupportReason = {
-						user: 'Found no worker that supports this packageContainer',
-						tech: 'Found no worker that supports this packageContainer',
-					}
-				}
-				if (notSupportReason) {
-					this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-						user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
-						tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
-					})
-					continue // Break further execution for this PackageContainer
-				}
-			}
+					if (Object.keys(trackedPackageContainer.packageContainer.monitors).length !== 0) {
+						if (!trackedPackageContainer.monitorIsSetup) {
+							const monitorSetup = await workerAgent.api.setupPackageContainerMonitors(
+								trackedPackageContainer.packageContainer
+							)
 
-			if (trackedPackageContainer.currentWorker) {
-				const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
-
-				if (Object.keys(trackedPackageContainer.packageContainer.monitors).length !== 0) {
-					if (!trackedPackageContainer.monitorIsSetup) {
-						const monitorSetup = await workerAgent.api.setupPackageContainerMonitors(
-							trackedPackageContainer.packageContainer
-						)
-
-						trackedPackageContainer.status.monitors = {}
-						if (monitorSetup.success) {
-							trackedPackageContainer.monitorIsSetup = true
-							for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
-								trackedPackageContainer.status.monitors[monitorId] = {
-									label: monitor.label,
-									reason: {
-										user: 'Starting up',
-										tech: 'Starting up',
-									},
+							trackedPackageContainer.status.monitors = {}
+							if (monitorSetup.success) {
+								trackedPackageContainer.monitorIsSetup = true
+								for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
+									trackedPackageContainer.status.monitors[monitorId] = {
+										label: monitor.label,
+										reason: {
+											user: 'Starting up',
+											tech: 'Starting up',
+										},
+									}
 								}
+							} else {
+								this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+									user: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.user}`,
+									tech: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.tech}`,
+								})
 							}
-						} else {
+						}
+					}
+					if (Object.keys(trackedPackageContainer.packageContainer.cronjobs).length !== 0) {
+						const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
+							trackedPackageContainer.packageContainer
+						)
+						if (!cronJobStatus.success) {
 							this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-								user: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.user}`,
-								tech: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.tech}`,
+								user: 'Cron job not completed: ' + cronJobStatus.reason.user,
+								tech: 'Cron job not completed: ' + cronJobStatus.reason.tech,
 							})
+							continue
 						}
 					}
 				}
-				if (Object.keys(trackedPackageContainer.packageContainer.cronjobs).length !== 0) {
-					const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
-						trackedPackageContainer.packageContainer
-					)
-					if (!cronJobStatus.success) {
-						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-							user: 'Cron job not completed: ' + cronJobStatus.reason.user,
-							tech: 'Cron job not completed: ' + cronJobStatus.reason.tech,
-						})
-						continue
-					}
-				}
+			} catch (err) {
+				this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+					user: 'Internal Error',
+					tech: `Unhandled Error: ${err}`,
+				})
 			}
 		}
 	}

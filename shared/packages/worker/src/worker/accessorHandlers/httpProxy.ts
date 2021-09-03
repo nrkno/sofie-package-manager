@@ -6,7 +6,7 @@ import {
 	PutPackageHandler,
 	AccessorHandlerResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever } from '@shared/api'
+import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
 import FormData from 'form-data'
@@ -168,19 +168,21 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+		let badReason: Reason | null = null
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
-				await this.removeDuePackages()
+				badReason = await this.removeDuePackages()
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
 			}
 		}
 
-		return { success: true }
+		if (!badReason) return { success: true }
+		else return { success: false, reason: badReason }
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
@@ -330,7 +332,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 	}
 	/** Remove any packages that are due for removal */
-	async removeDuePackages(): Promise<void> {
+	async removeDuePackages(): Promise<Reason | null> {
 		let packagesToRemove = await this.getPackagesToRemove()
 
 		const removedFilePaths: string[] = []
@@ -364,6 +366,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		if (changed) {
 			await this.storePackagesToRemove(packagesToRemove)
 		}
+		return null
 	}
 	private async deletePackageIfExists(url: string): Promise<void> {
 		const result = await fetch(url, {

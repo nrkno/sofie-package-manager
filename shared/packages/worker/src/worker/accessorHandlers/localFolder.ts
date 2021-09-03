@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever } from '@shared/api'
+import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 
@@ -235,19 +235,21 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		await this.unlinkIfExists(this.metadataPath)
 	}
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+		let badReason: Reason | null = null
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
-				await this.removeDuePackages()
+				badReason = await this.removeDuePackages()
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
 			}
 		}
 
-		return { success: true }
+		if (!badReason) return { success: true }
+		else return { success: false, reason: badReason }
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
