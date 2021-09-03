@@ -25,3 +25,4 @@ yarn-error.log*
 **/dist/*
 deploy/
 lerna-debug.log
+tmp_packages_for_build/
