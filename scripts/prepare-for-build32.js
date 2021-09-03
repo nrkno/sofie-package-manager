@@ -3,7 +3,7 @@
 const promisify = require('util').promisify
 const cp = require('child_process')
 const path = require('path')
-const nexe = require('nexe')
+// const nexe = require('nexe')
 const exec = promisify(cp.exec)
 const glob = promisify(require('glob'))
 
@@ -19,11 +19,11 @@ const fseCopy = promisify(fse.copy)
 */
 const basePath = process.cwd()
 const packageJson = require(path.join(basePath, '/package.json'))
-const outputDirectory = path.join(basePath, './deploy/')
-const executableName = process.argv[2]
-if (!executableName) {
-	throw new Error(`Argument for the output executable file name not provided`)
-}
+// const outputDirectory = path.join(basePath, './deploy/')
+// const executableName = process.argv[2]
+// if (!executableName) {
+// 	throw new Error(`Argument for the output executable file name not provided`)
+// }
 
 ;(async () => {
 
@@ -44,12 +44,10 @@ if (!executableName) {
 		if (package0.name.match(packageJson.name)) continue
 
 		log(`  Copying: ${package0.name}`)
+		const target = path.resolve(path.join(basePath, 'tmp_packages_for_build', package0.name))
 
-		const source = path.join(`${basePath}/../../../tmp_packages_for_build/`, package0.name)
-		const target = path.resolve(path.join(basePath, 'node_modules', package0.name))
-
-		// log(`    ${source} -> ${target}`)
-		ps.push(fseCopy(source, target))
+		// log(`    ${package0.location} -> ${target}`)
+		ps.push(fseCopy(package0.location, target))
 
 		copiedFolders.push(target)
 	}
@@ -63,7 +61,6 @@ if (!executableName) {
 		...(await glob(`${basePath}node_modules/@*/app/*`)),
 		...(await glob(`${basePath}node_modules/@*/generic/*`)),
 	]
-
 	for (const file of copiedFiles) {
 		if (
 			// Only keep these:
@@ -75,26 +72,6 @@ if (!executableName) {
 		}
 	}
 	await Promise.all(ps)
-	ps = []
-
-	log(`Compiling using nexe...`)
-
-	const nexeOutputPath = path.join(outputDirectory, executableName)
-
-	console.log('nexeOutputPath', nexeOutputPath)
-
-	await nexe.compile({
-		input: path.join(basePath, './dist/index.js'),
-		output: nexeOutputPath,
-		// build: true, //required to use patches
-		targets: ['windows-x64-12.18.1'],
-	})
-
-	log(`Cleaning up...`)
-	// Clean up after ourselves:
-	for (const copiedFolder of copiedFolders) {
-		await rimraf(copiedFolder)
-	}
 
 	log(`...done!`)
 })().catch(log)

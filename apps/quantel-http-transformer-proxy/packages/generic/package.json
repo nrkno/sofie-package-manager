@@ -1,6 +1,6 @@
 {
     "name": "@quantel-http-transformer-proxy/generic",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -14,9 +14,9 @@
         "@sofie-automation/blueprints-integration": "*"
     },
     "dependencies": {
-        "@shared/api": "*",
         "@koa/cors": "^3.0.0",
         "@koa/multer": "3.0.0",
+        "@shared/api": "^1.0.1",
         "got": "^11.8.2",
         "koa": "^2.11.0",
         "koa-bodyparser": "^4.3.0",
@@ -32,10 +32,9 @@
         "yargs": "^16.2.0"
     },
     "devDependencies": {
-        "@sofie-automation/code-standard-preset": "^0.2.1",
-        "@types/xml2js": "^0.4.7",
         "@koa/cors": "^3.0.0",
         "@koa/multer": "3.0.0",
+        "@sofie-automation/code-standard-preset": "^0.2.1",
         "@types/jest": "^26.0.19",
         "@types/koa": "^2.11.6",
         "@types/koa-bodyparser": "^4.3.0",
@@ -47,9 +46,10 @@
         "@types/mkdirp": "^1.0.1",
         "@types/node": "^12.19.9",
         "@types/underscore": "^1.10.24",
+        "@types/xml2js": "^0.4.7",
         "@types/yargs": "^15.0.12",
-        "nexe": "^3.3.7",
-        "lint-staged": "^7.2.0"
+        "lint-staged": "^7.2.0",
+        "nexe": "^3.3.7"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

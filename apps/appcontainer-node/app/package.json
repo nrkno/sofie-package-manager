@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "AppContainer-Node.js",
     "private": true,
     "scripts": {
@@ -12,11 +12,11 @@
         "precommit": "lint-staged"
     },
     "devDependencies": {
-        "nexe": "^3.3.7",
-        "lint-staged": "^7.2.0"
+        "lint-staged": "^7.2.0",
+        "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@appcontainer-node/generic": "*"
+        "@appcontainer-node/generic": "^1.0.1"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"
