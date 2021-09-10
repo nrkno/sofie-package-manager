@@ -1478,13 +1478,15 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0":
-  version "1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0.tgz#5b4a71e36514107a8c69ffee7e9425aab360b460"
-  integrity sha512-QbPOaYbkoca3UCq3UYOcYrUjjKL/sDpTH3CcLMKCCBxVgsfzLAdsRkzbfOmrgbsx1LS4s4Yv9c+YK68AKzcrvw==
+"@sofie-automation/blueprints-integration@1.37.0-nightly-release37-20210910-113428-6a3c4c5.0":
+  version "1.37.0-nightly-release37-20210910-113428-6a3c4c5.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-release37-20210910-113428-6a3c4c5.0.tgz#0bacf3066b7d0937a7b69d55af1a1e4f52fc0a06"
+  integrity sha512-8qEIblBNkEsXlxnBRszdGxILW3KbrD95//Ut1pQ8/Kzw6KltYsUglVgKPIiG6Pylfyc4IRGUtoisdKZdEJCN+g==
   dependencies:
-    timeline-state-resolver-types "6.0.0-nightly-release35-20210608-165921-e8c0d0dbb.0"
+    moment "2.29.1"
+    timeline-state-resolver-types "^6.1.0-release36.0"
     tslib "^2.1.0"
+    underscore "1.13.1"
 
 "@sofie-automation/code-standard-preset@^0.2.1", "@sofie-automation/code-standard-preset@^0.2.2":
   version "0.2.2"
@@ -1505,10 +1507,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0":
-  version "1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.36.0-nightly-feat-package-management-20210630-070054-22b29d9.0.tgz#51f5cdfe38d50fc58862800eef5f9a370f7171cb"
-  integrity sha512-Xd3gnz/LxZ3ZlekEPovKnGM4yQL1/+xUBIB67cfMdHBcej9tjMTNbeLxgOA7ZnemjVVEeiikwmMJvwNUiLc+JA==
+"@sofie-automation/server-core-integration@1.37.0-nightly-release37-20210910-113428-6a3c4c5.0":
+  version "1.37.0-nightly-release37-20210910-113428-6a3c4c5.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-release37-20210910-113428-6a3c4c5.0.tgz#1c177b87b55df8bf6f6e4f1fe6fdb96446064428"
+  integrity sha512-tU5P4yQzsgis4IDKffTv312UGhakaIa4RbMnx1EzoOwseTKMkuxRYgQJAxhbxc6GkuvjoUNMsqEpM2onYzg7Yg==
   dependencies:
     data-store "^4.0.3"
     ejson "^2.2.0"
@@ -9663,10 +9665,10 @@ timeline-state-resolver-types@5.5.1:
   dependencies:
     tslib "^1.13.0"
 
-timeline-state-resolver-types@6.0.0-nightly-release35-20210608-165921-e8c0d0dbb.0:
-  version "6.0.0-nightly-release35-20210608-165921-e8c0d0dbb.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-6.0.0-nightly-release35-20210608-165921-e8c0d0dbb.0.tgz#c0cbf83b95204cc1e4e10b176f120a41d1abca72"
-  integrity sha512-SqOfKD5orC4HcIX/pVEwfdL+B6LEsP+47McAqljUS7Ha64WC6OxSQfA9TL8I2TEHt07rj85ZbtkXZOBhxO+lFw==
+timeline-state-resolver-types@^6.1.0-release36.0:
+  version "6.1.0-release36.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-6.1.0-release36.0.tgz#64ccf4e10365b8038ff613ed299606744182d40c"
+  integrity sha512-A6pGl6UUO5nyyO1yUkKc6yL0LGmyFA1t6r3z3wX3aD4dY7LW6ivch1C+dvvXEy1ia1D4uFpeISALKlJrTshPEA==
   dependencies:
     tslib "^2.1.0"
 
@@ -9975,6 +9977,11 @@ underscore@1.12.0, underscore@^1.12.0:
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.12.0.tgz#4814940551fc80587cef7840d1ebb0f16453be97"
   integrity sha512-21rQzss/XPMjolTiIezSu3JAjgagXKROtNrYFEOWK109qY1Uv2tVjPTZ1ci2HgvQDA16gHYSthQIJfB+XId/rQ==
+
+underscore@1.13.1:
+  version "1.13.1"
+  resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.1.tgz#0c1c6bd2df54b6b69f2314066d65b6cde6fcf9d1"
+  integrity sha512-hzSoAVtJF+3ZtiFX0VgfFPHEDRm7Y/QPjGyNo4TVdnDTdft3tr8hEkD25a1jC+TjTuE7tkHGKkhwCgs9dgBB2g==
 
 underscore@^1.12.1:
   version "1.12.1"

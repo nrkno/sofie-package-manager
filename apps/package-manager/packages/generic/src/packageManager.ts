@@ -104,7 +104,7 @@ export class PackageManagerHandler {
 		this.onSettingsChanged()
 		this.triggerUpdatedExpectedPackages()
 
-		await this.callbacksHandler.cleanReportedExpectations()
+		await this.callbacksHandler.cleanReportedStatuses()
 		await this.expectationManager.init()
 
 		this.logger.info('PackageManagerHandler initialized')
@@ -519,11 +519,15 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				throw new Error(`Unsupported message type "${message.type}"`)
 		}
 	}
-	public async cleanReportedExpectations() {
+	public async cleanReportedStatuses() {
 		// Clean out all reported statuses, this is an easy way to sync a clean state with core
 		this.reportedWorkStatuses = {}
 		await this.packageManager.coreHandler.core.callMethod(
 			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
+			[]
+		)
+		await this.packageManager.coreHandler.core.callMethod(
+			PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
 			[]
 		)
 	}
