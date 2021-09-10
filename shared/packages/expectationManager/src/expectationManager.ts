@@ -1578,7 +1578,7 @@ export class ExpectationManager {
 				expectationStatistics.countAborted++
 			} else assertNever(exp.state)
 
-			if (!exp.availableWorkers.length) {
+			if (Object.keys(exp.availableWorkers).length === 0) {
 				expectationStatistics.countNoAvailableWorkers++
 			}
 			if (
@@ -1599,8 +1599,9 @@ export class ExpectationManager {
 				(exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
 					exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING ||
 					exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) &&
-				(!exp.availableWorkers.length || // No workers supports it
-					!exp.session?.assignedWorker) && // No worker has time to work on it
+				(Object.keys(exp.availableWorkers).length === 0 || // No workers supports it
+					(exp.noWorkerAssignedTime &&
+						Date.now() - exp.noWorkerAssignedTime > this.constants.SCALE_UP_TIME)) && // No worker has had time to work on it lately
 				!this.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
 			) {
 				if (!exp.waitingForWorkerTime) {
