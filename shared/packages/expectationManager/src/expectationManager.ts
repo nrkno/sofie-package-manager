@@ -109,6 +109,7 @@ export class ExpectationManager {
 			SCALE_UP_TIME: 5 * 1000,
 			SCALE_UP_COUNT: 1,
 			WORKER_SUPPORT_TIME: 60 * 1000,
+			ERROR_WAIT_TIME: 10 * 1000,
 
 			...options?.constants,
 		}
@@ -415,12 +416,10 @@ export class ExpectationManager {
 						this.updateTrackedExpStatus(
 							wip.trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.NEW,
-							reason
+							reason,
+							undefined,
+							true
 						)
-						this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
-							status: wip.trackedExp.state,
-							statusReason: wip.trackedExp.reason,
-						})
 					} else {
 						// ignore
 					}
@@ -500,7 +499,9 @@ export class ExpectationManager {
 					},
 					lastEvaluationTime: 0,
 					waitingForWorkerTime: null,
+					noWorkerAssignedTime: null,
 					errorCount: 0,
+					lastErrorTime: 0,
 					reason: {
 						user: '',
 						tech: '',
@@ -605,9 +606,9 @@ export class ExpectationManager {
 	private getTrackedExpectations(): TrackedExpectation[] {
 		const tracked: TrackedExpectation[] = Object.values(this.trackedExpectations)
 		tracked.sort((a, b) => {
-			// Lowest errorCount first, this is to make it so that if one expectation fails, it'll not block all the others
-			if (a.errorCount > b.errorCount) return 1
-			if (a.errorCount < b.errorCount) return -1
+			// Lowest lastErrorTime first, this is to make it so that if one expectation fails, it'll not block all the others
+			if (a.lastErrorTime > b.lastErrorTime) return 1
+			if (a.lastErrorTime < b.lastErrorTime) return -1
 
 			// Lowest priority first
 			if (a.exp.priority > b.exp.priority) return 1
@@ -722,6 +723,12 @@ export class ExpectationManager {
 		if (trackedExp.session.hadError) return // do nothing
 
 		try {
+			if (Date.now() - trackedExp.lastErrorTime < this.constants.ERROR_WAIT_TIME) {
+				// There was an error not long ago, wait with this one.
+				trackedExp.session.hadError = true
+				return
+			}
+
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
 				// Check which workers might want to handle it:
 				// Reset properties:
@@ -848,25 +855,29 @@ export class ExpectationManager {
 									trackedExp,
 									ExpectedPackageStatusAPI.WorkStatusState.NEW,
 									readyToStart.reason,
-									newStatus
+									newStatus,
+									true
 								)
 							}
 						}
 					} catch (error) {
 						// There was an error, clearly it's not ready to start
-						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
-							user: 'Restarting due to error',
-							tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
-						})
+
+						this.updateTrackedExpStatus(
+							trackedExp,
+							ExpectedPackageStatusAPI.WorkStatusState.NEW,
+							{
+								user: 'Restarting due to error',
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+							},
+							undefined,
+							true
+						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						ExpectedPackageStatusAPI.WorkStatusState.NEW,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) {
 				// Start working on it:
@@ -900,24 +911,39 @@ export class ExpectationManager {
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.WORKING,
-							undefined,
+							{
+								user: `Working on: ${wipInfo.properties.workLabel}`,
+								tech: `Working on: ${wipInfo.properties.workLabel}`,
+							},
 							wipInfo.properties
 						)
 					} catch (error) {
 						// There was an error
-						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
-							user: 'Restarting due to an error',
-							tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
-						})
+						this.updateTrackedExpStatus(
+							trackedExp,
+							ExpectedPackageStatusAPI.WorkStatusState.NEW,
+							{
+								user: 'Restarting due to an error',
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+							},
+							undefined,
+							true
+						)
 					}
 				} else {
 					// No worker is available at the moment.
-					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					// Check if anough time has passed if it makes sense to check for new workers again:
+
+					if (
+						trackedExp.noWorkerAssignedTime &&
+						Date.now() - trackedExp.noWorkerAssignedTime > this.constants.WORKER_SUPPORT_TIME
+					) {
+						// Restart
+						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, undefined)
+					} else {
+						// Do nothing, hopefully some will be available at a later iteration
+						this.noWorkerAssigned(trackedExp)
+					}
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 				// It is already working, don't do anything
@@ -960,11 +986,7 @@ export class ExpectationManager {
 					} else {
 						// No worker is available at the moment.
 						// Do nothing, hopefully some will be available at a later iteration
-						this.updateTrackedExpStatus(
-							trackedExp,
-							undefined,
-							this.getNoAssignedWorkerReason(trackedExp.session)
-						)
+						this.noWorkerAssigned(trackedExp)
 					}
 				} else {
 					// Do nothing
@@ -978,20 +1000,19 @@ export class ExpectationManager {
 
 						this.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
 					} else {
+						// Something went wrong when trying to handle the removal.
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
-							removed.reason
+							removed.reason,
+							undefined,
+							true
 						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.RESTARTED) {
 				await this.assignWorkerToSession(trackedExp)
@@ -1005,20 +1026,19 @@ export class ExpectationManager {
 						})
 						trackedExp.session.triggerExpectationAgain = true
 					} else {
+						// Something went wrong when trying to remove
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
-							removed.reason
+							removed.reason,
+							undefined,
+							true
 						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.ABORTED) {
 				await this.assignWorkerToSession(trackedExp)
@@ -1032,31 +1052,36 @@ export class ExpectationManager {
 							tech: 'Aborted',
 						})
 					} else {
+						// Something went wrong when trying to remove
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
-							removed.reason
+							removed.reason,
+							undefined,
+							true
 						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else {
 				assertNever(trackedExp.state)
 			}
 		} catch (err) {
 			this.logger.error(`Error thrown in evaluateExpectationState for expectation "${trackedExp.id}"`)
-			this.logger.error(err)
-			this.updateTrackedExpStatus(trackedExp, undefined, {
-				user: 'Internal error in Package Manager',
-				tech: err.toString(),
-			})
+			this.logger.error(err as any)
+			this.updateTrackedExpStatus(
+				trackedExp,
+				undefined,
+				{
+					user: 'Internal error in Package Manager',
+					tech: `${err}`,
+				},
+				undefined,
+				true
+			)
 		}
 	}
 	/** Returns the appropriate time to wait before checking a fulfilled expectation again */
@@ -1073,9 +1098,11 @@ export class ExpectationManager {
 		trackedExp: TrackedExpectation,
 		state: ExpectedPackageStatusAPI.WorkStatusState | undefined,
 		reason: Reason | undefined,
-		newStatus?: Partial<TrackedExpectation['status']>
+		newStatus?: Partial<TrackedExpectation['status']> | undefined,
+		isError?: boolean
 	) {
 		trackedExp.lastEvaluationTime = Date.now()
+		if (isError) trackedExp.lastErrorTime = Date.now()
 
 		const prevState = trackedExp.state
 		const prevStatus = trackedExp.status
@@ -1111,8 +1138,8 @@ export class ExpectationManager {
 
 		if (updatedState || updatedReason) {
 			this.callbacks.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
-				status: trackedExp.state,
-				statusReason: trackedExp.reason,
+				status: updatedState || updatedReason ? trackedExp.state : undefined,
+				statusReason: updatedReason ? trackedExp.reason : undefined,
 			})
 		}
 		if (updatedState || updatedReason || updatedStatus) {
@@ -1168,7 +1195,7 @@ export class ExpectationManager {
 		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
-		let noCostReason: string | undefined = undefined
+		let noCostReason = `${Object.keys(trackedExp.queriedWorkers).length} queried`
 
 		// Send a number of requests simultaneously:
 		await runInBatches(
@@ -1188,7 +1215,7 @@ export class ExpectationManager {
 							})
 						}
 					} catch (error) {
-						noCostReason = error.toString()
+						noCostReason = `${error}`
 					}
 				}
 				if (workerCosts.length >= minWorkerCount) abort()
@@ -1215,6 +1242,7 @@ export class ExpectationManager {
 		if (bestWorker && bestWorker.cost.startCost < 10) {
 			// Only allow starting if the job can start in a short while
 			session.assignedWorker = bestWorker
+			trackedExp.noWorkerAssignedTime = null
 		} else {
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker (${
@@ -1225,6 +1253,37 @@ export class ExpectationManager {
 				} busy) ${noCostReason}`,
 			}
 		}
+	}
+	/**
+	 * Handle an Expectation that had no worker assigned
+	 */
+	private noWorkerAssigned(trackedExp: TrackedExpectation): void {
+		if (!trackedExp.session) throw new Error('Internal error: noWorkerAssigned: session not set')
+		if (trackedExp.session.assignedWorker)
+			throw new Error('Internal error: noWorkerAssigned can only be called when assignedWorker is falsy')
+
+		let noAssignedWorkerReason: ExpectedPackageStatusAPI.Reason
+		if (!trackedExp.session.noAssignedWorkerReason) {
+			this.logger.error(
+				`trackedExp.session.noAssignedWorkerReason is undefined, although assignedWorker was set..`
+			)
+			noAssignedWorkerReason = {
+				user: 'Unknown reason (internal error)',
+				tech: 'Unknown reason',
+			}
+		} else {
+			noAssignedWorkerReason = trackedExp.session.noAssignedWorkerReason
+		}
+
+		if (!trackedExp.noWorkerAssignedTime) trackedExp.noWorkerAssignedTime = Date.now()
+		this.updateTrackedExpStatus(
+			trackedExp,
+			// Special case: when WAITING and no worker was assigned, return to NEW so that another worker might be assigned
+			trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING
+				? ExpectedPackageStatusAPI.WorkStatusState.NEW
+				: undefined,
+			noAssignedWorkerReason
+		)
 	}
 	/**
 	 * To be called when trackedExp.status turns fullfilled.
@@ -1473,18 +1532,6 @@ export class ExpectationManager {
 			)
 		}
 	}
-	private getNoAssignedWorkerReason(session: ExpectationStateHandlerSession): ExpectedPackageStatusAPI.Reason {
-		if (!session.noAssignedWorkerReason) {
-			this.logger.error(
-				`trackedExp.session.noAssignedWorkerReason is undefined, although assignedWorker was set..`
-			)
-			return {
-				user: 'Unknown reason (internal error)',
-				tech: 'Unknown reason',
-			}
-		}
-		return session.noAssignedWorkerReason
-	}
 	private updateStatus(): ExpectationManagerStatus {
 		this.status = {
 			id: this.managerId,
@@ -1624,6 +1671,9 @@ export interface ExpectationManagerConstants {
 
 	/** How often to re-query a worker if it supports an expectation [ms] */
 	WORKER_SUPPORT_TIME: number
+
+	/** How long to wait in case of an expectation error before trying again [ms] */
+	ERROR_WAIT_TIME: number
 }
 export type ExpectationManagerServerOptions =
 	| {
@@ -1653,10 +1703,14 @@ interface TrackedExpectation {
 	noAvailableWorkersReason: Reason
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
-	/** Timestamp to be track how long the expectation has been awiting for a worker (can't start working) */
+	/** Timestamp to track how long the expectation has been waiting for a worker (can't start working), used to request more resources */
 	waitingForWorkerTime: number | null
+	/** Timestamp to track  how long the expectation has been waiting for a worker, used to restart to re-query for workers */
+	noWorkerAssignedTime: number | null
 	/** The number of times the expectation has failed */
 	errorCount: number
+	/** Timestamp to track the last time an error happened on the expectation */
+	lastErrorTime: number
 
 	/** These statuses are sent from the workers */
 	status: {
