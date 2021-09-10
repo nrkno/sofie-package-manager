@@ -1147,19 +1147,16 @@ export class ExpectationManager {
 		}
 	}
 	private updatePackageContainerPackageStatus(trackedExp: TrackedExpectation) {
-		if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
-			for (const fromPackage of trackedExp.exp.fromPackages) {
-				// TODO: this is probably not eh right thing to do:
-				for (const packageContainer of trackedExp.exp.endRequirement.targets) {
-					this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
-						contentVersionHash: trackedExp.status.actualVersionHash || '',
-						progress: trackedExp.status.workProgress || 0,
-						status: this.getPackageStatus(trackedExp),
-						statusReason: trackedExp.reason,
+		for (const fromPackage of trackedExp.exp.fromPackages) {
+			for (const packageContainer of trackedExp.exp.endRequirement.targets) {
+				this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
+					contentVersionHash: trackedExp.status.actualVersionHash || '',
+					progress: trackedExp.status.workProgress || 0,
+					status: this.getPackageStatus(trackedExp),
+					statusReason: trackedExp.reason,
 
-						isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
-					})
-				}
+					isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
+				})
 			}
 		}
 	}
