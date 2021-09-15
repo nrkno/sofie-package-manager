@@ -14,6 +14,7 @@ import {
 import {
 	isCorePackageInfoAccessorHandle,
 	isFileShareAccessorHandle,
+	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 	isQuantelClipAccessorHandle,
@@ -143,6 +144,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			if (
 				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+					lookupSource.accessor.type === Accessor.AccessType.HTTP ||
 					lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY ||
 					lookupSource.accessor.type === Accessor.AccessType.QUANTEL) &&
 				lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
@@ -150,6 +152,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 				if (
 					!isLocalFolderAccessorHandle(sourceHandle) &&
 					!isFileShareAccessorHandle(sourceHandle) &&
+					!isHTTPAccessorHandle(sourceHandle) &&
 					!isHTTPProxyAccessorHandle(sourceHandle) &&
 					!isQuantelClipAccessorHandle(sourceHandle)
 				)

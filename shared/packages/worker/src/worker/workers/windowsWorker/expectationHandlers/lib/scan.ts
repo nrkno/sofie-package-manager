@@ -5,6 +5,7 @@ import {
 	isLocalFolderAccessorHandle,
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
+	isHTTPAccessorHandle,
 } from '../../../../accessorHandlers/accessor'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { QuantelAccessorHandle } from '../../../../accessorHandlers/quantel'
@@ -13,6 +14,7 @@ import { FieldOrder, ScanAnomaly } from './coreApi'
 import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
+import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
 
 interface FFProbeScanResult {
 	// to be defined...
@@ -24,6 +26,7 @@ export function scanWithFFProbe(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
 		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
 		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>
 ): CancelablePromise<FFProbeScanResult> {
@@ -31,6 +34,7 @@ export function scanWithFFProbe(
 		if (
 			isLocalFolderAccessorHandle(sourceHandle) ||
 			isFileShareAccessorHandle(sourceHandle) ||
+			isHTTPAccessorHandle(sourceHandle) ||
 			isHTTPProxyAccessorHandle(sourceHandle)
 		) {
 			let inputPath: string
@@ -42,6 +46,9 @@ export function scanWithFFProbe(
 				await sourceHandle.prepareFileAccess()
 				inputPath = sourceHandle.fullPath
 				filePath = sourceHandle.filePath
+			} else if (isHTTPAccessorHandle(sourceHandle)) {
+				inputPath = sourceHandle.fullUrl
+				filePath = sourceHandle.path
 			} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 				inputPath = sourceHandle.fullUrl
 				filePath = sourceHandle.filePath
@@ -102,6 +109,7 @@ export function scanFieldOrder(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
 		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
 		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>,
 	targetVersion: Expectation.PackageDeepScan['endRequirement']['version']
@@ -129,6 +137,8 @@ export function scanFieldOrder(
 		} else if (isFileShareAccessorHandle(sourceHandle)) {
 			await sourceHandle.prepareFileAccess()
 			args.push(`-i "${sourceHandle.fullPath}"`)
+		} else if (isHTTPAccessorHandle(sourceHandle)) {
+			args.push(`-i "${sourceHandle.fullUrl}"`)
 		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 			args.push(`-i "${sourceHandle.fullUrl}"`)
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
@@ -177,6 +187,7 @@ export function scanMoreInfo(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
 		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
 		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>,
 	previouslyScanned: FFProbeScanResult,
@@ -229,6 +240,8 @@ export function scanMoreInfo(
 		} else if (isFileShareAccessorHandle(sourceHandle)) {
 			await sourceHandle.prepareFileAccess()
 			args.push(`-i "${sourceHandle.fullPath}"`)
+		} else if (isHTTPAccessorHandle(sourceHandle)) {
+			args.push(`-i "${sourceHandle.fullUrl}"`)
 		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 			args.push(`-i "${sourceHandle.fullUrl}"`)
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
