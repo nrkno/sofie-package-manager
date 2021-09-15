@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/generic",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -16,8 +16,8 @@
     },
     "dependencies": {
         "@shared/api": "^1.0.1",
-        "@shared/expectation-manager": "^1.0.1",
-        "@shared/worker": "^1.0.1",
+        "@shared/expectation-manager": "^1.0.2",
+        "@shared/worker": "^1.0.2",
         "chokidar": "^3.5.1",
         "deep-extend": "^0.6.0",
         "fast-clone": "^1.5.13",

@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/generic",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -15,7 +15,7 @@
     },
     "dependencies": {
         "@shared/api": "^1.0.1",
-        "@shared/worker": "^1.0.1"
+        "@shared/worker": "^1.0.2"
     },
     "devDependencies": {
         "lint-staged": "^7.2.0"

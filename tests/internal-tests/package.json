@@ -1,6 +1,6 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Internal tests",
     "private": true,
     "scripts": {
@@ -18,10 +18,10 @@
     },
     "dependencies": {
         "@http-server/generic": "^1.0.1",
-        "@package-manager/generic": "^1.0.1",
+        "@package-manager/generic": "^1.0.2",
         "@shared/api": "^1.0.1",
-        "@shared/expectation-manager": "^1.0.1",
-        "@shared/worker": "^1.0.1",
+        "@shared/expectation-manager": "^1.0.2",
+        "@shared/worker": "^1.0.2",
         "@shared/workforce": "^1.0.1",
         "underscore": "^1.12.0"
     },
