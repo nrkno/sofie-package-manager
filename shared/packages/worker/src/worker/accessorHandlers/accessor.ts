@@ -54,6 +54,11 @@ export function isCorePackageInfoAccessorHandle<Metadata>(
 ): accessorHandler is CorePackageInfoAccessorHandle<Metadata> {
 	return accessorHandler.type === CorePackageInfoAccessorHandle.type
 }
+export function isHTTPAccessorHandle<Metadata>(
+	accessorHandler: GenericAccessorHandle<Metadata>
+): accessorHandler is HTTPAccessorHandle<Metadata> {
+	return accessorHandler.type === HTTPAccessorHandle.type
+}
 export function isHTTPProxyAccessorHandle<Metadata>(
 	accessorHandler: GenericAccessorHandle<Metadata>
 ): accessorHandler is HTTPProxyAccessorHandle<Metadata> {

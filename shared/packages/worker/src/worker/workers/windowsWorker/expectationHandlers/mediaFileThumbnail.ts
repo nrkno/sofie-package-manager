@@ -14,6 +14,7 @@ import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	isFileShareAccessorHandle,
+	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
@@ -153,6 +154,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 			if (
 				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+					lookupTarget.accessor.type === Accessor.AccessType.HTTP ||
 					lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 				(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 					lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
@@ -162,6 +164,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				const targetHandle = lookupTarget.handle
 				if (
 					!isLocalFolderAccessorHandle(sourceHandle) &&
+					!isHTTPAccessorHandle(sourceHandle) &&
 					!isFileShareAccessorHandle(sourceHandle) &&
 					!isHTTPProxyAccessorHandle(sourceHandle)
 				)
@@ -207,6 +210,8 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				} else if (isFileShareAccessorHandle(sourceHandle)) {
 					await sourceHandle.prepareFileAccess()
 					inputPath = sourceHandle.fullPath
+				} else if (isHTTPAccessorHandle(sourceHandle)) {
+					inputPath = sourceHandle.fullUrl
 				} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 					inputPath = sourceHandle.fullUrl
 				} else {
@@ -272,7 +277,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove preview file: ${err.toString()}`,
+					tech: `Cannot remove preview file: ${err}`,
 				},
 			}
 		}

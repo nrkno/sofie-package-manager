@@ -10,9 +10,11 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	assertNever,
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
+	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
@@ -149,6 +151,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		if (
 			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+				lookupSource.accessor.type === Accessor.AccessType.HTTP ||
 				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
@@ -158,6 +161,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			if (
 				!isLocalFolderAccessorHandle(sourceHandle) &&
 				!isFileShareAccessorHandle(sourceHandle) &&
+				!isHTTPAccessorHandle(sourceHandle) &&
 				!isHTTPProxyAccessorHandle(sourceHandle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
@@ -202,6 +206,8 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				} else if (isFileShareAccessorHandle(sourceHandle)) {
 					await sourceHandle.prepareFileAccess()
 					inputPath = sourceHandle.fullPath
+				} else if (isHTTPAccessorHandle(sourceHandle)) {
+					inputPath = sourceHandle.fullUrl
 				} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
 					inputPath = sourceHandle.fullUrl
 				} else {
@@ -276,7 +282,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove preview file: ${err.toString()}`,
+					tech: `Cannot remove preview file: ${err}`,
 				},
 			}
 		}
@@ -326,7 +332,4 @@ function lookupPreviewTargets(
 			writePackageContainer: true,
 		}
 	)
-}
-function assertNever(sourceHandle: never) {
-	throw new Error('Function not implemented.')
 }
