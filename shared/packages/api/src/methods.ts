@@ -30,7 +30,8 @@ export namespace WorkForceExpectationManager {
 		_debugKillApp(appId: string): Promise<void>
 		getStatus: () => Promise<WorkforceStatus>
 
-		requestResources: (exp: Expectation.Any) => Promise<boolean>
+		requestResourcesForExpectation: (exp: Expectation.Any) => Promise<boolean>
+		requestResourcesForPackageContainer: (packageContainer: PackageContainerExpectation) => Promise<boolean>
 
 		registerExpectationManager: (managerId: string, url: string) => Promise<void>
 	}
@@ -172,6 +173,10 @@ export namespace WorkForceAppContainer {
 		_debugKill: () => Promise<void>
 
 		requestAppTypeForExpectation: (exp: Expectation.Any) => Promise<{ appType: string; cost: number } | null>
+		requestAppTypeForPackageContainer: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<{ appType: string; cost: number } | null>
+
 		spinUp: (
 			appType: 'worker' // | other
 		) => Promise<string>
@@ -192,6 +197,9 @@ export namespace AppContainerWorkerAgent {
 		_debugKill: () => Promise<void>
 
 		doYouSupportExpectation: (exp: Expectation.Any) => Promise<ReturnTypeDoYouSupportExpectation>
+		doYouSupportPackageContainer: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<ReturnTypeDoYouSupportExpectation>
 		setSpinDownTime: (spinDownTime: number) => Promise<void>
 	}
 	/** Methods on AppContainer, called by WorkerAgent */

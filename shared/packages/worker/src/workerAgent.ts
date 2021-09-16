@@ -166,6 +166,12 @@ export class WorkerAgent {
 		this.IDidSomeWork()
 		return this._worker.doYouSupportExpectation(exp)
 	}
+	async doYouSupportPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDoYouSupportExpectation> {
+		this.IDidSomeWork()
+		return this._worker.doYouSupportPackageContainer(packageContainer)
+	}
 	async expectationManagerAvailable(id: string, url: string): Promise<void> {
 		const existing = this.expectationManagers[id]
 		if (existing) {

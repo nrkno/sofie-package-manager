@@ -5,6 +5,7 @@ import {
 	LogLevel,
 	WorkforceStatus,
 	Expectation,
+	PackageContainerExpectation,
 } from '@shared/api'
 
 /**
@@ -39,8 +40,12 @@ export class WorkforceAPI
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('_debugKillApp', appId)
 	}
-	async requestResources(exp: Expectation.Any): Promise<boolean> {
+	async requestResourcesForExpectation(exp: Expectation.Any): Promise<boolean> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
-		return this._sendMessage('requestResources', exp)
+		return this._sendMessage('requestResourcesForExpectation', exp)
+	}
+	async requestResourcesForPackageContainer(packageContainer: PackageContainerExpectation): Promise<boolean> {
+		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
+		return this._sendMessage('requestResourcesForPackageContainer', packageContainer)
 	}
 }

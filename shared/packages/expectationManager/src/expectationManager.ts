@@ -38,17 +38,17 @@ export class ExpectationManager {
 		/** Set to true when there have been changes to expectations.receivedUpdates */
 		expectationsHasBeenUpdated: boolean
 
-		/** Store for incoming PackageContainerExpectations */
-		packageContainers: { [id: string]: PackageContainerExpectation }
-		/** Set to true when there have been changes to expectations.receivedUpdates */
-		packageContainersHasBeenUpdated: boolean
-
 		/** Store for incoming Restart-calls */
 		restartExpectations: { [id: string]: true }
 		/** Store for incoming Abort-calls */
 		abortExpectations: { [id: string]: true }
 		/** Store for incoming RestartAll-calls */
 		restartAllExpectations: boolean
+
+		/** Store for incoming PackageContainerExpectations */
+		packageContainers: { [id: string]: PackageContainerExpectation }
+		/** Set to true when there have been changes to expectations.receivedUpdates */
+		packageContainersHasBeenUpdated: boolean
 	} = {
 		expectations: {},
 		expectationsHasBeenUpdated: false,
@@ -1590,6 +1590,7 @@ export class ExpectationManager {
 	}
 	private async checkIfNeedToScaleUp(): Promise<void> {
 		const waitingExpectations: TrackedExpectation[] = []
+		const waitingPackageContainers: TrackedPackageContainerExpectation[] = []
 
 		for (const exp of Object.values(this.trackedExpectations)) {
 			if (
@@ -1607,17 +1608,38 @@ export class ExpectationManager {
 			} else {
 				exp.waitingForWorkerTime = null
 			}
-			if (exp.waitingForWorkerTime)
-				if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME) {
-					if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
-						waitingExpectations.push(exp)
-					}
-				}
-		}
 
+			if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME) {
+				if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
+					waitingExpectations.push(exp)
+				}
+			}
+		}
 		for (const exp of waitingExpectations) {
 			this.logger.debug(`Requesting more resources to handle expectation "${exp.id}"`)
-			await this.workforceAPI.requestResources(exp.exp)
+			await this.workforceAPI.requestResourcesForExpectation(exp.exp)
+		}
+
+		for (const packageContainer of Object.values(this.trackedPackageContainers)) {
+			if (!packageContainer.currentWorker) {
+				if (!packageContainer.waitingForWorkerTime) {
+					packageContainer.waitingForWorkerTime = Date.now()
+				}
+			} else {
+				packageContainer.waitingForWorkerTime = null
+			}
+			if (
+				packageContainer.waitingForWorkerTime &&
+				Date.now() - packageContainer.waitingForWorkerTime > this.constants.SCALE_UP_TIME
+			) {
+				if (waitingPackageContainers.length < this.constants.SCALE_UP_COUNT) {
+					waitingPackageContainers.push(packageContainer)
+				}
+			}
+		}
+		for (const packageContainer of waitingPackageContainers) {
+			this.logger.debug(`Requesting more resources to handle packageContainer "${packageContainer.id}"`)
+			await this.workforceAPI.requestResourcesForPackageContainer(packageContainer.packageContainer)
 		}
 	}
 	/**  */
@@ -1782,7 +1804,10 @@ interface TrackedPackageContainerExpectation {
 	/** True whether the packageContainer was newly updated */
 	isUpdated: boolean
 
+	/** The currently assigned Worker */
 	currentWorker: string | null
+	/** Timestamp to track how long the packageContainer has been waiting for a worker (can't start working), used to request more resources */
+	waitingForWorkerTime: number | null
 
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
