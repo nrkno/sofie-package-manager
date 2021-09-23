@@ -62,3 +62,30 @@ export function promiseTimeout<T>(p: Promise<T>, timeoutTime: number): Promise<T
 			})
 	})
 }
+/**
+ * Does a deep comparison to see if the properties of the objects are equal.
+ * @returns true if objects are equal
+ */
+export function deepEqual<T>(object1: T, object2: T): boolean {
+	const areObjects = isObject(object1) && isObject(object2)
+	if (areObjects) {
+		if (Array.isArray(object1) !== Array.isArray(object2)) return false
+
+		const keys1 = Object.keys(object1)
+		const keys2 = Object.keys(object2)
+		if (keys1.length !== keys2.length) return false
+
+		for (const key of keys1) {
+			if (!deepEqual((object1 as any)[key], (object2 as any)[key])) {
+				return false
+			}
+		}
+
+		return true
+	} else {
+		return object1 === object2
+	}
+}
+function isObject(obj: unknown): obj is { [key: string]: any } {
+	return obj != null && typeof obj === 'object'
+}

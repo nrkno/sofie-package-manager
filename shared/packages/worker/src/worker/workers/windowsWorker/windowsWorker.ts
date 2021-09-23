@@ -3,7 +3,6 @@ import {
 	ExpectationManagerWorkerAgent,
 	LoggerInstance,
 	PackageContainerExpectation,
-	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
@@ -11,7 +10,6 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
-	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
 	assertNever,
 } from '@shared/api'
@@ -29,6 +27,7 @@ import { QuantelClipPreview } from './expectationHandlers/quantelClipPreview'
 import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
 import { testFFMpeg, testFFProbe } from './expectationHandlers/lib/ffmpeg'
 import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
+import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -125,12 +124,7 @@ export class WindowsWorker extends GenericWorker {
 	}
 	setupPackageContainerMonitors(
 		packageContainer: PackageContainerExpectation
-	): Promise<ReturnTypeSetupPackageContainerMonitors> {
+	): Promise<SetupPackageContainerMonitorsResult> {
 		return PackageContainerExpHandler.setupPackageContainerMonitors(packageContainer, this)
-	}
-	disposePackageContainerMonitors(
-		packageContainer: PackageContainerExpectation
-	): Promise<ReturnTypeDisposePackageContainerMonitors> {
-		return PackageContainerExpHandler.disposePackageContainerMonitors(packageContainer, this)
 	}
 }

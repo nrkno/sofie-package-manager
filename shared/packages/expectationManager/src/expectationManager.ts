@@ -14,8 +14,9 @@ import {
 	assertNever,
 	ExpectationManagerStatus,
 	LogLevel,
+	deepEqual,
 } from '@shared/api'
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 import PromisePool from '@supercharge/promise-pool'
@@ -425,6 +426,27 @@ export class ExpectationManager {
 					}
 					delete this.worksInProgress[`${clientId}_${wipId}`]
 				}
+			},
+			monitorStatus: async (
+				packageContainerId: string,
+				monitorId: string,
+				status: StatusCode,
+				reason: Reason
+			) => {
+				const trackedPackageContainer = this.trackedPackageContainers[packageContainerId]
+				if (!trackedPackageContainer) {
+					this.logger.error(`Worker reported status on unknown packageContainer "${packageContainerId}"`)
+					return
+				}
+				trackedPackageContainer.status.statusChanged = Date.now()
+
+				this.updateTrackedPackageContainerMonitorStatus(
+					trackedPackageContainer,
+					monitorId,
+					undefined,
+					status,
+					reason
+				)
 			},
 		}
 	}
@@ -1342,67 +1364,97 @@ export class ExpectationManager {
 		this.receivedUpdates.packageContainersHasBeenUpdated = false
 
 		// Added / Changed
-		for (const id of Object.keys(this.receivedUpdates.packageContainers)) {
-			const packageContainer: PackageContainerExpectation = this.receivedUpdates.packageContainers[id]
+		for (const containerId of Object.keys(this.receivedUpdates.packageContainers)) {
+			const packageContainer: PackageContainerExpectation = this.receivedUpdates.packageContainers[containerId]
 
 			let isNew = false
 			let isUpdated = false
-			if (!this.trackedPackageContainers[id]) {
+			if (!this.trackedPackageContainers[containerId]) {
 				// new
 				isUpdated = true
 				isNew = true
-			} else if (!_.isEqual(this.trackedPackageContainers[id].packageContainer, packageContainer)) {
+			} else if (!_.isEqual(this.trackedPackageContainers[containerId].packageContainer, packageContainer)) {
 				isUpdated = true
 			}
+			if (this.receivedUpdates.restartPackageContainers[containerId]) {
+				isUpdated = true
+			}
+
 			if (isNew) {
 				const trackedPackageContainer: TrackedPackageContainerExpectation = {
-					id: id,
+					id: containerId,
 					packageContainer: packageContainer,
 					currentWorker: null,
+					waitingForWorkerTime: null,
 					isUpdated: true,
 					lastEvaluationTime: 0,
 					monitorIsSetup: false,
 					status: {
+						status: StatusCode.UNKNOWN,
+						statusReason: { user: '', tech: '' },
+						statusChanged: 0,
 						monitors: {},
 					},
 				}
-				this.trackedPackageContainers[id] = trackedPackageContainer
+				this.trackedPackageContainers[containerId] = trackedPackageContainer
 			}
 			if (isUpdated) {
-				this.trackedPackageContainers[id].packageContainer = packageContainer
-				this.trackedPackageContainers[id].isUpdated = true
+				this.trackedPackageContainers[containerId].packageContainer = packageContainer
+				this.trackedPackageContainers[containerId].isUpdated = true
 			}
 		}
 
 		// Removed:
-		for (const id of Object.keys(this.trackedPackageContainers)) {
-			if (!this.receivedUpdates.packageContainers[id]) {
+		for (const containerId of Object.keys(this.trackedPackageContainers)) {
+			if (!this.receivedUpdates.packageContainers[containerId]) {
 				// This packageContainersExpectation has been removed
 
-				const trackedPackageContainer = this.trackedPackageContainers[id]
+				const trackedPackageContainer = this.trackedPackageContainers[containerId]
 				if (trackedPackageContainer.currentWorker) {
 					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
 					if (workerAgent) {
-						await workerAgent.api.disposePackageContainerMonitors(trackedPackageContainer.packageContainer)
+						try {
+							const result = await workerAgent.api.disposePackageContainerMonitors(containerId)
+							if (result.success) {
+								this.callbacks.reportPackageContainerExpectationStatus(containerId, null)
+							} else {
+								this.updateTrackedPackageContainerStatus(
+									trackedPackageContainer,
+									StatusCode.BAD,
+									result.reason
+								)
+							}
+						} catch (err) {
+							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+								user: 'Internal Error',
+								tech: `Error when removing: ${err}, ${(err as any)?.stack}`,
+							})
+						}
 					}
 				}
 			}
 		}
+
+		this.receivedUpdates.restartPackageContainers = {}
 	}
 	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of Object.values(this.trackedPackageContainers)) {
 			try {
+				let badStatus = false
+				trackedPackageContainer.lastEvaluationTime = Date.now()
+
 				if (trackedPackageContainer.isUpdated) {
 					// If the packageContainer was newly updated, reset and set up again:
 					if (trackedPackageContainer.currentWorker) {
 						const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
 						const disposeMonitorResult = await workerAgent.api.disposePackageContainerMonitors(
-							trackedPackageContainer.packageContainer
+							trackedPackageContainer.id
 						)
 						if (!disposeMonitorResult.success) {
-							this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-								user: `Unable to remove monitor, due to ${disposeMonitorResult.reason.user}`,
-								tech: `Unable to dispose monitor: ${disposeMonitorResult.reason.tech}`,
+							badStatus = true
+							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+								user: `Unable to restart monitor, due to ${disposeMonitorResult.reason.user}`,
+								tech: `Unable to restart monitor: ${disposeMonitorResult.reason.tech}`,
 							})
 							continue // Break further execution for this PackageContainer
 						}
@@ -1436,13 +1488,21 @@ export class ExpectationManager {
 						})
 					)
 					if (!trackedPackageContainer.currentWorker) {
-						notSupportReason = {
-							user: 'Found no worker that supports this packageContainer',
-							tech: 'Found no worker that supports this packageContainer',
+						if (Object.keys(this.workerAgents).length) {
+							notSupportReason = {
+								user: 'Found no worker that supports this packageContainer',
+								tech: 'Found no worker that supports this packageContainer',
+							}
+						} else {
+							notSupportReason = {
+								user: 'No workers available',
+								tech: 'No workers available',
+							}
 						}
 					}
 					if (notSupportReason) {
-						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+						badStatus = true
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 							user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
 							tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
 						})
@@ -1463,69 +1523,109 @@ export class ExpectationManager {
 							if (monitorSetup.success) {
 								trackedPackageContainer.monitorIsSetup = true
 								for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
-									trackedPackageContainer.status.monitors[monitorId] = {
-										label: monitor.label,
-										reason: {
-											user: 'Starting up',
-											tech: 'Starting up',
-										},
+									if (trackedPackageContainer.status.monitors[monitorId]) {
+										// In case there no monitor status has been emitted yet:
+										this.updateTrackedPackageContainerMonitorStatus(
+											trackedPackageContainer,
+											monitorId,
+											monitor.label,
+											StatusCode.UNKNOWN,
+											{
+												user: 'Setting up monitor...',
+												tech: 'Setting up monitor...',
+											}
+										)
 									}
 								}
 							} else {
-								this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-									user: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.user}`,
-									tech: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.tech}`,
+								badStatus = true
+								this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+									user: `Unable to set up monitors for PackageContainer, due to: ${monitorSetup.reason.user}`,
+									tech: `Unable to set up monitors for PackageContainer, due to: ${monitorSetup.reason.tech}`,
 								})
 							}
 						}
 					}
-					if (Object.keys(trackedPackageContainer.packageContainer.cronjobs).length !== 0) {
-						const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
-							trackedPackageContainer.packageContainer
-						)
-						if (!cronJobStatus.success) {
-							this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-								user: 'Cron job not completed: ' + cronJobStatus.reason.user,
-								tech: 'Cron job not completed: ' + cronJobStatus.reason.tech,
-							})
-							continue
-						}
+
+					const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
+						trackedPackageContainer.packageContainer
+					)
+					if (!cronJobStatus.success) {
+						badStatus = true
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+							user: 'Cron job not completed, due to: ' + cronJobStatus.reason.user,
+							tech: 'Cron job not completed, due to: ' + cronJobStatus.reason.tech,
+						})
+						continue
 					}
 				}
+
+				if (!badStatus) {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.GOOD, {
+						user: `All good`,
+						tech: `All good`,
+					})
+				}
 			} catch (err) {
-				this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+				this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 					user: 'Internal Error',
 					tech: `Unhandled Error: ${err}`,
 				})
 			}
 		}
 	}
+	/** Update the status of a PackageContainer */
 	private updateTrackedPackageContainerStatus(
 		trackedPackageContainer: TrackedPackageContainerExpectation,
-		reason: Reason
+		status: StatusCode,
+		statusReason: Reason
 	) {
-		trackedPackageContainer.lastEvaluationTime = Date.now()
+		let updatedStatus = false
+		trackedPackageContainer.status.statusChanged = Date.now()
 
-		let updatedReason = false
-
-		if (trackedPackageContainer.status.reason !== reason) {
-			trackedPackageContainer.status.reason = reason || ''
-			updatedReason = true
+		if (trackedPackageContainer.status.status !== status) {
+			trackedPackageContainer.status.status = status
+			updatedStatus = true
+		}
+		if (trackedPackageContainer.status.statusReason !== statusReason) {
+			trackedPackageContainer.status.statusReason = statusReason
+			updatedStatus = true
 		}
 
-		if (updatedReason) {
-			this.logger.debug(
-				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason.tech}"`
-			)
-		}
-
-		if (updatedReason) {
+		if (updatedStatus) {
 			this.callbacks.reportPackageContainerExpectationStatus(
 				trackedPackageContainer.id,
-				trackedPackageContainer.packageContainer,
-				{
-					statusReason: trackedPackageContainer.status.reason,
-				}
+				trackedPackageContainer.status
+			)
+		}
+	}
+	/** Update the status of a PackageContainer monitor */
+	private updateTrackedPackageContainerMonitorStatus(
+		trackedPackageContainer: TrackedPackageContainerExpectation,
+		monitorId: string,
+		monitorLabel: string | undefined,
+		status: StatusCode,
+		statusReason: Reason
+	) {
+		let updatedStatus = false
+		trackedPackageContainer.status.statusChanged = Date.now()
+
+		const existingMonitorStatus = trackedPackageContainer.status.monitors[monitorId]
+		const newMonitorStatus: ExpectedPackageStatusAPI.PackageContainerMonitorStatus = {
+			label: monitorLabel || existingMonitorStatus?.label || monitorId,
+			status: status,
+			statusReason: statusReason,
+		}
+
+		if (!existingMonitorStatus || !deepEqual(existingMonitorStatus, newMonitorStatus)) {
+			trackedPackageContainer.status.monitors[monitorId] = newMonitorStatus
+			updatedStatus = true
+		}
+
+		if (updatedStatus) {
+			this.callbacks.reportPackageContainerExpectationStatus(
+				trackedPackageContainer.id,
+				trackedPackageContainer.status
 			)
 		}
 	}
@@ -1788,10 +1888,7 @@ export interface ExpectationManagerCallbacks {
 	) => void
 	reportPackageContainerExpectationStatus: (
 		containerId: string,
-		packageContainer: PackageContainerExpectation | null,
-		statusInfo: {
-			statusReason?: Reason
-		}
+		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
 	) => void
 	messageFromWorker: MessageFromWorker
 }
@@ -1816,16 +1913,7 @@ interface TrackedPackageContainerExpectation {
 	monitorIsSetup: boolean
 
 	/** These statuses are sent from the workers */
-	status: {
-		/** Reason for the status (used in GUIs) */
-		reason?: Reason
-		monitors: {
-			[monitorId: string]: {
-				label: string
-				reason: Reason
-			}
-		}
-	}
+	status: ExpectedPackageStatusAPI.PackageContainerStatus
 }
 /** Execute callback in batches */
 async function runInBatches<T, ReturnValue>(
@@ -1834,15 +1922,17 @@ async function runInBatches<T, ReturnValue>(
 	batchSize: number
 ): Promise<ReturnValue | undefined> {
 	const batches: T[][] = []
-	let batch: T[] = []
-	for (const value of values) {
-		batch.push(value)
-		if (batch.length >= batchSize) {
-			batches.push(batch)
-			batch = []
+	{
+		let batch: T[] = []
+		for (const value of values) {
+			batch.push(value)
+			if (batch.length >= batchSize) {
+				batches.push(batch)
+				batch = []
+			}
 		}
+		batches.push(batch)
 	}
-	batches.push(batch)
 
 	let aborted = false
 	let returnValue: ReturnValue | undefined = undefined

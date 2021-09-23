@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { ExpectedPackage, ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackage, ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -88,7 +88,7 @@ export namespace ExpectationManagerWorkerAgent {
 			packageContainer: PackageContainerExpectation
 		) => Promise<ReturnTypeSetupPackageContainerMonitors>
 		disposePackageContainerMonitors: (
-			packageContainer: PackageContainerExpectation
+			packageContainerId: string
 		) => Promise<ReturnTypeDisposePackageContainerMonitors>
 	}
 	/** Methods on ExpectedManager, called by WorkerAgent */
@@ -99,6 +99,13 @@ export namespace ExpectationManagerWorkerAgent {
 		wipEventProgress: (wipId: number, actualVersionHash: string | null, progress: number) => Promise<void>
 		wipEventDone: (wipId: number, actualVersionHash: string, reason: Reason, result: any) => Promise<void>
 		wipEventError: (wipId: number, reason: Reason) => Promise<void>
+
+		monitorStatus: (
+			packageContainerId: string,
+			monitorId: string,
+			status: StatusCode,
+			reason: Reason
+		) => Promise<void>
 	}
 	export interface WorkInProgressInfo {
 		wipId: number

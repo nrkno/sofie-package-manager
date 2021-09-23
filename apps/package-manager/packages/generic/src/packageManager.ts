@@ -8,6 +8,7 @@ import {
 	ExpectedPackageStatusAPI,
 	PackageContainer,
 	PackageContainerOnPackage,
+	StatusCode,
 } from '@sofie-automation/blueprints-integration'
 import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
 import {
@@ -24,6 +25,7 @@ import {
 	PackageContainerExpectation,
 	literal,
 	Reason,
+	deepEqual,
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -348,7 +350,9 @@ export class PackageManagerHandler {
 						monitors: {},
 					})
 				}
-				packageContainerExpectations[containerId].cronjobs.cleanup = {} // Add cronjob to clean up
+				packageContainerExpectations[containerId].cronjobs.cleanup = {
+					label: 'Clean up old packages',
+				} // Add cronjob to clean up
 			}
 		}
 	}
@@ -380,6 +384,16 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		}
 	} = {}
 	sendUpdatePackageContainerPackageStatusTimeouts: NodeJS.Timeout | undefined
+
+	reportedPackageContainerStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerStatus } = {}
+	toReportPackageContainerStatus: {
+		[containerId: string]: {
+			status: ExpectedPackageStatusAPI.PackageContainerStatus | null
+			/** If the status is new and needs to be reported to Core */
+			isUpdated: boolean
+		}
+	} = {}
+	sendUpdatePackageContainerStatusTimeouts: NodeJS.Timeout | undefined
 
 	logger: LoggerInstance
 	constructor(private packageManager: PackageManagerHandler) {
@@ -485,13 +499,38 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 	public reportPackageContainerExpectationStatus(
 		containerId: string,
-		_packageContainer: PackageContainerExpectation | null,
-		statusInfo: { statusReason?: Reason }
+		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
 	): void {
-		// This is not (yet) reported to Core.
-		// ...to be implemented...
-		this.logger.info(`PackageContainerStatus "${containerId}"`)
-		this.logger.info(statusInfo.statusReason?.tech || '>No reason<')
+		if (!statusInfo) {
+			this.triggerSendUpdatePackageContainerStatus(containerId, null)
+		} else {
+			const previouslyReported = this.toReportPackageContainerStatus[containerId]?.status
+
+			const containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus = {
+				// Default properties:
+				...{
+					status: StatusCode.UNKNOWN,
+					statusReason: {
+						user: '',
+						tech: '',
+					},
+					statusChanged: 0,
+
+					monitors: {},
+				},
+				// pre-existing properties:
+				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.PackageContainerStatus>), // Intentionally cast to Partial<>, to make typings in const containerStatus more strict
+				// Updated properties:
+				...statusInfo,
+			}
+
+			// Update statusChanged:
+			containerStatus.statusChanged = previouslyReported?.statusChanged || Date.now()
+			if (!deepEqual(containerStatus, previouslyReported)) {
+				containerStatus.statusChanged = Date.now()
+				this.triggerSendUpdatePackageContainerStatus(containerId, containerStatus)
+			}
+		}
 	}
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {
@@ -663,6 +702,59 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				})
 		}
 	}
+	triggerSendUpdatePackageContainerStatus(
+		containerId: string,
+		containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus | null
+	) {
+		this.toReportPackageContainerStatus[containerId] = {
+			status: containerStatus,
+			isUpdated: true,
+		}
+
+		if (!this.sendUpdatePackageContainerStatusTimeouts) {
+			this.sendUpdatePackageContainerStatusTimeouts = setTimeout(() => {
+				delete this.sendUpdatePackageContainerStatusTimeouts
+				this.sendUpdatePackageContainerStatus()
+			}, 300)
+		}
+	}
+	private sendUpdatePackageContainerStatus(): void {
+		const changesTosend: UpdatePackageContainerStatusesChanges = []
+
+		for (const [containerId, o] of Object.entries(this.toReportPackageContainerStatus)) {
+			if (o.isUpdated) {
+				if (!o.status) {
+					if (this.reportedPackageContainerStatuses[containerId]) {
+						// Removed
+						changesTosend.push({
+							containerId: containerId,
+							type: 'delete',
+						})
+						delete this.reportedPackageContainerStatuses[containerId]
+					}
+				} else {
+					// Inserted / Updated
+					changesTosend.push({
+						containerId: containerId,
+						type: 'update',
+						status: o.status,
+					})
+					this.reportedPackageContainerStatuses[containerId] = o.status
+				}
+
+				o.isUpdated = false
+			}
+		}
+
+		if (changesTosend.length) {
+			this.packageManager.coreHandler.core
+				.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerStatuses, [changesTosend])
+				.catch((err) => {
+					this.logger.error('Error when calling method updatePackageContainerStatuses:')
+					this.logger.error(err)
+				})
+		}
+	}
 	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
@@ -813,5 +905,17 @@ type UpdatePackageContainerPackageStatusesChanges = (
 			packageId: string
 			type: 'update'
 			status: ExpectedPackageStatusAPI.PackageContainerPackageStatus
+	  }
+)[]
+/** Note: This is based on the Core method updatePackageContainerPackageStatuses. */
+type UpdatePackageContainerStatusesChanges = (
+	| {
+			containerId: string
+			type: 'delete'
+	  }
+	| {
+			containerId: string
+			type: 'update'
+			status: ExpectedPackageStatusAPI.PackageContainerStatus
 	  }
 )[]

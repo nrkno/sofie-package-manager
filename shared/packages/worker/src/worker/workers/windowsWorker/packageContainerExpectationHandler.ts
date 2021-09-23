@@ -2,14 +2,13 @@ import {
 	PackageContainerExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeRunPackageContainerCronJob,
-	ReturnTypeSetupPackageContainerMonitors,
-	ReturnTypeDisposePackageContainerMonitors,
 	Reason,
+	assertNever,
 } from '@shared/api'
 import { Accessor, PackageContainer, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle } from '../../accessorHandlers/genericHandle'
+import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../worker'
-import { lookupAccessorHandles } from './expectationHandlers/lib'
+import { lookupAccessorHandles, LookupChecks } from './expectationHandlers/lib'
 import { findBestAccessorOnPackageContainer } from './lib/lib'
 
 export async function doYouSupportPackageContainer(
@@ -22,11 +21,6 @@ export async function runPackageContainerCronJob(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
 ): Promise<ReturnTypeRunPackageContainerCronJob> {
-	// Quick-check: If there are no cronjobs at all, no need to check:
-	if (!Object.keys(packageContainer.cronjobs).length) {
-		return { success: true } // all good
-	}
-
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'cronjob')
 	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
 
@@ -38,7 +32,7 @@ export async function runPackageContainerCronJob(
 export async function setupPackageContainerMonitors(
 	packageContainer: PackageContainerExpectation,
 	genericWorker: GenericWorker
-): Promise<ReturnTypeSetupPackageContainerMonitors> {
+): Promise<SetupPackageContainerMonitorsResult> {
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
 	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
 
@@ -48,19 +42,8 @@ export async function setupPackageContainerMonitors(
 	else
 		return {
 			success: true,
-			monitors: {}, // To me implemented: monitor ids
+			monitors: result.monitors,
 		}
-}
-export async function disposePackageContainerMonitors(
-	packageContainer: PackageContainerExpectation,
-	genericWorker: GenericWorker
-): Promise<ReturnTypeDisposePackageContainerMonitors> {
-	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
-	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
-
-	const result = await lookup.handle.disposePackageContainerMonitors(packageContainer)
-	if (!result.success) return { success: false, reason: result.reason }
-	else return { success: true } // all good
 }
 
 function checkWorkerHasAccessToPackageContainer(
@@ -104,6 +87,20 @@ async function lookupPackageContainer(
 		},
 	]
 
+	const checks: LookupChecks = {}
+	if (forWhat === 'monitor') {
+		checks.read = true
+	} else if (forWhat === 'cronjob') {
+		checks.read = true
+		// If no cronjobs are setup, no need to check writeability:
+		if (Object.keys(packageContainer.cronjobs).length > 1) {
+			checks.write = true
+			checks.writePackageContainer = true
+		}
+	} else {
+		assertNever(forWhat)
+	}
+
 	return (await lookupAccessorHandles(
 		worker,
 		packageContainers,
@@ -113,15 +110,7 @@ async function lookupPackageContainer(
 			onlyContainerAccess: true,
 		},
 		{},
-		forWhat == 'cronjob'
-			? {
-					read: true,
-					write: true,
-					writePackageContainer: true,
-			  }
-			: {
-					read: true,
-			  }
+		checks
 	)) as LookupPackageContainer
 }
 export type LookupPackageContainer =
