@@ -163,6 +163,10 @@ export function generateExpectations(
 		) {
 			if ((packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/)) {
 				// the files are on the form "smartbull_TIMESTAMP.mxf/mp4"
+
+				// Set the smartbull priority:
+				packageWrap.priority = PriorityMagnitude.PLAY_SOON
+
 				smartbullExpectations.push(packageWrap)
 			}
 			// (any other files in the "source-smartbull"-container are to be ignored)
