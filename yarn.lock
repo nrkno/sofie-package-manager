@@ -1478,14 +1478,14 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.37.0-nightly-release37-20210910-113428-6a3c4c5.0":
-  version "1.37.0-nightly-release37-20210910-113428-6a3c4c5.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-release37-20210910-113428-6a3c4c5.0.tgz#0bacf3066b7d0937a7b69d55af1a1e4f52fc0a06"
-  integrity sha512-8qEIblBNkEsXlxnBRszdGxILW3KbrD95//Ut1pQ8/Kzw6KltYsUglVgKPIiG6Pylfyc4IRGUtoisdKZdEJCN+g==
+"@sofie-automation/blueprints-integration@1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0":
+  version "1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0.tgz#f1a1fcef65a211f92c077e8a3cd729d99827ca5d"
+  integrity sha512-RS13uh34xBhQ70NJ9+gEFD95fY0KkHWLZBQfMWtkThy9WdAxJ0zxHIfV2l7PLFTuWQc+PEdXWZnKmz5Y7aY3dA==
   dependencies:
     moment "2.29.1"
-    timeline-state-resolver-types "^6.1.0-release36.0"
-    tslib "^2.1.0"
+    timeline-state-resolver-types "6.2.0-release37.0"
+    tslib "^2.3.1"
     underscore "1.13.1"
 
 "@sofie-automation/code-standard-preset@^0.2.1", "@sofie-automation/code-standard-preset@^0.2.2":
@@ -1507,16 +1507,16 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.37.0-nightly-release37-20210910-113428-6a3c4c5.0":
-  version "1.37.0-nightly-release37-20210910-113428-6a3c4c5.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-release37-20210910-113428-6a3c4c5.0.tgz#1c177b87b55df8bf6f6e4f1fe6fdb96446064428"
-  integrity sha512-tU5P4yQzsgis4IDKffTv312UGhakaIa4RbMnx1EzoOwseTKMkuxRYgQJAxhbxc6GkuvjoUNMsqEpM2onYzg7Yg==
+"@sofie-automation/server-core-integration@1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0":
+  version "1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0.tgz#9ee883b678744393d596bc63b61c069c32ce4063"
+  integrity sha512-pLcDFvUiw3FWf0mlynaMnUbbA/ZQyo6Pmg6gZH5XYqT41GZ4KC/NyqW7pfYqi5gkW519xHo267XB/A83052Ogw==
   dependencies:
     data-store "^4.0.3"
     ejson "^2.2.0"
     faye-websocket "^0.11.4"
     got "^11.8.2"
-    tslib "^2.0.3"
+    tslib "^2.3.1"
     underscore "^1.12.1"
 
 "@stroncium/procfs@^1.2.1":
@@ -9665,12 +9665,12 @@ timeline-state-resolver-types@5.5.1:
   dependencies:
     tslib "^1.13.0"
 
-timeline-state-resolver-types@^6.1.0-release36.0:
-  version "6.1.0-release36.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-6.1.0-release36.0.tgz#64ccf4e10365b8038ff613ed299606744182d40c"
-  integrity sha512-A6pGl6UUO5nyyO1yUkKc6yL0LGmyFA1t6r3z3wX3aD4dY7LW6ivch1C+dvvXEy1ia1D4uFpeISALKlJrTshPEA==
+timeline-state-resolver-types@6.2.0-release37.0:
+  version "6.2.0-release37.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-6.2.0-release37.0.tgz#204330255d99118819953adb8e954ca8bc1793fe"
+  integrity sha512-fqAX7WRfJu/VODGhoVzfgXr6q4Zwx3UBPnVRYzA4OPAdFe8WRG5T8XGJnuzg+5YfBjU/dOy+Fn5xoI5x7zzpMA==
   dependencies:
-    tslib "^2.1.0"
+    tslib "^2.3.1"
 
 tmp@^0.0.33:
   version "0.0.33"
@@ -9849,6 +9849,11 @@ tslib@^2.0.3, tslib@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.1.0.tgz#da60860f1c2ecaa5703ab7d39bc05b6bf988b97a"
   integrity sha512-hcVC3wYEziELGGmEEXue7D75zbwIIVUMWAVbHItGPx0ziyXxrOMQx4rQEVEV45Ut/1IotuEvwqPopzIOkDMf0A==
+
+tslib@^2.3.1:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.3.1.tgz#e8a335add5ceae51aa261d32a490158ef042ef01"
+  integrity sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==
 
 tsscmp@1.0.6:
   version "1.0.6"

@@ -299,6 +299,10 @@ export class PackageManagerHandler {
 		// This method can be called from core
 		this.expectationManager.abortExpectation(workId)
 	}
+	public restartPackageContainer(containerId: string): void {
+		// This method can be called from core
+		this.expectationManager.restartPackageContainer(containerId)
+	}
 	public getDataSnapshot(): any {
 		return this.dataSnapshot
 	}
@@ -567,6 +571,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		)
 		await this.packageManager.coreHandler.core.callMethod(
 			PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
+			[]
+		)
+		await this.packageManager.coreHandler.core.callMethod(
+			PeripheralDeviceAPI.methods.removeAllPackageContainerStatusesOfDevice,
 			[]
 		)
 	}

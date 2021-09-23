@@ -50,6 +50,9 @@ export class ExpectationManager {
 		packageContainers: { [id: string]: PackageContainerExpectation }
 		/** Set to true when there have been changes to expectations.receivedUpdates */
 		packageContainersHasBeenUpdated: boolean
+
+		/** Store for incoming restart-container calls */
+		restartPackageContainers: { [containerId: string]: true }
 	} = {
 		expectations: {},
 		expectationsHasBeenUpdated: false,
@@ -57,6 +60,7 @@ export class ExpectationManager {
 		packageContainersHasBeenUpdated: false,
 		restartExpectations: {},
 		abortExpectations: {},
+		restartPackageContainers: {},
 		restartAllExpectations: false,
 	}
 
@@ -198,6 +202,7 @@ export class ExpectationManager {
 			packageContainersHasBeenUpdated: false,
 			restartExpectations: {},
 			abortExpectations: {},
+			restartPackageContainers: {},
 			restartAllExpectations: false,
 		}
 		this.trackedExpectations = {}
@@ -270,6 +275,11 @@ export class ExpectationManager {
 	abortExpectation(expectationId: string): void {
 		this.receivedUpdates.abortExpectations[expectationId] = true
 		this.receivedUpdates.expectationsHasBeenUpdated = true
+		this._triggerEvaluateExpectations(true)
+	}
+	restartPackageContainer(containerId: string): void {
+		this.receivedUpdates.restartPackageContainers[containerId] = true
+		this.receivedUpdates.packageContainersHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
