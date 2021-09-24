@@ -7,6 +7,7 @@ import {
 	PackageReadInfoQuantelClip,
 	PutPackageHandler,
 	AccessorHandlerResult,
+	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
 import { Expectation, literal, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
@@ -295,25 +296,15 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	}
 	async runCronJob(): Promise<AccessorHandlerResult> {
 		return {
-			success: false,
-			reason: { user: `There is an internal issue in Package Manager`, tech: 'runCronJob not supported' },
+			success: true,
 		} // not applicable
 	}
-	async setupPackageContainerMonitors(): Promise<AccessorHandlerResult> {
+	async setupPackageContainerMonitors(): Promise<SetupPackageContainerMonitorsResult> {
 		return {
 			success: false,
 			reason: {
 				user: `There is an internal issue in Package Manager`,
 				tech: 'setupPackageContainerMonitors, not supported',
-			},
-		} // not applicable
-	}
-	async disposePackageContainerMonitors(): Promise<AccessorHandlerResult> {
-		return {
-			success: false,
-			reason: {
-				user: `There is an internal issue in Package Manager`,
-				tech: 'disposePackageContainerMonitors, not supported',
 			},
 		} // not applicable
 	}
@@ -395,12 +386,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		if (!gateway) {
 			gateway = new QuantelGateway()
-			await gateway.init(
-				this.accessor.quantelGatewayUrl,
-				this.accessor.ISAUrls,
-				this.accessor.zoneId,
-				this.accessor.serverId
-			)
+			await gateway.init(this.accessor.quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
 
 			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway`, e))
 

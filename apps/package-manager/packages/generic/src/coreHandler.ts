@@ -409,6 +409,9 @@ export class CoreHandler {
 	abortExpectation(workId: string): void {
 		return this._packageManagerHandler?.abortExpectation(workId)
 	}
+	restartPackageContainer(containerId: string): void {
+		return this._packageManagerHandler?.restartPackageContainer(containerId)
+	}
 	troubleshoot(): any {
 		return this._packageManagerHandler?.getDataSnapshot()
 	}

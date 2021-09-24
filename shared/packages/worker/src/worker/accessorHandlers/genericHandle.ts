@@ -2,6 +2,7 @@ import { AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { EventEmitter } from 'events'
 import { Expectation, PackageContainerExpectation, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
+import { MonitorInProgress } from '../lib/monitorInProgress'
 
 /**
  * The AccessorHandle provides a common API to manipulate Packages across multiple types of Accessors
@@ -98,14 +99,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 */
 	abstract setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult>
-	/**
-	 * Tear down monitors on the Package container
-	 * @returns undefined if all is OK / string with error message
-	 */
-	abstract disposePackageContainerMonitors(
-		packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult>
+	): Promise<SetupPackageContainerMonitorsResult>
 
 	protected setCache<T>(key: string, value: T): T {
 		if (!this.worker.accessorCache[this.type]) {
@@ -145,6 +139,15 @@ export type AccessorHandlerResult =
 			reason: Reason
 	  }
 
+export type SetupPackageContainerMonitorsResult =
+	| {
+			success: true
+			monitors: { [monitorId: string]: MonitorInProgress }
+	  }
+	| {
+			success: false
+			reason: Reason
+	  }
 /**
  * A class emitted from putPackageStream() and putPackageInfo(), used to signal the progression of an ongoing write operation.
  * Users of this class are required to emit the events 'error' on error and 'close' upon completion

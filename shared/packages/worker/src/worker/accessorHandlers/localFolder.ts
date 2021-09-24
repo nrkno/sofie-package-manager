@@ -2,10 +2,16 @@ import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
+import {
+	PackageReadInfo,
+	PutPackageHandler,
+	AccessorHandlerResult,
+	SetupPackageContainerMonitorsResult,
+} from './genericHandle'
 import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
+import { MonitorInProgress } from '../lib/monitorInProgress'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -97,7 +103,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 				success: false,
 				reason: {
 					user: `File doesn't exist`,
-					tech: `Not able to access file: ${err.toString()}`,
+					tech: `Not able to access file: ${err}`,
 				},
 			}
 		}
@@ -111,17 +117,17 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			// If that worked, we seem to have read access.
 			await fsClose(fd)
 		} catch (err) {
-			if (err && err.code === 'EBUSY') {
+			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
-					reason: { user: `Not able to read file (file is busy)`, tech: err.toString() },
+					reason: { user: `Not able to read file (file is busy)`, tech: `${err}` },
 				}
-			} else if (err && err.code === 'ENOENT') {
-				return { success: false, reason: { user: `File does not exist`, tech: err.toString() } }
+			} else if (err && (err as any).code === 'ENOENT') {
+				return { success: false, reason: { user: `File does not exist`, tech: `${err}` } }
 			} else {
 				return {
 					success: false,
-					reason: { user: `Not able to read file`, tech: err.toString() },
+					reason: { user: `Not able to read file`, tech: `${err}` },
 				}
 			}
 		}
@@ -136,8 +142,8 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			return {
 				success: false,
 				reason: {
-					user: `Not able to write to file`,
-					tech: `Not able to write to file: ${err.toString()}`,
+					user: `Not able to write to container folder`,
+					tech: `Not able to write to container folder: ${err}`,
 				},
 			}
 		}
@@ -235,6 +241,15 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		await this.unlinkIfExists(this.metadataPath)
 	}
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+		// Always check read/write access first:
+		const checkRead = await this.checkPackageContainerReadAccess()
+		if (!checkRead.success) return checkRead
+
+		if (this.accessor.allowWrite) {
+			const checkWrite = await this.checkPackageContainerWriteAccess()
+			if (!checkWrite.success) return checkWrite
+		}
+
 		let badReason: Reason | null = null
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
@@ -253,34 +268,22 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult> {
-		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitor of monitors) {
-			if (monitor === 'packages') {
+	): Promise<SetupPackageContainerMonitorsResult> {
+		const resultingMonitors: { [monitorId: string]: MonitorInProgress } = {}
+		const monitorIds = Object.keys(
+			packageContainerExp.monitors
+		) as (keyof PackageContainerExpectation['monitors'])[]
+		for (const monitorId of monitorIds) {
+			if (monitorId === 'packages') {
 				// setup file monitor:
-				this.setupPackagesMonitor(packageContainerExp)
+				resultingMonitors[monitorId] = this.setupPackagesMonitor(packageContainerExp)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitor)
+				assertNever(monitorId)
 			}
 		}
 
-		return { success: true }
-	}
-	async disposePackageContainerMonitors(
-		packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult> {
-		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitor of monitors) {
-			if (monitor === 'packages') {
-				// dispose of the file monitor:
-				this.disposePackagesMonitor()
-			} else {
-				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitor)
-			}
-		}
-		return { success: true }
+		return { success: true, monitors: resultingMonitors }
 	}
 
 	/** Called when the package is supposed to be in place */
@@ -307,5 +310,22 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	/** Full path to the metadata file */
 	private get metadataPath() {
 		return this.fullPath + '_metadata.json'
+	}
+
+	private async checkPackageContainerReadAccess(): Promise<AccessorHandlerResult> {
+		try {
+			await fsAccess(this.folderPath, fs.constants.R_OK)
+			// The file exists
+		} catch (err) {
+			// File is not writeable
+			return {
+				success: false,
+				reason: {
+					user: `Not able to read from container folder`,
+					tech: `Not able to read from container folder: ${err}`,
+				},
+			}
+		}
+		return { success: true }
 	}
 }

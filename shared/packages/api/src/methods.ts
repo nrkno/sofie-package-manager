@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { ExpectedPackage, ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackage, ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -30,7 +30,8 @@ export namespace WorkForceExpectationManager {
 		_debugKillApp(appId: string): Promise<void>
 		getStatus: () => Promise<WorkforceStatus>
 
-		requestResources: (exp: Expectation.Any) => Promise<boolean>
+		requestResourcesForExpectation: (exp: Expectation.Any) => Promise<boolean>
+		requestResourcesForPackageContainer: (packageContainer: PackageContainerExpectation) => Promise<boolean>
 
 		registerExpectationManager: (managerId: string, url: string) => Promise<void>
 	}
@@ -87,7 +88,7 @@ export namespace ExpectationManagerWorkerAgent {
 			packageContainer: PackageContainerExpectation
 		) => Promise<ReturnTypeSetupPackageContainerMonitors>
 		disposePackageContainerMonitors: (
-			packageContainer: PackageContainerExpectation
+			packageContainerId: string
 		) => Promise<ReturnTypeDisposePackageContainerMonitors>
 	}
 	/** Methods on ExpectedManager, called by WorkerAgent */
@@ -98,6 +99,13 @@ export namespace ExpectationManagerWorkerAgent {
 		wipEventProgress: (wipId: number, actualVersionHash: string | null, progress: number) => Promise<void>
 		wipEventDone: (wipId: number, actualVersionHash: string, reason: Reason, result: any) => Promise<void>
 		wipEventError: (wipId: number, reason: Reason) => Promise<void>
+
+		monitorStatus: (
+			packageContainerId: string,
+			monitorId: string,
+			status: StatusCode,
+			reason: Reason
+		) => Promise<void>
 	}
 	export interface WorkInProgressInfo {
 		wipId: number
@@ -172,6 +180,10 @@ export namespace WorkForceAppContainer {
 		_debugKill: () => Promise<void>
 
 		requestAppTypeForExpectation: (exp: Expectation.Any) => Promise<{ appType: string; cost: number } | null>
+		requestAppTypeForPackageContainer: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<{ appType: string; cost: number } | null>
+
 		spinUp: (
 			appType: 'worker' // | other
 		) => Promise<string>
@@ -192,6 +204,9 @@ export namespace AppContainerWorkerAgent {
 		_debugKill: () => Promise<void>
 
 		doYouSupportExpectation: (exp: Expectation.Any) => Promise<ReturnTypeDoYouSupportExpectation>
+		doYouSupportPackageContainer: (
+			packageContainer: PackageContainerExpectation
+		) => Promise<ReturnTypeDoYouSupportExpectation>
 		setSpinDownTime: (spinDownTime: number) => Promise<void>
 	}
 	/** Methods on AppContainer, called by WorkerAgent */

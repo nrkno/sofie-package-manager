@@ -1,13 +1,19 @@
 import { promisify } from 'util'
 import fs from 'fs'
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
+import {
+	PackageReadInfo,
+	PutPackageHandler,
+	AccessorHandlerResult,
+	SetupPackageContainerMonitorsResult,
+} from './genericHandle'
 import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
 import networkDrive from 'windows-network-drive'
 import { exec } from 'child_process'
 import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
+import { MonitorInProgress } from '../lib/monitorInProgress'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -138,17 +144,17 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// If that worked, we seem to have read access.
 			await fsClose(fd)
 		} catch (err) {
-			if (err && err.code === 'EBUSY') {
+			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
-					reason: { user: `Not able to read file (file is busy)`, tech: err.toString() },
+					reason: { user: `Not able to read file (file is busy)`, tech: `${err}` },
 				}
-			} else if (err && err.code === 'ENOENT') {
-				return { success: false, reason: { user: `File does not exist`, tech: err.toString() } }
+			} else if (err && (err as any).code === 'ENOENT') {
+				return { success: false, reason: { user: `File does not exist`, tech: `${err}` } }
 			} else {
 				return {
 					success: false,
-					reason: { user: `Not able to read file`, tech: err.toString() },
+					reason: { user: `Not able to read file`, tech: `${err}` },
 				}
 			}
 		}
@@ -166,7 +172,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				success: false,
 				reason: {
 					user: `File doesn't exist`,
-					tech: `Not able to read file: ${err.toString()}`,
+					tech: `Not able to read file: ${err}`,
 				},
 			}
 		}
@@ -182,8 +188,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			return {
 				success: false,
 				reason: {
-					user: `Not able to write to file`,
-					tech: `Not able to write to file: ${err.toString()}`,
+					user: `Not able to write to container fodler`,
+					tech: `Not able to write to container fodler: ${err}`,
 				},
 			}
 		}
@@ -286,8 +292,17 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		await this.unlinkIfExists(this.metadataPath)
 	}
 	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
-		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
+		// Always check read/write access first:
+		const checkRead = await this.checkPackageContainerReadAccess()
+		if (!checkRead.success) return checkRead
+
+		if (this.accessor.allowWrite) {
+			const checkWrite = await this.checkPackageContainerWriteAccess()
+			if (!checkWrite.success) return checkWrite
+		}
+
 		let badReason: Reason | null = null
+		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
 			if (cronjob === 'interval') {
 				// ignore
@@ -304,34 +319,22 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult> {
-		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitor of monitors) {
-			if (monitor === 'packages') {
+	): Promise<SetupPackageContainerMonitorsResult> {
+		const resultingMonitors: { [monitorId: string]: MonitorInProgress } = {}
+		const monitorIds = Object.keys(
+			packageContainerExp.monitors
+		) as (keyof PackageContainerExpectation['monitors'])[]
+		for (const monitorId of monitorIds) {
+			if (monitorId === 'packages') {
 				// setup file monitor:
-				this.setupPackagesMonitor(packageContainerExp)
+				resultingMonitors[monitorId] = this.setupPackagesMonitor(packageContainerExp)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitor)
+				assertNever(monitorId)
 			}
 		}
 
-		return { success: true }
-	}
-	async disposePackageContainerMonitors(
-		packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult> {
-		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitor of monitors) {
-			if (monitor === 'packages') {
-				// dispose of the file monitor:
-				this.disposePackagesMonitor()
-			} else {
-				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitor)
-			}
-		}
-		return { success: true }
+		return { success: true, monitors: resultingMonitors }
 	}
 	/** Called when the package is supposed to be in place */
 	async packageIsInPlace(): Promise<void> {
@@ -428,7 +431,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				try {
 					await pExec(setupCredentialsCommand, { maxBuffer: MAX_BUFFER_SIZE })
 				} catch (err) {
-					if (err.toString().match(/multiple connections to a/i)) {
+					if (`${err}`.match(/multiple connections to a/i)) {
 						// "Multiple connections to a server or shared resource by the same user, using more than one user name, are not allowed. Disconnect all previous connections to the server or shared resource and try again."
 
 						// Remove the old and try again:
@@ -449,14 +452,31 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		try {
 			usedDriveLetters = (await networkDrive.list()) as any
-		} catch (e) {
-			if (e.toString().match(/No Instance\(s\) Available/)) {
+		} catch (err) {
+			if (`${err}`.match(/No Instance\(s\) Available/)) {
 				// this error comes when the list is empty
 				usedDriveLetters = {}
 			} else {
-				throw e
+				throw err
 			}
 		}
 		return usedDriveLetters
+	}
+	private async checkPackageContainerReadAccess(): Promise<AccessorHandlerResult> {
+		await this.prepareFileAccess()
+		try {
+			await fsAccess(this.folderPath, fs.constants.R_OK)
+			// The file exists
+		} catch (err) {
+			// File is not writeable
+			return {
+				success: false,
+				reason: {
+					user: `Not able to read from container folder`,
+					tech: `Not able to read from container folder: ${err}`,
+				},
+			}
+		}
+		return { success: true }
 	}
 }

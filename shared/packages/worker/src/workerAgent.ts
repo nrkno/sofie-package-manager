@@ -18,9 +18,13 @@ import {
 	ReturnTypeDisposePackageContainerMonitors,
 	LogLevel,
 	APPCONTAINER_PING_TIME,
+	MonitorProperties,
+	Reason,
 } from '@shared/api'
+import { StatusCode } from '@sofie-automation/blueprints-integration'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
+import { MonitorInProgress } from './worker/lib/monitorInProgress'
 import { IWorkInProgress } from './worker/lib/workInProgress'
 import { GenericWorker } from './worker/worker'
 import { WindowsWorker } from './worker/workers/windowsWorker/windowsWorker'
@@ -58,7 +62,7 @@ export class WorkerAgent {
 	private spinDownTime = 0
 	private intervalCheckTimer: NodeJS.Timer | null = null
 	private lastWorkTime = 0
-	private activeMonitors: { [monitorId: string]: true } = {}
+	private activeMonitors: { [containerId: string]: { [monitorId: string]: MonitorInProgress } } = {}
 
 	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
@@ -165,6 +169,12 @@ export class WorkerAgent {
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		this.IDidSomeWork()
 		return this._worker.doYouSupportExpectation(exp)
+	}
+	async doYouSupportPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDoYouSupportExpectation> {
+		this.IDidSomeWork()
+		return this._worker.doYouSupportPackageContainer(packageContainer)
 	}
 	async expectationManagerAvailable(id: string, url: string): Promise<void> {
 		const existing = this.expectationManagers[id]
@@ -333,23 +343,59 @@ export class WorkerAgent {
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeSetupPackageContainerMonitors> => {
 				this.IDidSomeWork()
-				const monitors = await this._worker.setupPackageContainerMonitors(packageContainer)
-				if (monitors.success) {
-					for (const monitorId of Object.keys(monitors.monitors)) {
-						this.activeMonitors[monitorId] = true
-					}
+				if (!this.activeMonitors[packageContainer.id]) {
+					this.activeMonitors[packageContainer.id] = {}
 				}
-				return monitors
+
+				const result = await this._worker.setupPackageContainerMonitors(packageContainer)
+				if (result.success) {
+					const returnMonitors: { [monitorId: string]: MonitorProperties } = {}
+
+					for (const [monitorId, monitorInProgress] of Object.entries(result.monitors)) {
+						this.activeMonitors[packageContainer.id][monitorId] = monitorInProgress
+						returnMonitors[monitorId] = monitorInProgress.properties
+
+						monitorInProgress.on('status', (status: StatusCode, reason: Reason) => {
+							expectedManager.api
+								.monitorStatus(packageContainer.id, monitorId, status, reason)
+								.catch((err) => {
+									if (!this.terminated) {
+										this.logger.error('Error in monitorStatus')
+										this.logger.error(err)
+									}
+								})
+						})
+					}
+
+					return {
+						success: true,
+						monitors: returnMonitors,
+					}
+				} else {
+					return result
+				}
 			},
 			disposePackageContainerMonitors: async (
-				packageContainer: PackageContainerExpectation
+				packageContainerId: string
 			): Promise<ReturnTypeDisposePackageContainerMonitors> => {
 				this.IDidSomeWork()
-				const success = await this._worker.disposePackageContainerMonitors(packageContainer)
-				if (success.success) {
-					this.activeMonitors = {}
+				let errorReason: Reason | null = null
+
+				const activeMonitors = this.activeMonitors[packageContainerId] || {}
+
+				for (const [monitorId, monitor] of Object.entries(activeMonitors)) {
+					try {
+						await monitor.stop()
+						delete this.activeMonitors[monitorId]
+					} catch (err) {
+						errorReason = {
+							user: 'Unable to stop monitor',
+							tech: `Error: ${err}, ${(err as any)?.stack}`,
+						}
+					}
 				}
-				return success
+				if (!errorReason) return { success: true }
+				else return { success: false, reason: errorReason }
 			},
 		})
 		// Wrap the methods, so that we can cut off communication upon termination: (this is used in tests)
