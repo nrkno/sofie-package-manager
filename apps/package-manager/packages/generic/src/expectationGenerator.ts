@@ -33,6 +33,37 @@ export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
 	}[]
 }
 
+/*
+Notes on priorities:
+
+The ExpectedPackages have an initial priority from Core, it'll have some values like:
+	0 = Currently playing part
+	1 = Next part
+	9 = Others
+*/
+
+/** The priority values on the resulting Expectations are divided into these magnitudes: */
+export enum PriorityMagnitude {
+	/** 0: Things that are to be played out like RIGHT NOW */
+	PLAY_NOW = 0,
+	/** 10: Things that are to be played out PRETTY SOON (things that could be cued anytime now) */
+	PLAY_SOON = 10,
+	/** 100: Things that affect users (GUI things) that are IMPORTANT */
+	GUI_IMPORTANT = 100,
+	/** 1000: Things that affect users (GUI things) that are NICE TO HAVE */
+	GUI_OTHER = 1000,
+	/** 10000+: Other */
+	OTHER = 10000,
+}
+/** The priority values to-be-added to the different expectation types: */
+export enum PriorityAdditions {
+	COPY = 0,
+	SCAN = 100,
+	DEEP_SCAN = 1001,
+	THUMBNAIL = 1002,
+	PREVIEW = 1003,
+}
+
 type GenerateExpectation = Expectation.Base & {
 	sideEffect?: ExpectedPackage.Base['sideEffect']
 	external?: boolean
@@ -64,27 +95,27 @@ export function generateExpectations(
 		activeRundownMap.set(activeRundown._id, activeRundown)
 	}
 
-	function prioritizeExpectation(packageWrap: ExpectedPackageWrap, exp: Expectation.Any): void {
-		// Prioritize
-		/*
-		0: Things that are to be played out like RIGHT NOW
-		10: Things that are to be played out pretty soon (things that could be cued anytime now)
-		100: Other things that affect users (GUI things)
-		1000+: Other things that can be played out
-		*/
+	function getInitialPriority(packageWrap: ExpectedPackageWrap, exp: Expectation.Any): number {
+		// Returns the initial priority, based on the expectedPackage
 
-		let prioAdd = 1000
 		const activeRundown: ActiveRundown | undefined = packageWrap.expectedPackage.rundownId
 			? activeRundownMap.get(packageWrap.expectedPackage.rundownId)
 			: undefined
 
 		if (activeRundown) {
-			// The expected package is in an active rundown
-			prioAdd = 0 + activeRundown._rank // Earlier rundowns should have higher priority
+			// The expected package is in an active rundown.
+			// Earlier rundowns should have higher priority:
+			return exp.priority + activeRundown._rank + PriorityMagnitude.PLAY_NOW
+		} else {
+			// The expected package is in an inactive rundown.
+			// Make that a low priority:
+			return exp.priority + PriorityMagnitude.OTHER
 		}
-		exp.priority += prioAdd
 	}
 	function addExpectation(packageWrap: ExpectedPackageWrap, exp: Expectation.Any) {
+		// Set the priority of the Expectation:
+		exp.priority = getInitialPriority(packageWrap, exp)
+
 		const existingExp = expectations[exp.id]
 		if (existingExp) {
 			// There is already an expectation pointing at the same place.
@@ -132,6 +163,10 @@ export function generateExpectations(
 		) {
 			if ((packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/)) {
 				// the files are on the form "smartbull_TIMESTAMP.mxf/mp4"
+
+				// Set the smartbull priority:
+				packageWrap.priority = PriorityMagnitude.PLAY_SOON
+
 				smartbullExpectations.push(packageWrap)
 			}
 			// (any other files in the "source-smartbull"-container are to be ignored)
@@ -146,7 +181,6 @@ export function generateExpectations(
 			exp = generateJsonDataCopy(managerId, packageWrap, settings)
 		}
 		if (exp) {
-			prioritizeExpectation(packageWrap, exp)
 			addExpectation(packageWrap, exp)
 		}
 	}
@@ -184,7 +218,6 @@ export function generateExpectations(
 				}
 				const exp = generateMediaFileCopy(managerId, newPackage, settings)
 				if (exp) {
-					prioritizeExpectation(newPackage, exp)
 					addExpectation(newPackage, exp)
 				}
 			} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
@@ -301,7 +334,7 @@ function generateMediaFileCopy(
 
 	const exp: Expectation.FileCopy = {
 		id: '', // set later
-		priority: expWrap.priority * 10 || 0,
+		priority: expWrap.priority + PriorityAdditions.COPY,
 		managerId: managerId,
 		fromPackages: [
 			{
@@ -347,7 +380,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	const label = content.title && content.guid ? `${content.title} (${content.guid})` : content.title || content.guid
 	const exp: Expectation.QuantelClipCopy = {
 		id: '', // set later
-		priority: expWrap.priority * 10 || 0,
+		priority: expWrap.priority + PriorityAdditions.COPY,
 		managerId: managerId,
 		type: Expectation.Type.QUANTEL_CLIP_COPY,
 		fromPackages: [
@@ -390,7 +423,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 function generatePackageScan(expectation: Expectation.FileCopy | Expectation.QuantelClipCopy): Expectation.PackageScan {
 	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
-		priority: expectation.priority + 100,
+		priority: expectation.priority + PriorityAdditions.SCAN,
 		managerId: expectation.managerId,
 		type: Expectation.Type.PACKAGE_SCAN,
 		fromPackages: expectation.fromPackages,
@@ -436,7 +469,7 @@ function generatePackageDeepScan(
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
 		id: expectation.id + '_deepscan',
-		priority: expectation.priority + 1001,
+		priority: expectation.priority + PriorityAdditions.DEEP_SCAN,
 		managerId: expectation.managerId,
 		type: Expectation.Type.PACKAGE_DEEP_SCAN,
 		fromPackages: expectation.fromPackages,
@@ -491,7 +524,7 @@ function generateMediaFileThumbnail(
 ): Expectation.MediaFileThumbnail {
 	return literal<Expectation.MediaFileThumbnail>({
 		id: expectation.id + '_thumbnail',
-		priority: expectation.priority + 1002,
+		priority: expectation.priority + PriorityAdditions.THUMBNAIL,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
 		fromPackages: expectation.fromPackages,
@@ -542,7 +575,7 @@ function generateMediaFilePreview(
 ): Expectation.MediaFilePreview {
 	return literal<Expectation.MediaFilePreview>({
 		id: expectation.id + '_preview',
-		priority: expectation.priority + 1003,
+		priority: expectation.priority + PriorityAdditions.PREVIEW,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_PREVIEW,
 		fromPackages: expectation.fromPackages,
@@ -593,7 +626,7 @@ function generateQuantelClipThumbnail(
 ): Expectation.QuantelClipThumbnail {
 	return literal<Expectation.QuantelClipThumbnail>({
 		id: expectation.id + '_thumbnail',
-		priority: expectation.priority + 1002,
+		priority: expectation.priority + PriorityAdditions.THUMBNAIL,
 		managerId: expectation.managerId,
 		type: Expectation.Type.QUANTEL_CLIP_THUMBNAIL,
 		fromPackages: expectation.fromPackages,
@@ -643,7 +676,7 @@ function generateQuantelClipPreview(
 ): Expectation.QuantelClipPreview {
 	return literal<Expectation.QuantelClipPreview>({
 		id: expectation.id + '_preview',
-		priority: expectation.priority + 1003,
+		priority: expectation.priority + PriorityAdditions.PREVIEW,
 		managerId: expectation.managerId,
 		type: Expectation.Type.QUANTEL_CLIP_PREVIEW,
 		fromPackages: expectation.fromPackages,
@@ -697,7 +730,7 @@ function generateJsonDataCopy(
 
 	const exp: Expectation.JsonDataCopy = {
 		id: '', // set later
-		priority: expWrap.priority * 10 || 0,
+		priority: expWrap.priority + PriorityAdditions.COPY,
 		managerId: managerId,
 		fromPackages: [
 			{
@@ -736,53 +769,6 @@ function generateJsonDataCopy(
 	exp.id = hashObj(exp.endRequirement)
 	return exp
 }
-
-// function generateMediaFileHTTPCopy(expectation: Expectation.FileCopy): Expectation.FileCopy {
-// 	// Copy file to HTTP: (TMP!)
-// 	const tmpCopy: Expectation.FileCopy = {
-// 		id: expectation.id + '_tmpCopy',
-// 		priority: expectation.priority + 5,
-//		managerId: expectation.managerId,
-// 		type: Expectation.Type.MEDIA_FILE_COPY,
-// 		fromPackages: expectation.fromPackages,
-
-// 		statusReport: {
-// 			label: `TMP: copy to http for ${expectation.statusReport.label}`,
-// 			description: ``,
-// 			requiredForPlayout: false,
-// 			displayRank: 12,
-// 		},
-
-// 		startRequirement: {
-// 			sources: expectation.endRequirement.targets,
-// 		},
-// 		endRequirement: {
-// 			targets: [
-// 				{
-// 					label: 'local http',
-// 					containerId: 'proxy1',
-// 					accessors: {
-// 						http: {
-// 							type: Accessor.AccessType.HTTP,
-// 							baseUrl: 'http://localhost:8080/package/',
-// 							url: expectation.endRequirement.content.filePath,
-// 							allowRead: true,
-// 							allowWrite: true,
-// 						},
-// 					},
-// 				},
-// 			],
-// 			content: expectation.endRequirement.content,
-// 			version: {
-// 				type: Expectation.Version.Type.FILE_ON_DISK,
-// 			},
-// 		},
-// 		dependsOnFullfilled: [expectation.id],
-// 		triggerByFullfilledIds: [expectation.id],
-// 	}
-
-// 	return tmpCopy
-// }
 
 export function generatePackageContainerExpectations(
 	managerId: string,

@@ -742,7 +742,7 @@ function wrapExpectedPackage(
 		if (combinedTargets.length) {
 			return {
 				expectedPackage: expectedPackage,
-				priority: 999, // lowest priority
+				priority: 999, // Default: lowest priority
 				sources: combinedSources,
 				targets: combinedTargets,
 				playoutDeviceId: '',

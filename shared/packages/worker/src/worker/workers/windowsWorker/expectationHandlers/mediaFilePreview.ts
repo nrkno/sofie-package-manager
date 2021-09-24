@@ -10,9 +10,11 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	assertNever,
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
+	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
@@ -147,13 +149,22 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		const targetHandle = lookupTarget.handle
 
 		if (
-			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER &&
+			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+				lookupSource.accessor.type === Accessor.AccessType.HTTP ||
+				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
 				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 		) {
 			// We can read the source and write the preview directly.
-			if (!isLocalFolderAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (
+				!isLocalFolderAccessorHandle(sourceHandle) &&
+				!isFileShareAccessorHandle(sourceHandle) &&
+				!isHTTPAccessorHandle(sourceHandle) &&
+				!isHTTPProxyAccessorHandle(sourceHandle)
+			)
+				throw new Error(`Source AccessHandler type is wrong`)
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
@@ -189,11 +200,26 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 				await targetHandle.removePackage()
 
+				let inputPath: string
+				if (isLocalFolderAccessorHandle(sourceHandle)) {
+					inputPath = sourceHandle.fullPath
+				} else if (isFileShareAccessorHandle(sourceHandle)) {
+					await sourceHandle.prepareFileAccess()
+					inputPath = sourceHandle.fullPath
+				} else if (isHTTPAccessorHandle(sourceHandle)) {
+					inputPath = sourceHandle.fullUrl
+				} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
+					inputPath = sourceHandle.fullUrl
+				} else {
+					assertNever(sourceHandle)
+					throw new Error(`Unsupported Target AccessHandler`)
+				}
+
 				const args = [
 					'-hide_banner',
 					'-y', // Overwrite output files without asking.
 					'-threads 1', // Number of threads to use
-					`-i "${sourceHandle.fullPath}"`, // Input file path
+					`-i "${inputPath}"`, // Input file path
 					'-f webm', // format: webm
 					'-an', // blocks all audio streams
 					'-c:v libvpx', // encoder for video
@@ -256,7 +282,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove preview file: ${err.toString()}`,
+					tech: `Cannot remove preview file: ${err}`,
 				},
 			}
 		}
