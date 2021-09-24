@@ -1478,10 +1478,10 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0":
-  version "1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0.tgz#f1a1fcef65a211f92c077e8a3cd729d99827ca5d"
-  integrity sha512-RS13uh34xBhQ70NJ9+gEFD95fY0KkHWLZBQfMWtkThy9WdAxJ0zxHIfV2l7PLFTuWQc+PEdXWZnKmz5Y7aY3dA==
+"@sofie-automation/blueprints-integration@1.37.0-nightly-feat-package-containter-statuses-20210924-070255-7d86479.0":
+  version "1.37.0-nightly-feat-package-containter-statuses-20210924-070255-7d86479.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-feat-package-containter-statuses-20210924-070255-7d86479.0.tgz#c373472e406ba9b1f1beb440d105acb3aea0eb3c"
+  integrity sha512-SJ8dooS6seWplOKGJuKa8BgQzZq2UW8hgd1DlHWRq6JBXdxliWB3hzn6wm61aT2wm4tFYmqmQv1bycOjgvUEBg==
   dependencies:
     moment "2.29.1"
     timeline-state-resolver-types "6.2.0-release37.0"
@@ -1507,10 +1507,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0":
-  version "1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-feat-package-containter-statuses-20210916-051552-dac1cdb.0.tgz#9ee883b678744393d596bc63b61c069c32ce4063"
-  integrity sha512-pLcDFvUiw3FWf0mlynaMnUbbA/ZQyo6Pmg6gZH5XYqT41GZ4KC/NyqW7pfYqi5gkW519xHo267XB/A83052Ogw==
+"@sofie-automation/server-core-integration@1.37.0-nightly-feat-package-containter-statuses-20210924-070255-7d86479.0":
+  version "1.37.0-nightly-feat-package-containter-statuses-20210924-070255-7d86479.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-feat-package-containter-statuses-20210924-070255-7d86479.0.tgz#3d0c90cad808505b6d0cb2526c0853f7a541d8a0"
+  integrity sha512-TZ4aFeB7GoaMx4qJlj+qOEGG1iJTYH6JAl+Nx3MveCItRx23hiNHSX2czc3Csj0mqIoJyHI1RF3KTBdeXopGUQ==
   dependencies:
     data-store "^4.0.3"
     ejson "^2.2.0"
