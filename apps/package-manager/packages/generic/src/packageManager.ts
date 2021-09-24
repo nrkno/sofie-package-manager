@@ -411,7 +411,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		statusInfo: {
 			status?: ExpectedPackageStatusAPI.WorkStatusState
 			progress?: number
+			priority?: number
 			statusReason?: Reason
+			prevStatusReasons?: { [state: string]: Reason }
 		}
 	): void {
 		if (!expectaction) {
@@ -429,7 +431,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					status: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					statusChanged: 0,
 					progress: 0,
+					priority: 9999,
 					statusReason: { user: '', tech: '' },
+					prevStatusReasons: {},
 				},
 				// Previous properties:
 				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.WorkStatus>), // Intentionally cast to Partial<>, to make typings in const workStatus more strict

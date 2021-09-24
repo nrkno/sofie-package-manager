@@ -538,6 +538,7 @@ export class ExpectationManager {
 						user: '',
 						tech: '',
 					},
+					prevStatusReasons: {},
 					status: {},
 					session: null,
 				}
@@ -1136,8 +1137,7 @@ export class ExpectationManager {
 		trackedExp.lastEvaluationTime = Date.now()
 		if (isError) trackedExp.lastErrorTime = Date.now()
 
-		const prevState = trackedExp.state
-		const prevStatus = trackedExp.status
+		const prevState: ExpectedPackageStatusAPI.WorkStatusState = trackedExp.state
 
 		let updatedState = false
 		let updatedReason = false
@@ -1148,12 +1148,14 @@ export class ExpectationManager {
 			updatedState = true
 		}
 
-		if (!_.isEqual(trackedExp.reason, reason)) {
-			trackedExp.reason = reason || { user: '', tech: '' }
+		if (reason && !_.isEqual(trackedExp.reason, reason)) {
+			trackedExp.reason = reason
 			updatedReason = true
+
+			trackedExp.prevStatusReasons[trackedExp.state] = trackedExp.reason
 		}
 		const status = Object.assign({}, trackedExp.status, newStatus) // extend with new values
-		if (!_.isEqual(prevStatus, status)) {
+		if (!_.isEqual(trackedExp.status, status)) {
 			Object.assign(trackedExp.status, newStatus)
 			updatedStatus = true
 		}
@@ -1170,8 +1172,10 @@ export class ExpectationManager {
 
 		if (updatedState || updatedReason) {
 			this.callbacks.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
+				priority: trackedExp.exp.priority,
 				status: updatedState || updatedReason ? trackedExp.state : undefined,
 				statusReason: updatedReason ? trackedExp.reason : undefined,
+				prevStatusReasons: trackedExp.prevStatusReasons,
 			})
 		}
 		if (updatedState || updatedReason || updatedStatus) {
@@ -1186,6 +1190,7 @@ export class ExpectationManager {
 					progress: trackedExp.status.workProgress || 0,
 					status: this.getPackageStatus(trackedExp),
 					statusReason: trackedExp.reason,
+					priority: trackedExp.exp.priority,
 
 					isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
 				})
@@ -1826,6 +1831,9 @@ interface TrackedExpectation {
 	/** Reason for the current state. */
 	reason: Reason
 
+	/** Previous reasons, for each state. */
+	prevStatusReasons: { [status: string]: Reason }
+
 	/** List of worker ids that have gotten the question wether they support this expectation */
 	queriedWorkers: { [workerId: string]: number }
 	/** List of worker ids that supports this Expectation */
@@ -1888,7 +1896,9 @@ export interface ExpectationManagerCallbacks {
 		statusInfo: {
 			status?: ExpectedPackageStatusAPI.WorkStatusState
 			progress?: number
+			priority?: number
 			statusReason?: Reason
+			prevStatusReasons?: { [status: string]: Reason }
 		}
 	) => void
 	reportPackageContainerPackageStatus: (
