@@ -1394,14 +1394,16 @@ export class ExpectationManager {
 			if (this.receivedUpdates.restartPackageContainers[containerId]) {
 				isUpdated = true
 			}
+			let trackedPackageContainer: TrackedPackageContainerExpectation
 
 			if (isNew) {
-				const trackedPackageContainer: TrackedPackageContainerExpectation = {
+				trackedPackageContainer = {
 					id: containerId,
 					packageContainer: packageContainer,
 					currentWorker: null,
 					waitingForWorkerTime: null,
 					isUpdated: true,
+					removed: false,
 					lastEvaluationTime: 0,
 					monitorIsSetup: false,
 					status: {
@@ -1412,10 +1414,25 @@ export class ExpectationManager {
 					},
 				}
 				this.trackedPackageContainers[containerId] = trackedPackageContainer
+			} else {
+				trackedPackageContainer = this.trackedPackageContainers[containerId]
 			}
 			if (isUpdated) {
-				this.trackedPackageContainers[containerId].packageContainer = packageContainer
-				this.trackedPackageContainers[containerId].isUpdated = true
+				trackedPackageContainer.packageContainer = packageContainer
+				trackedPackageContainer.isUpdated = true
+				trackedPackageContainer.removed = false
+
+				if (isNew) {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.UNKNOWN, {
+						user: `Added just now`,
+						tech: `Added ${Date.now()}`,
+					})
+				} else {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.UNKNOWN, {
+						user: `Updated just now`,
+						tech: `Updated ${Date.now()}`,
+					})
+				}
 			}
 		}
 
@@ -1431,7 +1448,10 @@ export class ExpectationManager {
 						try {
 							const result = await workerAgent.api.disposePackageContainerMonitors(containerId)
 							if (result.success) {
+								trackedPackageContainer.removed = true
 								this.callbacks.reportPackageContainerExpectationStatus(containerId, null)
+
+								delete this.trackedPackageContainers[containerId]
 							} else {
 								this.updateTrackedPackageContainerStatus(
 									trackedPackageContainer,
@@ -1595,6 +1615,8 @@ export class ExpectationManager {
 		status: StatusCode,
 		statusReason: Reason
 	) {
+		if (trackedPackageContainer.removed) return
+
 		let updatedStatus = false
 		trackedPackageContainer.status.statusChanged = Date.now()
 
@@ -1622,6 +1644,8 @@ export class ExpectationManager {
 		status: StatusCode,
 		statusReason: Reason
 	) {
+		if (trackedPackageContainer.removed) return
+
 		let updatedStatus = false
 		trackedPackageContainer.status.statusChanged = Date.now()
 
@@ -1934,6 +1958,9 @@ interface TrackedPackageContainerExpectation {
 
 	/** These statuses are sent from the workers */
 	status: ExpectedPackageStatusAPI.PackageContainerStatus
+
+	/** Is set if the packageContainer has been removed */
+	removed: boolean
 }
 /** Execute callback in batches */
 async function runInBatches<T, ReturnValue>(

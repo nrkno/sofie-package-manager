@@ -277,8 +277,8 @@ export class PackageManagerHandler {
 			activePlaylist
 		)
 		this.logger.debug(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
-		;(this.dataSnapshot.packageContainerExpectations = packageContainerExpectations),
-			(this.dataSnapshot.updated = Date.now())
+		this.dataSnapshot.packageContainerExpectations = packageContainerExpectations
+		this.dataSnapshot.updated = Date.now()
 
 		this.ensureMandatoryPackageContainerExpectations(packageContainerExpectations)
 
@@ -337,23 +337,21 @@ export class PackageManagerHandler {
 					break
 				}
 			}
-			// All writeable packageContainers should have the clean up cronjob:
+			if (!packageContainerExpectations[containerId]) {
+				// Add default packageContainerExpectation:
+				// All packageContainers should get a default expectation, so that statuses are reported back.
+				packageContainerExpectations[containerId] = literal<PackageContainerExpectation>({
+					...packageContainer,
+					id: containerId,
+					managerId: this.expectationManager.managerId,
+					cronjobs: {
+						// interval: 0,
+					},
+					monitors: {},
+				})
+			}
 			if (isWriteable) {
-				if (!packageContainerExpectations[containerId]) {
-					// todo: Maybe should not all package-managers monitor,
-					// this should perhaps be coordinated with the Workforce-manager, who should monitor who?
-
-					// Add default packageContainerExpectation:
-					packageContainerExpectations[containerId] = literal<PackageContainerExpectation>({
-						...packageContainer,
-						id: containerId,
-						managerId: this.expectationManager.managerId,
-						cronjobs: {
-							interval: 0,
-						},
-						monitors: {},
-					})
-				}
+				// All writeable packageContainers should have the clean-up cronjob:
 				packageContainerExpectations[containerId].cronjobs.cleanup = {
 					label: 'Clean up old packages',
 				} // Add cronjob to clean up
