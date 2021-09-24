@@ -1,6 +1,6 @@
 {
     "name": "@shared/expectation-manager",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
@@ -18,7 +18,7 @@
     },
     "dependencies": {
         "@shared/api": "^1.0.1",
-        "@shared/worker": "^1.0.1",
+        "@shared/worker": "^1.0.2",
         "@sofie-automation/blueprints-integration": "*",
         "@supercharge/promise-pool": "^1.7.0",
         "underscore": "^1.12.0"
