@@ -87,9 +87,9 @@ export class WorkerAgentAPI
 		return this._sendMessage('setupPackageContainerMonitors', packageContainer)
 	}
 	async disposePackageContainerMonitors(
-		packageContainer: PackageContainerExpectation
+		packageContainerId: string
 	): Promise<ReturnTypeDisposePackageContainerMonitors> {
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
-		return this._sendMessage('disposePackageContainerMonitors', packageContainer)
+		return this._sendMessage('disposePackageContainerMonitors', packageContainerId)
 	}
 }

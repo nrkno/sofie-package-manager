@@ -787,6 +787,7 @@ export function generatePackageContainerExpectations(
 				cronjobs: {},
 				monitors: {
 					packages: {
+						label: 'Monitor Packages on source',
 						targetLayers: ['target0'],
 						ignore: '.bat',
 						// ignore: '',
@@ -805,6 +806,7 @@ export function generatePackageContainerExpectations(
 				cronjobs: {},
 				monitors: {
 					packages: {
+						label: 'Monitor for Smartbull',
 						targetLayers: ['source-smartbull'], // not used, since the layers of the original smartbull-package are used
 						usePolling: 2000,
 						awaitWriteFinishStabilityThreshold: 2000,

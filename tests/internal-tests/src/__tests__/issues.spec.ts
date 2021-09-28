@@ -54,7 +54,7 @@ describe('Handle unhappy paths', () => {
 		expect(env.expectationStatuses['copy0']).toMatchObject({
 			actualVersionHash: null,
 			statusInfo: {
-				status: 'waiting',
+				status: /new|waiting/,
 				statusReason: {
 					tech: /not able to access file/i,
 				},
@@ -65,6 +65,7 @@ describe('Handle unhappy paths', () => {
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
 
 		await waitTime(env.WAIT_SCAN_TIME)
+		await waitTime(env.ERROR_WAIT_TIME)
 		await waitTime(env.WAIT_JOB_TIME)
 
 		// Expect the copy to have completed by now:
@@ -117,7 +118,7 @@ describe('Handle unhappy paths', () => {
 		expect(env.expectationStatuses['copy0']).toMatchObject({
 			actualVersionHash: null,
 			statusInfo: {
-				status: 'waiting',
+				status: /new|waiting/,
 				statusReason: {
 					tech: /not able to access file/i,
 				},
@@ -126,6 +127,7 @@ describe('Handle unhappy paths', () => {
 
 		// Now the file can be read from:
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+		await waitTime(env.ERROR_WAIT_TIME)
 		await waitTime(env.WAIT_SCAN_TIME)
 
 		// Expect the Expectation to be waiting:

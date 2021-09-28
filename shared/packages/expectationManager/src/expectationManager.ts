@@ -14,8 +14,9 @@ import {
 	assertNever,
 	ExpectationManagerStatus,
 	LogLevel,
+	deepEqual,
 } from '@shared/api'
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 import PromisePool from '@supercharge/promise-pool'
@@ -38,17 +39,20 @@ export class ExpectationManager {
 		/** Set to true when there have been changes to expectations.receivedUpdates */
 		expectationsHasBeenUpdated: boolean
 
-		/** Store for incoming PackageContainerExpectations */
-		packageContainers: { [id: string]: PackageContainerExpectation }
-		/** Set to true when there have been changes to expectations.receivedUpdates */
-		packageContainersHasBeenUpdated: boolean
-
 		/** Store for incoming Restart-calls */
 		restartExpectations: { [id: string]: true }
 		/** Store for incoming Abort-calls */
 		abortExpectations: { [id: string]: true }
 		/** Store for incoming RestartAll-calls */
 		restartAllExpectations: boolean
+
+		/** Store for incoming PackageContainerExpectations */
+		packageContainers: { [id: string]: PackageContainerExpectation }
+		/** Set to true when there have been changes to expectations.receivedUpdates */
+		packageContainersHasBeenUpdated: boolean
+
+		/** Store for incoming restart-container calls */
+		restartPackageContainers: { [containerId: string]: true }
 	} = {
 		expectations: {},
 		expectationsHasBeenUpdated: false,
@@ -56,6 +60,7 @@ export class ExpectationManager {
 		packageContainersHasBeenUpdated: false,
 		restartExpectations: {},
 		abortExpectations: {},
+		restartPackageContainers: {},
 		restartAllExpectations: false,
 	}
 
@@ -109,6 +114,7 @@ export class ExpectationManager {
 			SCALE_UP_TIME: 5 * 1000,
 			SCALE_UP_COUNT: 1,
 			WORKER_SUPPORT_TIME: 60 * 1000,
+			ERROR_WAIT_TIME: 10 * 1000,
 
 			...options?.constants,
 		}
@@ -196,6 +202,7 @@ export class ExpectationManager {
 			packageContainersHasBeenUpdated: false,
 			restartExpectations: {},
 			abortExpectations: {},
+			restartPackageContainers: {},
 			restartAllExpectations: false,
 		}
 		this.trackedExpectations = {}
@@ -268,6 +275,11 @@ export class ExpectationManager {
 	abortExpectation(expectationId: string): void {
 		this.receivedUpdates.abortExpectations[expectationId] = true
 		this.receivedUpdates.expectationsHasBeenUpdated = true
+		this._triggerEvaluateExpectations(true)
+	}
+	restartPackageContainer(containerId: string): void {
+		this.receivedUpdates.restartPackageContainers[containerId] = true
+		this.receivedUpdates.packageContainersHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
@@ -415,17 +427,36 @@ export class ExpectationManager {
 						this.updateTrackedExpStatus(
 							wip.trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.NEW,
-							reason
+							reason,
+							undefined,
+							true
 						)
-						this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
-							status: wip.trackedExp.state,
-							statusReason: wip.trackedExp.reason,
-						})
 					} else {
 						// ignore
 					}
 					delete this.worksInProgress[`${clientId}_${wipId}`]
 				}
+			},
+			monitorStatus: async (
+				packageContainerId: string,
+				monitorId: string,
+				status: StatusCode,
+				reason: Reason
+			) => {
+				const trackedPackageContainer = this.trackedPackageContainers[packageContainerId]
+				if (!trackedPackageContainer) {
+					this.logger.error(`Worker reported status on unknown packageContainer "${packageContainerId}"`)
+					return
+				}
+				trackedPackageContainer.status.statusChanged = Date.now()
+
+				this.updateTrackedPackageContainerMonitorStatus(
+					trackedPackageContainer,
+					monitorId,
+					undefined,
+					status,
+					reason
+				)
 			},
 		}
 	}
@@ -500,11 +531,14 @@ export class ExpectationManager {
 					},
 					lastEvaluationTime: 0,
 					waitingForWorkerTime: null,
+					noWorkerAssignedTime: null,
 					errorCount: 0,
+					lastErrorTime: 0,
 					reason: {
 						user: '',
 						tech: '',
 					},
+					prevStatusReasons: {},
 					status: {},
 					session: null,
 				}
@@ -605,9 +639,9 @@ export class ExpectationManager {
 	private getTrackedExpectations(): TrackedExpectation[] {
 		const tracked: TrackedExpectation[] = Object.values(this.trackedExpectations)
 		tracked.sort((a, b) => {
-			// Lowest errorCount first, this is to make it so that if one expectation fails, it'll not block all the others
-			if (a.errorCount > b.errorCount) return 1
-			if (a.errorCount < b.errorCount) return -1
+			// Lowest lastErrorTime first, this is to make it so that if one expectation fails, it'll not block all the others
+			if (a.lastErrorTime > b.lastErrorTime) return 1
+			if (a.lastErrorTime < b.lastErrorTime) return -1
 
 			// Lowest priority first
 			if (a.exp.priority > b.exp.priority) return 1
@@ -722,6 +756,12 @@ export class ExpectationManager {
 		if (trackedExp.session.hadError) return // do nothing
 
 		try {
+			if (Date.now() - trackedExp.lastErrorTime < this.constants.ERROR_WAIT_TIME) {
+				// There was an error not long ago, wait with this one.
+				trackedExp.session.hadError = true
+				return
+			}
+
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
 				// Check which workers might want to handle it:
 				// Reset properties:
@@ -848,25 +888,29 @@ export class ExpectationManager {
 									trackedExp,
 									ExpectedPackageStatusAPI.WorkStatusState.NEW,
 									readyToStart.reason,
-									newStatus
+									newStatus,
+									true
 								)
 							}
 						}
 					} catch (error) {
 						// There was an error, clearly it's not ready to start
-						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
-							user: 'Restarting due to error',
-							tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
-						})
+
+						this.updateTrackedExpStatus(
+							trackedExp,
+							ExpectedPackageStatusAPI.WorkStatusState.NEW,
+							{
+								user: 'Restarting due to error',
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+							},
+							undefined,
+							true
+						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						ExpectedPackageStatusAPI.WorkStatusState.NEW,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) {
 				// Start working on it:
@@ -900,24 +944,39 @@ export class ExpectationManager {
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.WORKING,
-							undefined,
+							{
+								user: `Working on: ${wipInfo.properties.workLabel}`,
+								tech: `Working on: ${wipInfo.properties.workLabel}`,
+							},
 							wipInfo.properties
 						)
 					} catch (error) {
 						// There was an error
-						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
-							user: 'Restarting due to an error',
-							tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
-						})
+						this.updateTrackedExpStatus(
+							trackedExp,
+							ExpectedPackageStatusAPI.WorkStatusState.NEW,
+							{
+								user: 'Restarting due to an error',
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+							},
+							undefined,
+							true
+						)
 					}
 				} else {
 					// No worker is available at the moment.
-					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					// Check if anough time has passed if it makes sense to check for new workers again:
+
+					if (
+						trackedExp.noWorkerAssignedTime &&
+						Date.now() - trackedExp.noWorkerAssignedTime > this.constants.WORKER_SUPPORT_TIME
+					) {
+						// Restart
+						this.updateTrackedExpStatus(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, undefined)
+					} else {
+						// Do nothing, hopefully some will be available at a later iteration
+						this.noWorkerAssigned(trackedExp)
+					}
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 				// It is already working, don't do anything
@@ -960,11 +1019,7 @@ export class ExpectationManager {
 					} else {
 						// No worker is available at the moment.
 						// Do nothing, hopefully some will be available at a later iteration
-						this.updateTrackedExpStatus(
-							trackedExp,
-							undefined,
-							this.getNoAssignedWorkerReason(trackedExp.session)
-						)
+						this.noWorkerAssigned(trackedExp)
 					}
 				} else {
 					// Do nothing
@@ -978,20 +1033,19 @@ export class ExpectationManager {
 
 						this.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
 					} else {
+						// Something went wrong when trying to handle the removal.
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
-							removed.reason
+							removed.reason,
+							undefined,
+							true
 						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.RESTARTED) {
 				await this.assignWorkerToSession(trackedExp)
@@ -1005,20 +1059,19 @@ export class ExpectationManager {
 						})
 						trackedExp.session.triggerExpectationAgain = true
 					} else {
+						// Something went wrong when trying to remove
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
-							removed.reason
+							removed.reason,
+							undefined,
+							true
 						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.ABORTED) {
 				await this.assignWorkerToSession(trackedExp)
@@ -1032,31 +1085,36 @@ export class ExpectationManager {
 							tech: 'Aborted',
 						})
 					} else {
+						// Something went wrong when trying to remove
 						this.updateTrackedExpStatus(
 							trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
-							removed.reason
+							removed.reason,
+							undefined,
+							true
 						)
 					}
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
-					this.updateTrackedExpStatus(
-						trackedExp,
-						undefined,
-						this.getNoAssignedWorkerReason(trackedExp.session)
-					)
+					this.noWorkerAssigned(trackedExp)
 				}
 			} else {
 				assertNever(trackedExp.state)
 			}
 		} catch (err) {
 			this.logger.error(`Error thrown in evaluateExpectationState for expectation "${trackedExp.id}"`)
-			this.logger.error(err)
-			this.updateTrackedExpStatus(trackedExp, undefined, {
-				user: 'Internal error in Package Manager',
-				tech: err.toString(),
-			})
+			this.logger.error(err as any)
+			this.updateTrackedExpStatus(
+				trackedExp,
+				undefined,
+				{
+					user: 'Internal error in Package Manager',
+					tech: `${err}`,
+				},
+				undefined,
+				true
+			)
 		}
 	}
 	/** Returns the appropriate time to wait before checking a fulfilled expectation again */
@@ -1073,12 +1131,13 @@ export class ExpectationManager {
 		trackedExp: TrackedExpectation,
 		state: ExpectedPackageStatusAPI.WorkStatusState | undefined,
 		reason: Reason | undefined,
-		newStatus?: Partial<TrackedExpectation['status']>
+		newStatus?: Partial<TrackedExpectation['status']> | undefined,
+		isError?: boolean
 	) {
 		trackedExp.lastEvaluationTime = Date.now()
+		if (isError) trackedExp.lastErrorTime = Date.now()
 
-		const prevState = trackedExp.state
-		const prevStatus = trackedExp.status
+		const prevState: ExpectedPackageStatusAPI.WorkStatusState = trackedExp.state
 
 		let updatedState = false
 		let updatedReason = false
@@ -1089,12 +1148,14 @@ export class ExpectationManager {
 			updatedState = true
 		}
 
-		if (!_.isEqual(trackedExp.reason, reason)) {
-			trackedExp.reason = reason || { user: '', tech: '' }
+		if (reason && !_.isEqual(trackedExp.reason, reason)) {
+			trackedExp.reason = reason
 			updatedReason = true
+
+			trackedExp.prevStatusReasons[trackedExp.state] = trackedExp.reason
 		}
 		const status = Object.assign({}, trackedExp.status, newStatus) // extend with new values
-		if (!_.isEqual(prevStatus, status)) {
+		if (!_.isEqual(trackedExp.status, status)) {
 			Object.assign(trackedExp.status, newStatus)
 			updatedStatus = true
 		}
@@ -1111,8 +1172,10 @@ export class ExpectationManager {
 
 		if (updatedState || updatedReason) {
 			this.callbacks.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
-				status: trackedExp.state,
-				statusReason: trackedExp.reason,
+				priority: trackedExp.exp.priority,
+				status: updatedState || updatedReason ? trackedExp.state : undefined,
+				statusReason: updatedReason ? trackedExp.reason : undefined,
+				prevStatusReasons: trackedExp.prevStatusReasons,
 			})
 		}
 		if (updatedState || updatedReason || updatedStatus) {
@@ -1120,19 +1183,17 @@ export class ExpectationManager {
 		}
 	}
 	private updatePackageContainerPackageStatus(trackedExp: TrackedExpectation) {
-		if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
-			for (const fromPackage of trackedExp.exp.fromPackages) {
-				// TODO: this is probably not eh right thing to do:
-				for (const packageContainer of trackedExp.exp.endRequirement.targets) {
-					this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
-						contentVersionHash: trackedExp.status.actualVersionHash || '',
-						progress: trackedExp.status.workProgress || 0,
-						status: this.getPackageStatus(trackedExp),
-						statusReason: trackedExp.reason,
+		for (const fromPackage of trackedExp.exp.fromPackages) {
+			for (const packageContainer of trackedExp.exp.endRequirement.targets) {
+				this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
+					contentVersionHash: trackedExp.status.actualVersionHash || '',
+					progress: trackedExp.status.workProgress || 0,
+					status: this.getPackageStatus(trackedExp),
+					statusReason: trackedExp.reason,
+					priority: trackedExp.exp.priority,
 
-						isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
-					})
-				}
+					isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
+				})
 			}
 		}
 	}
@@ -1168,7 +1229,7 @@ export class ExpectationManager {
 		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
-		let noCostReason: string | undefined = undefined
+		let noCostReason = `${Object.keys(trackedExp.queriedWorkers).length} queried`
 
 		// Send a number of requests simultaneously:
 		await runInBatches(
@@ -1188,7 +1249,7 @@ export class ExpectationManager {
 							})
 						}
 					} catch (error) {
-						noCostReason = error.toString()
+						noCostReason = `${error}`
 					}
 				}
 				if (workerCosts.length >= minWorkerCount) abort()
@@ -1215,6 +1276,7 @@ export class ExpectationManager {
 		if (bestWorker && bestWorker.cost.startCost < 10) {
 			// Only allow starting if the job can start in a short while
 			session.assignedWorker = bestWorker
+			trackedExp.noWorkerAssignedTime = null
 		} else {
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker (${
@@ -1225,6 +1287,37 @@ export class ExpectationManager {
 				} busy) ${noCostReason}`,
 			}
 		}
+	}
+	/**
+	 * Handle an Expectation that had no worker assigned
+	 */
+	private noWorkerAssigned(trackedExp: TrackedExpectation): void {
+		if (!trackedExp.session) throw new Error('Internal error: noWorkerAssigned: session not set')
+		if (trackedExp.session.assignedWorker)
+			throw new Error('Internal error: noWorkerAssigned can only be called when assignedWorker is falsy')
+
+		let noAssignedWorkerReason: ExpectedPackageStatusAPI.Reason
+		if (!trackedExp.session.noAssignedWorkerReason) {
+			this.logger.error(
+				`trackedExp.session.noAssignedWorkerReason is undefined, although assignedWorker was set..`
+			)
+			noAssignedWorkerReason = {
+				user: 'Unknown reason (internal error)',
+				tech: 'Unknown reason',
+			}
+		} else {
+			noAssignedWorkerReason = trackedExp.session.noAssignedWorkerReason
+		}
+
+		if (!trackedExp.noWorkerAssignedTime) trackedExp.noWorkerAssignedTime = Date.now()
+		this.updateTrackedExpStatus(
+			trackedExp,
+			// Special case: when WAITING and no worker was assigned, return to NEW so that another worker might be assigned
+			trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING
+				? ExpectedPackageStatusAPI.WorkStatusState.NEW
+				: undefined,
+			noAssignedWorkerReason
+		)
 	}
 	/**
 	 * To be called when trackedExp.status turns fullfilled.
@@ -1286,67 +1379,117 @@ export class ExpectationManager {
 		this.receivedUpdates.packageContainersHasBeenUpdated = false
 
 		// Added / Changed
-		for (const id of Object.keys(this.receivedUpdates.packageContainers)) {
-			const packageContainer: PackageContainerExpectation = this.receivedUpdates.packageContainers[id]
+		for (const containerId of Object.keys(this.receivedUpdates.packageContainers)) {
+			const packageContainer: PackageContainerExpectation = this.receivedUpdates.packageContainers[containerId]
 
 			let isNew = false
 			let isUpdated = false
-			if (!this.trackedPackageContainers[id]) {
+			if (!this.trackedPackageContainers[containerId]) {
 				// new
 				isUpdated = true
 				isNew = true
-			} else if (!_.isEqual(this.trackedPackageContainers[id].packageContainer, packageContainer)) {
+			} else if (!_.isEqual(this.trackedPackageContainers[containerId].packageContainer, packageContainer)) {
 				isUpdated = true
 			}
+			if (this.receivedUpdates.restartPackageContainers[containerId]) {
+				isUpdated = true
+			}
+			let trackedPackageContainer: TrackedPackageContainerExpectation
+
 			if (isNew) {
-				const trackedPackageContainer: TrackedPackageContainerExpectation = {
-					id: id,
+				trackedPackageContainer = {
+					id: containerId,
 					packageContainer: packageContainer,
 					currentWorker: null,
+					waitingForWorkerTime: null,
 					isUpdated: true,
+					removed: false,
 					lastEvaluationTime: 0,
 					monitorIsSetup: false,
 					status: {
+						status: StatusCode.UNKNOWN,
+						statusReason: { user: '', tech: '' },
+						statusChanged: 0,
 						monitors: {},
 					},
 				}
-				this.trackedPackageContainers[id] = trackedPackageContainer
+				this.trackedPackageContainers[containerId] = trackedPackageContainer
+			} else {
+				trackedPackageContainer = this.trackedPackageContainers[containerId]
 			}
 			if (isUpdated) {
-				this.trackedPackageContainers[id].packageContainer = packageContainer
-				this.trackedPackageContainers[id].isUpdated = true
+				trackedPackageContainer.packageContainer = packageContainer
+				trackedPackageContainer.isUpdated = true
+				trackedPackageContainer.removed = false
+
+				if (isNew) {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.UNKNOWN, {
+						user: `Added just now`,
+						tech: `Added ${Date.now()}`,
+					})
+				} else {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.UNKNOWN, {
+						user: `Updated just now`,
+						tech: `Updated ${Date.now()}`,
+					})
+				}
 			}
 		}
 
 		// Removed:
-		for (const id of Object.keys(this.trackedPackageContainers)) {
-			if (!this.receivedUpdates.packageContainers[id]) {
+		for (const containerId of Object.keys(this.trackedPackageContainers)) {
+			if (!this.receivedUpdates.packageContainers[containerId]) {
 				// This packageContainersExpectation has been removed
 
-				const trackedPackageContainer = this.trackedPackageContainers[id]
+				const trackedPackageContainer = this.trackedPackageContainers[containerId]
 				if (trackedPackageContainer.currentWorker) {
 					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
 					if (workerAgent) {
-						await workerAgent.api.disposePackageContainerMonitors(trackedPackageContainer.packageContainer)
+						try {
+							const result = await workerAgent.api.disposePackageContainerMonitors(containerId)
+							if (result.success) {
+								trackedPackageContainer.removed = true
+								this.callbacks.reportPackageContainerExpectationStatus(containerId, null)
+
+								delete this.trackedPackageContainers[containerId]
+							} else {
+								this.updateTrackedPackageContainerStatus(
+									trackedPackageContainer,
+									StatusCode.BAD,
+									result.reason
+								)
+							}
+						} catch (err) {
+							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+								user: 'Internal Error',
+								tech: `Error when removing: ${err}, ${(err as any)?.stack}`,
+							})
+						}
 					}
 				}
 			}
 		}
+
+		this.receivedUpdates.restartPackageContainers = {}
 	}
 	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of Object.values(this.trackedPackageContainers)) {
 			try {
+				let badStatus = false
+				trackedPackageContainer.lastEvaluationTime = Date.now()
+
 				if (trackedPackageContainer.isUpdated) {
 					// If the packageContainer was newly updated, reset and set up again:
 					if (trackedPackageContainer.currentWorker) {
 						const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
 						const disposeMonitorResult = await workerAgent.api.disposePackageContainerMonitors(
-							trackedPackageContainer.packageContainer
+							trackedPackageContainer.id
 						)
 						if (!disposeMonitorResult.success) {
-							this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-								user: `Unable to remove monitor, due to ${disposeMonitorResult.reason.user}`,
-								tech: `Unable to dispose monitor: ${disposeMonitorResult.reason.tech}`,
+							badStatus = true
+							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+								user: `Unable to restart monitor, due to ${disposeMonitorResult.reason.user}`,
+								tech: `Unable to restart monitor: ${disposeMonitorResult.reason.tech}`,
 							})
 							continue // Break further execution for this PackageContainer
 						}
@@ -1380,13 +1523,21 @@ export class ExpectationManager {
 						})
 					)
 					if (!trackedPackageContainer.currentWorker) {
-						notSupportReason = {
-							user: 'Found no worker that supports this packageContainer',
-							tech: 'Found no worker that supports this packageContainer',
+						if (Object.keys(this.workerAgents).length) {
+							notSupportReason = {
+								user: 'Found no worker that supports this packageContainer',
+								tech: 'Found no worker that supports this packageContainer',
+							}
+						} else {
+							notSupportReason = {
+								user: 'No workers available',
+								tech: 'No workers available',
+							}
 						}
 					}
 					if (notSupportReason) {
-						this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+						badStatus = true
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 							user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
 							tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
 						})
@@ -1407,83 +1558,115 @@ export class ExpectationManager {
 							if (monitorSetup.success) {
 								trackedPackageContainer.monitorIsSetup = true
 								for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
-									trackedPackageContainer.status.monitors[monitorId] = {
-										label: monitor.label,
-										reason: {
-											user: 'Starting up',
-											tech: 'Starting up',
-										},
+									if (trackedPackageContainer.status.monitors[monitorId]) {
+										// In case there no monitor status has been emitted yet:
+										this.updateTrackedPackageContainerMonitorStatus(
+											trackedPackageContainer,
+											monitorId,
+											monitor.label,
+											StatusCode.UNKNOWN,
+											{
+												user: 'Setting up monitor...',
+												tech: 'Setting up monitor...',
+											}
+										)
 									}
 								}
 							} else {
-								this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-									user: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.user}`,
-									tech: `Unable to set up monitor for PackageContainer, due to: ${monitorSetup.reason.tech}`,
+								badStatus = true
+								this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+									user: `Unable to set up monitors for PackageContainer, due to: ${monitorSetup.reason.user}`,
+									tech: `Unable to set up monitors for PackageContainer, due to: ${monitorSetup.reason.tech}`,
 								})
 							}
 						}
 					}
-					if (Object.keys(trackedPackageContainer.packageContainer.cronjobs).length !== 0) {
-						const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
-							trackedPackageContainer.packageContainer
-						)
-						if (!cronJobStatus.success) {
-							this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
-								user: 'Cron job not completed: ' + cronJobStatus.reason.user,
-								tech: 'Cron job not completed: ' + cronJobStatus.reason.tech,
-							})
-							continue
-						}
+
+					const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
+						trackedPackageContainer.packageContainer
+					)
+					if (!cronJobStatus.success) {
+						badStatus = true
+						this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+							user: 'Cron job not completed, due to: ' + cronJobStatus.reason.user,
+							tech: 'Cron job not completed, due to: ' + cronJobStatus.reason.tech,
+						})
+						continue
 					}
 				}
+
+				if (!badStatus) {
+					this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.GOOD, {
+						user: `All good`,
+						tech: `All good`,
+					})
+				}
 			} catch (err) {
-				this.updateTrackedPackageContainerStatus(trackedPackageContainer, {
+				this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 					user: 'Internal Error',
 					tech: `Unhandled Error: ${err}`,
 				})
 			}
 		}
 	}
+	/** Update the status of a PackageContainer */
 	private updateTrackedPackageContainerStatus(
 		trackedPackageContainer: TrackedPackageContainerExpectation,
-		reason: Reason
+		status: StatusCode,
+		statusReason: Reason
 	) {
-		trackedPackageContainer.lastEvaluationTime = Date.now()
+		if (trackedPackageContainer.removed) return
 
-		let updatedReason = false
+		let updatedStatus = false
+		trackedPackageContainer.status.statusChanged = Date.now()
 
-		if (trackedPackageContainer.status.reason !== reason) {
-			trackedPackageContainer.status.reason = reason || ''
-			updatedReason = true
+		if (trackedPackageContainer.status.status !== status) {
+			trackedPackageContainer.status.status = status
+			updatedStatus = true
+		}
+		if (trackedPackageContainer.status.statusReason !== statusReason) {
+			trackedPackageContainer.status.statusReason = statusReason
+			updatedStatus = true
 		}
 
-		if (updatedReason) {
-			this.logger.debug(
-				`PackageContainerStatus "${trackedPackageContainer.packageContainer.label}": Reason: "${trackedPackageContainer.status.reason.tech}"`
-			)
-		}
-
-		if (updatedReason) {
+		if (updatedStatus) {
 			this.callbacks.reportPackageContainerExpectationStatus(
 				trackedPackageContainer.id,
-				trackedPackageContainer.packageContainer,
-				{
-					statusReason: trackedPackageContainer.status.reason,
-				}
+				trackedPackageContainer.status
 			)
 		}
 	}
-	private getNoAssignedWorkerReason(session: ExpectationStateHandlerSession): ExpectedPackageStatusAPI.Reason {
-		if (!session.noAssignedWorkerReason) {
-			this.logger.error(
-				`trackedExp.session.noAssignedWorkerReason is undefined, although assignedWorker was set..`
-			)
-			return {
-				user: 'Unknown reason (internal error)',
-				tech: 'Unknown reason',
-			}
+	/** Update the status of a PackageContainer monitor */
+	private updateTrackedPackageContainerMonitorStatus(
+		trackedPackageContainer: TrackedPackageContainerExpectation,
+		monitorId: string,
+		monitorLabel: string | undefined,
+		status: StatusCode,
+		statusReason: Reason
+	) {
+		if (trackedPackageContainer.removed) return
+
+		let updatedStatus = false
+		trackedPackageContainer.status.statusChanged = Date.now()
+
+		const existingMonitorStatus = trackedPackageContainer.status.monitors[monitorId]
+		const newMonitorStatus: ExpectedPackageStatusAPI.PackageContainerMonitorStatus = {
+			label: monitorLabel || existingMonitorStatus?.label || monitorId,
+			status: status,
+			statusReason: statusReason,
 		}
-		return session.noAssignedWorkerReason
+
+		if (!existingMonitorStatus || !deepEqual(existingMonitorStatus, newMonitorStatus)) {
+			trackedPackageContainer.status.monitors[monitorId] = newMonitorStatus
+			updatedStatus = true
+		}
+
+		if (updatedStatus) {
+			this.callbacks.reportPackageContainerExpectationStatus(
+				trackedPackageContainer.id,
+				trackedPackageContainer.status
+			)
+		}
 	}
 	private updateStatus(): ExpectationManagerStatus {
 		this.status = {
@@ -1531,7 +1714,7 @@ export class ExpectationManager {
 				expectationStatistics.countAborted++
 			} else assertNever(exp.state)
 
-			if (!exp.availableWorkers.length) {
+			if (Object.keys(exp.availableWorkers).length === 0) {
 				expectationStatistics.countNoAvailableWorkers++
 			}
 			if (
@@ -1546,14 +1729,16 @@ export class ExpectationManager {
 	}
 	private async checkIfNeedToScaleUp(): Promise<void> {
 		const waitingExpectations: TrackedExpectation[] = []
+		const waitingPackageContainers: TrackedPackageContainerExpectation[] = []
 
 		for (const exp of Object.values(this.trackedExpectations)) {
 			if (
 				(exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
 					exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING ||
 					exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) &&
-				(!exp.availableWorkers.length || // No workers supports it
-					!exp.session?.assignedWorker) && // No worker has time to work on it
+				(Object.keys(exp.availableWorkers).length === 0 || // No workers supports it
+					(exp.noWorkerAssignedTime &&
+						Date.now() - exp.noWorkerAssignedTime > this.constants.SCALE_UP_TIME)) && // No worker has had time to work on it lately
 				!this.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
 			) {
 				if (!exp.waitingForWorkerTime) {
@@ -1562,17 +1747,38 @@ export class ExpectationManager {
 			} else {
 				exp.waitingForWorkerTime = null
 			}
-			if (exp.waitingForWorkerTime)
-				if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME) {
-					if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
-						waitingExpectations.push(exp)
-					}
-				}
-		}
 
+			if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME) {
+				if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
+					waitingExpectations.push(exp)
+				}
+			}
+		}
 		for (const exp of waitingExpectations) {
 			this.logger.debug(`Requesting more resources to handle expectation "${exp.id}"`)
-			await this.workforceAPI.requestResources(exp.exp)
+			await this.workforceAPI.requestResourcesForExpectation(exp.exp)
+		}
+
+		for (const packageContainer of Object.values(this.trackedPackageContainers)) {
+			if (!packageContainer.currentWorker) {
+				if (!packageContainer.waitingForWorkerTime) {
+					packageContainer.waitingForWorkerTime = Date.now()
+				}
+			} else {
+				packageContainer.waitingForWorkerTime = null
+			}
+			if (
+				packageContainer.waitingForWorkerTime &&
+				Date.now() - packageContainer.waitingForWorkerTime > this.constants.SCALE_UP_TIME
+			) {
+				if (waitingPackageContainers.length < this.constants.SCALE_UP_COUNT) {
+					waitingPackageContainers.push(packageContainer)
+				}
+			}
+		}
+		for (const packageContainer of waitingPackageContainers) {
+			this.logger.debug(`Requesting more resources to handle packageContainer "${packageContainer.id}"`)
+			await this.workforceAPI.requestResourcesForPackageContainer(packageContainer.packageContainer)
 		}
 	}
 	/**  */
@@ -1624,6 +1830,9 @@ export interface ExpectationManagerConstants {
 
 	/** How often to re-query a worker if it supports an expectation [ms] */
 	WORKER_SUPPORT_TIME: number
+
+	/** How long to wait in case of an expectation error before trying again [ms] */
+	ERROR_WAIT_TIME: number
 }
 export type ExpectationManagerServerOptions =
 	| {
@@ -1646,6 +1855,9 @@ interface TrackedExpectation {
 	/** Reason for the current state. */
 	reason: Reason
 
+	/** Previous reasons, for each state. */
+	prevStatusReasons: { [status: string]: Reason }
+
 	/** List of worker ids that have gotten the question wether they support this expectation */
 	queriedWorkers: { [workerId: string]: number }
 	/** List of worker ids that supports this Expectation */
@@ -1653,10 +1865,14 @@ interface TrackedExpectation {
 	noAvailableWorkersReason: Reason
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
-	/** Timestamp to be track how long the expectation has been awiting for a worker (can't start working) */
+	/** Timestamp to track how long the expectation has been waiting for a worker (can't start working), used to request more resources */
 	waitingForWorkerTime: number | null
+	/** Timestamp to track  how long the expectation has been waiting for a worker, used to restart to re-query for workers */
+	noWorkerAssignedTime: number | null
 	/** The number of times the expectation has failed */
 	errorCount: number
+	/** Timestamp to track the last time an error happened on the expectation */
+	lastErrorTime: number
 
 	/** These statuses are sent from the workers */
 	status: {
@@ -1704,7 +1920,9 @@ export interface ExpectationManagerCallbacks {
 		statusInfo: {
 			status?: ExpectedPackageStatusAPI.WorkStatusState
 			progress?: number
+			priority?: number
 			statusReason?: Reason
+			prevStatusReasons?: { [status: string]: Reason }
 		}
 	) => void
 	reportPackageContainerPackageStatus: (
@@ -1714,10 +1932,7 @@ export interface ExpectationManagerCallbacks {
 	) => void
 	reportPackageContainerExpectationStatus: (
 		containerId: string,
-		packageContainer: PackageContainerExpectation | null,
-		statusInfo: {
-			statusReason?: Reason
-		}
+		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
 	) => void
 	messageFromWorker: MessageFromWorker
 }
@@ -1730,7 +1945,10 @@ interface TrackedPackageContainerExpectation {
 	/** True whether the packageContainer was newly updated */
 	isUpdated: boolean
 
+	/** The currently assigned Worker */
 	currentWorker: string | null
+	/** Timestamp to track how long the packageContainer has been waiting for a worker (can't start working), used to request more resources */
+	waitingForWorkerTime: number | null
 
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
@@ -1739,16 +1957,10 @@ interface TrackedPackageContainerExpectation {
 	monitorIsSetup: boolean
 
 	/** These statuses are sent from the workers */
-	status: {
-		/** Reason for the status (used in GUIs) */
-		reason?: Reason
-		monitors: {
-			[monitorId: string]: {
-				label: string
-				reason: Reason
-			}
-		}
-	}
+	status: ExpectedPackageStatusAPI.PackageContainerStatus
+
+	/** Is set if the packageContainer has been removed */
+	removed: boolean
 }
 /** Execute callback in batches */
 async function runInBatches<T, ReturnValue>(
@@ -1757,15 +1969,17 @@ async function runInBatches<T, ReturnValue>(
 	batchSize: number
 ): Promise<ReturnValue | undefined> {
 	const batches: T[][] = []
-	let batch: T[] = []
-	for (const value of values) {
-		batch.push(value)
-		if (batch.length >= batchSize) {
-			batches.push(batch)
-			batch = []
+	{
+		let batch: T[] = []
+		for (const value of values) {
+			batch.push(value)
+			if (batch.length >= batchSize) {
+				batches.push(batch)
+				batch = []
+			}
 		}
+		batches.push(batch)
 	}
-	batches.push(batch)
 
 	let aborted = false
 	let returnValue: ReturnValue | undefined = undefined

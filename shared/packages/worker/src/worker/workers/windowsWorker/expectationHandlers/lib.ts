@@ -97,7 +97,7 @@ export type LookupPackageContainer<Metadata> =
 			// handle: undefined
 			reason: Reason
 	  }
-interface LookupChecks {
+export interface LookupChecks {
 	/** Check that the accessor-handle supports reading */
 	read?: boolean
 	/** Check that the Package can be read */

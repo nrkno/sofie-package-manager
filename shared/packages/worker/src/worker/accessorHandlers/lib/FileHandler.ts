@@ -4,8 +4,9 @@ import fs from 'fs'
 import { Expectation, hashObj, literal, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
-import { Accessor, AccessorOnPackage, ExpectedPackage } from '@sofie-automation/blueprints-integration'
+import { Accessor, AccessorOnPackage, ExpectedPackage, StatusCode } from '@sofie-automation/blueprints-integration'
 import { GenericAccessorHandle } from '../genericHandle'
+import { MonitorInProgress } from '../../lib/monitorInProgress'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -128,9 +129,24 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		return this.getFullPath(filePath) + '_metadata.json'
 	}
 
-	setupPackagesMonitor(packageContainerExp: PackageContainerExpectation): void {
+	setupPackagesMonitor(packageContainerExp: PackageContainerExpectation): MonitorInProgress {
 		const options = packageContainerExp.monitors.packages
 		if (!options) throw new Error('Options not set (this should never happen)')
+
+		const monitorInProgress = new MonitorInProgress(
+			{
+				label: 'Watch for files in folder',
+			},
+			async () => {
+				// Called on stop
+				watcher.close()
+			}
+		)
+
+		monitorInProgress._reportStatus(StatusCode.UNKNOWN, {
+			user: 'Setting up file watcher...',
+			tech: `Setting up file watcher...`,
+		})
 
 		const chokidarOptions: chokidar.WatchOptions = {
 			ignored: options.ignore ? new RegExp(options.ignore) : undefined,
@@ -178,11 +194,15 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								const fullPath = path.join(this.folderPath, filePath)
 								const stat = await fsStat(fullPath)
 								version = this.convertStatToVersion(stat)
-
 								seenFiles.set(filePath, version)
 							} catch (err) {
 								version = null
-								this.worker.logger.error(err)
+								this.worker.logger.error(`${err}, ${(err as any)?.stack}`)
+
+								monitorInProgress._reportStatus(StatusCode.BAD, {
+									user: 'Error when accessing watched file',
+									tech: `Error: ${err}, ${(err as any)?.stack}`,
+								})
 							}
 						}
 
@@ -282,28 +302,21 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 						}
 					})
 			})
-			.on('error', (error) => {
-				this.worker.logger.error(error.toString())
+			.on('error', (err) => {
+				this.worker.logger.error(`${err}, ${(err as any)?.stack}`)
+				monitorInProgress._reportStatus(StatusCode.BAD, {
+					user: 'Error in file watcher',
+					tech: `chokidar error: ${err}, ${(err as any)?.stack}`,
+				})
+			})
+			.on('ready', () => {
+				monitorInProgress._reportStatus(StatusCode.GOOD, {
+					user: 'File watcher is set up',
+					tech: `File watcher is set up`,
+				})
 			})
 
-		/** Persistant store for Monitors */
-		const cacheMonitors = this.ensureCache<CacheMonitors>('monitors', {})
-
-		cacheMonitors[monitorId] = {
-			watcher: watcher,
-		}
-	}
-	disposePackagesMonitor(): void {
-		const monitorId = `${this.worker.genericConfig.workerId}_${this.worker.uniqueId}_${Date.now()}`
-
-		/** Persistant store for Monitors */
-		const cacheMonitors = this.ensureCache<CacheMonitors>('monitors', {})
-
-		const monitor = cacheMonitors[monitorId]
-		if (monitor) {
-			// Stop Chokidar
-			monitor.watcher.close()
-		}
+		return monitorInProgress
 	}
 
 	public convertStatToVersion(stat: fs.Stats): Expectation.Version.FileOnDisk {
@@ -347,8 +360,4 @@ interface DelayPackageRemovalEntry {
 	filePath: string
 	/** Unix timestamp for when it's clear to remove the file */
 	removeTime: number
-}
-
-interface CacheMonitors {
-	[id: string]: { watcher: chokidar.FSWatcher }
 }
