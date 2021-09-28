@@ -52,10 +52,11 @@ export class WorkerAgentAPI
 	}
 	async workOnExpectation(
 		exp: Expectation.Any,
-		cost: ExpectationManagerWorkerAgent.ExpectationCost
+		cost: ExpectationManagerWorkerAgent.ExpectationCost,
+		timeout: number
 	): Promise<ExpectationManagerWorkerAgent.WorkInProgressInfo> {
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
-		return this._sendMessage('workOnExpectation', exp, cost)
+		return this._sendMessage('workOnExpectation', exp, cost, timeout)
 	}
 	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
