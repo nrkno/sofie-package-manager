@@ -201,6 +201,18 @@ export function __printAllFiles(): string {
 }
 fs.__printAllFiles = __printAllFiles
 
+export function __setCallbackInterceptor(interceptor: (type: string, cb: () => void) => void): void {
+	fs.__cb = interceptor
+}
+fs.__setCallbackInterceptor = __setCallbackInterceptor
+export function __restoreCallbackInterceptor(): void {
+	fs.__cb = (_type: string, cb: () => void) => {
+		cb()
+	}
+}
+fs.__restoreCallbackInterceptor = __restoreCallbackInterceptor
+fs.__restoreCallbackInterceptor()
+
 interface ErrorArguments {
 	errno: number
 	code: string
@@ -450,16 +462,19 @@ export function copyFile(source: string, destination: string, callback: (error: 
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.copyFile', source, destination)
 	fsMockEmitter.emit('copyFile', source, destination)
-	try {
-		const mockFile = getMock(source)
-		if (DEBUG_LOG) console.log('source', source)
-		if (DEBUG_LOG) console.log('mockFile', mockFile)
-		if (DEBUG_LOG) console.log('destination', destination)
-		setMock(destination, mockFile, false)
-		return callback(undefined, null)
-	} catch (err) {
-		callback(err)
-	}
+	fs.__cb('copyFile', () => {
+		try {
+			const mockFile = getMock(source)
+			if (DEBUG_LOG) console.log('source', source)
+			if (DEBUG_LOG) console.log('mockFile', mockFile)
+			if (DEBUG_LOG) console.log('destination', destination)
+			setMock(destination, mockFile, false)
+
+			callback(undefined, null)
+		} catch (err) {
+			callback(err)
+		}
+	})
 }
 fs.copyFile = copyFile
 export function rename(source: string, destination: string, callback: (error: any, result?: any) => void): void {
@@ -467,14 +482,17 @@ export function rename(source: string, destination: string, callback: (error: an
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.rename', source, destination)
 	fsMockEmitter.emit('rename', source, destination)
-	try {
-		const mockFile = getMock(source)
-		setMock(destination, mockFile, false)
-		deleteMock(source)
-		return callback(undefined, null)
-	} catch (err) {
-		callback(err)
-	}
+	fs.__cb('rename', () => {
+		try {
+			const mockFile = getMock(source)
+			setMock(destination, mockFile, false)
+			deleteMock(source)
+
+			callback(undefined, null)
+		} catch (err) {
+			callback(err)
+		}
+	})
 }
 fs.rename = rename
 

@@ -69,7 +69,6 @@ describe('Handle unhappy paths', () => {
 		await waitTime(env.WAIT_JOB_TIME)
 
 		// Expect the copy to have completed by now:
-
 		expect(env.containerStatuses['target0']).toBeTruthy()
 		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
 		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
@@ -214,7 +213,7 @@ describe('Handle unhappy paths', () => {
 
 		await waitTime(env.WAIT_JOB_TIME)
 		// Expect the Expectation to be still working
-		// (the worker has crashed, byt expectationManger hasn't noticed yet)
+		// (the worker has crashed, but expectationManger hasn't noticed yet)
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('working')
 		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
 
@@ -237,6 +236,63 @@ describe('Handle unhappy paths', () => {
 
 		// Clean up:
 		if (killedWorker) env.removeWorker(killedWorker.id)
+	})
+	test('A job times out', async () => {
+		// A worker crashes while expectation waiting for a file
+		// A worker crashes while expectation work-in-progress
+
+		expect(env.workerAgents).toHaveLength(1)
+		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+		fs.__mockSetDirectory('/targets/target0')
+		let hasIntercepted = 0
+		let deferredCallbacks: Function[] = []
+		const listenToCopyFile = jest.fn(() => {
+			fs.__setCallbackInterceptor((type, cb) => {
+				if (type === 'copyFile') {
+					hasIntercepted++
+					// We will NOT call the callback cb(), this simulates that something gets stuck
+
+					// Restore this interceptor, so that it is only runned once
+					fs.__restoreCallbackInterceptor()
+					// to be cleaned up later:
+					deferredCallbacks.push(cb)
+				} else {
+					return cb()
+				}
+			})
+		})
+		fs.__emitter().once('copyFile', listenToCopyFile)
+
+		addCopyFileExpectation(
+			env,
+			'copy0',
+			[getLocalSource('source0', 'file0Source.mp4')],
+			[getLocalTarget('target0', 'file0Target.mp4')]
+		)
+
+		await waitTime(env.WAIT_JOB_TIME)
+		// Expect the Expectation to be still working
+		// (the job is timing out, but expectationManger hasn't noticed yet)
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('working')
+		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
+		expect(hasIntercepted).toBe(1)
+
+		await waitTime(env.WORK_TIMEOUT_TIME)
+		await waitTime(env.WAIT_JOB_TIME)
+		// By now, the work should have been aborted, and restarted:
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
+
+		await waitTime(env.WAIT_SCAN_TIME)
+
+		// Expect the copy to have completed by now:
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.containerStatuses['target0']).toBeTruthy()
+		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
+		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+		)
+		// clean up:
+		deferredCallbacks.forEach((cb) => cb())
 	})
 	test.skip('One of the workers reply very slowly', async () => {
 		// The expectation should be picked up by one of the faster workers

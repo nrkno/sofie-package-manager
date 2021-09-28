@@ -72,7 +72,7 @@ export namespace ExpectationManagerWorkerAgent {
 			exp: Expectation.Any,
 			wasFullfilled: boolean
 		) => Promise<ReturnTypeIsExpectationFullfilled>
-		workOnExpectation: (exp: Expectation.Any, cost: ExpectationCost) => Promise<WorkInProgressInfo>
+		workOnExpectation: (exp: Expectation.Any, cost: ExpectationCost, timeout: number) => Promise<WorkInProgressInfo>
 		removeExpectation: (exp: Expectation.Any) => Promise<ReturnTypeRemoveExpectation>
 
 		cancelWorkInProgress: (wipId: number) => Promise<void>

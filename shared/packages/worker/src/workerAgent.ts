@@ -33,15 +33,14 @@ import { WorkforceAPI } from './workforceApi'
 /** The WorkerAgent is a front for a Worker (@see GenericWorker).
  * It is intended to be the main class in its worker-process, and handles things like communication with the WorkForce or the Expectation-Manager
  */
+
 export class WorkerAgent {
 	private _worker: GenericWorker
 	// private _busyMethodCount = 0
-	private currentJobs: { cost: ExpectationManagerWorkerAgent.ExpectationCost; progress: number }[] = []
 	private workforceAPI: WorkforceAPI
 	private appContainerAPI: AppContainerAPI
 	private wipI = 0
-
-	private worksInProgress: { [wipId: string]: IWorkInProgress } = {}
+	private currentJobs: CurrentJob[] = []
 	public readonly id: string
 	private workForceConnectionOptions: ClientConnectionOptions
 	private appContainerConnectionOptions: ClientConnectionOptions | null
@@ -131,11 +130,13 @@ export class WorkerAgent {
 		for (const expectationManager of Object.values(this.expectationManagers)) {
 			expectationManager.api.terminate()
 		}
-		for (const wipId of Object.keys(this.worksInProgress)) {
-			this.cancelWorkInProgress(wipId).catch((error) => {
-				this.logger.error('WorkerAgent.terminate: Error in cancelWorkInProgress')
-				this.logger.error(error)
-			})
+		for (const currentJob of this.currentJobs) {
+			if (currentJob.wipId) {
+				this.cancelJob(currentJob.wipId).catch((error) => {
+					this.logger.error('WorkerAgent.terminate: Error in cancelJob')
+					this.logger.error(error)
+				})
+			}
 		}
 		if (this.intervalCheckTimer) clearInterval(this.intervalCheckTimer)
 		this._worker.terminate()
@@ -239,44 +240,77 @@ export class WorkerAgent {
 			},
 			workOnExpectation: async (
 				exp: Expectation.Any,
-				cost: ExpectationManagerWorkerAgent.ExpectationCost
+				cost: ExpectationManagerWorkerAgent.ExpectationCost,
+				/** Timeout, cancels the job if no updates are received in this time [ms] */
+				timeout: number
 			): Promise<ExpectationManagerWorkerAgent.WorkInProgressInfo> => {
 				this.IDidSomeWork()
-				const currentjob = {
+				const currentJob: CurrentJob = {
 					cost: cost,
+					cancelled: false,
+					lastUpdated: Date.now(),
 					progress: 0,
-					// callbacksOnDone: [],
+					wipId: this.wipI++,
+					workInProgress: null,
+					timeoutInterval: setInterval(() => {
+						if (currentJob.cancelled && currentJob.timeoutInterval) {
+							clearInterval(currentJob.timeoutInterval)
+							currentJob.timeoutInterval = null
+							return
+						}
+
+						if (Date.now() - currentJob.lastUpdated > timeout) {
+							// The job seems to have timed out.
+							// Expectation Manager will clean up on it's side, we have to do the same here.
+
+							this.logger.info(`WorkerAgent: Cancelling job ${currentJob.wipId} due to timeout`)
+
+							this.cancelJob(currentJob.wipId).catch((error) => {
+								// Not much we can do about that error..
+								this.logger.error('WorkerAgent timeout watch: Error in cancelJob')
+								this.logger.error(error)
+
+								// Ensure that the jop is removed, so that it wont block others:
+								this.removeJob(currentJob)
+							})
+						}
+					}, 1000),
 				}
-				const wipId = this.wipI++
+				this.currentJobs.push(currentJob)
 				this.logger.debug(
-					`Worker "${this.id}" starting job ${wipId}, (${exp.id}). (${this.currentJobs.length})`
+					`Worker "${this.id}" starting job ${currentJob.wipId}, (${exp.id}). (${this.currentJobs.length})`
 				)
-				this.currentJobs.push(currentjob)
 
 				try {
 					const workInProgress = await this._worker.workOnExpectation(exp)
 
-					this.worksInProgress[`${wipId}`] = workInProgress
+					currentJob.workInProgress = workInProgress
 
 					workInProgress.on('progress', (actualVersionHash, progress: number) => {
 						this.IDidSomeWork()
-						currentjob.progress = progress
-						expectedManager.api.wipEventProgress(wipId, actualVersionHash, progress).catch((err) => {
-							if (!this.terminated) {
-								this.logger.error('Error in wipEventProgress')
-								this.logger.error(err)
-							}
-						})
+						if (currentJob.cancelled) return // Don't send updates on cancelled work
+						currentJob.lastUpdated = Date.now()
+						currentJob.progress = progress
+						expectedManager.api
+							.wipEventProgress(currentJob.wipId, actualVersionHash, progress)
+							.catch((err) => {
+								if (!this.terminated) {
+									this.logger.error('Error in wipEventProgress')
+									this.logger.error(err)
+								}
+							})
 					})
 					workInProgress.on('error', (error: string) => {
 						this.IDidSomeWork()
-						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
+						if (currentJob.cancelled) return // Don't send updates on cancelled work
+						currentJob.lastUpdated = Date.now()
+						this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
 						this.logger.debug(
-							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
+							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
 						)
 
 						expectedManager.api
-							.wipEventError(wipId, {
+							.wipEventError(currentJob.wipId, {
 								user: 'Work aborted due to an error',
 								tech: error,
 							})
@@ -286,34 +320,39 @@ export class WorkerAgent {
 									this.logger.error(err)
 								}
 							})
-						delete this.worksInProgress[`${wipId}`]
+
+						this.removeJob(currentJob)
 					})
 					workInProgress.on('done', (actualVersionHash, reason, result) => {
 						this.IDidSomeWork()
-						this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
+						if (currentJob.cancelled) return // Don't send updates on cancelled work
+						currentJob.lastUpdated = Date.now()
+						this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
 						this.logger.debug(
-							`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), done. (${this.currentJobs.length})`
+							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), done. (${this.currentJobs.length})`
 						)
 
-						expectedManager.api.wipEventDone(wipId, actualVersionHash, reason, result).catch((err) => {
-							if (!this.terminated) {
-								this.logger.error('Error in wipEventDone')
-								this.logger.error(err)
-							}
-						})
-						delete this.worksInProgress[`${wipId}`]
+						expectedManager.api
+							.wipEventDone(currentJob.wipId, actualVersionHash, reason, result)
+							.catch((err) => {
+								if (!this.terminated) {
+									this.logger.error('Error in wipEventDone')
+									this.logger.error(err)
+								}
+							})
+						this.removeJob(currentJob)
 					})
 
 					return {
-						wipId: wipId,
+						wipId: currentJob.wipId,
 						properties: workInProgress.properties,
 					}
 				} catch (err) {
-					// The workOnExpectation failed.
+					// worker.workOnExpectation() failed.
 
-					this.currentJobs = this.currentJobs.filter((job) => job !== currentjob)
+					this.removeJob(currentJob)
 					this.logger.debug(
-						`Worker "${this.id}" stopped job ${wipId}, (${exp.id}), due to initial error. (${this.currentJobs.length})`
+						`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to initial error. (${this.currentJobs.length})`
 					)
 
 					throw err
@@ -325,7 +364,7 @@ export class WorkerAgent {
 			},
 			cancelWorkInProgress: async (wipId: number): Promise<void> => {
 				this.IDidSomeWork()
-				return this.cancelWorkInProgress(wipId)
+				return this.cancelJob(wipId)
 			},
 			doYouSupportPackageContainer: (
 				packageContainer: PackageContainerExpectation
@@ -449,12 +488,20 @@ export class WorkerAgent {
 			}
 		}
 	}
-	private async cancelWorkInProgress(wipId: string | number): Promise<void> {
-		const wip = this.worksInProgress[`${wipId}`]
-		if (wip) {
-			await wip.cancel()
+	private async cancelJob(wipId: number): Promise<void> {
+		const currentJob = this.currentJobs.find((job) => job.wipId === wipId)
+
+		if (currentJob) {
+			if (currentJob.workInProgress) {
+				await currentJob.workInProgress.cancel()
+				currentJob.workInProgress = null
+			}
+			this.removeJob(currentJob)
 		}
-		delete this.worksInProgress[`${wipId}`]
+	}
+	private removeJob(currentJob: CurrentJob): void {
+		currentJob.cancelled = true
+		this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
 	}
 	private setupIntervalCheck() {
 		if (!this.intervalCheckTimer) {
@@ -482,4 +529,13 @@ export class WorkerAgent {
 	private IDidSomeWork() {
 		this.lastWorkTime = Date.now()
 	}
+}
+interface CurrentJob {
+	cost: ExpectationManagerWorkerAgent.ExpectationCost
+	cancelled: boolean
+	lastUpdated: number
+	progress: number
+	timeoutInterval: NodeJS.Timeout | null
+	wipId: number
+	workInProgress: IWorkInProgress | null
 }

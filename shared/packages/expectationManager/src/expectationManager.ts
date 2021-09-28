@@ -925,7 +925,8 @@ export class ExpectationManager {
 						// Start working on the Expectation:
 						const wipInfo = await assignedWorker.worker.workOnExpectation(
 							trackedExp.exp,
-							assignedWorker.cost
+							assignedWorker.cost,
+							this.constants.WORK_TIMEOUT_TIME
 						)
 
 						trackedExp.status.workInProgressCancel = async () => {
