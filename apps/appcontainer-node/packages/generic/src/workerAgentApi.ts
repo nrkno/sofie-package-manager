@@ -5,6 +5,7 @@ import {
 	LogLevel,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
+	PackageContainerExpectation,
 } from '@shared/api'
 
 /**
@@ -30,6 +31,11 @@ export class WorkerAgentAPI
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return this._sendMessage('doYouSupportExpectation', exp)
+	}
+	async doYouSupportPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<ReturnTypeDoYouSupportExpectation> {
+		return this._sendMessage('doYouSupportPackageContainer', packageContainer)
 	}
 	async setSpinDownTime(spinDownTime: number): Promise<void> {
 		return this._sendMessage('setSpinDownTime', spinDownTime)

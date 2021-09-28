@@ -3,7 +3,6 @@ import {
 	ExpectationManagerWorkerAgent,
 	LoggerInstance,
 	PackageContainerExpectation,
-	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
@@ -11,9 +10,9 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
-	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
 } from '@shared/api'
+import { SetupPackageContainerMonitorsResult } from './accessorHandlers/genericHandle'
 import { IWorkInProgress } from './lib/workInProgress'
 
 /**
@@ -94,11 +93,7 @@ export abstract class GenericWorker {
 	/** Set up monitors for this PackageContainer */
 	abstract setupPackageContainerMonitors(
 		packageContainer: PackageContainerExpectation
-	): Promise<ReturnTypeSetupPackageContainerMonitors>
-	/** Tear down monitors for this PackageContainer */
-	abstract disposePackageContainerMonitors(
-		packageContainer: PackageContainerExpectation
-	): Promise<ReturnTypeDisposePackageContainerMonitors>
+	): Promise<SetupPackageContainerMonitorsResult>
 }
 export interface WorkerLocation {
 	/** The name/identifier of the computer that this runs on */

@@ -13,6 +13,7 @@ import {
 	Expectation,
 	waitTime,
 	APPCONTAINER_PING_TIME,
+	PackageContainerExpectation,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
@@ -245,6 +246,50 @@ export class AppContainer {
 			}
 			if (runningApp?.workerAgentApi) {
 				const result = await runningApp.workerAgentApi.doYouSupportExpectation(exp)
+				if (result.support) {
+					return {
+						appType: appType,
+						cost: availableApp.cost,
+					}
+				}
+			} else {
+				this.logger.debug(`AppContainer: appType "${appType}" not available`)
+			}
+		}
+		return null
+	}
+	async requestAppTypeForPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<{ appType: string; cost: number } | null> {
+		this.logger.debug(`AppContainer: Got request for resources, for packageContainer "${packageContainer.id}"`)
+		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
+			this.logger.debug(`AppContainer: Is already at our limit, no more resources available`)
+			// If we're at our limit, we can't possibly run anything else
+			return null
+		}
+
+		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
+			// Do we already have any instance of the appType running?
+			let runningApp = Object.values(this.apps).find((app) => {
+				return app.appType === appType
+			})
+
+			if (!runningApp) {
+				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
+
+				// wait for the app to connect to us:
+				tryAfewTimes(async () => {
+					if (this.apps[newAppId].workerAgentApi) {
+						return true
+					}
+					await waitTime(200)
+					return false
+				}, 10)
+				runningApp = this.apps[newAppId]
+				if (!runningApp) throw new Error(`AppContainer: Worker "${newAppId}" didn't connect in time`)
+			}
+			if (runningApp?.workerAgentApi) {
+				const result = await runningApp.workerAgentApi.doYouSupportPackageContainer(packageContainer)
 				if (result.support) {
 					return {
 						appType: appType,

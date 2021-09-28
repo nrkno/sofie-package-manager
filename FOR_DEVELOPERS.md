@@ -9,12 +9,17 @@ This document contains documentation intended for developers of this repo.
 _Note: There can be only one (1) Workforce in a setup._
 
 The Workforce keeps track of which `ExpectationManagers` and `Workers` are online, and mediates the contact between the two.
+The Workforce is responsible for making sure more `Workers` are spun up (by `AppContainers`) if needed.
 
-_Future functionality: The Workforce is responsible for tracking the total workload and spin up/down workers accordingly._
+## AppContainer
+
+_Note: There can be multiple AppContainers in a setup_
+
+The `AppContainer` is reponsible for spinning up/down `Workers`, and restarting them if they crashes. It allows for having a unified API for several types of computing resources, such as physical computers, Kubernetes clusters (not implemented yet), or some other type of computing cluster.
 
 ## Package Manager
 
-_Note: There can be multiple Package Managers in a setup_
+_Note: There can be multiple Package Managers in a setup (usually one per Sofie-Core)_
 
 The Package Manager receives [Packages](#packages) from [Sofie Core](https://github.com/nrkno/tv-automation-server-core) and generates [Expectations](#expectations) from them.
 
@@ -63,6 +68,11 @@ It is intended to provide a simple way of serving for example preview-files to t
 
 The Single App is a special process which runs one of each of the above, all in the same process.
 It is intended to be used as a simple deployment and for deveoplemnt/debugging.
+
+## Quantel HTTP Transformer Proxy
+
+This is a small application intended to fix an issue in the Quantel HTTP Transformer, causing streamed content to not work properly.
+It works as a proxy http server, pointed at the original Quantel HTTP Transformer.
 
 # Data structure & key concepts
 

@@ -5,12 +5,14 @@ import {
 	PackageReadStream,
 	PutPackageHandler,
 	AccessorHandlerResult,
+	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
 import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
 import FormData from 'form-data'
 import AbortController from 'abort-controller'
+import { MonitorInProgress } from '../lib/monitorInProgress'
 
 /** Accessor handle for accessing files in a local folder */
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -158,25 +160,22 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult> {
-		const monitors = Object.keys(packageContainerExp.monitors) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitor of monitors) {
-			if (monitor === 'packages') {
+	): Promise<SetupPackageContainerMonitorsResult> {
+		const resultingMonitors: { [monitorId: string]: MonitorInProgress } = {}
+		const monitorIds = Object.keys(
+			packageContainerExp.monitors
+		) as (keyof PackageContainerExpectation['monitors'])[]
+		for (const monitorId of monitorIds) {
+			if (monitorId === 'packages') {
 				// todo: implement monitors
 				throw new Error('Not implemented yet')
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitor)
+				assertNever(monitorId)
 			}
 		}
 
-		return { success: true }
-	}
-	async disposePackageContainerMonitors(
-		_packageContainerExp: PackageContainerExpectation
-	): Promise<AccessorHandlerResult> {
-		// todo: implement monitors
-		return { success: true }
+		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
 		return [

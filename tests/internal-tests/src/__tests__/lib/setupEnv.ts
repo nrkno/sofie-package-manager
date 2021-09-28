@@ -151,6 +151,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	const WAIT_JOB_TIME = 500 // ms
 	const WAIT_SCAN_TIME = 1000 // ms
 	const WORK_TIMEOUT_TIME = 900 // ms
+	const ERROR_WAIT_TIME = 500
 
 	const em = await setupExpectationManager(
 		debugLogging,
@@ -222,6 +223,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 				EVALUATE_INTERVAL: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
 				FULLFILLED_MONITOR_TIME: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
 				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
+				ERROR_WAIT_TIME: ERROR_WAIT_TIME - 300,
 			},
 		}
 	)
@@ -230,6 +232,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		WAIT_JOB_TIME,
 		WAIT_SCAN_TIME,
 		WORK_TIMEOUT_TIME,
+		ERROR_WAIT_TIME,
 		expectationManager: em.expectationManager,
 		workerAgents: em.workerAgents,
 		workforce: em.workforce,
@@ -258,6 +261,7 @@ export interface TestEnviromnent {
 	WAIT_JOB_TIME: number
 	WAIT_SCAN_TIME: number
 	WORK_TIMEOUT_TIME: number
+	ERROR_WAIT_TIME: number
 	expectationManager: ExpectationManager
 	workerAgents: Worker.WorkerAgent[]
 	workforce: Workforce.Workforce

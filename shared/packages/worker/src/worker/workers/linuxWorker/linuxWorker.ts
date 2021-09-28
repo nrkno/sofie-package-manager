@@ -4,7 +4,6 @@ import {
 	ExpectationManagerWorkerAgent,
 	LoggerInstance,
 	PackageContainerExpectation,
-	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
@@ -12,11 +11,11 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
-	ReturnTypeSetupPackageContainerMonitors,
 	WorkerAgentConfig,
 } from '@shared/api'
 
 import { GenericWorker, WorkerLocation } from '../../worker'
+import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 
 /** This is a type of worker that runs on a linux machine */
 export class LinuxWorker extends GenericWorker {
@@ -75,12 +74,7 @@ export class LinuxWorker extends GenericWorker {
 	}
 	async setupPackageContainerMonitors(
 		_packageContainer: PackageContainerExpectation
-	): Promise<ReturnTypeSetupPackageContainerMonitors> {
-		throw new Error(`Not implemented yet`)
-	}
-	async disposePackageContainerMonitors(
-		_packageContainer: PackageContainerExpectation
-	): Promise<ReturnTypeDisposePackageContainerMonitors> {
+	): Promise<SetupPackageContainerMonitorsResult> {
 		throw new Error(`Not implemented yet`)
 	}
 }

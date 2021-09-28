@@ -1,4 +1,11 @@
-import { WorkForceAppContainer, AdapterServer, AdapterServerOptions, LogLevel, Expectation } from '@shared/api'
+import {
+	WorkForceAppContainer,
+	AdapterServer,
+	AdapterServerOptions,
+	LogLevel,
+	Expectation,
+	PackageContainerExpectation,
+} from '@shared/api'
 
 /**
  * Exposes the API-methods of a AppContainer, to be called from the Workforce
@@ -24,6 +31,11 @@ export class AppContainerAPI
 
 	async requestAppTypeForExpectation(exp: Expectation.Any): Promise<{ appType: string; cost: number } | null> {
 		return this._sendMessage('requestAppTypeForExpectation', exp)
+	}
+	async requestAppTypeForPackageContainer(
+		packageContainer: PackageContainerExpectation
+	): Promise<{ appType: string; cost: number } | null> {
+		return this._sendMessage('requestAppTypeForPackageContainer', packageContainer)
 	}
 	async spinUp(appType: string): Promise<string> {
 		return this._sendMessage('spinUp', appType)

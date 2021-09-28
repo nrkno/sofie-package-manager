@@ -1,4 +1,4 @@
-import { ExpectationManagerWorkerAgent, AdapterClient, LoggerInstance, Reason } from '@shared/api'
+import { ExpectationManagerWorkerAgent, AdapterClient, LoggerInstance, Reason, StatusCode } from '@shared/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the WorkerAgent
@@ -27,5 +27,14 @@ export class ExpectationManagerAPI
 	async wipEventError(wipId: number, reason: Reason): Promise<void> {
 		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts
 		return this._sendMessage('wipEventError', wipId, reason)
+	}
+	async monitorStatus(
+		packageContainerId: string,
+		monitorId: string,
+		status: StatusCode,
+		reason: Reason
+	): Promise<void> {
+		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts
+		return this._sendMessage('monitorStatus', packageContainerId, monitorId, status, reason)
 	}
 }

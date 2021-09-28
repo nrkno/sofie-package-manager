@@ -11,6 +11,7 @@ import {
 	WorkforceStatus,
 	LogLevel,
 	Expectation,
+	PackageContainerExpectation,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -184,8 +185,13 @@ export class Workforce {
 			registerExpectationManager: async (managerId: string, url: string): Promise<void> => {
 				await this.registerExpectationManager(managerId, url)
 			},
-			requestResources: async (exp: Expectation.Any): Promise<boolean> => {
-				return this.requestResources(exp)
+			requestResourcesForExpectation: async (exp: Expectation.Any): Promise<boolean> => {
+				return this.requestResourcesForExpectation(exp)
+			},
+			requestResourcesForPackageContainer: async (
+				packageContainer: PackageContainerExpectation
+			): Promise<boolean> => {
+				return this.requestResourcesForPackageContainer(packageContainer)
 			},
 
 			getStatus: async (): Promise<WorkforceStatus> => {
@@ -226,8 +232,11 @@ export class Workforce {
 		}
 		this.expectationManagers[managerId].url = url
 	}
-	public async requestResources(exp: Expectation.Any): Promise<boolean> {
-		return this.workerHandler.requestResources(exp)
+	public async requestResourcesForExpectation(exp: Expectation.Any): Promise<boolean> {
+		return this.workerHandler.requestResourcesForExpectation(exp)
+	}
+	public async requestResourcesForPackageContainer(packageContainer: PackageContainerExpectation): Promise<boolean> {
+		return this.workerHandler.requestResourcesForPackageContainer(packageContainer)
 	}
 	public async getStatus(): Promise<WorkforceStatus> {
 		return {

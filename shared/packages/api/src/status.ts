@@ -1,3 +1,5 @@
+import { Reason } from './methods'
+
 export interface WorkforceStatus {
 	workerAgents: {
 		id: string
@@ -34,4 +36,29 @@ export interface ExpectationManagerStatus {
 	workerAgents: {
 		workerId: string
 	}[]
+}
+// Temporary, release36 only:
+export enum StatusCode {
+	UNKNOWN = 0, // Status unknown
+	GOOD = 1, // All good and green
+	WARNING_MINOR = 2, // Everything is not OK, operation is not affected
+	WARNING_MAJOR = 3, // Everything is not OK, operation might be affected
+	BAD = 4, // Operation affected, possible to recover
+	FATAL = 5, // Operation affected, not possible to recover without manual interference
+}
+// Temporary, release36 only:
+export interface PackageContainerStatus {
+	status: StatusCode
+	statusReason: Reason
+	statusChanged: number
+
+	monitors: {
+		[monitorId: string]: PackageContainerMonitorStatus
+	}
+}
+// Temporary, release36 only:
+export interface PackageContainerMonitorStatus {
+	label: string
+	status: StatusCode
+	statusReason: Reason
 }

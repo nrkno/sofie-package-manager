@@ -1,5 +1,11 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { GenericAccessorHandle, PackageReadInfo, PutPackageHandler, AccessorHandlerResult } from './genericHandle'
+import {
+	GenericAccessorHandle,
+	PackageReadInfo,
+	PutPackageHandler,
+	AccessorHandlerResult,
+	SetupPackageContainerMonitorsResult,
+} from './genericHandle'
 import { hashObj, Expectation, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 
@@ -102,25 +108,15 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	}
 	async runCronJob(): Promise<AccessorHandlerResult> {
 		return {
-			success: false,
-			reason: { user: `There is an internal issue in Package Manager`, tech: 'runCronJob not supported' },
+			success: true,
 		} // not applicable
 	}
-	async setupPackageContainerMonitors(): Promise<AccessorHandlerResult> {
+	async setupPackageContainerMonitors(): Promise<SetupPackageContainerMonitorsResult> {
 		return {
 			success: false,
 			reason: {
 				user: `There is an internal issue in Package Manager`,
 				tech: 'setupPackageContainerMonitors, not supported',
-			},
-		} // not applicable
-	}
-	async disposePackageContainerMonitors(): Promise<AccessorHandlerResult> {
-		return {
-			success: false,
-			reason: {
-				user: `There is an internal issue in Package Manager`,
-				tech: 'disposePackageContainerMonitors, not supported',
 			},
 		} // not applicable
 	}
@@ -212,8 +208,6 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		await Promise.all(ps)
 	}
 	public async removePackageInfo(infoType: string, exp: Expectation.Any): Promise<void> {
-		// const actualContentVersionHash = this.getActualContentVersionHash(packageContainer, content, actualVersion)
-
 		const ps: Promise<any>[] = []
 		for (const fromPackage of exp.fromPackages) {
 			ps.push(
