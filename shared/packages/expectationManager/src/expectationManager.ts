@@ -15,8 +15,11 @@ import {
 	ExpectationManagerStatus,
 	LogLevel,
 	deepEqual,
+	StatusCode,
+	PackageContainerMonitorStatus,
+	PackageContainerStatus,
 } from '@shared/api'
-import { ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 import PromisePool from '@supercharge/promise-pool'
@@ -1190,7 +1193,6 @@ export class ExpectationManager {
 					progress: trackedExp.status.workProgress || 0,
 					status: this.getPackageStatus(trackedExp),
 					statusReason: trackedExp.reason,
-					priority: trackedExp.exp.priority,
 
 					isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
 				})
@@ -1650,7 +1652,7 @@ export class ExpectationManager {
 		trackedPackageContainer.status.statusChanged = Date.now()
 
 		const existingMonitorStatus = trackedPackageContainer.status.monitors[monitorId]
-		const newMonitorStatus: ExpectedPackageStatusAPI.PackageContainerMonitorStatus = {
+		const newMonitorStatus: PackageContainerMonitorStatus = {
 			label: monitorLabel || existingMonitorStatus?.label || monitorId,
 			status: status,
 			statusReason: statusReason,
@@ -1930,10 +1932,7 @@ export interface ExpectationManagerCallbacks {
 		packageId: string,
 		packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 	) => void
-	reportPackageContainerExpectationStatus: (
-		containerId: string,
-		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
-	) => void
+	reportPackageContainerExpectationStatus: (containerId: string, statusInfo: PackageContainerStatus | null) => void
 	messageFromWorker: MessageFromWorker
 }
 
@@ -1957,7 +1956,7 @@ interface TrackedPackageContainerExpectation {
 	monitorIsSetup: boolean
 
 	/** These statuses are sent from the workers */
-	status: ExpectedPackageStatusAPI.PackageContainerStatus
+	status: PackageContainerStatus
 
 	/** Is set if the packageContainer has been removed */
 	removed: boolean

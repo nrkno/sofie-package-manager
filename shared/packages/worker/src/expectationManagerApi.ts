@@ -1,5 +1,4 @@
-import { ExpectationManagerWorkerAgent, AdapterClient, LoggerInstance, Reason } from '@shared/api'
-import { StatusCode } from '@sofie-automation/blueprints-integration'
+import { ExpectationManagerWorkerAgent, AdapterClient, LoggerInstance, Reason, StatusCode } from '@shared/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the WorkerAgent

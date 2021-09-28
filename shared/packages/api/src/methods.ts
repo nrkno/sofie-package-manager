@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { ExpectedPackage, ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackage, ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -12,7 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
-import { WorkforceStatus } from './status'
+import { StatusCode, WorkforceStatus } from './status'
 import { LogLevel } from './logger'
 
 /** Contains textual descriptions for statuses. */

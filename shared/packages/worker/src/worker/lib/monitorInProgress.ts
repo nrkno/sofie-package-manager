@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events'
-import { MonitorProperties, Reason } from '@shared/api'
-import { StatusCode } from '@sofie-automation/blueprints-integration'
+import { MonitorProperties, Reason, StatusCode } from '@shared/api'
 
 export interface MonitorInProgressEvents {
 	status: (status: StatusCode, reason: Reason) => void

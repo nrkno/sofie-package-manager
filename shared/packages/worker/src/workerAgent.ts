@@ -20,8 +20,8 @@ import {
 	APPCONTAINER_PING_TIME,
 	MonitorProperties,
 	Reason,
+	StatusCode,
 } from '@shared/api'
-import { StatusCode } from '@sofie-automation/blueprints-integration'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { MonitorInProgress } from './worker/lib/monitorInProgress'

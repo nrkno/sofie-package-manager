@@ -8,7 +8,6 @@ import {
 	ExpectedPackageStatusAPI,
 	PackageContainer,
 	PackageContainerOnPackage,
-	StatusCode,
 } from '@sofie-automation/blueprints-integration'
 import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
 import {
@@ -26,6 +25,8 @@ import {
 	literal,
 	Reason,
 	deepEqual,
+	StatusCode,
+	PackageContainerStatus,
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -387,10 +388,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	} = {}
 	sendUpdatePackageContainerPackageStatusTimeouts: NodeJS.Timeout | undefined
 
-	reportedPackageContainerStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerStatus } = {}
+	reportedPackageContainerStatuses: { [id: string]: PackageContainerStatus } = {}
 	toReportPackageContainerStatus: {
 		[containerId: string]: {
-			status: ExpectedPackageStatusAPI.PackageContainerStatus | null
+			status: PackageContainerStatus | null
 			/** If the status is new and needs to be reported to Core */
 			isUpdated: boolean
 		}
@@ -505,14 +506,14 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 	public reportPackageContainerExpectationStatus(
 		containerId: string,
-		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
+		statusInfo: PackageContainerStatus | null
 	): void {
 		if (!statusInfo) {
 			this.triggerSendUpdatePackageContainerStatus(containerId, null)
 		} else {
 			const previouslyReported = this.toReportPackageContainerStatus[containerId]?.status
 
-			const containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus = {
+			const containerStatus: PackageContainerStatus = {
 				// Default properties:
 				...{
 					status: StatusCode.UNKNOWN,
@@ -525,7 +526,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					monitors: {},
 				},
 				// pre-existing properties:
-				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.PackageContainerStatus>), // Intentionally cast to Partial<>, to make typings in const containerStatus more strict
+				...((previouslyReported || {}) as Partial<PackageContainerStatus>), // Intentionally cast to Partial<>, to make typings in const containerStatus more strict
 				// Updated properties:
 				...statusInfo,
 			}
@@ -571,14 +572,15 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
 			[]
 		)
-		await this.packageManager.coreHandler.core.callMethod(
-			PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
-			[]
-		)
-		await this.packageManager.coreHandler.core.callMethod(
-			PeripheralDeviceAPI.methods.removeAllPackageContainerStatusesOfDevice,
-			[]
-		)
+		// Release37 only:
+		// await this.packageManager.coreHandler.core.callMethod(
+		// 	PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
+		// 	[]
+		// )
+		// await this.packageManager.coreHandler.core.callMethod(
+		// 	PeripheralDeviceAPI.methods.removeAllPackageContainerStatusesOfDevice,
+		// 	[]
+		// )
 	}
 	private triggerSendUpdateExpectationStatus(
 		expectationId: string,
@@ -712,10 +714,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				})
 		}
 	}
-	triggerSendUpdatePackageContainerStatus(
-		containerId: string,
-		containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus | null
-	) {
+	triggerSendUpdatePackageContainerStatus(containerId: string, containerStatus: PackageContainerStatus | null) {
 		this.toReportPackageContainerStatus[containerId] = {
 			status: containerStatus,
 			isUpdated: true,
@@ -757,12 +756,16 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		}
 
 		if (changesTosend.length) {
-			this.packageManager.coreHandler.core
-				.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerStatuses, [changesTosend])
-				.catch((err) => {
-					this.logger.error('Error when calling method updatePackageContainerStatuses:')
-					this.logger.error(err)
-				})
+			// Release 37 only:
+			// this.packageManager.coreHandler.core
+			// 	.callMethod(PeripheralDeviceAPI.methods.updatePackageContainerStatuses, [changesTosend])
+			// 	.catch((err) => {
+			// 		this.logger.error('Error when calling method updatePackageContainerStatuses:')
+			// 		this.logger.error(err)
+			// 	})
+			changesTosend.forEach((change) => {
+				this.logger.info(`PackageContainerStatus "${change.containerId}": ${JSON.stringify(change)}`)
+			})
 		}
 	}
 	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
@@ -926,6 +929,6 @@ type UpdatePackageContainerStatusesChanges = (
 	| {
 			containerId: string
 			type: 'update'
-			status: ExpectedPackageStatusAPI.PackageContainerStatus
+			status: PackageContainerStatus
 	  }
 )[]
