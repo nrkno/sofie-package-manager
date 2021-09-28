@@ -1,6 +1,6 @@
 {
     "name": "@shared/workforce",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "main": "dist/index",
     "types": "dist/index",
     "files": [
@@ -20,7 +20,7 @@
         "lint-staged": "^7.2.0"
     },
     "dependencies": {
-        "@shared/api": "^1.0.1"
+        "@shared/api": "^1.1.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
