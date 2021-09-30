@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/generic",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -15,9 +15,9 @@
         "@sofie-automation/server-core-integration": "*"
     },
     "dependencies": {
-        "@shared/api": "^1.1.0",
-        "@shared/expectation-manager": "^1.1.0",
-        "@shared/worker": "^1.1.0",
+        "@shared/api": "^1.1.1",
+        "@shared/expectation-manager": "^1.1.1",
+        "@shared/worker": "^1.1.1",
         "chokidar": "^3.5.1",
         "deep-extend": "^0.6.0",
         "fast-clone": "^1.5.13",
