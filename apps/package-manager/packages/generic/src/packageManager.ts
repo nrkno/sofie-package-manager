@@ -115,6 +115,7 @@ export class PackageManagerHandler {
 	onSettingsChanged(): void {
 		this.settings = {
 			delayRemoval: this.coreHandler.delayRemoval,
+			delayRemovalPackageInfo: this.coreHandler.delayRemovalPackageInfo,
 			useTemporaryFilePath: this.coreHandler.useTemporaryFilePath,
 		}
 		this.triggerUpdatedExpectedPackages()
@@ -269,7 +270,7 @@ export class PackageManagerHandler {
 			this.settings
 		)
 		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
-		// this.logger.debug(JSON.stringify(expectations, null, 2))
+		console.log(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
 		const packageContainerExpectations = generatePackageContainerExpectations(
@@ -886,6 +887,7 @@ export interface ActiveRundown {
 }
 export interface PackageManagerSettings {
 	delayRemoval: number
+	delayRemovalPackageInfo?: number
 	useTemporaryFilePath: boolean
 }
 

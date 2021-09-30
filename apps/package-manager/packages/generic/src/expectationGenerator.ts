@@ -147,7 +147,6 @@ export function generateExpectations(
 
 	const smartbullExpectations: ExpectedPackageWrap[] = [] // Hack, Smartbull
 	let orgSmartbullExpectation: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
-
 	for (const packageWrap of expectedPackages) {
 		let exp: Expectation.Any | undefined = undefined
 
@@ -231,11 +230,11 @@ export function generateExpectations(
 
 			if (!expectation0.external) {
 				// All files that have been copied should also be scanned:
-				const scan = generatePackageScan(expectation)
+				const scan = generatePackageScan(expectation, settings)
 				expectations[scan.id] = scan
 
 				// All files that have been copied should also be deep-scanned:
-				const deepScan = generatePackageDeepScan(expectation)
+				const deepScan = generatePackageDeepScan(expectation, settings)
 				expectations[deepScan.id] = deepScan
 			}
 
@@ -275,11 +274,11 @@ export function generateExpectations(
 
 			if (!expectation0.external) {
 				// All files that have been copied should also be scanned:
-				const scan = generatePackageScan(expectation)
+				const scan = generatePackageScan(expectation, settings)
 				expectations[scan.id] = scan
 
 				// All files that have been copied should also be deep-scanned:
-				const deepScan = generatePackageDeepScan(expectation)
+				const deepScan = generatePackageDeepScan(expectation, settings)
 				expectations[deepScan.id] = deepScan
 			}
 
@@ -420,7 +419,10 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 
 	return exp
 }
-function generatePackageScan(expectation: Expectation.FileCopy | Expectation.QuantelClipCopy): Expectation.PackageScan {
+function generatePackageScan(
+	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy,
+	settings: PackageManagerSettings
+): Expectation.PackageScan {
 	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
 		priority: expectation.priority + PriorityAdditions.SCAN,
@@ -458,14 +460,15 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 		},
 		workOptions: {
 			...expectation.workOptions,
-			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+			removeDelay: settings.delayRemovalPackageInfo,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
 	})
 }
 function generatePackageDeepScan(
-	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy
+	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy,
+	settings: PackageManagerSettings
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
 		id: expectation.id + '_deepscan',
@@ -509,7 +512,7 @@ function generatePackageDeepScan(
 		},
 		workOptions: {
 			...expectation.workOptions,
-			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+			removeDelay: settings.delayRemovalPackageInfo,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
