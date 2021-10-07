@@ -123,8 +123,8 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 		const targetHandle = lookupTarget.handle
 		if (
 			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
-			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE)
+			lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE &&
+			lookupSource.accessor.networkId === lookupTarget.accessor.networkId
 		) {
 			// We can do RoboCopy
 			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
