@@ -92,7 +92,11 @@ export function quantelFileflowCopy(
 							.catch(reject)
 					})
 
-					while (status === QuantelFileflowStatus.WAITING || status === QuantelFileflowStatus.PROCESSING) {
+					while (
+						status === QuantelFileflowStatus.WAITING ||
+						status === QuantelFileflowStatus.PROCESSING ||
+						status === QuantelFileflowStatus.ABORTING
+					) {
 						await sleep(3000)
 						const statusResult = await getJobStatus(fileflowBaseUrl, jobId)
 						if (statusResult) {
@@ -113,6 +117,13 @@ export function quantelFileflowCopy(
 								return
 							}
 						}
+					}
+
+					// at this point, the job should either be completed, or it has failed (note the while loop abve)
+					if (status === QuantelFileflowStatus.COMPLETED) {
+						resolve(undefined)
+					} else {
+						reject(status)
 					}
 				} else {
 					reject(requestResponse)
