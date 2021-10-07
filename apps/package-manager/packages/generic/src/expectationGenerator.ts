@@ -226,7 +226,10 @@ export function generateExpectations(
 
 	// Side effects from files:
 	for (const expectation0 of Object.values(expectations)) {
-		if (expectation0.type === Expectation.Type.FILE_COPY) {
+		if (
+			expectation0.type === Expectation.Type.FILE_COPY ||
+			expectation0.type === Expectation.Type.QUANTEL_FILEFLOW_CLIP_COPY
+		) {
 			const expectation = expectation0 as Expectation.FileCopy
 
 			if (!expectation0.external) {
@@ -420,7 +423,9 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 
 	return exp
 }
-function generatePackageScan(expectation: Expectation.FileCopy | Expectation.QuantelClipCopy): Expectation.PackageScan {
+function generatePackageScan(
+	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy | Expectation.QuantelFileflowClipCopy
+): Expectation.PackageScan {
 	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
 		priority: expectation.priority + PriorityAdditions.SCAN,
@@ -465,7 +470,7 @@ function generatePackageScan(expectation: Expectation.FileCopy | Expectation.Qua
 	})
 }
 function generatePackageDeepScan(
-	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy
+	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy | Expectation.QuantelFileflowClipCopy
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
 		id: expectation.id + '_deepscan',
@@ -517,7 +522,7 @@ function generatePackageDeepScan(
 }
 
 function generateMediaFileThumbnail(
-	expectation: Expectation.FileCopy,
+	expectation: Expectation.FileCopy | Expectation.QuantelFileflowClipCopy,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
@@ -568,7 +573,7 @@ function generateMediaFileThumbnail(
 	})
 }
 function generateMediaFilePreview(
-	expectation: Expectation.FileCopy,
+	expectation: Expectation.FileCopy | Expectation.QuantelFileflowClipCopy,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
@@ -703,10 +708,7 @@ function generateQuantelClipPreview(
 			],
 			content: {
 				filePath:
-					settings.path ||
-					expectation.endRequirement.content.guid ||
-					expectation.endRequirement.content.title ||
-					'',
+					settings.path || expectation.endRequirement.content.guid || expectation.endRequirement.content.title || '',
 			},
 			version: {
 				type: Expectation.Version.Type.QUANTEL_CLIP_PREVIEW,
