@@ -1,4 +1,4 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
+import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
 import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getStandardCost } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
@@ -11,6 +11,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	Reason,
 } from '@shared/api'
 import { isFileShareAccessorHandle, isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -130,8 +131,7 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
 			const fileflowURL = sourceHandle.fileflowURL
-			if (sourceHandle.zoneId === undefined)
-				throw new Error(`Source AccessHandler does not have it's Zone ID set`)
+			if (sourceHandle.zoneId === undefined) throw new Error(`Source AccessHandler does not have it's Zone ID set`)
 			const zoneId = sourceHandle.zoneId
 
 			let wasCancelled = false
@@ -154,9 +154,7 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 					throw new Error(`Could not fetch clip information from ${sourceHandle.accessorId}`)
 				}
 
-				const targetPath = exp.workOptions.useTemporaryFilePath
-					? targetHandle.temporaryFilePath
-					: targetHandle.fullPath
+				const targetPath = exp.workOptions.useTemporaryFilePath ? targetHandle.temporaryFilePath : targetHandle.fullPath
 
 				copying = quantelFileflowCopy(
 					fileflowURL,
@@ -231,6 +229,34 @@ function isQuantelFileflowCopy(exp: Expectation.Any): exp is Expectation.Quantel
 	return exp.type === Expectation.Type.QUANTEL_FILEFLOW_CLIP_COPY
 }
 
+function checkAccessorForQuantelFileflow(
+	_packageContainer: PackageContainerOnPackage,
+	accessorId: string,
+	accessor: AccessorOnPackage.Any
+): { success: true } | { success: false; reason: Reason } {
+	if (accessor.type !== Accessor.AccessType.QUANTEL) {
+		return {
+			success: false,
+			reason: {
+				user: `Accessor "${accessorId}" is not a Quantel System.`,
+				tech: `Accessor "${accessorId}" is not a Quantel System.`,
+			},
+		}
+	}
+	if (!accessor.fileflowURL) {
+		return {
+			success: false,
+			reason: {
+				user: `Accessor "${accessorId}" does not have a FileFlow URL set.`,
+				tech: `Accessor "${accessorId}" does not have a FileFlow URL set.`,
+			},
+		}
+	}
+	return {
+		success: true,
+	}
+}
+
 function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.QuantelFileflowClipCopy
@@ -244,6 +270,7 @@ function lookupCopySources(
 			read: true,
 			readPackage: true,
 			packageVersion: exp.endRequirement.version,
+			customCheck: checkAccessorForQuantelFileflow,
 		}
 	)
 }
