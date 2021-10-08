@@ -336,7 +336,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		return { success: true, monitors: resultingMonitors }
 	}
-	/** Called when the package is supposed to be in place */
+	/** Called when the package is supposed to be in place (or is about to be put in place very soon) */
 	async packageIsInPlace(): Promise<void> {
 		await this.clearPackageRemoval(this.filePath)
 	}

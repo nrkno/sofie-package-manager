@@ -449,7 +449,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		return (await quantel.searchClip(searchQuery))
 			.filter((clipData) => {
 				return (
-					typeof clipData.PoolID === 'number' && (!server || (server.pools || []).indexOf(clipData.PoolID) !== -1) // If present in any of the pools of the server
+					typeof clipData.PoolID === 'number' &&
+					(!server || (server.pools || []).indexOf(clipData.PoolID) !== -1) // If present in any of the pools of the server
 				)
 			})
 			.sort(

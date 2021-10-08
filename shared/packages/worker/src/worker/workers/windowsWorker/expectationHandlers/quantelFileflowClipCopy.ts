@@ -52,7 +52,6 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 		return {
 			ready: true,
 			sourceExists: true,
-			// reason: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 		}
 	},
 	isExpectationFullfilled: async (
@@ -100,7 +99,6 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 
 		return {
 			fulfilled: true,
-			// reason: `File "${exp.endRequirement.content.filePath}" already exists on target`,
 		}
 	},
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
@@ -122,16 +120,18 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 		const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
 		if (
+			// Because the copying is performed by FileFlow, we only support
+			// file-share targets in the same network as Quantel:
 			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
 			lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE &&
 			lookupSource.accessor.networkId === lookupTarget.accessor.networkId
 		) {
-			// We can do RoboCopy
 			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
 			const fileflowURL = sourceHandle.fileflowURL
-			if (sourceHandle.zoneId === undefined) throw new Error(`Source AccessHandler does not have it's Zone ID set`)
+			if (sourceHandle.zoneId === undefined)
+				throw new Error(`Source AccessHandler does not have it's Zone ID set`)
 			const zoneId = sourceHandle.zoneId
 
 			let wasCancelled = false
@@ -154,11 +154,10 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 					throw new Error(`Could not fetch clip information from ${sourceHandle.accessorId}`)
 				}
 
-				const targetPath = exp.workOptions.useTemporaryFilePath ? targetHandle.temporaryFilePath : targetHandle.fullPath
+				const targetPath = exp.workOptions.useTemporaryFilePath
+					? targetHandle.temporaryFilePath
+					: targetHandle.fullPath
 
-				// copying = roboCopyFile(sourceClip, targetPath, (progress: number) => {
-				// 	workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
-				// })
 				copying = quantelFileflowCopy(
 					fileflowURL,
 					sourceClip.ClipID.toString(),
@@ -225,7 +224,6 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 
 		return {
 			removed: true,
-			// reason: `Removed file "${exp.endRequirement.content.filePath}" from target`
 		}
 	},
 }
