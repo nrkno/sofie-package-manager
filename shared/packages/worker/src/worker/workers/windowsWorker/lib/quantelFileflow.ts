@@ -80,7 +80,7 @@ export function quantelFileflowCopy(
 			.then(async (requestResponse) => {
 				if (requestResponse.ok) {
 					const body = xml.xml2js(await requestResponse.text(), DEFAULT_XML_JS_OPTIONS)
-					// something is wrong with the response parsing here
+					// TODO something is wrong with the response parsing here
 					const jobId = body.elements?.QJobResponse?.QJob?.id?._text as string
 					let status = body.elements?.QJobResponse?.QJob?.status?._text as string
 					let progress = Number.parseFloat(body.elements?.QJobResponse?.QJob?.progress?._text)
