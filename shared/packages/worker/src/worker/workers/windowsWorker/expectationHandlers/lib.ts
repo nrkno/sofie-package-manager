@@ -109,6 +109,12 @@ export interface LookupChecks {
 	write?: boolean
 	/** Check that it is possible to write to write to the package container */
 	writePackageContainer?: boolean
+
+	customCheck?: (
+		packageContainer: PackageContainerOnPackage,
+		accessorId: string,
+		accessor: AccessorOnPackage.Any
+	) => { success: true } | { success: false; reason: Reason }
 }
 /** Go through the Accessors and return the best one that we can use for the expectation */
 export async function lookupAccessorHandles<Metadata>(
@@ -125,13 +131,7 @@ export async function lookupAccessorHandles<Metadata>(
 	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
 		errorReason = undefined
 
-		const handle = getAccessorHandle<Metadata>(
-			worker,
-			accessorId,
-			accessor,
-			expectationContent,
-			expectationWorkOptions
-		)
+		const handle = getAccessorHandle<Metadata>(worker, accessorId, accessor, expectationContent, expectationWorkOptions)
 
 		if (checks.read) {
 			// Check that the accessor-handle supports reading:
@@ -141,9 +141,7 @@ export async function lookupAccessorHandles<Metadata>(
 					user: `There is an issue with the configuration for the PackageContainer "${
 						packageContainer.label
 					}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						readResult.reason.tech
-					}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${readResult.reason.tech}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -157,9 +155,7 @@ export async function lookupAccessorHandles<Metadata>(
 					user: `Can't read the Package from PackageContainer "${packageContainer.label}" (on accessor "${
 						accessor.label || accessorId
 					}"), due to: ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						readResult.reason.tech
-					}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${readResult.reason.tech}`,
 				}
 
 				continue // Maybe next accessor works?
@@ -207,6 +203,17 @@ export async function lookupAccessorHandles<Metadata>(
 					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
 						writeAccessResult.reason.tech
 					}`,
+				}
+				continue // Maybe next accessor works?
+			}
+		}
+
+		if (typeof checks.customCheck === 'function') {
+			const checkResult = checks.customCheck(packageContainer, accessorId, accessor)
+			if (!checkResult.success) {
+				errorReason = {
+					user: checkResult.reason.user,
+					tech: checkResult.reason.tech,
 				}
 				continue // Maybe next accessor works?
 			}

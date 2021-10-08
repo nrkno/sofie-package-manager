@@ -321,6 +321,15 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	get transformerURL(): string | undefined {
 		return this.accessor.transformerURL
 	}
+
+	get zoneId(): string | undefined {
+		return this.accessor.zoneId
+	}
+
+	get fileflowURL(): string | undefined {
+		return this.accessor.fileflowURL
+	}
+
 	async getTransformerStreamURL(): Promise<
 		{ success: true; baseURL: string; url: string; fullURL: string } | { success: false; reason: Reason }
 	> {
