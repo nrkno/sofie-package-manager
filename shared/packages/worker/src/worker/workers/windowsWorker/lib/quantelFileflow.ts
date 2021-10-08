@@ -73,10 +73,14 @@ export function quantelFileflowCopy(
 		fetch(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/`, {
 			method: 'POST',
 			body: xml.js2xml(jobRequest, DEFAULT_XML_JS_OPTIONS),
+			headers: {
+				'Content-Type': 'application/xml',
+			},
 		})
 			.then(async (requestResponse) => {
 				if (requestResponse.ok) {
 					const body = xml.xml2js(await requestResponse.text(), DEFAULT_XML_JS_OPTIONS)
+					// something is wrong with the response parsing here
 					const jobId = body.elements?.QJobResponse?.QJob?.id?._text as string
 					let status = body.elements?.QJobResponse?.QJob?.status?._text as string
 					let progress = Number.parseFloat(body.elements?.QJobResponse?.QJob?.progress?._text)
@@ -95,9 +99,20 @@ export function quantelFileflowCopy(
 						fetch(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}/status`, {
 							method: 'PUT',
 							body: xml.js2xml(cancelJobRequest),
+							headers: {
+								'Content-Type': 'application/xml',
+							},
 						})
-							.then(reject)
-							.catch(reject)
+							.then((response) => {
+								if (response.ok) {
+									reject('Cancelled')
+								} else {
+									reject(`Bad response on Fileflow cancel job ${jobId}: ${response.status} ${response.statusText}`)
+								}
+							})
+							.catch((err) => {
+								reject(`Failed to execute Fileflow cancel job ${jobId} request: ${err?.toString()}`)
+							})
 					})
 
 					while (
@@ -118,7 +133,7 @@ export function quantelFileflowCopy(
 								status === QuantelFileflowStatus.CANCELLED ||
 								status === QuantelFileflowStatus.FAILED
 							) {
-								reject()
+								reject(`Failed: ${status}`)
 								return
 							} else if (status === QuantelFileflowStatus.COMPLETED) {
 								resolve(undefined)
@@ -131,12 +146,16 @@ export function quantelFileflowCopy(
 					if (status === QuantelFileflowStatus.COMPLETED) {
 						resolve(undefined)
 					} else {
-						reject(status)
+						reject(`Quantel Fileflow status for job ${jobId}: ${status}`)
 					}
 				} else {
-					reject(requestResponse)
+					reject(
+						`Response is not Okay for creating Fileflow Export Job: ${
+							requestResponse.status
+						}: ${await requestResponse.text()}`
+					)
 				}
 			})
-			.catch(reject)
+			.catch((err) => reject(`Failed to execute Fileflow request: ${err?.toString()}`))
 	})
 }

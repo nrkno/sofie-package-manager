@@ -200,12 +200,12 @@ export class PackageManagerHandler {
 					this.logger.info(`objs in deviceExpectedPackages:`, objs)
 					return
 				}
-				for (const expectedPackageObj of expectedPackageObjs) {
-					for (const expectedPackage of expectedPackageObj.expectedPackages) {
-						// Note: There might be duplicates of packages here, to be deduplicated later
-						expectedPackages.push(expectedPackage)
-					}
-				}
+				// for (const expectedPackageObj of expectedPackageObjs) {
+				// 	// for (const expectedPackage of expectedPackageObj.expectedPackages) {
+				// 	// 	// Note: There might be duplicates of packages here, to be deduplicated later
+				// 	// 	// expectedPackages.push(expectedPackage)
+				// 	// }
+				// }
 
 				const packageContainerObj = objs.find((o) => o.type === 'package_containers')
 				if (!packageContainerObj) {
@@ -218,11 +218,11 @@ export class PackageManagerHandler {
 
 			// Add from Monitors:
 			{
-				for (const monitorExpectedPackages of Object.values(this.monitoredPackages)) {
-					for (const expectedPackage of monitorExpectedPackages) {
-						expectedPackages.push(expectedPackage)
-					}
-				}
+				// for (const monitorExpectedPackages of Object.values(this.monitoredPackages)) {
+				// 	// for (const expectedPackage of monitorExpectedPackages) {
+				// 	// 	// expectedPackages.push(expectedPackage)
+				// 	// }
+				// }
 			}
 
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
@@ -310,8 +310,7 @@ export class PackageManagerHandler {
 		return {
 			...(await this.expectationManager.getStatus()),
 			packageManager: {
-				workforceURL:
-					this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,
+				workforceURL: this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,
 				lastUpdated: this.dataSnapshot.updated,
 				countExpectedPackages: this.dataSnapshot.expectedPackages.length,
 				countPackageContainers: Object.keys(this.dataSnapshot.packageContainers).length,
@@ -441,9 +440,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				...statusInfo,
 
 				fromPackages: expectaction.fromPackages.map((fromPackage) => {
-					const prevPromPackage = this.toReportExpectationStatus[
-						expectationId
-					]?.workStatus?.fromPackages.find((p) => p.id === fromPackage.id)
+					const prevPromPackage = this.toReportExpectationStatus[expectationId]?.workStatus?.fromPackages.find(
+						(p) => p.id === fromPackage.id
+					)
 					return {
 						id: fromPackage.id,
 						expectedContentVersionHash: fromPackage.expectedContentVersionHash,

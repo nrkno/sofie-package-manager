@@ -226,10 +226,7 @@ export function generateExpectations(
 
 	// Side effects from files:
 	for (const expectation0 of Object.values(expectations)) {
-		if (
-			expectation0.type === Expectation.Type.FILE_COPY ||
-			expectation0.type === Expectation.Type.QUANTEL_FILEFLOW_CLIP_COPY
-		) {
+		if (expectation0.type === Expectation.Type.FILE_COPY) {
 			const expectation = expectation0 as Expectation.FileCopy
 
 			if (!expectation0.external) {
@@ -423,9 +420,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 
 	return exp
 }
-function generatePackageScan(
-	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy | Expectation.QuantelFileflowClipCopy
-): Expectation.PackageScan {
+function generatePackageScan(expectation: Expectation.FileCopy | Expectation.QuantelClipCopy): Expectation.PackageScan {
 	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
 		priority: expectation.priority + PriorityAdditions.SCAN,
@@ -470,7 +465,7 @@ function generatePackageScan(
 	})
 }
 function generatePackageDeepScan(
-	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy | Expectation.QuantelFileflowClipCopy
+	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
 		id: expectation.id + '_deepscan',
@@ -522,7 +517,7 @@ function generatePackageDeepScan(
 }
 
 function generateMediaFileThumbnail(
-	expectation: Expectation.FileCopy | Expectation.QuantelFileflowClipCopy,
+	expectation: Expectation.FileCopy,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
@@ -573,7 +568,7 @@ function generateMediaFileThumbnail(
 	})
 }
 function generateMediaFilePreview(
-	expectation: Expectation.FileCopy | Expectation.QuantelFileflowClipCopy,
+	expectation: Expectation.FileCopy,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer

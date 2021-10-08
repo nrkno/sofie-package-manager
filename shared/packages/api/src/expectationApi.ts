@@ -23,7 +23,6 @@ export namespace Expectation {
 		// | QuantelClipDeepScan
 		| QuantelClipThumbnail
 		| QuantelClipPreview
-		| QuantelFileflowClipCopy
 		| JsonDataCopy
 
 	/** Defines the Expectation type, used to separate the different Expectations */
@@ -40,8 +39,6 @@ export namespace Expectation {
 		// QUANTEL_CLIP_DEEP_SCAN = 'quantel_clip_deep_scan',
 		QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
 		QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
-
-		QUANTEL_FILEFLOW_CLIP_COPY = 'quantel_fileflow_clip_copy',
 
 		JSON_DATA_COPY = 'json_data_copy',
 	}
@@ -218,21 +215,6 @@ export namespace Expectation {
 				title?: string
 			}
 			version: Expectation.Version.ExpectedQuantelClip
-		}
-	}
-
-	export interface QuantelFileflowClipCopy extends Base {
-		type: Type.QUANTEL_FILEFLOW_CLIP_COPY
-
-		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.QuantelClip[]
-		}
-		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.File]
-			content: {
-				filePath: string
-			}
-			version: Version.ExpectedFileOnDisk
 		}
 	}
 

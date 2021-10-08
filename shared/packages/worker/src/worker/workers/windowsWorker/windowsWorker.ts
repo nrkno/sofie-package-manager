@@ -28,7 +28,6 @@ import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
 import { testFFMpeg, testFFProbe } from './expectationHandlers/lib/ffmpeg'
 import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
-import { QuantelFileflowClipCopy } from './expectationHandlers/quantelFileflowClipCopy'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -104,8 +103,6 @@ export class WindowsWorker extends GenericWorker {
 				return QuantelThumbnail
 			case Expectation.Type.QUANTEL_CLIP_PREVIEW:
 				return QuantelClipPreview
-			case Expectation.Type.QUANTEL_FILEFLOW_CLIP_COPY:
-				return QuantelFileflowClipCopy
 			case Expectation.Type.JSON_DATA_COPY:
 				return JsonDataCopy
 			default:

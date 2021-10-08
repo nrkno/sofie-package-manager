@@ -1,4 +1,4 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
+import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 // import { diff } from 'deep-diff'
@@ -13,12 +13,14 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	Reason,
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
+	isQuantelClipAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { ByteCounter } from '../../../lib/streamByteCounter'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -31,6 +33,7 @@ import {
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
 import { diff } from 'deep-diff'
+import { quantelFileflowCopy } from '../lib/quantelFileflow'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
@@ -215,9 +218,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 				await targetHandle.packageIsInPlace()
 
 				const sourcePath = sourceHandle.fullPath
-				const targetPath = exp.workOptions.useTemporaryFilePath
-					? targetHandle.temporaryFilePath
-					: targetHandle.fullPath
+				const targetPath = exp.workOptions.useTemporaryFilePath ? targetHandle.temporaryFilePath : targetHandle.fullPath
 
 				copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
 					workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
@@ -332,6 +333,75 @@ export const FileCopy: ExpectationWindowsHandler = {
 			})
 
 			return workInProgress
+		} else if (
+			// Because the copying is performed by FileFlow, we only support
+			// file-share targets in the same network as Quantel:
+			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
+			lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE &&
+			lookupSource.accessor.networkId === lookupTarget.accessor.networkId
+		) {
+			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
+			const fileflowURL = sourceHandle.fileflowURL
+			if (sourceHandle.zoneId === undefined) throw new Error(`Source AccessHandler does not have it's Zone ID set`)
+			const zoneId = sourceHandle.zoneId
+			const profile = sourceHandle.fileflowProfile
+
+			let wasCancelled = false
+			let copying: CancelablePromise<void> | undefined
+			const workInProgress = new WorkInProgress({ workLabel: 'Copying, using Quantel Fileflow' }, async () => {
+				// on cancel
+				wasCancelled = true
+				copying?.cancel()
+
+				// Wait a bit to allow freeing up of resources:
+				await waitTime(1000)
+
+				// Remove target files
+				await targetHandle.removePackage()
+			}).do(async () => {
+				await targetHandle.packageIsInPlace()
+
+				const sourceClip = await sourceHandle.getClip()
+				if (!sourceClip) {
+					throw new Error(`Could not fetch clip information from ${sourceHandle.accessorId}`)
+				}
+
+				const targetPath = exp.workOptions.useTemporaryFilePath ? targetHandle.temporaryFilePath : targetHandle.fullPath
+
+				copying = quantelFileflowCopy(
+					fileflowURL,
+					profile,
+					sourceClip.ClipID.toString(),
+					zoneId,
+					targetPath,
+					(progress: number) => {
+						workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
+					}
+				)
+
+				await copying
+				// The copy is done at this point
+
+				copying = undefined
+				if (wasCancelled) return // ignore
+
+				await targetHandle.finalizePackage()
+				await targetHandle.updateMetadata(actualSourceUVersion)
+
+				const duration = Date.now() - startTime
+				workInProgress._reportComplete(
+					actualSourceVersionHash,
+					{
+						user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
+						tech: `Copy completed at ${Date.now()}`,
+					},
+					undefined
+				)
+			})
+
+			return workInProgress
 		} else {
 			throw new Error(
 				`FileCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
@@ -388,6 +458,7 @@ function lookupCopySources(
 			read: true,
 			readPackage: true,
 			packageVersion: exp.endRequirement.version,
+			customCheck: checkAccessorForQuantelFileflow,
 		}
 	)
 }
@@ -405,4 +476,25 @@ function lookupCopyTargets(
 			writePackageContainer: true,
 		}
 	)
+}
+
+function checkAccessorForQuantelFileflow(
+	_packageContainer: PackageContainerOnPackage,
+	accessorId: string,
+	accessor: AccessorOnPackage.Any
+): { success: true } | { success: false; reason: Reason } {
+	if (accessor.type === Accessor.AccessType.QUANTEL) {
+		if (!accessor.fileflowURL) {
+			return {
+				success: false,
+				reason: {
+					user: `Accessor "${accessorId}" does not have a FileFlow URL set.`,
+					tech: `Accessor "${accessorId}" does not have a FileFlow URL set.`,
+				},
+			}
+		}
+	}
+	return {
+		success: true,
+	}
 }
