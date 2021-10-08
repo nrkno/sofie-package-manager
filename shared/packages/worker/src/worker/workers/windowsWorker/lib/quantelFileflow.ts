@@ -42,6 +42,7 @@ async function getJobStatus(
 
 export function quantelFileflowCopy(
 	fileflowBaseUrl: string,
+	profileName: string | undefined,
 	clipId: string,
 	zoneId: string,
 	destination: string,
@@ -56,10 +57,17 @@ export function quantelFileflowCopy(
 				jobType: {
 					_text: 'export',
 				},
+				profileName: undefined as any,
 				source: {
 					_text: `SQ:${clipId}::${zoneId}`,
 				},
 			},
+		}
+
+		if (profileName) {
+			jobRequest.CreateJob.profileName = {
+				_text: profileName,
+			}
 		}
 
 		fetch(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/`, {

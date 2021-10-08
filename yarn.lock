@@ -1478,10 +1478,10 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.37.0-nightly-release37-20211007-125452-4d4e01e.0":
-  version "1.37.0-nightly-release37-20211007-125452-4d4e01e.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-release37-20211007-125452-4d4e01e.0.tgz#357cf8d30a440515391f41fb12e53718e64fb4fb"
-  integrity sha512-NTvKvZZtXOUogfhZS14MN+R/WTp5HIBRoGbVw9tT9L42Ve4Fe6o3WjEOz7QAV8mA+I9ikAvl3VH4RQzvL/fRNw==
+"@sofie-automation/blueprints-integration@1.37.0-nightly-release37-20211008-102301-5f72ed0.0":
+  version "1.37.0-nightly-release37-20211008-102301-5f72ed0.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-release37-20211008-102301-5f72ed0.0.tgz#701f0145a1cd246cc54c04bf426075a77ca0427b"
+  integrity sha512-9Lo3DWWQaOOIpnVW1s0fsoIcg/Y9UCt67+MmbgZg49VPPOzlN//EBkf8c3vDjSnIh2Met8tAp7IU8qSkzxbzhQ==
   dependencies:
     moment "2.29.1"
     timeline-state-resolver-types "6.2.0-nightly-release37-20210920-094335-6d1ddb522.0"
@@ -1507,10 +1507,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.37.0-nightly-release37-20211007-125452-4d4e01e.0":
-  version "1.37.0-nightly-release37-20211007-125452-4d4e01e.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-release37-20211007-125452-4d4e01e.0.tgz#7da76b67754f4abf75bf30f314f7bffff6577c48"
-  integrity sha512-zehQGw6zEhg6dzPMO4ISLKfP+1WxDdJkm/PR9XMm7+f7A1X+Q5riFQ1NL4HJUx2DG/ESO0voYEcAcYS0sFdkHw==
+"@sofie-automation/server-core-integration@1.37.0-nightly-release37-20211008-102301-5f72ed0.0":
+  version "1.37.0-nightly-release37-20211008-102301-5f72ed0.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-release37-20211008-102301-5f72ed0.0.tgz#5daf2a47de8c6f7bceaaec69d39fc007f591d554"
+  integrity sha512-KvlYVDe2NTEEpcH/aqQ9nWhYTAvz7cAXedwrVqHksJm2oRj6Y3bQsDqGcQlsOvrh1vbbxjdmueOF7n01PEMaOQ==
   dependencies:
     data-store "^4.0.3"
     ejson "^2.2.0"

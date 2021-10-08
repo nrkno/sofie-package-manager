@@ -133,6 +133,7 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 			const fileflowURL = sourceHandle.fileflowURL
 			if (sourceHandle.zoneId === undefined) throw new Error(`Source AccessHandler does not have it's Zone ID set`)
 			const zoneId = sourceHandle.zoneId
+			const profile = sourceHandle.fileflowProfile
 
 			let wasCancelled = false
 			let copying: CancelablePromise<void> | undefined
@@ -158,6 +159,7 @@ export const QuantelFileflowClipCopy: ExpectationWindowsHandler = {
 
 				copying = quantelFileflowCopy(
 					fileflowURL,
+					profile,
 					sourceClip.ClipID.toString(),
 					zoneId,
 					targetPath,
