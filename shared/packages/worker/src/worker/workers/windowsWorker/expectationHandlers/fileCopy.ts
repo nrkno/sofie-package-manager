@@ -344,9 +344,21 @@ export const FileCopy: ExpectationWindowsHandler = {
 			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
 			const fileflowURL = sourceHandle.fileflowURL
-			if (sourceHandle.zoneId === undefined) throw new Error(`Source AccessHandler does not have it's Zone ID set`)
-			const zoneId = (sourceHandle as any).content?.zoneId || sourceHandle.zoneId
 			const profile = sourceHandle.fileflowProfile
+			// If the sourceHandler zoneId is set to a useful value, use that
+			let prospectiveZoneId =
+				sourceHandle.zoneId !== '' && sourceHandle.zoneId !== 'default' ? sourceHandle.zoneId : undefined
+			// If it's not set, ask the ISA for known zones and select the first local one
+			if (prospectiveZoneId === undefined) {
+				const homeZone = (await sourceHandle.getZoneInfo()).find((zone) => zone.isRemote === false)
+				prospectiveZoneId = homeZone?.zoneNumber.toString()
+			}
+			// If we still couldn't figure out the zoneID, we should abort the operations
+			if (prospectiveZoneId === undefined) {
+				throw new Error(`Could not settle on zone information for Source AccessHandler: ${sourceHandle.accessorId}`)
+			}
+
+			const zoneId = prospectiveZoneId
 
 			let wasCancelled = false
 			let copying: CancelablePromise<void> | undefined

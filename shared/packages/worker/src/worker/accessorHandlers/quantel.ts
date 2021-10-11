@@ -11,7 +11,7 @@ import {
 } from './genericHandle'
 import { Expectation, literal, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
-import { ClipData, ClipDataSummary, ServerInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
+import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
 /** The minimum amount of frames where a clip is minimumly playable */
 const MINIMUM_FRAMES = 10
@@ -307,6 +307,11 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				tech: 'setupPackageContainerMonitors, not supported',
 			},
 		} // not applicable
+	}
+
+	async getZoneInfo(): Promise<ZoneInfo[]> {
+		const quantel = await this.getQuantelGateway()
+		return quantel.getZones()
 	}
 
 	async getClip(): Promise<ClipDataSummary | undefined> {
