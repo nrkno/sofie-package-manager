@@ -345,7 +345,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
 			const fileflowURL = sourceHandle.fileflowURL
 			if (sourceHandle.zoneId === undefined) throw new Error(`Source AccessHandler does not have it's Zone ID set`)
-			const zoneId = sourceHandle.zoneId
+			const zoneId = (sourceHandle as any).content?.zoneId || sourceHandle.zoneId
 			const profile = sourceHandle.fileflowProfile
 
 			let wasCancelled = false
