@@ -200,12 +200,12 @@ export class PackageManagerHandler {
 					this.logger.info(`objs in deviceExpectedPackages:`, objs)
 					return
 				}
-				// for (const expectedPackageObj of expectedPackageObjs) {
-				// 	// for (const expectedPackage of expectedPackageObj.expectedPackages) {
-				// 	// 	// Note: There might be duplicates of packages here, to be deduplicated later
-				// 	// 	// expectedPackages.push(expectedPackage)
-				// 	// }
-				// }
+				for (const expectedPackageObj of expectedPackageObjs) {
+					for (const expectedPackage of expectedPackageObj.expectedPackages) {
+						// Note: There might be duplicates of packages here, to be deduplicated later
+						expectedPackages.push(expectedPackage)
+					}
+				}
 
 				const packageContainerObj = objs.find((o) => o.type === 'package_containers')
 				if (!packageContainerObj) {
@@ -218,11 +218,11 @@ export class PackageManagerHandler {
 
 			// Add from Monitors:
 			{
-				// for (const monitorExpectedPackages of Object.values(this.monitoredPackages)) {
-				// 	// for (const expectedPackage of monitorExpectedPackages) {
-				// 	// 	// expectedPackages.push(expectedPackage)
-				// 	// }
-				// }
+				for (const monitorExpectedPackages of Object.values(this.monitoredPackages)) {
+					for (const expectedPackage of monitorExpectedPackages) {
+						expectedPackages.push(expectedPackage)
+					}
+				}
 			}
 
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
