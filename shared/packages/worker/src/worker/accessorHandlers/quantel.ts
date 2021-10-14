@@ -450,6 +450,14 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			searchQuery = {
 				Title: `"${this.content.title}"`,
 			}
+		} else if (this.accessor.guid) {
+			searchQuery = {
+				ClipGUID: `"${this.accessor.guid}"`,
+			}
+		} else if (this.accessor.title) {
+			searchQuery = {
+				Title: `"${this.accessor.title}"`,
+			}
 		} else throw new Error(`Neither guid nor title set for Quantel clip`)
 
 		let server: ServerInfo | null = null
@@ -458,7 +466,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		return (await quantel.searchClip(searchQuery))
 			.filter((clipData) => {
 				return (
-					typeof clipData.PoolID === 'number' && (!server || (server.pools || []).indexOf(clipData.PoolID) !== -1) // If present in any of the pools of the server
+					typeof clipData.PoolID === 'number' &&
+					(!server || (server.pools || []).indexOf(clipData.PoolID) !== -1) // If present in any of the pools of the server
 				)
 			})
 			.sort(
