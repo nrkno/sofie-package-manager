@@ -95,7 +95,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				reason: { user: `ISAUrls is empty in settings`, tech: `Accessor ISAUrls is empty` },
 			}
 		if (!this.content.onlyContainerAccess) {
-			if (!this.content.guid && this.content.title)
+			const content = this.getContent()
+			if (!content.guid && content.title)
 				return {
 					success: false,
 					reason: {
@@ -117,11 +118,12 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// There is at least one clip that matches the query
 			return { success: true }
 		} else {
+			const content = this.getContent()
 			return {
 				success: false,
 				reason: {
-					user: `Quantel clip "${this.content.guid || this.content.title}" not found`,
-					tech: `Quantel clip "${this.content.guid || this.content.title}" not found`,
+					user: `Quantel clip "${content.guid || content.title}" not found`,
+					tech: `Quantel clip "${content.guid || content.title}" not found when querying Quantel`,
 				},
 			}
 		}
@@ -434,6 +436,12 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	private async searchForLatestClip(quantel: QuantelGateway): Promise<ClipDataSummary | undefined> {
 		return (await this.searchForClips(quantel))[0]
 	}
+	private getContent() {
+		return {
+			guid: this.content.guid || this.accessor.guid,
+			title: this.content.title || this.accessor.title,
+		}
+	}
 	/**
 	 * Returns a list of all clips that match the guid or title.
 	 * Sorted in the order of Created (latest first)
@@ -442,21 +450,14 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 
 		let searchQuery: ClipSearchQuery = {}
-		if (this.content.guid) {
+		const content = this.getContent()
+		if (content.guid) {
 			searchQuery = {
-				ClipGUID: `"${this.content.guid}"`,
+				ClipGUID: `"${content.guid}"`,
 			}
-		} else if (this.content.title) {
+		} else if (content.title) {
 			searchQuery = {
-				Title: `"${this.content.title}"`,
-			}
-		} else if (this.accessor.guid) {
-			searchQuery = {
-				ClipGUID: `"${this.accessor.guid}"`,
-			}
-		} else if (this.accessor.title) {
-			searchQuery = {
-				Title: `"${this.accessor.title}"`,
+				Title: `"${content.title}"`,
 			}
 		} else throw new Error(`Neither guid nor title set for Quantel clip`)
 
