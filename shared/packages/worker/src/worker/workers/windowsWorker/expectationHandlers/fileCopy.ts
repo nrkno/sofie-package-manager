@@ -224,7 +224,9 @@ export const FileCopy: ExpectationWindowsHandler = {
 				await targetHandle.packageIsInPlace()
 
 				const sourcePath = sourceHandle.fullPath
-				const targetPath = exp.workOptions.useTemporaryFilePath ? targetHandle.temporaryFilePath : targetHandle.fullPath
+				const targetPath = exp.workOptions.useTemporaryFilePath
+					? targetHandle.temporaryFilePath
+					: targetHandle.fullPath
 
 				copying = roboCopyFile(sourcePath, targetPath, (progress: number) => {
 					workInProgress._reportProgress(actualSourceVersionHash, progress / 100)
@@ -361,7 +363,9 @@ export const FileCopy: ExpectationWindowsHandler = {
 			}
 			// If we still couldn't figure out the zoneID, we should abort the operations
 			if (prospectiveZoneId === undefined) {
-				throw new Error(`Could not settle on zone information for Source AccessHandler: ${sourceHandle.accessorId}`)
+				throw new Error(
+					`Could not settle on zone information for Source AccessHandler: ${sourceHandle.accessorId}`
+				)
 			}
 
 			const zoneId = prospectiveZoneId
@@ -386,7 +390,9 @@ export const FileCopy: ExpectationWindowsHandler = {
 					throw new Error(`Could not fetch clip information from ${sourceHandle.accessorId}`)
 				}
 
-				const targetPath = exp.workOptions.useTemporaryFilePath ? targetHandle.temporaryFilePath : targetHandle.fullPath
+				const targetPath = exp.workOptions.useTemporaryFilePath
+					? targetHandle.temporaryFilePath
+					: targetHandle.fullPath
 
 				copying = quantelFileflowCopy(
 					fileflowURL,
