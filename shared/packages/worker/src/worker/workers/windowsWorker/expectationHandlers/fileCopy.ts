@@ -351,6 +351,9 @@ export const FileCopy: ExpectationWindowsHandler = {
 			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
+
+			targetHandle.disableDriveMapping = true // FileFlow needs to use the network share, not the mapped network drive
+
 			const fileflowURL = sourceHandle.fileflowURL
 			const profile = sourceHandle.fileflowProfile
 			// If the sourceHandler zoneId is set to a useful value, use that

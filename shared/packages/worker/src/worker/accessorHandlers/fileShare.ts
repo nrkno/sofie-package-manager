@@ -28,7 +28,10 @@ const pExec = promisify(exec)
 /** Accessor handle for accessing files on a network share */
 export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
 	static readonly type = FileShareAccessorHandleType
+	private originalFolderPath: string | undefined
 	private actualFolderPath: string | undefined
+
+	public disableDriveMapping = false
 
 	private mappedDriveLetters: {
 		[driveLetter: string]: string
@@ -49,7 +52,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
 		super(worker, accessorId, accessor, content, FileShareAccessorHandle.type)
-		this.actualFolderPath = this.accessor.folderPath // To be overwrittenlater
+		this.originalFolderPath = this.accessor.folderPath
+		this.actualFolderPath = this.originalFolderPath // To be overwritten later
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
@@ -65,8 +69,10 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	}
 	/** Path to the PackageContainer, ie the folder on the share */
 	get folderPath(): string {
-		if (!this.actualFolderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
-		return this.actualFolderPath
+		const folderPath = this.disableDriveMapping ? this.originalFolderPath : this.actualFolderPath
+
+		if (!folderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
+		return folderPath
 	}
 	/** Full path to the package */
 	get fullPath(): string {
@@ -110,7 +116,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				},
 			}
 		}
-		if (!this.accessor.folderPath)
+		if (!this.originalFolderPath)
 			return { success: false, reason: { user: `Folder path not set`, tech: `Folder path not set` } }
 		if (!this.content.onlyContainerAccess) {
 			if (!this.filePath)
@@ -340,6 +346,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async packageIsInPlace(): Promise<void> {
 		await this.clearPackageRemoval(this.filePath)
 	}
+
 	/** Local path to the Package, ie the File */
 	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
@@ -360,10 +367,10 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	 * This method should be called prior to any file access being made.
 	 */
 	async prepareFileAccess(forceRemount = false): Promise<void> {
-		if (!this.accessor.folderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
-		const folderPath = this.accessor.folderPath
+		if (!this.originalFolderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
+		const folderPath = this.originalFolderPath
 
-		if (this.worker.type === WindowsWorker.type) {
+		if (!this.disableDriveMapping && this.worker.type === WindowsWorker.type) {
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
 			const windowsWorker = this.worker as WindowsWorker
 
