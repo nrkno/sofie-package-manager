@@ -125,7 +125,7 @@
 // 		// 	// file-share targets in the same network as Quantel:
 // 		// 	lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
 // 		// 	lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE &&
-// 		// 	lookupSource.accessor.networkId === lookupTarget.accessor.networkId
+// 		// 	compareResourceIds(lookupSource.accessor.networkId, lookupTarget.accessor.networkId)
 // 		// ) {
 // 		// 	if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 // 		// 	if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)

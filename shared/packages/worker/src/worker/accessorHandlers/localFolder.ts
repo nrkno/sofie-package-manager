@@ -12,6 +12,7 @@ import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
+import { compareResourceIds } from '../workers/windowsWorker/lib/lib'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -56,7 +57,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.LocalFolder
-		return !accessor.resourceId || accessor.resourceId === worker.location.localComputerId
+		return compareResourceIds(accessor.resourceId, worker.location.localComputerId)
 	}
 	/** Full path to the package */
 	get fullPath(): string {

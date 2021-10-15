@@ -2,7 +2,13 @@ import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-a
 import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 // import { diff } from 'deep-diff'
-import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getStandardCost } from '../lib/lib'
+import {
+	UniversalVersion,
+	compareUniversalVersions,
+	makeUniversalVersion,
+	getStandardCost,
+	compareResourceIds,
+} from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	hashObj,
@@ -338,7 +344,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			// file-share targets in the same network as Quantel:
 			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
 			lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE &&
-			lookupSource.accessor.networkId === lookupTarget.accessor.networkId
+			compareResourceIds(lookupSource.accessor.networkId, lookupTarget.accessor.networkId)
 		) {
 			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
