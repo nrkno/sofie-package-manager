@@ -703,7 +703,10 @@ function generateQuantelClipPreview(
 			],
 			content: {
 				filePath:
-					settings.path || expectation.endRequirement.content.guid || expectation.endRequirement.content.title || '',
+					settings.path ||
+					expectation.endRequirement.content.guid ||
+					expectation.endRequirement.content.title ||
+					'',
 			},
 			version: {
 				type: Expectation.Version.Type.QUANTEL_CLIP_PREVIEW,

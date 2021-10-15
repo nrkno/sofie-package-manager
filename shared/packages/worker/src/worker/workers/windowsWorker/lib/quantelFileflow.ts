@@ -124,7 +124,9 @@ export function quantelFileflowCopy(
 								if (response.ok) {
 									reject('Cancelled')
 								} else {
-									reject(`Bad response on Fileflow cancel job ${jobId}: ${response.status} ${response.statusText}`)
+									reject(
+										`Bad response on Fileflow cancel job ${jobId}: ${response.status} ${response.statusText}`
+									)
 								}
 							})
 							.catch((err) => {
