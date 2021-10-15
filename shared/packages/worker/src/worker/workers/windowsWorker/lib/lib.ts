@@ -159,3 +159,19 @@ export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): nu
 
 	return 30 * (sourceCost + targetCost)
 }
+/**
+ * Compares two networkIds/resourceIds.
+ * It is a forgiving comparison, returning true iether of the two is not defined.
+ * @returns true if equal
+ */
+export function compareResourceIds(
+	resourceId0?: string | number | null,
+	resourceId1?: string | number | null
+): boolean {
+	// If one of them are not set, no need to do the comparison:
+	if (resourceId0 === undefined || resourceId0 === null || resourceId0 === '') return true
+	if (resourceId1 === undefined || resourceId1 === null || resourceId1 === '') return true
+
+	// Do a textual comparison
+	return `${resourceId0}` === `${resourceId1}`
+}

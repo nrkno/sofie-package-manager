@@ -1,5 +1,7 @@
 import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 
+// TODO: This should be changed at some point,
+// as the "cost" isn't really for a source or a target, but rather for the combination of the two as a pair.
 const accessorTypePriority: { [key: string]: number } = {
 	[Accessor.AccessType.LOCAL_FOLDER]: 0,
 	[Accessor.AccessType.QUANTEL]: 1,

@@ -11,7 +11,7 @@ import {
 } from './genericHandle'
 import { Expectation, literal, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
-import { ClipData, ClipDataSummary, ServerInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
+import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
 /** The minimum amount of frames where a clip is minimumly playable */
 const MINIMUM_FRAMES = 10
@@ -95,7 +95,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				reason: { user: `ISAUrls is empty in settings`, tech: `Accessor ISAUrls is empty` },
 			}
 		if (!this.content.onlyContainerAccess) {
-			if (!this.content.guid && this.content.title)
+			const content = this.getContent()
+			if (!content.guid && content.title)
 				return {
 					success: false,
 					reason: {
@@ -117,11 +118,12 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// There is at least one clip that matches the query
 			return { success: true }
 		} else {
+			const content = this.getContent()
 			return {
 				success: false,
 				reason: {
-					user: `Quantel clip "${this.content.guid || this.content.title}" not found`,
-					tech: `Quantel clip "${this.content.guid || this.content.title}" not found`,
+					user: `Quantel clip "${content.guid || content.title}" not found`,
+					tech: `Quantel clip "${content.guid || content.title}" not found when querying Quantel`,
 				},
 			}
 		}
@@ -309,6 +311,11 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		} // not applicable
 	}
 
+	async getZoneInfo(): Promise<ZoneInfo[]> {
+		const quantel = await this.getQuantelGateway()
+		return quantel.getZones()
+	}
+
 	async getClip(): Promise<ClipDataSummary | undefined> {
 		const quantel = await this.getQuantelGateway()
 		return this.searchForLatestClip(quantel)
@@ -429,6 +436,12 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	private async searchForLatestClip(quantel: QuantelGateway): Promise<ClipDataSummary | undefined> {
 		return (await this.searchForClips(quantel))[0]
 	}
+	private getContent() {
+		return {
+			guid: this.content.guid || this.accessor.guid,
+			title: this.content.title || this.accessor.title,
+		}
+	}
 	/**
 	 * Returns a list of all clips that match the guid or title.
 	 * Sorted in the order of Created (latest first)
@@ -437,13 +450,14 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 
 		let searchQuery: ClipSearchQuery = {}
-		if (this.content.guid) {
+		const content = this.getContent()
+		if (content.guid) {
 			searchQuery = {
-				ClipGUID: `"${this.content.guid}"`,
+				ClipGUID: `"${content.guid}"`,
 			}
-		} else if (this.content.title) {
+		} else if (content.title) {
 			searchQuery = {
-				Title: `"${this.content.title}"`,
+				Title: `"${content.title}"`,
 			}
 		} else throw new Error(`Neither guid nor title set for Quantel clip`)
 
@@ -453,7 +467,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		return (await quantel.searchClip(searchQuery))
 			.filter((clipData) => {
 				return (
-					typeof clipData.PoolID === 'number' && (!server || (server.pools || []).indexOf(clipData.PoolID) !== -1) // If present in any of the pools of the server
+					typeof clipData.PoolID === 'number' &&
+					(!server || (server.pools || []).indexOf(clipData.PoolID) !== -1) // If present in any of the pools of the server
 				)
 			})
 			.sort(
