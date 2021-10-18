@@ -153,12 +153,18 @@ export class AppContainer {
 				`--workerId=${appId}`,
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
 				`--appContainerURL=${'ws://127.0.0.1:' + this.websocketServer?.port}`,
-				this.config.appContainer.windowsDriveLetters
-					? `--windowsDriveLetters=${this.config.appContainer.windowsDriveLetters?.join(';')}`
+
+				this.config.appContainer.worker.windowsDriveLetters
+					? `--windowsDriveLetters=${this.config.appContainer.worker.windowsDriveLetters?.join(';')}`
 					: '',
-				this.config.appContainer.resourceId ? `--resourceId=${this.config.appContainer.resourceId}` : '',
-				this.config.appContainer.networkIds.length
-					? `--networkIds=${this.config.appContainer.networkIds.join(';')}`
+				this.config.appContainer.worker.costMultiplier
+					? `--costMultiplier=${this.config.appContainer.worker.costMultiplier}`
+					: '',
+				this.config.appContainer.worker.resourceId
+					? `--resourceId=${this.config.appContainer.worker.resourceId}`
+					: '',
+				this.config.appContainer.worker.networkIds.length
+					? `--networkIds=${this.config.appContainer.worker.networkIds.join(';')}`
 					: '',
 			]
 		}

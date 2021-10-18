@@ -13,10 +13,12 @@ export interface AppContainerConfig {
 	maxRunningApps: number
 	spinDownTime: number
 
-	resourceId: string
-	networkIds: string[]
-
-	windowsDriveLetters: WorkerAgentConfig['windowsDriveLetters']
+	worker: {
+		resourceId: string
+		networkIds: string[]
+		windowsDriveLetters: WorkerAgentConfig['windowsDriveLetters']
+		costMultiplier: number
+	}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace

@@ -46,6 +46,7 @@ const defaultTestConfig: SingleAppConfig = {
 		networkIds: [],
 		windowsDriveLetters: ['X', 'Y', 'Z'],
 		sourcePackageStabilityThreshold: 0, // Disabling this to speed up the tests
+		costMultiplier: 1,
 	},
 	quantelHTTPTransformerProxy: {
 		port: 0,
@@ -58,9 +59,12 @@ const defaultTestConfig: SingleAppConfig = {
 		maxRunningApps: 1,
 		minRunningApps: 1,
 		spinDownTime: 0,
-		resourceId: '',
-		networkIds: [],
-		windowsDriveLetters: ['X', 'Y', 'Z'],
+		worker: {
+			resourceId: '',
+			networkIds: [],
+			windowsDriveLetters: ['X', 'Y', 'Z'],
+			costMultiplier: 1,
+		},
 	},
 }
 

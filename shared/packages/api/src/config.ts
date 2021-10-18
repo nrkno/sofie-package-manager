@@ -129,6 +129,11 @@ const workerArguments = defineArguments({
 		default: process.env.WORKER_NETWORK_ID || 'default',
 		describe: 'Identifier of the local networks this worker has access to ("networkA;networkB")',
 	},
+	costMultiplier: {
+		type: 'number',
+		default: process.env.WORKER_COST_MULTIPLIER || 1,
+		describe: 'Multiply the cost of the worker with this',
+	},
 })
 /** CLI-argument-definitions for the AppContainer process */
 const appContainerArguments = defineArguments({
@@ -163,6 +168,7 @@ const appContainerArguments = defineArguments({
 		describe: 'How long a Worker should stay idle before attempting to be spun down',
 	},
 
+	// These are passed-through to the spun-up workers:
 	resourceId: {
 		type: 'string',
 		default: process.env.WORKER_NETWORK_ID || 'default',
@@ -177,6 +183,11 @@ const appContainerArguments = defineArguments({
 		type: 'string',
 		default: process.env.WORKER_WINDOWS_DRIVE_LETTERS || 'X;Y;Z',
 		describe: 'Which Windows Drive letters can be used to map shares. ("X;Y;Z") ',
+	},
+	costMultiplier: {
+		type: 'number',
+		default: process.env.WORKER_COST_MULTIPLIER || 1,
+		describe: 'Multiply the cost of the worker with this',
 	},
 })
 /** CLI-argument-definitions for the "Single" process */
@@ -321,6 +332,7 @@ export interface WorkerConfig {
 		appContainerURL: string | null
 		resourceId: string
 		networkIds: string[]
+		costMultiplier: number
 	} & WorkerAgentConfig
 }
 export function getWorkerConfig(): WorkerConfig {
@@ -335,9 +347,12 @@ export function getWorkerConfig(): WorkerConfig {
 			workerId: argv.workerId,
 			workforceURL: argv.workforceURL,
 			appContainerURL: argv.appContainerURL,
-			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
+
 			resourceId: argv.resourceId,
 			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
+			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
+			costMultiplier:
+				(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) || 1,
 		},
 	}
 }
@@ -362,9 +377,14 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 			minRunningApps: argv.minRunningApps,
 			spinDownTime: argv.spinDownTime,
 
-			resourceId: argv.resourceId,
-			networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
-			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
+			worker: {
+				resourceId: argv.resourceId,
+				networkIds: argv.networkIds ? argv.networkIds.split(';') : [],
+				windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
+				costMultiplier:
+					(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) ||
+					1,
+			},
 		},
 	}
 }

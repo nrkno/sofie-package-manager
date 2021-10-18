@@ -221,9 +221,13 @@ export class WorkerAgent {
 			): Promise<ExpectationManagerWorkerAgent.ExpectationCost> => {
 				const cost = await this._worker.getCostFortExpectation(exp)
 
+				const workerMultiplier: number = this.config.worker.costMultiplier || 1
+
 				return {
-					cost: cost,
-					startCost: this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0),
+					cost: cost * workerMultiplier,
+					startCost:
+						this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) *
+						workerMultiplier,
 				}
 			},
 			isExpectationReadyToStartWorkingOn: async (
