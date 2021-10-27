@@ -4,7 +4,7 @@
     "description": "Internal tests",
     "private": true,
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "__build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest --runInBand",
         "precommit": "lint-staged"

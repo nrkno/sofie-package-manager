@@ -7,13 +7,14 @@ import { Q, ClipSearchQuery } from 'tv-automation-quantel-gateway-client' // not
 const client = jest.createMockFromModule('tv-automation-quantel-gateway-client') as any
 const DEBUG_LOG = false
 
-export const mock: {
-	servers: MockServer[]
-} = {
+export const mock: QuantelMock = {
 	servers: [],
 }
 client.__mock = mock
 
+interface QuantelMock {
+	servers: MockServer[]
+}
 interface MockServer {
 	ident: number
 	down: boolean
@@ -68,9 +69,17 @@ export function resetMock(): void {
 			],
 		},
 	]
+
+	for (const instance of QuantelGatewayInstances) {
+		instance.mockCopyCount = 0
+	}
 }
 client.resetMock = resetMock
-resetMock()
+
+export function getMock(): QuantelMock {
+	return mock
+}
+client.getMock = getMock
 
 export function getClip(clipId: number): MockClip | undefined {
 	for (const server of mock.servers) {
@@ -113,20 +122,26 @@ export function searchClip(searchQuery: (clip: MockClip) => boolean): SearchResu
 }
 client.searchClip = searchClip
 
+export const QuantelGatewayInstances: QuantelGateway[] = []
+client.QuantelGatewayInstances = QuantelGatewayInstances
+
 class QuantelGateway extends EventEmitter {
+	public mockCopyCount = 0
+
 	private _gatewayUrl?: string
 	private _ISAUrls?: string | string[]
 	// private _zoneId?: string | undefined
-	private _serverId?: number
+	public serverId?: number
 
 	constructor() {
 		super()
+		client.QuantelGatewayInstances.push(this)
 	}
 	init(gatewayUrl: string, ISAUrls: string | string[], _zoneId: string | undefined, serverId: number) {
 		this._gatewayUrl = gatewayUrl
 		this._ISAUrls = ISAUrls
 		// this._zoneId = _zoneId
-		this._serverId = serverId
+		this.serverId = serverId
 	}
 	// gateway.on('error'
 	get gatewayUrl() {
@@ -138,8 +153,8 @@ class QuantelGateway extends EventEmitter {
 
 	async getServer(): Promise<Q.ServerInfo | null> {
 		if (DEBUG_LOG) console.log('getServer')
-		if (!this._serverId) return null
-		const s = mock.servers.find((server) => server.ident === this._serverId)
+		if (!this.serverId) return null
+		const s = mock.servers.find((server) => server.ident === this.serverId)
 		if (!s) return null
 
 		return {
@@ -206,8 +221,10 @@ class QuantelGateway extends EventEmitter {
 		_priority?: number,
 		_history?: boolean
 	): Promise<Q.CloneResult> {
-		if (DEBUG_LOG) console.log('getClip', zoneID, clipID, poolID)
+		if (DEBUG_LOG) console.log('copyClip', zoneID, clipID, poolID)
 		// ignoring zoneid for now..
+
+		this.mockCopyCount++
 
 		const clip = getClip(clipID)
 		if (!clip) {
@@ -290,5 +307,8 @@ class QuantelGateway extends EventEmitter {
 	}
 }
 client.QuantelGateway = QuantelGateway
+
+// Finally, do a call to resetMock
+resetMock()
 
 module.exports = client
