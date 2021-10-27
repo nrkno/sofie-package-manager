@@ -96,7 +96,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			}
 		if (!this.content.onlyContainerAccess) {
 			const content = this.getContent()
-			if (!content.guid && content.title)
+			if (!content.guid && !content.title)
 				return {
 					success: false,
 					reason: {
