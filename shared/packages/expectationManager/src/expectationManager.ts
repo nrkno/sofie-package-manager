@@ -877,7 +877,7 @@ export class ExpectationManager {
 									ExpectedPackageStatusAPI.WorkStatusState.READY,
 									{
 										user: 'About to start working..',
-										tech: 'About to start working..',
+										tech: `About to start, was not fulfilled: ${fulfilled.reason.tech}`,
 									},
 									newStatus
 								)
