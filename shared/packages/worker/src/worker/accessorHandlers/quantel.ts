@@ -1,5 +1,5 @@
 import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { ClipSearchQuery, QuantelGateway } from 'tv-automation-quantel-gateway-client'
+import { QuantelGateway } from 'tv-automation-quantel-gateway-client'
 import {
 	GenericAccessorHandle,
 	PackageReadInfo,
@@ -449,22 +449,37 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	private async searchForClips(quantel: QuantelGateway): Promise<ClipDataSummary[]> {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 
-		let searchQuery: ClipSearchQuery = {}
+		let guid = ''
+
 		const content = this.getContent()
 		if (content.guid) {
-			searchQuery = {
-				ClipGUID: `"${content.guid}"`,
-			}
+			guid = content.guid
 		} else if (content.title) {
-			searchQuery = {
+			// Handle special case:
+			// When a clip's Title has been changed, it might have change on one server but not another.
+			// therefore we always start by converting the title into a GUID first.
+
+			const allClips = await quantel.searchClip({
 				Title: `"${content.title}"`,
+			})
+			if (allClips.length > 1) {
+				// todo: emit a warning if the title matches multiple?
 			}
-		} else throw new Error(`Neither guid nor title set for Quantel clip`)
+			if (allClips.length) {
+				guid = allClips[0].ClipGUID
+			}
+		} else throw new Error(`Neither GUID nor Title set for Quantel clip`)
+
+		if (!guid) return []
 
 		let server: ServerInfo | null = null
 		if (this.accessor.serverId) server = await quantel.getServer()
 
-		return (await quantel.searchClip(searchQuery))
+		return (
+			await quantel.searchClip({
+				ClipGUID: `"${guid}"`,
+			})
+		)
 			.filter((clipData) => {
 				return (
 					typeof clipData.PoolID === 'number' &&
