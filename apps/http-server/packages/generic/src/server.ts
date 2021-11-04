@@ -22,6 +22,8 @@ export class PackageProxyServer {
 	private storage: Storage
 
 	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
+		this.app.on('error', (err) => this.logger.warn(`PackageProxyServer Error: ${err}`))
+
 		this.app.use(this.upload.any())
 		this.app.use(bodyParser())
 

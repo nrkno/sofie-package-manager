@@ -22,7 +22,7 @@ export class QuantelHTTPTransformerProxy {
 			}
 		}
 		this.smoothStream = false // this.config.quantelHTTPTransformerProxy.streamType === QuantelStreamType.SMOOTH_STREAM
-
+		this.app.on('error', (err) => this.logger.warn(`QuantelHTTPTransformerProxy Error: ${err}`))
 		this.app.use(range)
 
 		this.app.use(
