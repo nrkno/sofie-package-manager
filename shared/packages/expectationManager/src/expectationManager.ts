@@ -574,7 +574,16 @@ export class ExpectationManager {
 					}
 				}
 
-				trackedExp.state = ExpectedPackageStatusAPI.WorkStatusState.REMOVED
+				this.updateTrackedExpStatus(
+					trackedExp,
+					ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
+					{
+						user: 'Expectation was removed',
+						tech: `Expectation was removed`,
+					},
+					undefined,
+					false
+				)
 				trackedExp.lastEvaluationTime = 0 // To rerun ASAP
 			}
 		}
@@ -597,7 +606,16 @@ export class ExpectationManager {
 					}
 				}
 
-				trackedExp.state = ExpectedPackageStatusAPI.WorkStatusState.RESTARTED
+				this.updateTrackedExpStatus(
+					trackedExp,
+					ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
+					{
+						user: 'Restarted by user',
+						tech: `Restarted by user`,
+					},
+					undefined,
+					false
+				)
 				trackedExp.lastEvaluationTime = 0 // To rerun ASAP
 			}
 		}
@@ -614,7 +632,16 @@ export class ExpectationManager {
 					}
 				}
 
-				trackedExp.state = ExpectedPackageStatusAPI.WorkStatusState.ABORTED
+				this.updateTrackedExpStatus(
+					trackedExp,
+					ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
+					{
+						user: 'Aborted by user',
+						tech: `Aborted by user`,
+					},
+					undefined,
+					false
+				)
 			}
 		}
 		this.receivedUpdates.abortExpectations = {}
