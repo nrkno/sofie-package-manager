@@ -5,6 +5,7 @@ import {
 	LogLevel,
 	Expectation,
 	PackageContainerExpectation,
+	Reason,
 } from '@shared/api'
 
 /**
@@ -29,7 +30,9 @@ export class AppContainerAPI
 		return this._sendMessage('_debugKill')
 	}
 
-	async requestAppTypeForExpectation(exp: Expectation.Any): Promise<{ appType: string; cost: number } | null> {
+	async requestAppTypeForExpectation(
+		exp: Expectation.Any
+	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
 		return this._sendMessage('requestAppTypeForExpectation', exp)
 	}
 	async requestAppTypeForPackageContainer(

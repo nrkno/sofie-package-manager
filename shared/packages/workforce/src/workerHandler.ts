@@ -13,11 +13,12 @@ export class WorkerHandler {
 	}
 	public async requestResourcesForExpectation(exp: Expectation.Any): Promise<boolean> {
 		let best: { appContainerId: string; appType: string; cost: number } | null = null
+		let errorReason: string | null = null
 		this.logger.debug(`Workforce: Got request for resources for exp "${exp.id}"`)
 		for (const [appContainerId, appContainer] of Object.entries(this.workForce.appContainers)) {
 			this.logger.debug(`Workforce: Asking appContainer "${appContainerId}"`)
 			const proposal = await appContainer.api.requestAppTypeForExpectation(exp)
-			if (proposal) {
+			if (proposal.success) {
 				if (!best || proposal.cost < best.cost) {
 					best = {
 						appContainerId: appContainerId,
@@ -25,6 +26,8 @@ export class WorkerHandler {
 						cost: proposal.cost,
 					}
 				}
+			} else {
+				errorReason = `Appcontainer "${appContainerId}": ${proposal.reason.tech}`
 			}
 		}
 		if (best) {
@@ -38,7 +41,7 @@ export class WorkerHandler {
 			await appContainer.api.spinUp(best.appType)
 			return true
 		} else {
-			this.logger.debug(`Workforce: No resources available for Expectation`)
+			this.logger.debug(`Workforce: No resources available for Expectation (reason: ${errorReason})`)
 			return false
 		}
 	}

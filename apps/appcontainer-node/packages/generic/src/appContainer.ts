@@ -14,6 +14,7 @@ import {
 	waitTime,
 	APPCONTAINER_PING_TIME,
 	PackageContainerExpectation,
+	Reason,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
@@ -216,13 +217,23 @@ export class AppContainer {
 		}, 1)
 	}
 
-	async requestAppTypeForExpectation(exp: Expectation.Any): Promise<{ appType: string; cost: number } | null> {
+	async requestAppTypeForExpectation(
+		exp: Expectation.Any
+	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
 		this.logger.debug(`AppContainer: Got request for resources, for exp "${exp.id}"`)
 		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
 			this.logger.debug(`AppContainer: Is already at our limit, no more resources available`)
 			// If we're at our limit, we can't possibly run anything else
-			return null
+			return {
+				success: false,
+				reason: {
+					user: `Is already at limit (${this.config.appContainer.maxRunningApps})`,
+					tech: `Is already at limit (${this.config.appContainer.maxRunningApps})`,
+				},
+			}
 		}
+
+		this.logger.debug(`Available apps: ${Object.keys(this.availableApps).join(', ')}`)
 
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			// Do we already have any instance of the appType running?
@@ -248,6 +259,7 @@ export class AppContainer {
 				const result = await runningApp.workerAgentApi.doYouSupportExpectation(exp)
 				if (result.support) {
 					return {
+						success: true,
 						appType: appType,
 						cost: availableApp.cost,
 					}
@@ -256,8 +268,15 @@ export class AppContainer {
 				this.logger.debug(`AppContainer: appType "${appType}" not available`)
 			}
 		}
-		return null
+		return {
+			success: false,
+			reason: {
+				user: `No worker supports this expectation`,
+				tech: `No worker supports this expectation`,
+			},
+		}
 	}
+
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
 	): Promise<{ appType: string; cost: number } | null> {

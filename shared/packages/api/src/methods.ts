@@ -179,7 +179,9 @@ export namespace WorkForceAppContainer {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
 
-		requestAppTypeForExpectation: (exp: Expectation.Any) => Promise<{ appType: string; cost: number } | null>
+		requestAppTypeForExpectation: (
+			exp: Expectation.Any
+		) => Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }>
 		requestAppTypeForPackageContainer: (
 			packageContainer: PackageContainerExpectation
 		) => Promise<{ appType: string; cost: number } | null>
