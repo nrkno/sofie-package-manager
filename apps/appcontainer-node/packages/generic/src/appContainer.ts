@@ -100,13 +100,15 @@ export class AppContainer {
 			  }
 	}
 	async init(): Promise<void> {
+		await this.setupAvailableApps()
+
 		if (this.workForceConnectionOptions.type === 'websocket') {
 			this.logger.info(`AppContainer: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
 
-		await this.setupAvailableApps()
-
 		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+
+		this.logger.info(`AppContainer: Connected to Workforce"`)
 
 		await this.workforceAPI.registerAvailableApps(
 			Object.entries(this.availableApps).map((o) => {

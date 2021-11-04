@@ -8,14 +8,22 @@ export async function startProcess(): Promise<void> {
 
 	const logger = setupLogging(config)
 
-	logger.info('------------------------------------------------------------------')
-	logger.info('Starting AppContainer')
-	logger.info('------------------------------------------------------------------')
+	try {
+		logger.info('------------------------------------------------------------------')
+		logger.info('Starting AppContainer')
+		logger.info('------------------------------------------------------------------')
 
-	const process = new ProcessHandler(logger)
-	process.init(config.process)
+		const process = new ProcessHandler(logger)
+		process.init(config.process)
 
-	const appContainer = new AppContainer(logger, config)
+		const appContainer = new AppContainer(logger, config)
 
-	appContainer.init().catch(logger.error)
+		await appContainer.init()
+
+		logger.info('------------------------------------------------------------------')
+		logger.info('Initialized!')
+		logger.info('------------------------------------------------------------------')
+	} catch (error) {
+		logger.error(error as any)
+	}
 }
