@@ -186,6 +186,12 @@ const singleAppArguments = defineArguments({
 		default: parseInt(process.env.WORKER_COUNT || '', 10) || 1,
 		describe: 'How many workers to spin up',
 	},
+	workforcePort: {
+		type: 'number',
+		// 0 = Set the workforce port to whatever is available
+		default: parseInt(process.env.WORKFORCE_PORT || '', 10) || 0,
+		describe: 'The port number to start the Workforce websocket server on',
+	},
 })
 /** CLI-argument-definitions for the Quantel-HTTP-Transformer-Proxy process */
 const quantelHTTPTransformerProxyConfigArguments = defineArguments({
@@ -373,6 +379,7 @@ export interface SingleAppConfig
 		QuantelHTTPTransformerProxyConfig {
 	singleApp: {
 		workerCount: number
+		workforcePort: number
 	}
 }
 
@@ -408,6 +415,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		worker: getWorkerConfig().worker,
 		singleApp: {
 			workerCount: argv.workerCount || 1,
+			workforcePort: argv.workforcePort,
 		},
 		appContainer: getAppContainerConfig().appContainer,
 		quantelHTTPTransformerProxy: getQuantelHTTPTransformerProxyConfig().quantelHTTPTransformerProxy,

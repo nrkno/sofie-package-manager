@@ -16,7 +16,9 @@ export async function startSingleApp(): Promise<void> {
 	config.packageManager.port = 0 // 0 = Set the packageManager port to whatever is available
 	config.packageManager.accessUrl = 'ws:127.0.0.1'
 	config.packageManager.workforceURL = null // Filled in later
-	config.workforce.port = 0 // 0 = Set the workforce port to whatever is available
+
+	// Override some of the other arguments, and use the single-app specific ones instead:
+	config.workforce.port = config.singleApp.workforcePort
 
 	const process = new ProcessHandler(logger)
 	process.init(config.process)
