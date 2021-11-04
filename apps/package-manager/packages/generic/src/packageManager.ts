@@ -304,7 +304,15 @@ export class PackageManagerHandler {
 		this.expectationManager.restartPackageContainer(containerId)
 	}
 	public getDataSnapshot(): any {
-		return this.dataSnapshot
+		return {
+			...this.dataSnapshot,
+
+			reportedStatuses: {
+				reportedWorkStatuses: this.callbacksHandler.reportedWorkStatuses,
+				reportedPackageStatuses: this.callbacksHandler.reportedPackageStatuses,
+				reportedPackageContainerStatuses: this.callbacksHandler.reportedPackageContainerStatuses,
+			},
+		}
 	}
 	public async getExpetationManagerStatus(): Promise<any> {
 		return {
