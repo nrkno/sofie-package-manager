@@ -231,8 +231,26 @@ export function generateExpectations(
 		}
 	}
 
+	const handledSources: { [key: string]: true } = {}
+
 	// Side effects from files:
 	for (const expectation0 of Object.values(expectations)) {
+		// If there are multiple expectations for the same original
+		// package we should only handle the side effects once:
+
+		let alreadyHandled = false
+		for (const fromPackage of expectation0.fromPackages) {
+			const key = hashObj(fromPackage)
+			if (handledSources[key]) {
+				alreadyHandled = true
+			}
+		}
+		for (const fromPackage of expectation0.fromPackages) {
+			const key = hashObj(fromPackage)
+			handledSources[key] = true
+		}
+		if (alreadyHandled) continue
+
 		if (expectation0.type === Expectation.Type.FILE_COPY) {
 			const expectation = expectation0 as Expectation.FileCopy
 
