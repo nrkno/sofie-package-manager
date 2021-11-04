@@ -173,15 +173,22 @@ export function generateExpectations(
 			continue
 		}
 
-		if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-			exp = generateMediaFileCopy(managerId, packageWrap, settings)
-		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
-			exp = generateQuantelCopy(managerId, packageWrap)
-		} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
-			exp = generateJsonDataCopy(managerId, packageWrap, settings)
-		}
-		if (exp) {
-			addExpectation(packageWrap, exp)
+		// Verify that the expectedPackage has any source and target accessors:
+		const hasAnySourceAccessors = !!packageWrap.sources.find((source) => source.accessors.length > 0)
+		const hasAnyTargetAccessors = !!packageWrap.targets.find((target) => target.accessors.length > 0)
+
+		// No need to generate an expectation if there are no accessors:
+		if (!hasAnySourceAccessors || !hasAnyTargetAccessors) {
+			if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+				exp = generateMediaFileCopy(managerId, packageWrap, settings)
+			} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
+				exp = generateQuantelCopy(managerId, packageWrap)
+			} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
+				exp = generateJsonDataCopy(managerId, packageWrap, settings)
+			}
+			if (exp) {
+				addExpectation(packageWrap, exp)
+			}
 		}
 	}
 
