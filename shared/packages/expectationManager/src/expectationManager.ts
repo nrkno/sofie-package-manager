@@ -701,6 +701,8 @@ export class ExpectationManager {
 		for (const handleState of [
 			// Note: The order of these is important, as the states normally progress in this order:
 			ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
+			ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
+			ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
 			ExpectedPackageStatusAPI.WorkStatusState.NEW,
 			ExpectedPackageStatusAPI.WorkStatusState.WAITING,
 			ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
