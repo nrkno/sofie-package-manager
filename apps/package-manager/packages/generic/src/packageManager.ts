@@ -423,6 +423,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 			const previouslyReported = this.toReportExpectationStatus[expectationId]?.workStatus
 
+			// Remove undefined properties, so they don't mess with the spread operators below:
+			deleteAllUndefinedProperties(expectaction.statusReport)
+			deleteAllUndefinedProperties(statusInfo)
+
 			const workStatus: ExpectedPackageStatusAPI.WorkStatus = {
 				// Default properties:
 				...{
@@ -853,6 +857,26 @@ function wrapExpectedPackage(
 		}
 	}
 	return undefined
+}
+/**
+ * Recursively delete all undefined properties from the supplied object.
+ * This is necessary as _.isEqual({ a: 1 }, { a: 1, b: undefined }) === false
+ */
+export function deleteAllUndefinedProperties<T extends { [key: string]: any }>(obj: T): void {
+	if (Array.isArray(obj)) {
+		for (const v of obj) {
+			deleteAllUndefinedProperties(v)
+		}
+	} else if (obj && typeof obj === 'object') {
+		const keys = Object.keys(obj)
+		for (const key of keys) {
+			if (obj[key] === undefined) {
+				delete obj[key]
+			} else {
+				deleteAllUndefinedProperties(obj[key])
+			}
+		}
+	}
 }
 
 interface ResultingExpectedPackage {
