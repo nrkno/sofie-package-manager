@@ -25,8 +25,8 @@ export class PackageProxyServer {
 		this.app.on('error', (err) => {
 			const errString = `${err}`
 
-			// We get a lot of "read ECONNRESET" errors, ignore them:
-			if (errString.match(/ECONNRESET/)) {
+			// We get a lot of these errors, ignore them:
+			if (errString.match(/ECONNRESET|ECONNABORTED|ECANCELED/)) {
 				// ignore these
 			} else {
 				this.logger.warn(`PackageProxyServer Error: ${errString}`)
