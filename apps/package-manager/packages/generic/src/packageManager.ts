@@ -379,18 +379,20 @@ export function omit<T, P extends keyof T>(obj: T, ...props: P[]): Omit<T, P> {
 
 /** This class handles data and requests that comes from ExpectationManager. */
 class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks {
-	reportedWorkStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
-	toReportExpectationStatus: {
+	private logger: LoggerInstance
+
+	private triggerSendUpdatedStatusesTimeout: NodeJS.Timeout | undefined
+
+	private toReportExpectationStatus: {
 		[id: string]: {
 			workStatus: ExpectedPackageStatusAPI.WorkStatus | null
 			/** If the status is new and needs to be reported to Core */
 			isUpdated: boolean
 		}
 	} = {}
-	sendUpdateExpectationStatusTimeouts: NodeJS.Timeout | undefined
+	public reportedWorkStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
 
-	reportedPackageStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
-	toReportPackageStatus: {
+	private toReportPackageStatus: {
 		[key: string]: {
 			containerId: string
 			packageId: string
@@ -399,19 +401,17 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			isUpdated: boolean
 		}
 	} = {}
-	sendUpdatePackageContainerPackageStatusTimeouts: NodeJS.Timeout | undefined
+	public reportedPackageStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
 
-	reportedPackageContainerStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerStatus } = {}
-	toReportPackageContainerStatus: {
+	private toReportPackageContainerStatus: {
 		[containerId: string]: {
 			status: ExpectedPackageStatusAPI.PackageContainerStatus | null
 			/** If the status is new and needs to be reported to Core */
 			isUpdated: boolean
 		}
 	} = {}
-	sendUpdatePackageContainerStatusTimeouts: NodeJS.Timeout | undefined
+	public reportedPackageContainerStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerStatus } = {}
 
-	logger: LoggerInstance
 	constructor(private packageManager: PackageManagerHandler) {
 		this.logger = this.packageManager.logger
 	}
@@ -430,7 +430,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	): void {
 		if (!expectaction) {
 			if (this.toReportExpectationStatus[expectationId]) {
-				this.triggerSendUpdateExpectationStatus(expectationId, null)
+				this.updateExpectationStatus(expectationId, null)
 			}
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
@@ -480,7 +480,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				workStatus.statusChanged = Date.now()
 			}
 
-			this.triggerSendUpdateExpectationStatus(expectationId, workStatus)
+			this.updateExpectationStatus(expectationId, workStatus)
 		}
 	}
 	public reportPackageContainerPackageStatus(
@@ -490,7 +490,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	): void {
 		const packageContainerPackageId = `${containerId}_${packageId}`
 		if (!packageStatus) {
-			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, null)
+			this.updatePackageContainerPackageStatus(containerId, packageId, null)
 		} else {
 			const previouslyReported = this.toReportPackageStatus[packageContainerPackageId]?.packageStatus
 
@@ -518,7 +518,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				containerStatus.statusChanged = Date.now()
 			}
 
-			this.triggerSendUpdatePackageContainerPackageStatus(containerId, packageId, containerStatus)
+			this.updatePackageContainerPackageStatus(containerId, packageId, containerStatus)
 		}
 	}
 	public reportPackageContainerExpectationStatus(
@@ -526,7 +526,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
 	): void {
 		if (!statusInfo) {
-			this.triggerSendUpdatePackageContainerStatus(containerId, null)
+			this.updatePackageContainerStatus(containerId, null)
 		} else {
 			const previouslyReported = this.toReportPackageContainerStatus[containerId]?.status
 
@@ -552,7 +552,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			containerStatus.statusChanged = previouslyReported?.statusChanged || Date.now()
 			if (!deepEqual(containerStatus, previouslyReported)) {
 				containerStatus.statusChanged = Date.now()
-				this.triggerSendUpdatePackageContainerStatus(containerId, containerStatus)
+				this.updatePackageContainerStatus(containerId, containerStatus)
 			}
 		}
 	}
@@ -598,23 +598,54 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			[]
 		)
 	}
-	private triggerSendUpdateExpectationStatus(
-		expectationId: string,
-		workStatus: ExpectedPackageStatusAPI.WorkStatus | null
-	) {
+	private updateExpectationStatus(expectationId: string, workStatus: ExpectedPackageStatusAPI.WorkStatus | null) {
 		this.toReportExpectationStatus[expectationId] = {
 			workStatus: workStatus,
 			isUpdated: true,
 		}
+		this.triggerReportUpdatedStatuses()
+	}
+	private updatePackageContainerPackageStatus(
+		containerId: string,
+		packageId: string,
+		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
+	): void {
+		const key = `${containerId}_${packageId}`
+		this.toReportPackageStatus[key] = {
+			containerId,
+			packageId,
+			packageStatus,
+			isUpdated: true,
+		}
+		this.triggerReportUpdatedStatuses()
+	}
+	private updatePackageContainerStatus(
+		containerId: string,
+		containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus | null
+	) {
+		this.toReportPackageContainerStatus[containerId] = {
+			status: containerStatus,
+			isUpdated: true,
+		}
+		this.triggerReportUpdatedStatuses()
+	}
+	private triggerReportUpdatedStatuses() {
+		const WAIT_TIME = 300
 
-		if (!this.sendUpdateExpectationStatusTimeouts) {
-			this.sendUpdateExpectationStatusTimeouts = setTimeout(() => {
-				delete this.sendUpdateExpectationStatusTimeouts
-				this.sendUpdateExpectationStatus()
-			}, 500)
+		if (!this.triggerSendUpdatedStatusesTimeout) {
+			this.triggerSendUpdatedStatusesTimeout = setTimeout(() => {
+				try {
+					this.reportUpdateExpectationStatus()
+					this.reportUpdatePackageContainerPackageStatus()
+					this.reportUpdatePackageContainerStatus()
+				} catch (err) {
+					this.logger.error('Error in triggerSendUpdatedStatuses', err)
+				}
+				delete this.triggerSendUpdatedStatusesTimeout
+			}, WAIT_TIME)
 		}
 	}
-	private sendUpdateExpectationStatus() {
+	private reportUpdateExpectationStatus() {
 		const changesTosend: UpdateExpectedPackageWorkStatusesChanges = []
 
 		for (const [expectationId, o] of Object.entries(this.toReportExpectationStatus)) {
@@ -670,28 +701,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				})
 		}
 	}
-	private triggerSendUpdatePackageContainerPackageStatus(
-		containerId: string,
-		packageId: string,
-		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-	): void {
-		const key = `${containerId}_${packageId}`
-
-		this.toReportPackageStatus[key] = {
-			containerId,
-			packageId,
-			packageStatus,
-			isUpdated: true,
-		}
-
-		if (!this.sendUpdatePackageContainerPackageStatusTimeouts) {
-			this.sendUpdatePackageContainerPackageStatusTimeouts = setTimeout(() => {
-				delete this.sendUpdatePackageContainerPackageStatusTimeouts
-				this.sendUpdatePackageContainerPackageStatus()
-			}, 300)
-		}
-	}
-	private sendUpdatePackageContainerPackageStatus(): void {
+	private reportUpdatePackageContainerPackageStatus(): void {
 		const changesTosend: UpdatePackageContainerPackageStatusesChanges = []
 
 		for (const [key, o] of Object.entries(this.toReportPackageStatus)) {
@@ -730,23 +740,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				})
 		}
 	}
-	triggerSendUpdatePackageContainerStatus(
-		containerId: string,
-		containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus | null
-	) {
-		this.toReportPackageContainerStatus[containerId] = {
-			status: containerStatus,
-			isUpdated: true,
-		}
-
-		if (!this.sendUpdatePackageContainerStatusTimeouts) {
-			this.sendUpdatePackageContainerStatusTimeouts = setTimeout(() => {
-				delete this.sendUpdatePackageContainerStatusTimeouts
-				this.sendUpdatePackageContainerStatus()
-			}, 300)
-		}
-	}
-	private sendUpdatePackageContainerStatus(): void {
+	private reportUpdatePackageContainerStatus(): void {
 		const changesTosend: UpdatePackageContainerStatusesChanges = []
 
 		for (const [containerId, o] of Object.entries(this.toReportPackageContainerStatus)) {
