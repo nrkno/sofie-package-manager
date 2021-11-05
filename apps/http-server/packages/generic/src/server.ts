@@ -26,8 +26,8 @@ export class PackageProxyServer {
 			const errString = `${err}`
 
 			// We get a lot of "read ECONNRESET" errors, ignore them:
-			if (!err.match(/ECONNRESET/)) {
-				// ignore
+			if (errString.match(/ECONNRESET/)) {
+				// ignore these
 			} else {
 				this.logger.warn(`PackageProxyServer Error: ${errString}`)
 			}
