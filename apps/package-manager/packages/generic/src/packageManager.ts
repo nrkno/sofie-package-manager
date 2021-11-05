@@ -29,6 +29,11 @@ import {
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
+import {
+	UpdateExpectedPackageWorkStatusesChanges,
+	UpdatePackageContainerPackageStatusesChanges,
+	UpdatePackageContainerStatusesChanges,
+} from './api'
 
 export class PackageManagerHandler {
 	public coreHandler!: CoreHandler
@@ -919,47 +924,3 @@ export interface PackageManagerSettings {
 	delayRemovalPackageInfo?: number
 	useTemporaryFilePath: boolean
 }
-
-/** Note: This is based on the Core method updateExpectedPackageWorkStatuses. */
-type UpdateExpectedPackageWorkStatusesChanges = (
-	| {
-			id: string
-			type: 'delete'
-	  }
-	| {
-			id: string
-			type: 'insert'
-			status: ExpectedPackageStatusAPI.WorkStatus
-	  }
-	| {
-			id: string
-			type: 'update'
-			status: Partial<ExpectedPackageStatusAPI.WorkStatus>
-	  }
-)[]
-/** Note: This is based on the Core method updatePackageContainerPackageStatuses. */
-type UpdatePackageContainerPackageStatusesChanges = (
-	| {
-			containerId: string
-			packageId: string
-			type: 'delete'
-	  }
-	| {
-			containerId: string
-			packageId: string
-			type: 'update'
-			status: ExpectedPackageStatusAPI.PackageContainerPackageStatus
-	  }
-)[]
-/** Note: This is based on the Core method updatePackageContainerPackageStatuses. */
-type UpdatePackageContainerStatusesChanges = (
-	| {
-			containerId: string
-			type: 'delete'
-	  }
-	| {
-			containerId: string
-			type: 'update'
-			status: ExpectedPackageStatusAPI.PackageContainerStatus
-	  }
-)[]
