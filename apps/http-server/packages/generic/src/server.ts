@@ -22,7 +22,16 @@ export class PackageProxyServer {
 	private storage: Storage
 
 	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
-		this.app.on('error', (err) => this.logger.warn(`PackageProxyServer Error: ${err}`))
+		this.app.on('error', (err) => {
+			const errString = `${err}`
+
+			// We get a lot of "read ECONNRESET" errors, ignore them:
+			if (!err.match(/ECONNRESET/)) {
+				// ignore
+			} else {
+				this.logger.warn(`PackageProxyServer Error: ${errString}`)
+			}
+		})
 
 		this.app.use(this.upload.any())
 		this.app.use(bodyParser())
