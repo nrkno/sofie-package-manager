@@ -1,6 +1,6 @@
 {
     "name": "@quantel-http-transformer-proxy/app",
-    "version": "1.1.1",
+    "version": "1.37.0-alpha.0",
     "description": "Proxy for a Quantel HTTP Transformer",
     "private": true,
     "scripts": {
@@ -15,7 +15,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@quantel-http-transformer-proxy/generic": "^1.1.1"
+        "@quantel-http-transformer-proxy/generic": "^1.37.0-alpha.0"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"
