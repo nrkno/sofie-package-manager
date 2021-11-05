@@ -20,6 +20,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	Reason,
+	stringifyError,
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
@@ -457,7 +458,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove file: ${err.toString()}`,
+					tech: `Cannot remove file: ${stringifyError(err)}`,
 				},
 			}
 		}

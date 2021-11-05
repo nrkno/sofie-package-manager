@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { MonitorProperties, Reason } from '@shared/api'
+import { MonitorProperties, Reason, stringifyError } from '@shared/api'
 import { StatusCode } from '@sofie-automation/blueprints-integration'
 
 export interface MonitorInProgressEvents {
@@ -32,13 +32,13 @@ export class MonitorInProgress extends EventEmitter implements IMonitorInProgres
 				Promise.resolve(fcn()).catch((err) => {
 					this._reportStatus(StatusCode.BAD, {
 						user: 'Internal error when setting up monitor',
-						tech: `Error: ${err}, ${err?.stack}`,
+						tech: `Error: ${stringifyError(err)}`,
 					})
 				})
 			} catch (err) {
 				this._reportStatus(StatusCode.BAD, {
 					user: 'Internal error when setting up monitor',
-					tech: `Error: ${err}, ${(err as any)?.stack}`,
+					tech: `Error: ${stringifyError(err)}`,
 				})
 			}
 		}, 1)

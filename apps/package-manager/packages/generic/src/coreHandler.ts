@@ -9,7 +9,7 @@ import {
 import { DeviceConfig } from './connector'
 
 import fs from 'fs'
-import { LoggerInstance, PackageManagerConfig, ProcessHandler } from '@shared/api'
+import { LoggerInstance, PackageManagerConfig, ProcessHandler, stringifyError } from '@shared/api'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
@@ -254,7 +254,7 @@ export class CoreHandler {
 			this._executedFunctions[cmd._id] = true
 			const cb = (err: any, res?: any) => {
 				if (err) {
-					this.logger.error('executeFunction error', err, err.stack)
+					this.logger.error(`executeFunction error: ${stringifyError(err)}`)
 				}
 				this.core
 					.callMethod(P.methods.functionReply, [cmd._id, err, res])
@@ -262,7 +262,7 @@ export class CoreHandler {
 						// nothing
 					})
 					.catch((e) => {
-						this.logger.error(e)
+						this.logger.error(`Error when calling method functionReply: ${stringifyError(e)}`)
 					})
 			}
 			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -277,10 +277,10 @@ export class CoreHandler {
 						cb(null, result)
 					})
 					.catch((e) => {
-						cb(e.toString(), null)
+						cb(`${stringifyError(e)}`, null)
 					})
 			} catch (e) {
-				cb(e.toString(), null)
+				cb(`${stringifyError(e)}`, null)
 			}
 		}
 	}
@@ -395,11 +395,11 @@ export class CoreHandler {
 						versions[dir] = json.version || 'N/A'
 					}
 				} catch (e) {
-					this.logger.error(e)
+					this.logger.error(`Error in _getVersions, dir "${dir}": ${stringifyError(e)}`)
 				}
 			}
 		} catch (e) {
-			this.logger.error(e)
+			this.logger.error(`Error in _getVersions: ${stringifyError(e)}`)
 		}
 		return versions
 	}

@@ -20,6 +20,7 @@ import {
 	APPCONTAINER_PING_TIME,
 	MonitorProperties,
 	Reason,
+	stringifyError,
 } from '@shared/api'
 import { StatusCode } from '@sofie-automation/blueprints-integration'
 import { AppContainerAPI } from './appContainerApi'
@@ -133,8 +134,7 @@ export class WorkerAgent {
 		for (const currentJob of this.currentJobs) {
 			if (currentJob.wipId) {
 				this.cancelJob(currentJob.wipId).catch((error) => {
-					this.logger.error('WorkerAgent.terminate: Error in cancelJob')
-					this.logger.error(error)
+					this.logger.error(`WorkerAgent.terminate: Error in cancelJob: ${stringifyError(error)}`)
 				})
 			}
 		}
@@ -271,8 +271,9 @@ export class WorkerAgent {
 
 							this.cancelJob(currentJob.wipId).catch((error) => {
 								// Not much we can do about that error..
-								this.logger.error('WorkerAgent timeout watch: Error in cancelJob')
-								this.logger.error(error)
+								this.logger.error(
+									`WorkerAgent timeout watch: Error in cancelJob ${stringifyError(error)}`
+								)
 
 								// Ensure that the jop is removed, so that it wont block others:
 								this.removeJob(currentJob)
@@ -299,8 +300,7 @@ export class WorkerAgent {
 							.wipEventProgress(currentJob.wipId, actualVersionHash, progress)
 							.catch((err) => {
 								if (!this.terminated) {
-									this.logger.error('Error in wipEventProgress')
-									this.logger.error(err)
+									this.logger.error(`Error in wipEventProgress: ${stringifyError(err)}`)
 								}
 							})
 					})
@@ -320,8 +320,7 @@ export class WorkerAgent {
 							})
 							.catch((err) => {
 								if (!this.terminated) {
-									this.logger.error('Error in wipEventError')
-									this.logger.error(err)
+									this.logger.error(`Error in wipEventError: ${stringifyError(err)}`)
 								}
 							})
 
@@ -340,8 +339,7 @@ export class WorkerAgent {
 							.wipEventDone(currentJob.wipId, actualVersionHash, reason, result)
 							.catch((err) => {
 								if (!this.terminated) {
-									this.logger.error('Error in wipEventDone')
-									this.logger.error(err)
+									this.logger.error(`Error in wipEventDone: ${stringifyError(err)}`)
 								}
 							})
 						this.removeJob(currentJob)
@@ -403,8 +401,7 @@ export class WorkerAgent {
 								.monitorStatus(packageContainer.id, monitorId, status, reason)
 								.catch((err) => {
 									if (!this.terminated) {
-										this.logger.error('Error in monitorStatus')
-										this.logger.error(err)
+										this.logger.error(`Error in monitorStatus: ${stringifyError(err)}`)
 									}
 								})
 						})
@@ -433,7 +430,7 @@ export class WorkerAgent {
 					} catch (err) {
 						errorReason = {
 							user: 'Unable to stop monitor',
-							tech: `Error: ${err}, ${(err as any)?.stack}`,
+							tech: `Error: ${stringifyError(err)}`,
 						}
 					}
 				}

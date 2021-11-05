@@ -26,6 +26,7 @@ import {
 	literal,
 	Reason,
 	deepEqual,
+	stringifyError,
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')

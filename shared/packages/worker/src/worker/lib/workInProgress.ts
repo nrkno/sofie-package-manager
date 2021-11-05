@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { ExpectationManagerWorkerAgent, Reason } from '@shared/api'
+import { ExpectationManagerWorkerAgent, Reason, stringifyError } from '@shared/api'
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
@@ -52,8 +52,8 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	_reportComplete(actualVersionHash: string, reason: Reason, result: any): void {
 		this.emit('done', actualVersionHash, reason, result)
 	}
-	_reportError(err: Error): void {
-		this.emit('error', err.toString() + err.stack)
+	_reportError(err: unknown): void {
+		this.emit('error', stringifyError(err))
 	}
 	/** Convenience function which calls the function that performs the work */
 	do(fcn: () => Promise<void> | void): WorkInProgress {

@@ -1,5 +1,5 @@
 import { QuantelHTTPTransformerProxy } from './server'
-import { getQuantelHTTPTransformerProxyConfig, ProcessHandler, setupLogging } from '@shared/api'
+import { getQuantelHTTPTransformerProxyConfig, ProcessHandler, setupLogging, stringifyError } from '@shared/api'
 
 export { QuantelHTTPTransformerProxy }
 export async function startProcess(): Promise<void> {
@@ -15,6 +15,6 @@ export async function startProcess(): Promise<void> {
 
 	const app = new QuantelHTTPTransformerProxy(logger, config)
 	app.init().catch((e) => {
-		logger.error(e)
+		logger.error(`Error in QuantelHTTPTransformerProxy.init: ${stringifyError(e)}`)
 	})
 }

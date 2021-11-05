@@ -8,6 +8,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	assertNever,
+	stringifyError,
 } from '@shared/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -277,7 +278,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove preview file: ${err}`,
+					tech: `Cannot remove preview file: ${stringifyError(err)}`,
 				},
 			}
 		}

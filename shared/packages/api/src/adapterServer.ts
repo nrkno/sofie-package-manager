@@ -1,4 +1,4 @@
-import { promiseTimeout } from './lib'
+import { promiseTimeout, stringifyError } from './lib'
 import { MessageBase, MESSAGE_TIMEOUT } from './websocketConnection'
 import { ClientConnection } from './websocketServer'
 
@@ -35,7 +35,7 @@ export abstract class AdapterServer<ME, OTHER> {
 					try {
 						return await promiseTimeout(fcn(...args), MESSAGE_TIMEOUT)
 					} catch (err) {
-						throw new Error(`Error in message "${type}": ${err.toString()}`)
+						throw new Error(`Error in message "${type}": ${stringifyError(err)}`)
 					}
 				} else {
 					throw new Error(`Unknown method "${type}"`)

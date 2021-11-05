@@ -9,6 +9,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	literal,
 	Reason,
+	stringifyError,
 } from '@shared/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -263,7 +264,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove preview file: ${err.toString()}`,
+					tech: `Cannot remove preview file: ${stringifyError(err)}`,
 				},
 			}
 		}

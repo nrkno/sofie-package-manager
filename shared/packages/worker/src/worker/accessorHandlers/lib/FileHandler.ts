@@ -1,7 +1,15 @@
 import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
-import { Expectation, hashObj, literal, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
+import {
+	Expectation,
+	hashObj,
+	literal,
+	PackageContainerExpectation,
+	assertNever,
+	Reason,
+	stringifyError,
+} from '@shared/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
 import { Accessor, AccessorOnPackage, ExpectedPackage, StatusCode } from '@sofie-automation/blueprints-integration'
@@ -197,11 +205,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								seenFiles.set(filePath, version)
 							} catch (err) {
 								version = null
-								this.worker.logger.error(`${err}, ${(err as any)?.stack}`)
+								this.worker.logger.error(`${stringifyError(err)}`)
 
 								monitorInProgress._reportStatus(StatusCode.BAD, {
 									user: 'Error when accessing watched file',
-									tech: `Error: ${err}, ${(err as any)?.stack}`,
+									tech: `Error: ${stringifyError(err)}`,
 								})
 							}
 						}
@@ -260,7 +268,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					triggerSendUpdateIsRunning = false
 				})().catch((err) => {
 					triggerSendUpdateIsRunning = false
-					this.worker.logger.error(err)
+					this.worker.logger.error(`Error in FileHandler triggerSendUpdate:${stringifyError(err)}`)
 				})
 			}, 1000) // Wait just a little bit, to avoid doing multiple updates
 		}
@@ -303,10 +311,10 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					})
 			})
 			.on('error', (err) => {
-				this.worker.logger.error(`${err}, ${(err as any)?.stack}`)
+				this.worker.logger.error(`${stringifyError(err)}`)
 				monitorInProgress._reportStatus(StatusCode.BAD, {
 					user: 'Error in file watcher',
-					tech: `chokidar error: ${err}, ${(err as any)?.stack}`,
+					tech: `chokidar error: ${stringifyError(err)}`,
 				})
 			})
 			.on('ready', () => {

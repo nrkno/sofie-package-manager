@@ -1,4 +1,10 @@
-import { ClientConnectionOptions, LoggerInstance, PackageManagerConfig, ProcessHandler } from '@shared/api'
+import {
+	ClientConnectionOptions,
+	LoggerInstance,
+	PackageManagerConfig,
+	ProcessHandler,
+	stringifyError,
+} from '@shared/api'
 import { ExpectationManager, ExpectationManagerServerOptions } from '@shared/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageManagerHandler } from './packageManager'
@@ -80,9 +86,7 @@ export class Connector {
 			this._logger.info('Initialization done')
 			return
 		} catch (e) {
-			this._logger.error('Error during initialization:')
-			this._logger.error(e)
-			this._logger.error(e.stack)
+			this._logger.error(`Error during initialization: ${stringifyError(e)}`)
 
 			if (this.coreHandler) {
 				this.coreHandler.destroy().catch(this._logger.error)
@@ -114,11 +118,13 @@ export class Connector {
 				triggerReloadInput()
 			})
 			.on('error', (error) => {
-				this._logger.error(error.toString())
+				this._logger.error(`Error emitter in Filewatcher: ${stringifyError(error)}`)
 			})
 		const triggerReloadInput = () => {
 			setTimeout(() => {
-				reloadInput().catch((error) => this._logger.error(error.toString()))
+				reloadInput().catch((error) => {
+					this._logger.error(`Error in reloadInput: ${stringifyError(error)}`)
+				})
 			}, 100)
 		}
 		const reloadInput = async () => {

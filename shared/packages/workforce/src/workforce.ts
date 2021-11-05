@@ -12,6 +12,7 @@ import {
 	LogLevel,
 	Expectation,
 	PackageContainerExpectation,
+	stringifyError,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -317,8 +318,7 @@ export class Workforce {
 				// this.workerHandler.triggerUpdate()
 			})
 			.catch((error) => {
-				this.logger.error('Workforce: Error in getRunningApps')
-				this.logger.error(error)
+				this.logger.error(`Workforce: Error in getRunningApps: ${stringifyError(error)}`)
 			})
 	}
 }

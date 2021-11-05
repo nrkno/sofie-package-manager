@@ -217,7 +217,7 @@
 // 	// 			removed: false,
 // 	// 			reason: {
 // 	// 				user: `Cannot remove file due to an internal error`,
-// 	// 				tech: `Cannot remove file: ${err.toString()}`,
+// 	// 				tech: `Cannot remove file: ${stringifyError(err)}`,
 // 	// 			},
 // 	// 		}
 // 	// 	}

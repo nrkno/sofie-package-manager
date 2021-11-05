@@ -1,4 +1,5 @@
 import WebSocket from 'ws'
+import { stringifyError } from './lib'
 import { LoggerInstance } from './logger'
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 
@@ -73,7 +74,7 @@ export class WebsocketClient extends WebsocketConnection {
 	}
 	private reconnect() {
 		this.connect().catch((err) => {
-			this.logger.error(err)
+			this.logger.error(`Error in WebsocketClient.connect: ${stringifyError(err)}`)
 			this.onLostConnection()
 		})
 	}

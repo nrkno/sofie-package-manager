@@ -1,4 +1,4 @@
-import { getAppContainerConfig, ProcessHandler, setupLogging } from '@shared/api'
+import { getAppContainerConfig, ProcessHandler, setupLogging, stringifyError } from '@shared/api'
 import { AppContainer } from './appContainer'
 
 export { AppContainer } from './appContainer'
@@ -24,6 +24,6 @@ export async function startProcess(): Promise<void> {
 		logger.info('Initialized!')
 		logger.info('------------------------------------------------------------------')
 	} catch (error) {
-		logger.error(error as any)
+		logger.error(`Error in startProcess: ${stringifyError(error)}`)
 	}
 }

@@ -15,6 +15,7 @@ import {
 	APPCONTAINER_PING_TIME,
 	PackageContainerExpectation,
 	Reason,
+	stringifyError,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
@@ -134,8 +135,9 @@ export class AppContainer {
 				if (app) {
 					if (this.getAppCount(app.appType) > this.config.appContainer.minRunningApps) {
 						this.spinDown(clientId).catch((error) => {
-							this.logger.error(`AppContainer: Error when spinning down app "${clientId}"`)
-							this.logger.error(error)
+							this.logger.error(
+								`AppContainer: Error when spinning down app "${clientId}": ${stringifyError(error)}`
+							)
 						})
 					}
 				}
@@ -422,15 +424,15 @@ export class AppContainer {
 				if (Date.now() - app.lastPing > APPCONTAINER_PING_TIME * 2.5) {
 					// The app seems to have crashed.
 					this.spinDown(appId).catch((error) => {
-						this.logger.error(`AppContainer: Error when spinning down app "${appId}"`)
-						this.logger.error(error)
+						this.logger.error(
+							`AppContainer: Error when spinning down app "${appId}": ${stringifyError(error)}`
+						)
 					})
 				}
 			}
 		}
 		this.spinUpMinimumApps().catch((error) => {
-			this.logger.error(`AppContainer: Error in spinUpMinimumApps`)
-			this.logger.error(error)
+			this.logger.error(`AppContainer: Error in spinUpMinimumApps: ${stringifyError(error)}`)
 		})
 	}
 	private async spinUpMinimumApps(): Promise<void> {

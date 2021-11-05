@@ -10,6 +10,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	stringifyError,
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
@@ -269,7 +270,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove preview file: ${err.toString()}`,
+					tech: `Cannot remove preview file: ${stringifyError(err)}`,
 				},
 			}
 		}

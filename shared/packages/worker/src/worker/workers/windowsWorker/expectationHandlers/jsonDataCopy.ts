@@ -10,6 +10,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	stringifyError,
 } from '@shared/api'
 import {
 	isCorePackageInfoAccessorHandle,
@@ -223,7 +224,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove json-data due to an internal error`,
-					tech: `Cannot remove json-data: ${err.toString()}`,
+					tech: `Cannot remove json-data: ${stringifyError(err)}`,
 				},
 			}
 		}

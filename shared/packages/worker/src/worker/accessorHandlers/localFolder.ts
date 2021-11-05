@@ -8,7 +8,7 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
+import { Expectation, PackageContainerExpectation, assertNever, Reason, stringifyError } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
@@ -104,7 +104,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 				success: false,
 				reason: {
 					user: `File doesn't exist`,
-					tech: `Not able to access file: ${err}`,
+					tech: `Not able to access file: ${stringifyError(err)}`,
 				},
 			}
 		}
@@ -121,14 +121,14 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
-					reason: { user: `Not able to read file (file is busy)`, tech: `${err}` },
+					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err)}` },
 				}
 			} else if (err && (err as any).code === 'ENOENT') {
-				return { success: false, reason: { user: `File does not exist`, tech: `${err}` } }
+				return { success: false, reason: { user: `File does not exist`, tech: `${stringifyError(err)}` } }
 			} else {
 				return {
 					success: false,
-					reason: { user: `Not able to read file`, tech: `${err}` },
+					reason: { user: `Not able to read file`, tech: `${stringifyError(err)}` },
 				}
 			}
 		}
@@ -144,7 +144,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 				success: false,
 				reason: {
 					user: `Not able to write to container folder`,
-					tech: `Not able to write to container folder: ${err}`,
+					tech: `Not able to write to container folder: ${stringifyError(err)}`,
 				},
 			}
 		}
@@ -323,7 +323,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 				success: false,
 				reason: {
 					user: `Not able to read from container folder`,
-					tech: `Not able to read from container folder: ${err}`,
+					tech: `Not able to read from container folder: ${stringifyError(err)}`,
 				},
 			}
 		}

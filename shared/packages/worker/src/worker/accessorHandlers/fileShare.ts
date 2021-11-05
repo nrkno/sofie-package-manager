@@ -7,7 +7,7 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
+import { Expectation, PackageContainerExpectation, assertNever, Reason, stringifyError } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
 import networkDrive from 'windows-network-drive'
@@ -153,14 +153,14 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
-					reason: { user: `Not able to read file (file is busy)`, tech: `${err}` },
+					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err)}` },
 				}
 			} else if (err && (err as any).code === 'ENOENT') {
-				return { success: false, reason: { user: `File does not exist`, tech: `${err}` } }
+				return { success: false, reason: { user: `File does not exist`, tech: `${stringifyError(err)}` } }
 			} else {
 				return {
 					success: false,
-					reason: { user: `Not able to read file`, tech: `${err}` },
+					reason: { user: `Not able to read file`, tech: `${stringifyError(err)}` },
 				}
 			}
 		}
@@ -178,7 +178,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				success: false,
 				reason: {
 					user: `File doesn't exist`,
-					tech: `Not able to read file: ${err}`,
+					tech: `Not able to read file: ${stringifyError(err)}`,
 				},
 			}
 		}
@@ -194,8 +194,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			return {
 				success: false,
 				reason: {
-					user: `Not able to write to container fodler`,
-					tech: `Not able to write to container fodler: ${err}`,
+					user: `Not able to write to container folder`,
+					tech: `Not able to write to container folder: ${stringifyError(err)}`,
 				},
 			}
 		}
@@ -438,7 +438,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				try {
 					await pExec(setupCredentialsCommand, { maxBuffer: MAX_BUFFER_SIZE })
 				} catch (err) {
-					if (`${err}`.match(/multiple connections to a/i)) {
+					if (stringifyError(err, true).match(/multiple connections to a/i)) {
 						// "Multiple connections to a server or shared resource by the same user, using more than one user name, are not allowed. Disconnect all previous connections to the server or shared resource and try again."
 
 						// Remove the old and try again:
@@ -460,7 +460,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		try {
 			usedDriveLetters = (await networkDrive.list()) as any
 		} catch (err) {
-			if (`${err}`.match(/No Instance\(s\) Available/)) {
+			if (stringifyError(err, true).match(/No Instance\(s\) Available/)) {
 				// this error comes when the list is empty
 				usedDriveLetters = {}
 			} else {
@@ -480,7 +480,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				success: false,
 				reason: {
 					user: `Not able to read from container folder`,
-					tech: `Not able to read from container folder: ${err}`,
+					tech: `Not able to read from container folder: ${stringifyError(err)}`,
 				},
 			}
 		}

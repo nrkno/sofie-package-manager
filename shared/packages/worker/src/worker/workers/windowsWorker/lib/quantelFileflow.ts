@@ -2,6 +2,7 @@ import fetch from 'node-fetch'
 import path from 'path'
 import xml from 'xml-js'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
+import { stringifyError } from '@shared/api'
 
 const DEFAULT_XML_JS_OPTIONS = {
 	compact: true,
@@ -130,7 +131,7 @@ export function quantelFileflowCopy(
 								}
 							})
 							.catch((err) => {
-								reject(`Failed to execute Fileflow cancel job ${jobId} request: ${err?.toString()}`)
+								reject(`Failed to execute Fileflow cancel job ${jobId} request: ${stringifyError(err)}`)
 							})
 					})
 
@@ -175,6 +176,6 @@ export function quantelFileflowCopy(
 					)
 				}
 			})
-			.catch((err) => reject(`Failed to execute Fileflow request: ${err?.toString()}`))
+			.catch((err) => reject(`Failed to execute Fileflow request: ${stringifyError(err)}`))
 	})
 }

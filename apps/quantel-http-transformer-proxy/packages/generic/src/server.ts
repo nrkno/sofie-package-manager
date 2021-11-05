@@ -3,7 +3,7 @@ import Router from 'koa-router'
 import cors from '@koa/cors'
 import range from 'koa-range'
 import { default as got } from 'got'
-import { QuantelHTTPTransformerProxyConfig, LoggerInstance } from '@shared/api'
+import { QuantelHTTPTransformerProxyConfig, LoggerInstance, stringifyError } from '@shared/api'
 import { parseStringPromise as xmlParser } from 'xml2js'
 
 export class QuantelHTTPTransformerProxy {
@@ -22,7 +22,7 @@ export class QuantelHTTPTransformerProxy {
 			}
 		}
 		this.smoothStream = false // this.config.quantelHTTPTransformerProxy.streamType === QuantelStreamType.SMOOTH_STREAM
-		this.app.on('error', (err) => this.logger.warn(`QuantelHTTPTransformerProxy Error: ${err}`))
+		this.app.on('error', (err) => this.logger.warn(`QuantelHTTPTransformerProxy Error: ${stringifyError(err)}`))
 		this.app.use(range)
 
 		this.app.use(

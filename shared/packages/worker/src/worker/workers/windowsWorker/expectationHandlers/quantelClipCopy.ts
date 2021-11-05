@@ -10,6 +10,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	stringifyError,
 } from '@shared/api'
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -271,7 +272,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove clip due to an internal error`,
-					tech: `Cannot remove preview clip: ${err.toString()}`,
+					tech: `Cannot remove preview clip: ${stringifyError(err)}`,
 				},
 			}
 		}

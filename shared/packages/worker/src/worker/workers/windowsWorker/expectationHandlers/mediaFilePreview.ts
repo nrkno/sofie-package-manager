@@ -11,6 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	assertNever,
+	stringifyError,
 } from '@shared/api'
 import {
 	isFileShareAccessorHandle,
@@ -282,7 +283,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
-					tech: `Cannot remove preview file: ${err}`,
+					tech: `Cannot remove preview file: ${stringifyError(err)}`,
 				},
 			}
 		}

@@ -7,7 +7,7 @@ import cors from '@koa/cors'
 import multer from '@koa/multer'
 import bodyParser from 'koa-bodyparser'
 
-import { HTTPServerConfig, LoggerInstance } from '@shared/api'
+import { HTTPServerConfig, LoggerInstance, stringifyError } from '@shared/api'
 import { BadResponse, Storage } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
 import { CTX } from './lib'
@@ -23,7 +23,7 @@ export class PackageProxyServer {
 
 	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
 		this.app.on('error', (err) => {
-			const errString = `${err}`
+			const errString = stringifyError(err)
 
 			// We get a lot of these errors, ignore them:
 			if (errString.match(/ECONNRESET|ECONNABORTED|ECANCELED/)) {
@@ -137,8 +137,7 @@ export class PackageProxyServer {
 				ctx.body = result.reason
 			}
 		} catch (err) {
-			this.logger.error(err)
-			this.logger.error(err.stack)
+			this.logger.error(`Error in handleStorage: ${stringifyError(err)} `)
 			ctx.response.status = 500
 			ctx.body = 'Internal server error'
 		}

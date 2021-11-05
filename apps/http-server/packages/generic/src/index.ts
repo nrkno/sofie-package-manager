@@ -1,5 +1,5 @@
 import { PackageProxyServer } from './server'
-import { getHTTPServerConfig, ProcessHandler, setupLogging } from '@shared/api'
+import { getHTTPServerConfig, ProcessHandler, setupLogging, stringifyError } from '@shared/api'
 
 export { PackageProxyServer }
 export async function startProcess(): Promise<void> {
@@ -15,6 +15,6 @@ export async function startProcess(): Promise<void> {
 
 	const app = new PackageProxyServer(logger, config)
 	app.init().catch((e) => {
-		logger.error(e)
+		logger.error(`Error in PackageProxyServer.init: ${stringifyError(e)}`)
 	})
 }

@@ -7,7 +7,7 @@ import {
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
-import { assertNever } from '@shared/api'
+import { assertNever, stringifyError } from '@shared/api'
 import { WorkInProgress } from '../../../../lib/workInProgress'
 
 export interface FFMpegProcess {
@@ -36,7 +36,7 @@ export function testFFExecutable(ffExecutable: string): Promise<string | null> {
 			output += str
 		})
 		ffMpegProcess.on('error', (err) => {
-			resolve(`Process ${ffExecutable} emitted error: ${err}`)
+			resolve(`Process ${ffExecutable} emitted error: ${stringifyError(err)}`)
 		})
 		ffMpegProcess.on('close', (code) => {
 			const m = output.match(/version ([\w-]+)/) // version N-102494-g2899fb61d2

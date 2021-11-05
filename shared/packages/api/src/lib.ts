@@ -89,3 +89,18 @@ export function deepEqual<T>(object1: T, object2: T): boolean {
 function isObject(obj: unknown): obj is { [key: string]: any } {
 	return obj != null && typeof obj === 'object'
 }
+/** Make a string out of an error, including any additional data such as stack trace if available */
+export function stringifyError(error: unknown, noStack = false): string {
+	let str = `${error}`
+
+	if (error && typeof error === 'object' && (error as any).reason) {
+		str = `${(error as any).reason}`
+	}
+
+	if (!noStack) {
+		if (error && typeof error === 'object' && (error as any).stack) {
+			str += ', ' + (error as any).stack
+		}
+	}
+	return str
+}

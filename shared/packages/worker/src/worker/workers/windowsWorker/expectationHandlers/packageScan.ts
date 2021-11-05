@@ -10,6 +10,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
+	stringifyError,
 } from '@shared/api'
 import {
 	isCorePackageInfoAccessorHandle,
@@ -220,7 +221,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 				removed: false,
 				reason: {
 					user: `Cannot remove the scan result due to an internal error`,
-					tech: `Cannot remove CorePackageInfo: ${err.toString()}`,
+					tech: `Cannot remove CorePackageInfo: ${stringifyError(err)}`,
 				},
 			}
 		}

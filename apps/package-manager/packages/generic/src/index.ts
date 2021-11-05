@@ -1,5 +1,5 @@
 import { Connector, Config } from './connector'
-import { getPackageManagerConfig, LoggerInstance, ProcessHandler, setupLogging } from '@shared/api'
+import { getPackageManagerConfig, LoggerInstance, ProcessHandler, setupLogging, stringifyError } from '@shared/api'
 
 export { Connector, Config }
 export function startProcess(startInInternalMode?: boolean): { logger: LoggerInstance; connector: Connector } {
@@ -26,7 +26,7 @@ export function startProcess(startInInternalMode?: boolean): { logger: LoggerIns
 
 	if (!startInInternalMode) {
 		connector.init().catch((e) => {
-			logger.error(e)
+			logger.error(`Error in connector.init: ${stringifyError(e)}`)
 		})
 	}
 	return { logger, connector }

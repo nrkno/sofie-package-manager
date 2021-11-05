@@ -15,6 +15,7 @@ import {
 	ExpectationManagerStatus,
 	LogLevel,
 	deepEqual,
+	stringifyError,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
@@ -331,7 +332,7 @@ export class ExpectationManager {
 						this._triggerEvaluateExpectations()
 					})
 					.catch((err) => {
-						this.logger.error(err)
+						this.logger.error(`Error in ExpectationManager._evaluateExpectations: ${stringifyError(err)}`)
 
 						this._evaluateExpectationsIsBusy = false
 						this._triggerEvaluateExpectations()
@@ -930,7 +931,9 @@ export class ExpectationManager {
 							ExpectedPackageStatusAPI.WorkStatusState.NEW,
 							{
 								user: 'Restarting due to error',
-								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${stringifyError(
+									error
+								)}"`,
 							},
 							undefined,
 							true
@@ -987,7 +990,9 @@ export class ExpectationManager {
 							ExpectedPackageStatusAPI.WorkStatusState.NEW,
 							{
 								user: 'Restarting due to an error',
-								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${stringifyError(
+									error
+								)}"`,
 							},
 							undefined,
 							true
@@ -1043,7 +1048,9 @@ export class ExpectationManager {
 							// todo: Is this the right thing to do?
 							this.updateTrackedExpStatus(trackedExp, undefined, {
 								user: `Can't check if fulfilled, due to an error`,
-								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: "${error}"`,
+								tech: `Error from worker ${trackedExp.session.assignedWorker.id}: ${stringifyError(
+									error
+								)}`,
 							})
 						}
 					} else {
@@ -1133,14 +1140,15 @@ export class ExpectationManager {
 				assertNever(trackedExp.state)
 			}
 		} catch (err) {
-			this.logger.error(`Error thrown in evaluateExpectationState for expectation "${trackedExp.id}"`)
-			this.logger.error(err as any)
+			this.logger.error(
+				`Error thrown in evaluateExpectationState for expectation "${trackedExp.id}": ${stringifyError(err)}`
+			)
 			this.updateTrackedExpStatus(
 				trackedExp,
 				undefined,
 				{
 					user: 'Internal error in Package Manager',
-					tech: `${err}`,
+					tech: `${stringifyError(err)}`,
 				},
 				undefined,
 				true
@@ -1279,7 +1287,7 @@ export class ExpectationManager {
 							})
 						}
 					} catch (error) {
-						noCostReason = `${error}`
+						noCostReason = `${stringifyError(error, true)}`
 					}
 				}
 				if (workerCosts.length >= minWorkerCount) abort()
@@ -1492,7 +1500,7 @@ export class ExpectationManager {
 						} catch (err) {
 							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 								user: 'Internal Error',
-								tech: `Error when removing: ${err}, ${(err as any)?.stack}`,
+								tech: `Error when removing: ${stringifyError(err)}`,
 							})
 						}
 					}
@@ -1634,7 +1642,7 @@ export class ExpectationManager {
 			} catch (err) {
 				this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 					user: 'Internal Error',
-					tech: `Unhandled Error: ${err}`,
+					tech: `Unhandled Error: ${stringifyError(err)}`,
 				})
 			}
 		}

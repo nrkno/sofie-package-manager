@@ -12,6 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	WorkerAgentConfig,
 	assertNever,
+	stringifyError,
 } from '@shared/api'
 import { GenericWorker, WorkerLocation } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
@@ -55,8 +56,7 @@ export class WindowsWorker extends GenericWorker {
 		await this.checkExecutables()
 		this.monitor = setInterval(() => {
 			this.checkExecutables().catch((err) => {
-				this.logger.error('Error in checkExecutables')
-				this.logger.error(err)
+				this.logger.error(`Error in checkExecutables: ${stringifyError(err)}`)
 			})
 		}, 10 * 1000)
 	}
