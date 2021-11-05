@@ -12,6 +12,7 @@ import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integrati
 const defaultTestConfig: SingleAppConfig = {
 	singleApp: {
 		workerCount: 1,
+		workforcePort: 0,
 	},
 	process: {
 		logPath: '',
