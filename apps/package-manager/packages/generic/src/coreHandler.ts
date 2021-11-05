@@ -42,6 +42,7 @@ export class CoreHandler {
 	public deviceSettings: { [key: string]: any } = {}
 
 	public delayRemoval = 0
+	public delayRemovalPackageInfo = 0
 	public useTemporaryFilePath = false
 
 	private _deviceOptions: DeviceConfig
@@ -229,6 +230,9 @@ export class CoreHandler {
 
 			if (this.deviceSettings['delayRemoval'] !== this.delayRemoval) {
 				this.delayRemoval = this.deviceSettings['delayRemoval']
+			}
+			if (this.deviceSettings['delayRemovalPackageInfo'] !== this.delayRemovalPackageInfo) {
+				this.delayRemovalPackageInfo = this.deviceSettings['delayRemovalPackageInfo']
 			}
 			if (this.deviceSettings['useTemporaryFilePath'] !== this.useTemporaryFilePath) {
 				this.useTemporaryFilePath = this.deviceSettings['useTemporaryFilePath']

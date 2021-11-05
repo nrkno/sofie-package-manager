@@ -154,7 +154,8 @@ export namespace ExpectationManagerWorkerAgent {
 			type: 'removePackageInfo'
 			arguments: [
 				string, // type
-				string // packageId
+				string, // packageId
+				number | undefined // removeDelay
 			]
 		}
 		export interface ReportFromMonitorPackages extends Base {

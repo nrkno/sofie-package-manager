@@ -213,7 +213,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'removePackageInfo',
-					arguments: [infoType, fromPackage.id],
+					arguments: [infoType, fromPackage.id, exp.workOptions.removeDelay],
 				})
 			)
 		}

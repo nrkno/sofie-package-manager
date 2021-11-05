@@ -52,7 +52,7 @@ export class CoreMockAPI {
 			payload: payload,
 		}
 	}
-	async removePackageInfo(type: string, packageId: string): Promise<void> {
+	async removePackageInfo(type: string, packageId: string, _removeDelay?: number): Promise<void> {
 		// This is a mock of the Sofie Core method "removePackageInfo"
 		const id = this.getPackageInfoId(packageId, type)
 		delete this.packageInfos[id]
