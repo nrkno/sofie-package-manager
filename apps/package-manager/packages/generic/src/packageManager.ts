@@ -105,7 +105,9 @@ export class PackageManagerHandler {
 
 		coreHandler.onConnected(() => {
 			this.setupObservers()
-			// this.resendStatuses()
+
+			// Trigger a send of status updates:
+			this.callbacksHandler.onCoreConnected()
 		})
 		this.setupObservers()
 		this.onSettingsChanged()
@@ -598,6 +600,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			[]
 		)
 	}
+	public onCoreConnected() {
+		this.triggerReportUpdatedStatuses()
+	}
 	private updateExpectationStatus(expectationId: string, workStatus: ExpectedPackageStatusAPI.WorkStatus | null) {
 		this.toReportExpectationStatus[expectationId] = {
 			workStatus: workStatus,
@@ -635,6 +640,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		if (!this.triggerSendUpdatedStatusesTimeout) {
 			this.triggerSendUpdatedStatusesTimeout = setTimeout(() => {
 				try {
+					// Don't send any statuses if not connected:
+					if (!this.packageManager.coreHandler.core.connected) return
+
 					this.reportUpdateExpectationStatus()
 					this.reportUpdatePackageContainerPackageStatus()
 					this.reportUpdatePackageContainerStatus()
