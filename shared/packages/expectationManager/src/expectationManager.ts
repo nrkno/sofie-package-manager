@@ -1258,9 +1258,9 @@ export class ExpectationManager {
 		if (session.assignedWorker) return // A worker has already been assigned
 
 		/** How many requests to send out simultaneously */
-		const batchSize = 10
-		/** How many answers we want to have to be content */
-		const minWorkerCount = batchSize / 2
+		const BATCH_SIZE = 10
+		/** How many answers we want to have before continuing with picking one */
+		const minWorkerCount = 5
 
 		if (!Object.keys(trackedExp.availableWorkers).length) {
 			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }
@@ -1270,10 +1270,19 @@ export class ExpectationManager {
 		let noCostReason = `${Object.keys(trackedExp.queriedWorkers).length} queried`
 
 		// Send a number of requests simultaneously:
-		await runInBatches(
-			Object.keys(trackedExp.availableWorkers),
-			async (workerId: string, abort: () => void) => {
-				const workerAgent = this.workerAgents[workerId]
+
+		// We're using PromisePool to query a batch of workers at a time:
+		await PromisePool.for(Object.keys(trackedExp.availableWorkers))
+			.withConcurrency(BATCH_SIZE)
+			.handleError(async (error, workerId: string) => {
+				// Log the error
+				this.logger.error(`Error in assignWorkerToSession for worker "${workerId}": ${stringifyError(error)}`)
+			})
+			.process(async (workerId: string) => {
+				// Abort if we have gotten enough answers:
+				if (workerCosts.length >= minWorkerCount) return
+
+				const workerAgent: TrackedWorkerAgent | undefined = this.workerAgents[workerId]
 				if (workerAgent) {
 					try {
 						const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
@@ -1290,10 +1299,7 @@ export class ExpectationManager {
 						noCostReason = `${stringifyError(error, true)}`
 					}
 				}
-				if (workerCosts.length >= minWorkerCount) abort()
-			},
-			batchSize
-		)
+			})
 
 		workerCosts.sort((a, b) => {
 			// Lowest cost first:
@@ -1999,40 +2005,4 @@ interface TrackedPackageContainerExpectation {
 
 	/** Is set if the packageContainer has been removed */
 	removed: boolean
-}
-/** Execute callback in batches */
-async function runInBatches<T, ReturnValue>(
-	values: T[],
-	cb: (value: T, abortAndReturn: (returnValue?: ReturnValue) => void) => Promise<void>,
-	batchSize: number
-): Promise<ReturnValue | undefined> {
-	const batches: T[][] = []
-	{
-		let batch: T[] = []
-		for (const value of values) {
-			batch.push(value)
-			if (batch.length >= batchSize) {
-				batches.push(batch)
-				batch = []
-			}
-		}
-		batches.push(batch)
-	}
-
-	let aborted = false
-	let returnValue: ReturnValue | undefined = undefined
-	const abortAndReturn = (value?: ReturnValue) => {
-		aborted = true
-		returnValue = value
-	}
-
-	for (const batch of batches) {
-		if (aborted) break
-		await Promise.all(
-			batch.map(async (value) => {
-				return cb(value, abortAndReturn)
-			})
-		)
-	}
-	return returnValue
 }
