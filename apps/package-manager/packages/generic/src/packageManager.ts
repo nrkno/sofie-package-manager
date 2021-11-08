@@ -335,6 +335,7 @@ export class PackageManagerHandler {
 				countExpectations: Object.keys(this.dataSnapshot.expectations).length,
 				countPackageContainerExpectations: Object.keys(this.dataSnapshot.packageContainerExpectations).length,
 			},
+			updated: Date.now(),
 		}
 	}
 	public async debugKillApp(appId: string): Promise<void> {

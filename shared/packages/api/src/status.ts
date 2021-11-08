@@ -17,6 +17,7 @@ export interface WorkforceStatus {
 }
 export interface ExpectationManagerStatus {
 	id: string
+	updated: number
 	expectationStatistics: {
 		countTotal: number
 
@@ -31,7 +32,15 @@ export interface ExpectationManagerStatus {
 		countNoAvailableWorkers: number
 		countError: number
 	}
+	times: { [key: string]: number }
 	workerAgents: {
 		workerId: string
+	}[]
+	worksInProgress: {
+		id: string
+		lastUpdated: number
+		workerId: string
+		cost: number
+		expectationId: string
 	}[]
 }

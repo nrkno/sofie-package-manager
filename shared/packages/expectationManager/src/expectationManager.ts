@@ -80,15 +80,15 @@ export class ExpectationManager {
 	private websocketServer?: WebsocketServer
 
 	private workerAgents: {
-		[workerId: string]: {
-			api: WorkerAgentAPI
-		}
+		[workerId: string]: TrackedWorkerAgent
 	} = {}
 	private worksInProgress: {
 		[id: string]: {
 			properties: ExpectationManagerWorkerAgent.WorkInProgressProperties
 			trackedExp: TrackedExpectation
+			workerId: string
 			worker: WorkerAgentAPI
+			cost: number
 			lastUpdated: number
 		}
 	} = {}
@@ -468,25 +468,42 @@ export class ExpectationManager {
 	private async _evaluateExpectations(): Promise<void> {
 		this.logger.debug(Date.now() / 1000 + ' _evaluateExpectations ----------')
 
+		let startTime = Date.now()
+		const times: { [key: string]: number } = {}
+
 		// First we're going to see if there is any new incoming data which needs to be pulled in.
 		if (this.receivedUpdates.expectationsHasBeenUpdated) {
 			await this.updateReceivedExpectations()
 		}
+		times['timeUpdateReceivedExpectations'] = Date.now() - startTime
+		startTime = Date.now()
+
 		if (this.receivedUpdates.packageContainersHasBeenUpdated) {
 			await this._updateReceivedPackageContainerExpectations()
 		}
+		times['timeUpdateReceivedPackageContainerExpectations'] = Date.now() - startTime
+		startTime = Date.now()
+
 		// Update the count:
 		this.trackedExpectationsCount = Object.keys(this.trackedExpectations).length
 
 		// Iterate through the PackageContainerExpectations:
 		await this._evaluateAllTrackedPackageContainers()
+		times['timeEvaluateAllTrackedPackageContainers'] = Date.now() - startTime
+		startTime = Date.now()
 
 		this.monitorWorksInProgress()
+		times['timeMonitorWorksInProgress'] = Date.now() - startTime
+		startTime = Date.now()
 
 		// Iterate through all Expectations:
-		const runAgainASAP = await this._evaluateAllExpectations()
+		const { runAgainASAP, times: evaluateTimes } = await this._evaluateAllExpectations()
 
-		this.updateStatus()
+		for (const key in evaluateTimes) {
+			times[key] = evaluateTimes[key]
+		}
+
+		this.updateStatus(times)
 
 		this.checkIfNeedToScaleUp()
 
@@ -684,10 +701,11 @@ export class ExpectationManager {
 		return tracked
 	}
 	/** Iterate through the tracked Expectations */
-	private async _evaluateAllExpectations(): Promise<boolean> {
+	private async _evaluateAllExpectations(): Promise<{ runAgainASAP: boolean; times: { [key: string]: number } }> {
 		/** If this is set to true, we want _evaluateExpectations() to be run again ASAP */
 		let runAgainASAP = false
-		const startTime = Date.now()
+
+		const times: { [key: string]: number } = {}
 
 		const removeIds: string[] = []
 
@@ -708,6 +726,7 @@ export class ExpectationManager {
 			ExpectedPackageStatusAPI.WorkStatusState.WAITING,
 			ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
 		]) {
+			const startTime = Date.now()
 			// Filter out the ones that are in the state we're about to handle:
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
 
@@ -732,6 +751,7 @@ export class ExpectationManager {
 						await this.evaluateExpectationState(trackedExp)
 					})
 			}
+			times[`time_${handleState}`] = Date.now() - startTime
 		}
 
 		this.logger.debug(`Handle other states..`)
@@ -742,6 +762,7 @@ export class ExpectationManager {
 			trackedExp.session = null
 		}
 
+		const startTime = Date.now()
 		// Step 2: Evaluate the expectations, now one by one:
 		for (const trackedExp of tracked) {
 			let reiterateTrackedExp = true
@@ -774,10 +795,12 @@ export class ExpectationManager {
 				break
 			}
 		}
+		times[`time_restTrackedExp`] = Date.now() - startTime
 		for (const id of removeIds) {
 			delete this.trackedExpectations[id]
 		}
-		return runAgainASAP
+
+		return { runAgainASAP, times }
 	}
 	/** Evaluate the state of an Expectation */
 	private async evaluateExpectationState(trackedExp: TrackedExpectation): Promise<void> {
@@ -970,7 +993,9 @@ export class ExpectationManager {
 						this.worksInProgress[`${assignedWorker.id}_${wipInfo.wipId}`] = {
 							properties: wipInfo.properties,
 							trackedExp: trackedExp,
+							workerId: assignedWorker.id,
 							worker: assignedWorker.worker,
+							cost: assignedWorker.cost,
 							lastUpdated: Date.now(),
 						}
 
@@ -1518,6 +1543,8 @@ export class ExpectationManager {
 	}
 	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of Object.values(this.trackedPackageContainers)) {
+			const startTime = Date.now()
+
 			try {
 				let badStatus = false
 				trackedPackageContainer.lastEvaluationTime = Date.now()
@@ -1651,6 +1678,9 @@ export class ExpectationManager {
 					tech: `Unhandled Error: ${stringifyError(err)}`,
 				})
 			}
+			this.logger.debug(
+				`trackedPackageContainer ${trackedPackageContainer.id}, took ${Date.now() - startTime} ms`
+			)
 		}
 	}
 	/** Update the status of a PackageContainer */
@@ -1712,9 +1742,10 @@ export class ExpectationManager {
 			)
 		}
 	}
-	private updateStatus(): ExpectationManagerStatus {
+	private updateStatus(times?: { [key: string]: number }): ExpectationManagerStatus {
 		this.status = {
 			id: this.managerId,
+			updated: Date.now(),
 			expectationStatistics: {
 				countTotal: 0,
 
@@ -1730,9 +1761,19 @@ export class ExpectationManager {
 				countNoAvailableWorkers: 0,
 				countError: 0,
 			},
+			times: times || {},
 			workerAgents: Object.entries(this.workerAgents).map(([id, _workerAgent]) => {
 				return {
 					workerId: id,
+				}
+			}),
+			worksInProgress: Object.entries(this.worksInProgress).map(([id, wip]) => {
+				return {
+					id: id,
+					lastUpdated: wip.lastUpdated,
+					workerId: wip.workerId,
+					cost: wip.cost,
+					expectationId: wip.trackedExp.id,
 				}
 			}),
 		}
@@ -1825,7 +1866,7 @@ export class ExpectationManager {
 			await this.workforceAPI.requestResourcesForPackageContainer(packageContainer.packageContainer)
 		}
 	}
-	/**  */
+	/** Monitor the Works in progress, to restart them if necessary */
 	private monitorWorksInProgress() {
 		for (const [wipId, wip] of Object.entries(this.worksInProgress)) {
 			if (
@@ -1833,6 +1874,9 @@ export class ExpectationManager {
 				Date.now() - wip.lastUpdated > this.constants.WORK_TIMEOUT_TIME
 			) {
 				// It seems that the work has stalled..
+
+				this.logger.warn(`Work "${wipId}" on exp "${wip.trackedExp.id}" has stalled, restarting it`)
+
 				// Restart the job:
 				const reason: Reason = {
 					tech: 'WorkInProgress timeout',
@@ -1887,6 +1931,10 @@ export type ExpectationManagerServerOptions =
 	| {
 			type: 'internal'
 	  }
+
+interface TrackedWorkerAgent {
+	api: WorkerAgentAPI
+}
 
 interface TrackedExpectation {
 	/** Unique ID of the tracked expectation */
