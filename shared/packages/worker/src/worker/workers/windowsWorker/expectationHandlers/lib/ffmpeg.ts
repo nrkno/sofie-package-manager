@@ -64,7 +64,8 @@ export async function runffMpeg<Metadata>(
 		| FileShareAccessorHandle<Metadata>
 		| HTTPProxyAccessorHandle<Metadata>,
 	actualSourceVersionHash: string,
-	onDone: () => Promise<void>
+	onDone: () => Promise<void>,
+	log?: (str: string) => void
 ): Promise<FFMpegProcess> {
 	let FFMpegIsDone = false
 	let uploadIsDone = false
@@ -91,11 +92,14 @@ export async function runffMpeg<Metadata>(
 		throw new Error(`Unsupported Target AccessHandler`)
 	}
 
+	log?.('ffmpeg: spawn..')
 	let ffMpegProcess: ChildProcess | undefined = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
 		shell: true,
 	})
+	log?.('ffmpeg: spawned')
 
 	if (pipeStdOut) {
+		log?.('ffmpeg: pipeStdOut')
 		if (!ffMpegProcess.stdout) {
 			throw new Error('No stdout stream available')
 		}
@@ -103,18 +107,24 @@ export async function runffMpeg<Metadata>(
 		const writeStream = await targetHandle.putPackageStream(ffMpegProcess.stdout)
 		writeStream.on('error', (err) => {
 			workInProgress._reportError(err)
+			log?.('ffmpeg: err' + err)
 		})
 		writeStream.once('close', () => {
 			uploadIsDone = true
 
 			maybeDone()
+			log?.('ffmpeg: pipeStdOut done')
 		})
 	} else {
 		uploadIsDone = true // no upload
 	}
+	const lastFewLines: string[] = []
+
 	let fileDuration: number | undefined = undefined
 	ffMpegProcess.stderr?.on('data', (data) => {
 		const str = data.toString()
+
+		log?.('ffmpeg:' + str)
 
 		const m = str.match(/Duration:\s?(\d+):(\d+):([\d.]+)/)
 		if (m) {
@@ -123,31 +133,39 @@ export async function runffMpeg<Metadata>(
 			const ss = m[3]
 
 			fileDuration = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
-		} else {
-			if (fileDuration) {
-				const m2 = str.match(/time=\s?(\d+):(\d+):([\d.]+)/)
-				if (m2) {
-					const hh = m2[1]
-					const mm = m2[2]
-					const ss = m2[3]
+			return
+		}
+		if (fileDuration) {
+			const m2 = str.match(/time=\s?(\d+):(\d+):([\d.]+)/)
+			if (m2) {
+				const hh = m2[1]
+				const mm = m2[2]
+				const ss = m2[3]
 
-					const progress = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
-					workInProgress._reportProgress(
-						actualSourceVersionHash,
-						((uploadIsDone ? 1 : 0.9) * progress) / fileDuration
-					)
-				}
+				const progress = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
+				workInProgress._reportProgress(
+					actualSourceVersionHash,
+					((uploadIsDone ? 1 : 0.9) * progress) / fileDuration
+				)
+				return
 			}
+		}
+
+		lastFewLines.push(str)
+
+		if (lastFewLines.length > 10) {
+			lastFewLines.shift()
 		}
 	})
 	const onClose = (code: number | null) => {
 		if (ffMpegProcess) {
+			log?.('ffmpeg: close ' + code)
 			ffMpegProcess = undefined
 			if (code === 0) {
 				FFMpegIsDone = true
 				maybeDone()
 			} else {
-				workInProgress._reportError(new Error(`Code ${code}`))
+				workInProgress._reportError(new Error(`FFMpeg exit code ${code}: ${lastFewLines.join('\n')}`))
 			}
 		}
 	}

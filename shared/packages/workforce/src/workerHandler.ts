@@ -12,9 +12,10 @@ export class WorkerHandler {
 		// nothing?
 	}
 	public async requestResourcesForExpectation(exp: Expectation.Any): Promise<boolean> {
-		let best: { appContainerId: string; appType: string; cost: number } | null = null
-		let errorReason: string | null = null
 		this.logger.debug(`Workforce: Got request for resources for exp "${exp.id}"`)
+
+		let errorReason = `No AppContainers registered`
+		let best: { appContainerId: string; appType: string; cost: number } | null = null
 		for (const [appContainerId, appContainer] of Object.entries(this.workForce.appContainers)) {
 			this.logger.debug(`Workforce: Asking appContainer "${appContainerId}"`)
 			const proposal = await appContainer.api.requestAppTypeForExpectation(exp)
@@ -27,9 +28,10 @@ export class WorkerHandler {
 					}
 				}
 			} else {
-				errorReason = `Appcontainer "${appContainerId}": ${proposal.reason.tech}`
+				errorReason = `AppContainer "${appContainerId}": ${proposal.reason.tech}`
 			}
 		}
+
 		if (best) {
 			this.logger.debug(`Workforce: Selecting appContainer "${best.appContainerId}"`)
 
@@ -46,12 +48,14 @@ export class WorkerHandler {
 		}
 	}
 	public async requestResourcesForPackageContainer(packageContainer: PackageContainerExpectation): Promise<boolean> {
-		let best: { appContainerId: string; appType: string; cost: number } | null = null
 		this.logger.debug(`Workforce: Got request for resources for packageContainer "${packageContainer.id}"`)
+
+		let errorReason = `No AppContainers registered`
+		let best: { appContainerId: string; appType: string; cost: number } | null = null
 		for (const [appContainerId, appContainer] of Object.entries(this.workForce.appContainers)) {
 			this.logger.debug(`Workforce: Asking appContainer "${appContainerId}"`)
 			const proposal = await appContainer.api.requestAppTypeForPackageContainer(packageContainer)
-			if (proposal) {
+			if (proposal.success) {
 				if (!best || proposal.cost < best.cost) {
 					best = {
 						appContainerId: appContainerId,
@@ -59,6 +63,8 @@ export class WorkerHandler {
 						cost: proposal.cost,
 					}
 				}
+			} else {
+				errorReason = `AppContainer "${appContainerId}": ${proposal.reason.tech}`
 			}
 		}
 		if (best) {
@@ -72,7 +78,7 @@ export class WorkerHandler {
 			await appContainer.api.spinUp(best.appType)
 			return true
 		} else {
-			this.logger.debug(`Workforce: No resources available for PackageContainer`)
+			this.logger.debug(`Workforce: No resources available for PackageContainer  (reason: ${errorReason})`)
 			return false
 		}
 	}

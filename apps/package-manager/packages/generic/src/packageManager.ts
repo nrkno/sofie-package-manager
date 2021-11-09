@@ -744,7 +744,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				}
 			} catch (err) {
 				// Provide some context to the error:
-				this.logger.error('Error when calling method updateExpectedPackageWorkStatuses:')
+				this.logger.error(`Error when calling method updateExpectedPackageWorkStatuses: ${stringifyError(err)}`)
 				throw err
 			}
 		}
@@ -804,7 +804,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				}
 			} catch (err) {
 				// Provide some context to the error:
-				this.logger.error('Error when calling method updatePackageContainerPackageStatuses:')
+				this.logger.error(
+					`Error when calling method updatePackageContainerPackageStatuses: ${stringifyError(err)}`
+				)
 				throw err
 			}
 		}
@@ -863,7 +865,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				}
 			} catch (err) {
 				// Provide some context to the error:
-				this.logger.error('Error when calling method updatePackageContainerStatuses:')
+				this.logger.error(`Error when calling method updatePackageContainerStatuses: ${stringifyError(err)}`)
 				throw err
 			}
 		}
@@ -961,10 +963,10 @@ function wrapExpectedPackage(
  * Recursively delete all undefined properties from the supplied object.
  * This is necessary as _.isEqual({ a: 1 }, { a: 1, b: undefined }) === false
  */
-export function deleteAllUndefinedProperties<T extends { [key: string]: any }>(obj: T): void {
+export function deleteAllUndefinedProperties<T extends { [key: string]: any }>(obj: T, deep = false): void {
 	if (Array.isArray(obj)) {
 		for (const v of obj) {
-			deleteAllUndefinedProperties(v)
+			deleteAllUndefinedProperties(v, deep)
 		}
 	} else if (obj && typeof obj === 'object') {
 		const keys = Object.keys(obj)
@@ -972,7 +974,9 @@ export function deleteAllUndefinedProperties<T extends { [key: string]: any }>(o
 			if (obj[key] === undefined) {
 				delete obj[key]
 			} else {
-				deleteAllUndefinedProperties(obj[key])
+				if (deep) {
+					deleteAllUndefinedProperties(obj[key], deep)
+				}
 			}
 		}
 	}

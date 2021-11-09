@@ -251,6 +251,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 							undefined
 						)
 					}
+					// worker.logger.info
 				)
 			})
 

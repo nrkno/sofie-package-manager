@@ -233,22 +233,29 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 					'-threads 1',
 				]
 
-				ffMpegProcess = await runffMpeg(workInProgress, args, targetHandle, sourceVersionHash, async () => {
-					// Called when ffmpeg has finished
-					ffMpegProcess = undefined
-					await targetHandle.finalizePackage()
-					await targetHandle.updateMetadata(metadata)
+				ffMpegProcess = await runffMpeg(
+					workInProgress,
+					args,
+					targetHandle,
+					sourceVersionHash,
+					async () => {
+						// Called when ffmpeg has finished
+						ffMpegProcess = undefined
+						await targetHandle.finalizePackage()
+						await targetHandle.updateMetadata(metadata)
 
-					const duration = Date.now() - startTime
-					workInProgress._reportComplete(
-						sourceVersionHash,
-						{
-							user: `Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
-							tech: `Completed at ${Date.now()}`,
-						},
-						undefined
-					)
-				})
+						const duration = Date.now() - startTime
+						workInProgress._reportComplete(
+							sourceVersionHash,
+							{
+								user: `Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+								tech: `Completed at ${Date.now()}`,
+							},
+							undefined
+						)
+					}
+					// worker.logger.info
+				)
 			} else {
 				throw new Error(
 					`MediaFileThumbnail.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`

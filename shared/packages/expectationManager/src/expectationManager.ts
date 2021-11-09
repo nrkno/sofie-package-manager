@@ -96,6 +96,7 @@ export class ExpectationManager {
 	private terminated = false
 
 	private status: ExpectationManagerStatus
+	private serverAccessUrl = ''
 
 	constructor(
 		private logger: LoggerInstance,
@@ -110,7 +111,7 @@ export class ExpectationManager {
 		this.constants = {
 			// Default values:
 			EVALUATE_INTERVAL: 5 * 1000,
-			FULLFILLED_MONITOR_TIME: 10 * 1000,
+			FULLFILLED_MONITOR_TIME: 30 * 1000,
 			WORK_TIMEOUT_TIME: 10 * 1000,
 			ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
 			SCALE_UP_TIME: 5 * 1000,
@@ -121,6 +122,17 @@ export class ExpectationManager {
 			...options?.constants,
 		}
 		this.workforceAPI = new WorkforceAPI(this.logger)
+		this.workforceAPI.on('disconnected', () => {
+			this.logger.warn('ExpectationManager: Workforce disconnected')
+		})
+		this.workforceAPI.on('connected', () => {
+			this.logger.info('ExpectationManager: Workforce connected')
+
+			this.workforceAPI.registerExpectationManager(this.managerId, this.serverAccessUrl).catch((err) => {
+				this.logger.error(`ExpectationManager: Error in registerExpectationManager: ${stringifyError(err)}`)
+			})
+		})
+
 		this.status = this.updateStatus()
 		if (this.serverOptions.type === 'websocket') {
 			this.websocketServer = new WebsocketServer(this.serverOptions.port, (client: ClientConnection) => {
@@ -137,13 +149,13 @@ export class ExpectationManager {
 							clientConnection: client,
 						})
 						this.workerAgents[client.clientId] = { api, connected: true }
-						client.on('close', () => {
-							this.logger.debug(`ExpectationManager: Connection to Worker "${client.clientId}" closed`)
+						client.once('close', () => {
+							this.logger.warn(`ExpectationManager: Connection to Worker "${client.clientId}" closed`)
 
 							this.workerAgents[client.clientId].connected = false
 							delete this.workerAgents[client.clientId]
 						})
-						this.logger.debug(`ExpectationManager: Connection to Worker "${client.clientId}" established`)
+						this.logger.info(`ExpectationManager: Connection to Worker "${client.clientId}" established`)
 						this._triggerEvaluateExpectations(true)
 						break
 					}
@@ -165,20 +177,19 @@ export class ExpectationManager {
 
 	/** Initialize the ExpectationManager. This method is should be called shortly after the class has been instantiated. */
 	async init(): Promise<void> {
-		await this.workforceAPI.init(this.managerId, this.workForceConnectionOptions, this)
-
-		let serverAccessUrl: string
+		this.serverAccessUrl = ''
 		if (this.workForceConnectionOptions.type === 'internal') {
-			serverAccessUrl = '__internal'
+			this.serverAccessUrl = '__internal'
 		} else {
-			serverAccessUrl = this.serverAccessBaseUrl || 'ws://127.0.0.1'
+			this.serverAccessUrl = this.serverAccessBaseUrl || 'ws://127.0.0.1'
 			if (this.serverOptions.type === 'websocket' && this.serverOptions.port === 0) {
 				// When the configured port i 0, the next free port is picked
-				serverAccessUrl += `:${this.websocketServer?.port}`
+				this.serverAccessUrl += `:${this.websocketServer?.port}`
 			}
 		}
-		if (!serverAccessUrl) throw new Error(`ExpectationManager.serverAccessUrl not set!`)
-		await this.workforceAPI.registerExpectationManager(this.managerId, serverAccessUrl)
+		if (!this.serverAccessUrl) throw new Error(`ExpectationManager.serverAccessUrl not set!`)
+
+		await this.workforceAPI.init(this.managerId, this.workForceConnectionOptions, this)
 
 		this._triggerEvaluateExpectations(true)
 	}
@@ -527,12 +538,13 @@ export class ExpectationManager {
 
 			let isNew = false
 			let doUpdate = false
-			if (!this.trackedExpectations[id]) {
+			const existingtrackedExp: TrackedExpectation | undefined = this.trackedExpectations[id]
+			if (!existingtrackedExp) {
 				// new
 				doUpdate = true
 				isNew = true
-			} else if (!_.isEqual(this.trackedExpectations[id].exp, exp)) {
-				const trackedExp = this.trackedExpectations[id]
+			} else if (!_.isEqual(existingtrackedExp.exp, exp)) {
+				const trackedExp = existingtrackedExp
 
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
@@ -562,7 +574,7 @@ export class ExpectationManager {
 						user: '',
 						tech: '',
 					},
-					prevStatusReasons: {},
+					prevStatusReasons: existingtrackedExp?.prevStatusReasons || {},
 					status: {},
 					session: null,
 				}
@@ -742,7 +754,7 @@ export class ExpectationManager {
 
 			if (trackedWithState.length) {
 				// We're using a PromisePool so that we don't send out an unlimited number of parallel requests to the workers.
-				const CONCURRENCY = 100
+				const CONCURRENCY = 50
 				await PromisePool.for(trackedWithState)
 					.withConcurrency(CONCURRENCY)
 					.handleError(async (error, trackedExp) => {
@@ -979,6 +991,18 @@ export class ExpectationManager {
 				// Start working on it:
 
 				await this.assignWorkerToSession(trackedExp)
+
+				if (
+					trackedExp.session.assignedWorker &&
+					// Only allow starting if the job can start in a short while:
+					trackedExp.session.assignedWorker.cost.startCost > 10
+				) {
+					trackedExp.session.noAssignedWorkerReason = {
+						user: `Workers are busy`,
+						tech: `Workers are busy (startCost=${trackedExp.session.assignedWorker.cost.startCost})`,
+					}
+					delete trackedExp.session.assignedWorker
+				}
 				if (trackedExp.session.assignedWorker) {
 					const assignedWorker = trackedExp.session.assignedWorker
 
@@ -1354,15 +1378,10 @@ export class ExpectationManager {
 
 		const bestWorker = workerCosts[0]
 
-		if (bestWorker && bestWorker.cost.startCost < 10) {
-			// Only allow starting if the job can start in a short while
+		if (bestWorker) {
 			session.assignedWorker = bestWorker
 			trackedExp.noWorkerAssignedTime = null
 		} else {
-			if (bestWorker) {
-				noCostReason += `, startCost=${bestWorker.cost.startCost}`
-			}
-
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker (${
 					Object.keys(trackedExp.availableWorkers).length
@@ -1893,26 +1912,29 @@ export class ExpectationManager {
 	/** Monitor the Works in progress, to restart them if necessary */
 	private monitorWorksInProgress() {
 		for (const [wipId, wip] of Object.entries(this.worksInProgress)) {
-			if (
-				wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING &&
-				Date.now() - wip.lastUpdated > this.constants.WORK_TIMEOUT_TIME
-			) {
-				// It seems that the work has stalled..
+			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
+				if (Date.now() - wip.lastUpdated > this.constants.WORK_TIMEOUT_TIME) {
+					// It seems that the work has stalled..
 
-				this.logger.warn(`Work "${wipId}" on exp "${wip.trackedExp.id}" has stalled, restarting it`)
+					this.logger.warn(`Work "${wipId}" on exp "${wip.trackedExp.id}" has stalled, restarting it`)
 
-				// Restart the job:
-				const reason: Reason = {
-					tech: 'WorkInProgress timeout',
-					user: 'The job timed out',
+					// Restart the job:
+					const reason: Reason = {
+						tech: 'WorkInProgress timeout',
+						user: 'The job timed out',
+					}
+
+					wip.trackedExp.errorCount++
+					this.updateTrackedExpStatus(wip.trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, reason)
+					this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
+						status: wip.trackedExp.state,
+						statusReason: wip.trackedExp.reason,
+					})
+					delete this.worksInProgress[wipId]
 				}
-
-				wip.trackedExp.errorCount++
-				this.updateTrackedExpStatus(wip.trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, reason)
-				this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
-					status: wip.trackedExp.state,
-					statusReason: wip.trackedExp.reason,
-				})
+			} else {
+				// huh, it seems that we have a workInProgress, but the trackedExpectation is not WORKING
+				this.logger.error(`WorkInProgress ${wipId} has an exp (${wip.trackedExp.id}) which is not working..`)
 				delete this.worksInProgress[wipId]
 			}
 		}

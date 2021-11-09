@@ -37,14 +37,14 @@ export class AppContainerAPI
 	}
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
-	): Promise<{ appType: string; cost: number } | null> {
+	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
 		return this._sendMessage('requestAppTypeForPackageContainer', packageContainer)
 	}
 	async spinUp(appType: string): Promise<string> {
 		return this._sendMessage('spinUp', appType)
 	}
-	async spinDown(appId: string): Promise<void> {
-		return this._sendMessage('spinDown', appId)
+	async spinDown(appId: string, reason: string): Promise<void> {
+		return this._sendMessage('spinDown', appId, reason)
 	}
 	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
 		return this._sendMessage('getRunningApps')

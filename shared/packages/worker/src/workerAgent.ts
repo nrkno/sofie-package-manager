@@ -66,7 +66,32 @@ export class WorkerAgent {
 
 	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
+		this.workforceAPI.on('disconnected', () => {
+			this.logger.warn('Worker: Workforce disconnected')
+		})
+		this.workforceAPI.on('connected', () => {
+			this.logger.info('Worker: Workforce connected')
+
+			Promise.resolve()
+				.then(async () => {
+					const list = await this.workforceAPI.getExpectationManagerList()
+					if (!list.length) {
+						this.logger.warn('Worker: List of expectationManagers is empty')
+					}
+					await this.updateListOfExpectationManagers(list)
+				})
+				.catch((err) => {
+					this.logger.error(`Worker: Error in async connected function: ${stringifyError(err)}`)
+				})
+		})
+
 		this.appContainerAPI = new AppContainerAPI(this.logger)
+		this.appContainerAPI.on('disconnected', () => {
+			this.logger.warn('Worker: AppContainer disconnected')
+		})
+		this.appContainerAPI.on('connected', () => {
+			this.logger.info('Worker: AppContainer connected')
+		})
 
 		this.id = config.worker.workerId
 		this.workForceConnectionOptions = this.config.worker.workforceURL
@@ -118,9 +143,6 @@ export class WorkerAgent {
 			}
 			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
 		}
-
-		const list = await this.workforceAPI.getExpectationManagerList()
-		await this.updateListOfExpectationManagers(list)
 
 		this.IDidSomeWork()
 	}
@@ -212,6 +234,12 @@ export class WorkerAgent {
 			url: url,
 			api: new ExpectationManagerAPI(this.logger),
 		})
+		expectedManager.api.on('disconnected', () => {
+			this.logger.warn('Worker: ExpectationManager disconnected')
+		})
+		expectedManager.api.on('connected', () => {
+			this.logger.info('Worker: ExpectationManager connected')
+		})
 		const methods: ExpectationManagerWorkerAgent.WorkerAgent = literal<ExpectationManagerWorkerAgent.WorkerAgent>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {
 				return this._worker.doYouSupportExpectation(exp)
@@ -267,21 +295,32 @@ export class WorkerAgent {
 							// The job seems to have timed out.
 							// Expectation Manager will clean up on it's side, we have to do the same here.
 
-							this.logger.info(
-								`WorkerAgent: Cancelling job ${currentJob.wipId} due to timeout (${timeout})`
+							this.logger.warn(
+								`WorkerAgent: Cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId}) due to timeout (${timeout})`
 							)
+							if (currentJob.timeoutInterval) {
+								clearInterval(currentJob.timeoutInterval)
+								currentJob.timeoutInterval = null
+							}
 
-							this.cancelJob(currentJob.wipId).catch((error) => {
-								// Not much we can do about that error..
-								this.logger.error(
-									`WorkerAgent: timeout watch: Error in cancelJob (${
-										currentJob.wipId
-									}) ${stringifyError(error)}`
-								)
-
-								// Ensure that the jop is removed, so that it wont block others:
-								this.removeJob(currentJob)
-							})
+							Promise.race([
+								this.cancelJob(currentJob.wipId),
+								new Promise((resolve) => {
+									setTimeout(resolve, 3000)
+								}),
+							])
+								.catch((error) => {
+									// Not much we can do about that error..
+									this.logger.error(
+										`WorkerAgent: timeout watch: Error in cancelJob (${
+											currentJob.wipId
+										}) ${stringifyError(error)}`
+									)
+								})
+								.finally(() => {
+									// Ensure that the job is removed, so that it won't block others:
+									this.removeJob(currentJob)
+								})
 						}
 					}, 1000),
 				}

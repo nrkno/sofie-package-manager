@@ -185,12 +185,12 @@ export namespace WorkForceAppContainer {
 		) => Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }>
 		requestAppTypeForPackageContainer: (
 			packageContainer: PackageContainerExpectation
-		) => Promise<{ appType: string; cost: number } | null>
+		) => Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }>
 
 		spinUp: (
 			appType: 'worker' // | other
 		) => Promise<string>
-		spinDown: (appId: string) => Promise<void>
+		spinDown: (appId: string, reason: string) => Promise<void>
 		getRunningApps: () => Promise<{ appId: string; appType: string }[]>
 	}
 	/** Methods on WorkForce, called by AppContainer */

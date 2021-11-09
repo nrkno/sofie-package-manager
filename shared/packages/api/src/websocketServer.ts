@@ -12,7 +12,10 @@ export class WebsocketServer {
 		this.wss = new WebSocket.Server({ port: port })
 
 		this.wss.on('close', () => {
+			// The websocekt server is closed.
+
 			this.clients.forEach((client) => {
+				this.clients = []
 				client._onLostConnection()
 			})
 		})
@@ -23,12 +26,12 @@ export class WebsocketServer {
 			const client = new ClientConnection(ws, () => Promise.reject('Not setup yet'))
 			this.clients.push(client)
 
-			client.on('close', () => {
+			client.once('close', () => {
 				// Remove client from the list of clients
 				this.clients = this.clients.filter((c) => c !== client)
 			})
 
-			client.on('clientTypeReceived', () => {
+			client.once('clientTypeReceived', () => {
 				// client.clientType has now been set
 				this.onConnection(client)
 			})
@@ -50,7 +53,7 @@ export class WebsocketServer {
 
 export class ClientConnection extends WebsocketConnection {
 	private pingInterval: NodeJS.Timeout
-	private isAlive = true
+	private hasReceivedPingFromClient = true
 	public clientType: ClientType = 'N/A'
 	public clientId = 'N/A'
 
@@ -62,12 +65,12 @@ export class ClientConnection extends WebsocketConnection {
 		// Continuously ping the client:
 		this.pingInterval = setInterval(() => {
 			if (this.ws) {
-				if (this.isAlive === false) {
+				if (!this.hasReceivedPingFromClient) {
 					this.ws.terminate()
 					delete this.ws
 					this._onLostConnection()
 				} else {
-					this.isAlive = false
+					this.hasReceivedPingFromClient = false
 					this.ws.ping() // client will reply with 'pong'
 				}
 			} else {
@@ -76,7 +79,7 @@ export class ClientConnection extends WebsocketConnection {
 			}
 		}, PING_TIME)
 		this.ws.on('pong', () => {
-			this.isAlive = true
+			this.hasReceivedPingFromClient = true
 		})
 		this.ws.on('close', () => {
 			this._onLostConnection()
@@ -88,6 +91,7 @@ export class ClientConnection extends WebsocketConnection {
 				const ident = (message as unknown) as MessageIdentifyClient
 				this.clientType = ident.clientType
 				this.clientId = ident.id
+
 				this.emit('clientTypeReceived')
 			} else {
 				this.handleReceivedMessage(message)

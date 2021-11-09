@@ -68,9 +68,11 @@ export class Workforce {
 							clientConnection: client,
 						})
 						this.workerAgents[client.clientId] = { api }
-						client.on('close', () => {
+						client.once('close', () => {
+							this.logger.warn(`Workforce: Connection to Worker "${client.clientId}" closed`)
 							delete this.workerAgents[client.clientId]
 						})
+						this.logger.info(`Workforce: Connection to Worker "${client.clientId}" established`)
 						break
 					}
 					case 'expectationManager': {
@@ -80,9 +82,11 @@ export class Workforce {
 							clientConnection: client,
 						})
 						this.expectationManagers[client.clientId] = { api }
-						client.on('close', () => {
+						client.once('close', () => {
+							this.logger.warn(`Workforce: Connection to ExpectationManager "${client.clientId}" closed`)
 							delete this.expectationManagers[client.clientId]
 						})
+						this.logger.info(`Workforce: Connection to ExpectationManager "${client.clientId}" established`)
 						break
 					}
 					case 'appContainer': {
@@ -97,9 +101,11 @@ export class Workforce {
 							runningApps: [],
 							initialized: false,
 						}
-						client.on('close', () => {
+						client.once('close', () => {
+							this.logger.warn(`Workforce: Connection to AppContainer "${client.clientId}" closed`)
 							delete this.appContainers[client.clientId]
 						})
+						this.logger.info(`Workforce: Connection to AppContainer "${client.clientId}" established`)
 						break
 					}
 

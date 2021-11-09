@@ -45,12 +45,16 @@ export abstract class AdapterClient<ME, OTHER> extends EventEmitter {
 			this.conn = conn
 
 			conn.on('connected', () => {
-				this.logger.debug(`Websocket client connected ("${id}", ${this.clientType})`)
+				if (this.listenerCount('connected') === 0) {
+					this.logger.debug(`Websocket client connected ("${id}", ${this.clientType})`)
+				}
 				this.emit('connected')
 				this._connected = true
 			})
 			conn.on('disconnected', () => {
-				this.logger.debug(`Websocket client disconnected ("${id}", ${this.clientType})`)
+				if (this.listenerCount('disconnected') === 0) {
+					this.logger.debug(`Websocket client disconnected ("${id}", ${this.clientType})`)
+				}
 				this.emit('disconnected')
 				this._connected = false
 			})
