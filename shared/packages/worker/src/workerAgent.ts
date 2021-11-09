@@ -267,12 +267,16 @@ export class WorkerAgent {
 							// The job seems to have timed out.
 							// Expectation Manager will clean up on it's side, we have to do the same here.
 
-							this.logger.info(`WorkerAgent: Cancelling job ${currentJob.wipId} due to timeout`)
+							this.logger.info(
+								`WorkerAgent: Cancelling job ${currentJob.wipId} due to timeout (${timeout})`
+							)
 
 							this.cancelJob(currentJob.wipId).catch((error) => {
 								// Not much we can do about that error..
 								this.logger.error(
-									`WorkerAgent timeout watch: Error in cancelJob ${stringifyError(error)}`
+									`WorkerAgent: timeout watch: Error in cancelJob (${
+										currentJob.wipId
+									}) ${stringifyError(error)}`
 								)
 
 								// Ensure that the jop is removed, so that it wont block others:
@@ -309,7 +313,7 @@ export class WorkerAgent {
 						if (currentJob.cancelled) return // Don't send updates on cancelled work
 						currentJob.lastUpdated = Date.now()
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
-						this.logger.debug(
+						this.logger.warn(
 							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
 						)
 
@@ -353,7 +357,7 @@ export class WorkerAgent {
 					// worker.workOnExpectation() failed.
 
 					this.removeJob(currentJob)
-					this.logger.debug(
+					this.logger.warn(
 						`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to initial error. (${this.currentJobs.length})`
 					)
 

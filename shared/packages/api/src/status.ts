@@ -41,6 +41,8 @@ export interface ExpectationManagerStatus {
 		lastUpdated: number
 		workerId: string
 		cost: number
+		label: string
+		progress: number
 		expectationId: string
 	}[]
 }

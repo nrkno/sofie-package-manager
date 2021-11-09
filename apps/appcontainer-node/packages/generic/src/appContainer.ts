@@ -1,6 +1,7 @@
 import * as ChildProcess from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
+import _ from 'underscore'
 import {
 	LoggerInstance,
 	AppContainerProcessConfig,
@@ -16,6 +17,7 @@ import {
 	PackageContainerExpectation,
 	Reason,
 	stringifyError,
+	LeveledLogMethod,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
@@ -388,11 +390,12 @@ export class AppContainer {
 			cwd: cwd,
 		})
 
-		child.stdout?.on('data', (data) => {
-			this.logger.debug(`${appId} stdout: ${data}`)
+		child.stdout?.on('data', (message) => {
+			this.logFromApp(appId, appType, message, this.logger.debug)
 		})
-		child.stderr?.on('data', (data) => {
-			this.logger.debug(`${appId} stderr: ${data}`)
+		child.stderr?.on('data', (message) => {
+			this.logFromApp(appId, appType, message, this.logger.error)
+			// this.logger.debug(`${appId} stderr: ${message}`)
 		})
 		child.once('close', (code) => {
 			const app = this.apps[appId]
@@ -441,6 +444,29 @@ export class AppContainer {
 			while (this.getAppCount(appType) < this.config.appContainer.minRunningApps) {
 				await this.spinUp(appType)
 			}
+		}
+	}
+	private logFromApp(appId: string, appType: string, message: any, defaultLog: LeveledLogMethod): void {
+		try {
+			const json = JSON.parse(`${message}`)
+
+			if (typeof json === 'object') {
+				const logFcn =
+					json.level === 'error'
+						? this.logger.error
+						: json.level === 'warn'
+						? this.logger.warn
+						: json.level === 'info'
+						? this.logger.info
+						: defaultLog
+
+				delete json.message
+				delete json.localTimestamp
+				delete json.level
+				logFcn(`AppContainer: App "${appId}" (${appType}): ${json.message}`, _.isEmpty(json) ? undefined : json)
+			}
+		} catch (err) {
+			this.logger.debug(`${appId} stdout: ${message}`)
 		}
 	}
 }

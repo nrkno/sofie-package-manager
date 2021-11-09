@@ -250,7 +250,12 @@ export class CoreHandler {
 	executeFunction(cmd: PeripheralDeviceCommand): void {
 		if (cmd) {
 			if (this._executedFunctions[cmd._id]) return // prevent it from running multiple times
-			this.logger.debug(`Executing function "${cmd.functionName}", args: ${JSON.stringify(cmd.args)}`)
+
+			// Ignore specific commands, to reduce noise:
+			if (cmd.functionName !== 'getExpetationManagerStatus') {
+				this.logger.debug(`Executing function "${cmd.functionName}", args: ${JSON.stringify(cmd.args)}`)
+			}
+
 			this._executedFunctions[cmd._id] = true
 			const cb = (err: any, res?: any) => {
 				if (err) {

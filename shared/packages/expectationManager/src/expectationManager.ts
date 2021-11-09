@@ -89,6 +89,7 @@ export class ExpectationManager {
 			workerId: string
 			worker: WorkerAgentAPI
 			cost: number
+			startCost: number
 			lastUpdated: number
 		}
 	} = {}
@@ -396,6 +397,7 @@ export class ExpectationManager {
 					wip.lastUpdated = Date.now()
 					if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 						wip.trackedExp.status.actualVersionHash = actualVersionHash
+						wip.trackedExp.status.workProgress = 1
 						this.updateTrackedExpStatus(
 							wip.trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
@@ -1001,7 +1003,8 @@ export class ExpectationManager {
 							trackedExp: trackedExp,
 							workerId: assignedWorker.id,
 							worker: assignedWorker.worker,
-							cost: assignedWorker.cost,
+							cost: assignedWorker.cost.cost,
+							startCost: assignedWorker.cost.startCost,
 							lastUpdated: Date.now(),
 						}
 
@@ -1221,7 +1224,10 @@ export class ExpectationManager {
 			trackedExp.reason = reason
 			updatedReason = true
 
-			trackedExp.prevStatusReasons[trackedExp.state] = trackedExp.reason
+			trackedExp.prevStatusReasons[trackedExp.state] = {
+				user: trackedExp.reason.user,
+				tech: `${trackedExp.reason.tech} | ${new Date().toLocaleTimeString()}`,
+			}
 		}
 		const status = Object.assign({}, trackedExp.status, newStatus) // extend with new values
 		if (!_.isEqual(trackedExp.status, status)) {
@@ -1353,6 +1359,10 @@ export class ExpectationManager {
 			session.assignedWorker = bestWorker
 			trackedExp.noWorkerAssignedTime = null
 		} else {
+			if (bestWorker) {
+				noCostReason += `, startCost=${bestWorker.cost.startCost}`
+			}
+
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker (${
 					Object.keys(trackedExp.availableWorkers).length
@@ -1785,6 +1795,8 @@ export class ExpectationManager {
 					lastUpdated: wip.lastUpdated,
 					workerId: wip.workerId,
 					cost: wip.cost,
+					label: wip.trackedExp.exp.statusReport.label,
+					progress: wip.trackedExp.status.workProgress || 0,
 					expectationId: wip.trackedExp.id,
 				}
 			}),

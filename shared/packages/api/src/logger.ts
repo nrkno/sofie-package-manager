@@ -4,6 +4,7 @@ import { ProcessConfig } from './config'
 export interface LoggerInstance extends Winston.LoggerInstance {
 	warning: never // logger.warning is not a function
 }
+export type LeveledLogMethod = Winston.LeveledLogMethod
 
 /** Sets up logging for a process. Intended to be run when a new process is started. */
 export function setupLogging(config: { process: ProcessConfig }): LoggerInstance {
