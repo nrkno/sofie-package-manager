@@ -161,6 +161,11 @@ export class AppContainer {
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
 				`--appContainerURL=${'ws://127.0.0.1:' + this.websocketServer?.port}`,
 
+				this.config.process.unsafeSSL ? '--unsafeSSL=true' : '',
+				this.config.process.certificates.length
+					? `--certificates=${this.config.process.certificates.join(';')}`
+					: '',
+
 				this.config.appContainer.worker.windowsDriveLetters
 					? `--windowsDriveLetters=${this.config.appContainer.worker.windowsDriveLetters?.join(';')}`
 					: '',
