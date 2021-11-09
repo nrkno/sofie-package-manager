@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events'
 import { LoggerInstance } from './logger'
 import { WebsocketClient } from './websocketClient'
 import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
@@ -7,7 +8,7 @@ import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
  * or (in the case where they run in the same process) hook directly into the AdapterServer, to call the methods directly.
  * @see {@link ./adapterServer.ts}
  */
-export abstract class AdapterClient<ME, OTHER> {
+export abstract class AdapterClient<ME, OTHER> extends EventEmitter {
 	/** Used for internal connections */
 	private serverHook?: Hook<OTHER, ME>
 
@@ -15,10 +16,14 @@ export abstract class AdapterClient<ME, OTHER> {
 		throw new Error('.init() must be called first!')
 	}
 
-	constructor(protected logger: LoggerInstance, private clientType: MessageIdentifyClient['clientType']) {}
+	constructor(protected logger: LoggerInstance, private clientType: MessageIdentifyClient['clientType']) {
+		super()
+	}
 
 	private conn?: WebsocketClient
 	private terminated = false
+
+	private _connected = false
 
 	async init(id: string, connectionOptions: ClientConnectionOptions, clientMethods: ME): Promise<void> {
 		if (connectionOptions.type === 'websocket') {
@@ -40,10 +45,14 @@ export abstract class AdapterClient<ME, OTHER> {
 			this.conn = conn
 
 			conn.on('connected', () => {
-				this.logger.debug('Websocket client connected')
+				this.logger.debug(`Websocket client connected ("${id}", ${this.clientType})`)
+				this.emit('connected')
+				this._connected = true
 			})
 			conn.on('disconnected', () => {
-				this.logger.debug('Websocket client disconnected')
+				this.logger.debug(`Websocket client disconnected ("${id}", ${this.clientType})`)
+				this.emit('disconnected')
+				this._connected = false
 			})
 			this._sendMessage = ((type: string, ...args: any[]) => conn.send(type, ...args)) as any
 
@@ -73,6 +82,9 @@ export abstract class AdapterClient<ME, OTHER> {
 		this.terminated = true
 		this.conn?.close()
 		delete this.serverHook
+	}
+	get connected(): boolean {
+		return this._connected
 	}
 }
 /** Options for an AdepterClient */

@@ -108,6 +108,7 @@ export class AppContainer {
 		}
 
 		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		if (!this.workforceAPI.connected) throw new Error('AppContainer: Workforce not connected')
 
 		this.logger.info(`AppContainer: Connected to Workforce"`)
 

@@ -135,11 +135,14 @@ export class ExpectationManager {
 							type: 'websocket',
 							clientConnection: client,
 						})
-						this.workerAgents[client.clientId] = { api }
+						this.workerAgents[client.clientId] = { api, connected: true }
 						client.on('close', () => {
+							this.logger.debug(`ExpectationManager: Connection to Worker "${client.clientId}" closed`)
+
+							this.workerAgents[client.clientId].connected = false
 							delete this.workerAgents[client.clientId]
 						})
-
+						this.logger.debug(`ExpectationManager: Connection to Worker "${client.clientId}" established`)
 						this._triggerEvaluateExpectations(true)
 						break
 					}
@@ -226,7 +229,7 @@ export class ExpectationManager {
 				type: 'internal',
 				hookMethods: clientMethods,
 			})
-			this.workerAgents[clientId] = { api }
+			this.workerAgents[clientId] = { api, connected: true }
 
 			return workerAgentMethods
 		}
@@ -238,6 +241,7 @@ export class ExpectationManager {
 		if (workerAgent.api.type !== 'internal')
 			throw new Error(`Cannot remove WorkerAgent "${clientId}", due to the type being "${workerAgent.api.type}"`)
 
+		workerAgent.connected = false
 		delete this.workerAgents[clientId]
 	}
 	/** Called when there is an updated set of PackageContainerExpectations. */
@@ -295,7 +299,7 @@ export class ExpectationManager {
 	}
 	async getStatus(): Promise<any> {
 		return {
-			workforce: await this.workforceAPI.getStatus(),
+			workforce: this.workforceAPI.connected ? await this.workforceAPI.getStatus() : {},
 			expectationManager: this.status,
 		}
 	}
@@ -824,6 +828,8 @@ export class ExpectationManager {
 				let hasQueriedAnyone = false
 				await Promise.all(
 					Object.entries(this.workerAgents).map(async ([workerId, workerAgent]) => {
+						if (!workerAgent.connected) return
+
 						// Only ask each worker once:
 						if (
 							!trackedExp.queriedWorkers[workerId] ||
@@ -1513,7 +1519,7 @@ export class ExpectationManager {
 				const trackedPackageContainer = this.trackedPackageContainers[containerId]
 				if (trackedPackageContainer.currentWorker) {
 					const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
-					if (workerAgent) {
+					if (workerAgent && workerAgent.connected) {
 						try {
 							const result = await workerAgent.api.disposePackageContainerMonitors(containerId)
 							if (result.success) {
@@ -1553,16 +1559,20 @@ export class ExpectationManager {
 					// If the packageContainer was newly updated, reset and set up again:
 					if (trackedPackageContainer.currentWorker) {
 						const workerAgent = this.workerAgents[trackedPackageContainer.currentWorker]
-						const disposeMonitorResult = await workerAgent.api.disposePackageContainerMonitors(
-							trackedPackageContainer.id
-						)
-						if (!disposeMonitorResult.success) {
-							badStatus = true
-							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
-								user: `Unable to restart monitor, due to ${disposeMonitorResult.reason.user}`,
-								tech: `Unable to restart monitor: ${disposeMonitorResult.reason.tech}`,
-							})
-							continue // Break further execution for this PackageContainer
+						if (workerAgent && workerAgent.connected) {
+							const disposeMonitorResult = await workerAgent.api.disposePackageContainerMonitors(
+								trackedPackageContainer.id
+							)
+							if (!disposeMonitorResult.success) {
+								badStatus = true
+								this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+									user: `Unable to restart monitor, due to ${disposeMonitorResult.reason.user}`,
+									tech: `Unable to restart monitor: ${disposeMonitorResult.reason.tech}`,
+								})
+								continue // Break further execution for this PackageContainer
+							}
+						} else {
+							// Lost connecttion to the worker & monitor
 						}
 						trackedPackageContainer.currentWorker = null
 					}
@@ -1580,7 +1590,9 @@ export class ExpectationManager {
 
 					let notSupportReason: Reason | null = null
 					await Promise.all(
-						Object.entries(this.workerAgents).map(async ([workerId, workerAgent]) => {
+						Object.entries(this.workerAgents).map<Promise<void>>(async ([workerId, workerAgent]) => {
+							if (!workerAgent.connected) return
+
 							const support = await workerAgent.api.doYouSupportPackageContainer(
 								trackedPackageContainer.packageContainer
 							)
@@ -1934,6 +1946,7 @@ export type ExpectationManagerServerOptions =
 
 interface TrackedWorkerAgent {
 	api: WorkerAgentAPI
+	connected: boolean
 }
 
 interface TrackedExpectation {

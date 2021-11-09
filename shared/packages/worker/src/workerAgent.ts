@@ -520,12 +520,22 @@ export class WorkerAgent {
 				// Don's spin down if a monitor is active
 				if (!Object.keys(this.activeMonitors).length) {
 					this.logger.info(`Worker: is idle, requesting spinning down`)
-					this.appContainerAPI.requestSpinDown()
+
+					if (this.appContainerAPI.connected) {
+						this.appContainerAPI.requestSpinDown()
+					} else {
+						// Huh, we're not connected to the appContainer.
+						// Well, we want to spin down anyway, so we'll do it:
+						// eslint-disable-next-line no-process-exit
+						process.exit(54)
+					}
 				}
 			}
 		}
 		// Also ping the AppContainer
-		this.appContainerAPI.ping()
+		if (this.appContainerAPI.connected) {
+			this.appContainerAPI.ping()
+		}
 	}
 	private IDidSomeWork() {
 		this.lastWorkTime = Date.now()

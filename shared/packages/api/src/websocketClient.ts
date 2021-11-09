@@ -54,7 +54,9 @@ export class WebsocketClient extends WebsocketConnection {
 
 				resolve()
 			})
-			setTimeout(reject, 3000) // connection timeout
+			setTimeout(() => {
+				reject('Connection timeout')
+			}, 3000) // connection timeout
 		})
 	}
 	close(): void {
