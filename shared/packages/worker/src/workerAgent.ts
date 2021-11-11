@@ -318,24 +318,28 @@ export class WorkerAgent {
 								currentJob.timeoutInterval = null
 							}
 
+							// Ensure that the job is removed, so that it won't block others:
+							this.removeJob(currentJob)
+
 							Promise.race([
 								this.cancelJob(currentJob.wipId),
-								new Promise((resolve) => {
-									setTimeout(resolve, 3000)
-								}),
-							])
-								.catch((error) => {
-									// Not much we can do about that error..
-									this.logger.error(
-										`WorkerAgent: timeout watch: Error in cancelJob (${
-											currentJob.wipId
-										}) ${stringifyError(error)}`
+								new Promise((_, reject) => {
+									setTimeout(
+										() =>
+											reject(
+												`Timeout when cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId})`
+											),
+										1000
 									)
-								})
-								.finally(() => {
-									// Ensure that the job is removed, so that it won't block others:
-									this.removeJob(currentJob)
-								})
+								}),
+							]).catch((error) => {
+								// Not much we can do about that error..
+								this.logger.error(
+									`WorkerAgent: timeout watch: Error in cancelJob (${
+										currentJob.wipId
+									}) ${stringifyError(error)}`
+								)
+							})
 						}
 					}, 1000),
 				}
