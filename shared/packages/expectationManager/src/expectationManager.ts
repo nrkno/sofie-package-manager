@@ -119,6 +119,8 @@ export class ExpectationManager {
 			WORKER_SUPPORT_TIME: 60 * 1000,
 			ERROR_WAIT_TIME: 10 * 1000,
 
+			FAILED_REMOVE_COUNT: 2,
+
 			...options?.constants,
 		}
 		this.workforceAPI = new WorkforceAPI(this.logger)
@@ -570,6 +572,7 @@ export class ExpectationManager {
 					noWorkerAssignedTime: null,
 					errorCount: 0,
 					lastErrorTime: 0,
+					errorOnRemoveCount: 0,
 					reason: {
 						user: '',
 						tech: '',
@@ -1123,11 +1126,18 @@ export class ExpectationManager {
 				await this.assignWorkerToSession(trackedExp)
 				if (trackedExp.session.assignedWorker) {
 					const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
-					if (removed.removed) {
+					if (
+						// Check if the removal was successful:
+						removed.removed ||
+						// If the removal was unsuccessful, we only allow re-tries a certain amount of times:
+						trackedExp.errorOnRemoveCount > this.constants.FAILED_REMOVE_COUNT
+					) {
 						trackedExp.session.expectationCanBeRemoved = true
 
 						this.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
 					} else {
+						trackedExp.errorOnRemoveCount++
+
 						// Something went wrong when trying to handle the removal.
 						this.updateTrackedExpStatus(
 							trackedExp,
@@ -1967,6 +1977,9 @@ export interface ExpectationManagerConstants {
 
 	/** How long to wait in case of an expectation error before trying again [ms] */
 	ERROR_WAIT_TIME: number
+
+	/** How many times to try to remove a package upon fail */
+	FAILED_REMOVE_COUNT: number
 }
 export type ExpectationManagerServerOptions =
 	| {
@@ -2012,6 +2025,8 @@ interface TrackedExpectation {
 	errorCount: number
 	/** Timestamp to track the last time an error happened on the expectation */
 	lastErrorTime: number
+	/** How many times the Expectation failed to be Removed */
+	errorOnRemoveCount: number
 
 	/** These statuses are sent from the workers */
 	status: {
