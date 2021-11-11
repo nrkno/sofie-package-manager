@@ -97,6 +97,7 @@ export class ExpectationManager {
 
 	private status: ExpectationManagerStatus
 	private serverAccessUrl = ''
+	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 
 	constructor(
 		private logger: LoggerInstance,
@@ -130,9 +131,15 @@ export class ExpectationManager {
 		this.workforceAPI.on('connected', () => {
 			this.logger.info('ExpectationManager: Workforce connected')
 
-			this.workforceAPI.registerExpectationManager(this.managerId, this.serverAccessUrl).catch((err) => {
-				this.logger.error(`ExpectationManager: Error in registerExpectationManager: ${stringifyError(err)}`)
-			})
+			this.workforceAPI
+				.registerExpectationManager(this.managerId, this.serverAccessUrl)
+				.then(() => {
+					this.initWorkForceAPIPromise?.resolve() // To finish the init() function
+				})
+				.catch((err) => {
+					this.logger.error(`ExpectationManager: Error in registerExpectationManager: ${stringifyError(err)}`)
+					this.initWorkForceAPIPromise?.reject(err)
+				})
 		})
 
 		this.status = this.updateStatus()
@@ -194,6 +201,13 @@ export class ExpectationManager {
 		await this.workforceAPI.init(this.managerId, this.workForceConnectionOptions, this)
 
 		this._triggerEvaluateExpectations(true)
+
+		// Wait for the this.workforceAPI to be ready before continuing:
+		await new Promise<void>((resolve, reject) => {
+			this.initWorkForceAPIPromise = { resolve, reject }
+		})
+
+		this.logger.info(`ExpectationManager: Initialized"`)
 	}
 	/** Used to hook into methods of Workforce directly (this is done when the server and client runs in the same process). */
 	hookToWorkforce(

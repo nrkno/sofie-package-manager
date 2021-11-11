@@ -63,6 +63,8 @@ export class WorkerAgent {
 	private intervalCheckTimer: NodeJS.Timer | null = null
 	private lastWorkTime = 0
 	private activeMonitors: { [containerId: string]: { [monitorId: string]: MonitorInProgress } } = {}
+	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
+	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 
 	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
 		this.workforceAPI = new WorkforceAPI(this.logger)
@@ -80,8 +82,12 @@ export class WorkerAgent {
 					}
 					await this.updateListOfExpectationManagers(list)
 				})
+				.then(() => {
+					this.initWorkForceAPIPromise?.resolve() // To finish the init() function
+				})
 				.catch((err) => {
 					this.logger.error(`Worker: Error in async connected function: ${stringifyError(err)}`)
+					this.initWorkForceAPIPromise?.reject(err)
 				})
 		})
 
@@ -91,6 +97,7 @@ export class WorkerAgent {
 		})
 		this.appContainerAPI.on('connected', () => {
 			this.logger.info('Worker: AppContainer connected')
+			this.initAppContainerAPIPromise?.resolve() // To finish the init() function
 		})
 
 		this.id = config.worker.workerId
@@ -135,6 +142,10 @@ export class WorkerAgent {
 			this.logger.info(`Worker: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
 		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		// Wait for this.workforceAPI to be ready before continuing:
+		await new Promise<void>((resolve, reject) => {
+			this.initWorkForceAPIPromise = { resolve, reject }
+		})
 
 		// Connect to AppContainer (if applicable)
 		if (this.appContainerConnectionOptions) {
@@ -142,6 +153,10 @@ export class WorkerAgent {
 				this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
 			}
 			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
+			// Wait for this.appContainerAPI to be ready before continuing:
+			new Promise<void>((resolve, reject) => {
+				this.initAppContainerAPIPromise = { resolve, reject }
+			})
 		}
 
 		this.IDidSomeWork()

@@ -76,6 +76,10 @@ export abstract class AdapterClient<ME, OTHER> extends EventEmitter {
 					throw new Error(`Unknown method "${type}"`)
 				}
 			}
+			setTimeout(() => {
+				this.emit('connected')
+				this._connected = true
+			}, 1)
 		}
 	}
 	/** Used to hook into methods of the AdapterServer directly. Used when the server and client runs in the same process. */

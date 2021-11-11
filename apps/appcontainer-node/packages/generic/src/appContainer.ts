@@ -50,6 +50,7 @@ export class AppContainer {
 	private websocketServer?: WebsocketServer
 
 	private monitorAppsTimer: NodeJS.Timer | undefined
+	private initWorkForceApiPromise?: { resolve: () => void; reject: (reason: any) => void }
 
 	constructor(private logger: LoggerInstance, private config: AppContainerProcessConfig) {
 		if (config.appContainer.port !== null) {
@@ -109,8 +110,12 @@ export class AppContainer {
 						}
 					})
 				)
+				.then(() => {
+					this.initWorkForceApiPromise?.resolve() // To finish the init() function
+				})
 				.catch((err) => {
 					this.logger.error(`AppContainer: Error in registerAvailableApps: ${stringifyError(err)}`)
+					this.initWorkForceApiPromise?.reject(err)
 				})
 		})
 
@@ -138,6 +143,11 @@ export class AppContainer {
 			this.monitorApps()
 		}, APPCONTAINER_PING_TIME)
 		this.monitorApps() // Also run right away
+
+		// Wait for the this.workforceAPI to be ready before continuing:
+		await new Promise<void>((resolve, reject) => {
+			this.initWorkForceApiPromise = { resolve, reject }
+		})
 
 		this.logger.info(`AppContainer: Initialized"`)
 	}
