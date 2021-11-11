@@ -104,7 +104,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 				success: false,
 				reason: {
 					user: `File doesn't exist`,
-					tech: `Not able to access file: ${stringifyError(err)}`,
+					tech: `Not able to access file: ${stringifyError(err, true)}`,
 				},
 			}
 		}
@@ -121,14 +121,14 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
-					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err)}` },
+					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err, true)}` },
 				}
 			} else if (err && (err as any).code === 'ENOENT') {
-				return { success: false, reason: { user: `File does not exist`, tech: `${stringifyError(err)}` } }
+				return { success: false, reason: { user: `File does not exist`, tech: `${stringifyError(err, true)}` } }
 			} else {
 				return {
 					success: false,
-					reason: { user: `Not able to read file`, tech: `${stringifyError(err)}` },
+					reason: { user: `Not able to read file`, tech: `${stringifyError(err, true)}` },
 				}
 			}
 		}
@@ -144,7 +144,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 				success: false,
 				reason: {
 					user: `Not able to write to container folder`,
-					tech: `Not able to write to container folder: ${stringifyError(err)}`,
+					tech: `Not able to write to container folder: ${stringifyError(err, true)}`,
 				},
 			}
 		}
@@ -323,7 +323,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 				success: false,
 				reason: {
 					user: `Not able to read from container folder`,
-					tech: `Not able to read from container folder: ${stringifyError(err)}`,
+					tech: `Not able to read from container folder: ${stringifyError(err, true)}`,
 				},
 			}
 		}
