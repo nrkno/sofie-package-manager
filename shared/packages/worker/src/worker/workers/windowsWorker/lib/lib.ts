@@ -1,11 +1,6 @@
-import {
-	AccessorOnPackage,
-	PackageContainer,
-	PackageContainerOnPackage,
-} from '@sofie-automation/blueprints-integration'
 import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
 import { GenericWorker } from '../../../worker'
-import { Expectation } from '@shared/api'
+import { AccessorOnPackage, PackageContainer, PackageContainerOnPackage, Expectation } from '@shared/api'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { AccessorHandlerResult } from '../../../accessorHandlers/genericHandle'
 

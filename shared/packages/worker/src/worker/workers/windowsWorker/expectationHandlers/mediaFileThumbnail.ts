@@ -1,5 +1,5 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
 import {
+	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,

@@ -280,7 +280,9 @@ describe('Handle unhappy paths', () => {
 		await waitTime(env.WORK_TIMEOUT_TIME)
 		await waitTime(env.WAIT_JOB_TIME)
 		// By now, the work should have been aborted, and restarted:
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(
+			expect.stringMatching(/new|waiting|fulfilled/)
+		)
 
 		await waitTime(env.WAIT_SCAN_TIME)
 

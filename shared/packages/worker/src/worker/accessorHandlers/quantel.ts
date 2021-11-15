@@ -1,4 +1,3 @@
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { QuantelGateway } from 'tv-automation-quantel-gateway-client'
 import {
 	GenericAccessorHandle,
@@ -9,7 +8,7 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, literal, Reason } from '@shared/api'
+import { Accessor, AccessorOnPackage, Expectation, literal, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 

@@ -1,5 +1,4 @@
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
-import { assertNever } from '@shared/api'
+import { assertNever, Accessor, AccessorOnPackage } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'

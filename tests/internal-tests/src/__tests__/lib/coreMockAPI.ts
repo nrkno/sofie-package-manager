@@ -1,4 +1,4 @@
-import { ExpectedPackage } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackage } from '@shared/api'
 
 export class CoreMockAPI {
 	packageInfos: {

@@ -1,5 +1,4 @@
-import { Expectation, literal } from '@shared/api'
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
+import { Accessor, AccessorOnPackage, Expectation, literal } from '@shared/api'
 
 export function getLocalSource(
 	containerId: string,

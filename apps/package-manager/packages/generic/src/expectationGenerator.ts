@@ -1,4 +1,3 @@
-import { Accessor, ExpectedPackage, PackageContainer } from '@sofie-automation/blueprints-integration'
 import {
 	ActivePlaylist,
 	ActiveRundown,
@@ -6,7 +5,16 @@ import {
 	PackageContainers,
 	PackageManagerSettings,
 } from './packageManager'
-import { Expectation, hashObj, PackageContainerExpectation, literal, LoggerInstance } from '@shared/api'
+import {
+	Accessor,
+	ExpectedPackage,
+	PackageContainer,
+	Expectation,
+	hashObj,
+	PackageContainerExpectation,
+	literal,
+	LoggerInstance,
+} from '@shared/api'
 
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
@@ -382,7 +390,7 @@ function generateMediaFileCopy(
 		},
 
 		endRequirement: {
-			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.File],
+			targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
 			content: expWrapMediaFile.expectedPackage.content,
 			version: {
 				type: Expectation.Version.Type.FILE_ON_DISK,
@@ -782,7 +790,7 @@ function generateJsonDataCopy(
 		},
 
 		endRequirement: {
-			targets: expWrapMediaFile.targets as [Expectation.SpecificPackageContainerOnPackage.File],
+			targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
 			content: expWrapMediaFile.expectedPackage.content,
 			version: {
 				type: Expectation.Version.Type.FILE_ON_DISK,

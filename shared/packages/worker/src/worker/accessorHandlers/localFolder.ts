@@ -1,14 +1,21 @@
 import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import {
 	PackageReadInfo,
 	PutPackageHandler,
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever, Reason, stringifyError } from '@shared/api'
+import {
+	Accessor,
+	AccessorOnPackage,
+	Expectation,
+	PackageContainerExpectation,
+	assertNever,
+	Reason,
+	stringifyError,
+} from '@shared/api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'

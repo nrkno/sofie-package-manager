@@ -1,5 +1,6 @@
 import _ from 'underscore'
 import {
+	StatusCode,
 	Expectation,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ClientConnectionOptions,
@@ -17,7 +18,7 @@ import {
 	deepEqual,
 	stringifyError,
 } from '@shared/api'
-import { ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 import PromisePool from '@supercharge/promise-pool'

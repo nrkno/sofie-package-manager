@@ -1,5 +1,4 @@
-import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
-import { assertNever } from '@shared/api'
+import { Accessor, AccessorOnPackage, PackageContainerOnPackage, assertNever } from '@shared/api'
 
 // TODO: This should be changed at some point,
 // as the "cost" isn't really for a source or a target, but rather for the combination of the two as a pair.

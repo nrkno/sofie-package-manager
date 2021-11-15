@@ -1,4 +1,3 @@
-import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
 import { roboCopyFile } from '../lib/robocopy'
 // import { diff } from 'deep-diff'
@@ -11,6 +10,9 @@ import {
 } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
+	AccessorOnPackage,
+	PackageContainerOnPackage,
 	hashObj,
 	waitTime,
 	Expectation,

@@ -1,11 +1,16 @@
-import { AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 import { getAccessorHandle } from '../../../accessorHandlers/accessor'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { Diff } from 'deep-diff'
-import { Expectation, Reason, ReturnTypeDoYouSupportExpectation } from '@shared/api'
+import {
+	AccessorOnPackage,
+	PackageContainerOnPackage,
+	Expectation,
+	Reason,
+	ReturnTypeDoYouSupportExpectation,
+} from '@shared/api'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainersOnPackage(

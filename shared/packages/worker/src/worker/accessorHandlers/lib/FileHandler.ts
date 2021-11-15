@@ -2,6 +2,10 @@ import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
 import {
+	ExpectedPackage,
+	StatusCode,
+	Accessor,
+	AccessorOnPackage,
 	Expectation,
 	hashObj,
 	literal,
@@ -12,7 +16,7 @@ import {
 } from '@shared/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
-import { Accessor, AccessorOnPackage, ExpectedPackage, StatusCode } from '@sofie-automation/blueprints-integration'
+
 import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
 

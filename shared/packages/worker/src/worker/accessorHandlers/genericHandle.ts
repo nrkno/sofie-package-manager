@@ -1,6 +1,5 @@
-import { AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import { EventEmitter } from 'events'
-import { Expectation, PackageContainerExpectation, Reason } from '@shared/api'
+import { AccessorOnPackage, Expectation, PackageContainerExpectation, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 

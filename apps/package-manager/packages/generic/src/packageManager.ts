@@ -1,15 +1,7 @@
 import _ from 'underscore'
 import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
-import {
-	Accessor,
-	AccessorOnPackage,
-	ExpectedPackage,
-	ExpectedPackageStatusAPI,
-	PackageContainer,
-	PackageContainerOnPackage,
-	StatusCode,
-} from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
 import {
 	ExpectationManager,
@@ -17,6 +9,10 @@ import {
 	ExpectationManagerServerOptions,
 } from '@shared/expectation-manager'
 import {
+	ExpectedPackage,
+	PackageContainer,
+	PackageContainerOnPackage,
+	StatusCode,
 	ClientConnectionOptions,
 	Expectation,
 	ExpectationManagerWorkerAgent,
@@ -27,6 +23,8 @@ import {
 	Reason,
 	deepEqual,
 	stringifyError,
+	Accessor,
+	AccessorOnPackage,
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -233,6 +231,7 @@ export class PackageManagerHandler {
 					}
 				}
 			}
+			console.log('expectedPackages', expectedPackages)
 
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
 		}, 300)

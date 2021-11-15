@@ -1,4 +1,3 @@
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import {
 	GenericAccessorHandle,
 	PackageReadInfo,
@@ -7,7 +6,7 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
+import { Accessor, AccessorOnPackage, Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import fetch from 'node-fetch'
 import FormData from 'form-data'
