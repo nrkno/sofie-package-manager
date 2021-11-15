@@ -1478,13 +1478,13 @@
     tslib "^2.0.3"
     underscore "1.12.0"
 
-"@sofie-automation/blueprints-integration@1.37.0-nightly-release37-20211008-102301-5f72ed0.0":
-  version "1.37.0-nightly-release37-20211008-102301-5f72ed0.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.37.0-nightly-release37-20211008-102301-5f72ed0.0.tgz#701f0145a1cd246cc54c04bf426075a77ca0427b"
-  integrity sha512-9Lo3DWWQaOOIpnVW1s0fsoIcg/Y9UCt67+MmbgZg49VPPOzlN//EBkf8c3vDjSnIh2Met8tAp7IU8qSkzxbzhQ==
+"@sofie-automation/blueprints-integration@1.38.0-nightly-release38-20211115-151546-8ab1588.0":
+  version "1.38.0-nightly-release38-20211115-151546-8ab1588.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.38.0-nightly-release38-20211115-151546-8ab1588.0.tgz#eb1bbd59df7d739f44f97c8ac0711c6a3fb06b8d"
+  integrity sha512-saLg6fD4XGb9EFRCkYTuprC1wy5QhrPUMzv5KA7FL9CgpEmTn6IE2ru0E7DRfh26SOwOPbUwDs6gwtqKvWrLqw==
   dependencies:
     moment "2.29.1"
-    timeline-state-resolver-types "6.2.0-nightly-release37-20210920-094335-6d1ddb522.0"
+    timeline-state-resolver-types "6.3.0-nightly-release38-20211022-090801-9264c02ad.0"
     tslib "^2.3.1"
     underscore "1.13.1"
 
@@ -1507,10 +1507,10 @@
     read-pkg-up "^7.0.1"
     shelljs "^0.8.4"
 
-"@sofie-automation/server-core-integration@1.37.0-nightly-release37-20211008-102301-5f72ed0.0":
-  version "1.37.0-nightly-release37-20211008-102301-5f72ed0.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.37.0-nightly-release37-20211008-102301-5f72ed0.0.tgz#5daf2a47de8c6f7bceaaec69d39fc007f591d554"
-  integrity sha512-KvlYVDe2NTEEpcH/aqQ9nWhYTAvz7cAXedwrVqHksJm2oRj6Y3bQsDqGcQlsOvrh1vbbxjdmueOF7n01PEMaOQ==
+"@sofie-automation/server-core-integration@1.38.0-nightly-release38-20211115-151546-8ab1588.0":
+  version "1.38.0-nightly-release38-20211115-151546-8ab1588.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.38.0-nightly-release38-20211115-151546-8ab1588.0.tgz#71cf5a370595e457a0e05d94d976c0ed1390a8c4"
+  integrity sha512-MeuxRCfiu44+dJS+0d8UO7cSA8/754rIhGyAgz4rVPWToaQXi5+UCDWTWZR2GKVj9oONZW6kP5rMwqUoxPU4Xw==
   dependencies:
     data-store "^4.0.3"
     ejson "^2.2.0"
@@ -9665,10 +9665,10 @@ timeline-state-resolver-types@5.5.1:
   dependencies:
     tslib "^1.13.0"
 
-timeline-state-resolver-types@6.2.0-nightly-release37-20210920-094335-6d1ddb522.0:
-  version "6.2.0-nightly-release37-20210920-094335-6d1ddb522.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-6.2.0-nightly-release37-20210920-094335-6d1ddb522.0.tgz#bc1979d7a41a6734b5ad007894d760306a874f0b"
-  integrity sha512-6Vy5A0nYD7zYiW2W7OmG3bz+UNkyzKh9EUYOgyfCgLJV69Cq1Ofg8TYMyYQqAQvQCNUJHcLYk2woBgV6pefg+g==
+timeline-state-resolver-types@6.3.0-nightly-release38-20211022-090801-9264c02ad.0:
+  version "6.3.0-nightly-release38-20211022-090801-9264c02ad.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-6.3.0-nightly-release38-20211022-090801-9264c02ad.0.tgz#9290366d1d3858f5bf0e0904f1acaaa8607d3885"
+  integrity sha512-CFMTieMbR54Zpp2rumC/xvzXu0FHU2Hyx+AiBoskLTg8aVBoWttbddhCAql9r0KLUxzSHrp6hJOsP+scnlXHrA==
   dependencies:
     tslib "^2.3.1"
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { ExpectedPackage, ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -14,6 +14,7 @@ import {
 } from './worker'
 import { WorkforceStatus } from './status'
 import { LogLevel } from './logger'
+import { ExpectedPackage, StatusCode } from './inputApi'
 
 /** Contains textual descriptions for statuses. */
 export type Reason = ExpectedPackageStatusAPI.Reason

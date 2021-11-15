@@ -104,3 +104,33 @@ export function stringifyError(error: unknown, noStack = false): string {
 	}
 	return str
 }
+/**
+ * Results in a _true_ type if the provided types are identical.
+ * https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
+ */
+export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
+
+/**
+ * Results in a _true_ type if the Enum A extends enum B
+ * Usage: EnumExtends<typeof A, typeof B>
+ */
+export type EnumExtends<A, B> = keyof B extends keyof A ? true : false
+
+/** Assert that the values in enum a is present in enum b */
+export function assertEnumValuesExtends(
+	checkedEnum: { [key: string]: any },
+	extendedEnum: { [key: string]: any }
+): void {
+	for (const key in extendedEnum) {
+		if (checkedEnum[key] !== extendedEnum[key]) {
+			throw new Error(`${key} is not equal`)
+		}
+	}
+}
+
+/** (Type-check) Assert that the type provided is true. */
+// @ts-expect-error T is never used
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function assertTrue<T extends true>(): void {
+	// Nothing, this is a type guard only
+}

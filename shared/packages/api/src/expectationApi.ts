@@ -1,8 +1,5 @@
-import {
-	ExpectedPackageStatusAPI,
-	AccessorOnPackage,
-	PackageContainerOnPackage,
-} from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+import { AccessorOnPackage, PackageContainerOnPackage } from './inputApi'
 
 /*
  * This file contains definitions for Expectations, the internal datastructure upon which the Package Manager operates.
@@ -95,10 +92,10 @@ export namespace Expectation {
 		type: Type.FILE_COPY
 
 		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.File[]
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.File]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
@@ -111,12 +108,12 @@ export namespace Expectation {
 		type: Type.PACKAGE_SCAN
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets'] | QuantelClipCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
 			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.CorePackage]
+			targets: SpecificPackageContainerOnPackage.CorePackage[]
 			content: null // not using content, entries are stored using this.fromPackages
 			version: null
 		}
@@ -127,12 +124,12 @@ export namespace Expectation {
 		type: Type.PACKAGE_DEEP_SCAN
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets'] | QuantelClipCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
 			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.CorePackage]
+			targets: SpecificPackageContainerOnPackage.CorePackage[]
 			content: null // not using content, entries are stored using this.fromPackages
 			version: {
 				/** Enable field order detection. An expensive chcek that decodes the start of the video */
@@ -169,12 +166,12 @@ export namespace Expectation {
 		type: Type.MEDIA_FILE_THUMBNAIL
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 			content: FileCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
@@ -187,12 +184,12 @@ export namespace Expectation {
 		type: Type.MEDIA_FILE_PREVIEW
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 			content: FileCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
@@ -209,7 +206,7 @@ export namespace Expectation {
 			sources: SpecificPackageContainerOnPackage.QuantelClip[]
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.QuantelClip]
+			targets: SpecificPackageContainerOnPackage.QuantelClip[]
 			content: {
 				guid?: string
 				title?: string
@@ -228,7 +225,7 @@ export namespace Expectation {
 			version: QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
@@ -246,7 +243,7 @@ export namespace Expectation {
 			version: QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
@@ -259,10 +256,10 @@ export namespace Expectation {
 		type: Type.JSON_DATA_COPY
 
 		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.File[]
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.File]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				path: string
 			}
@@ -274,13 +271,23 @@ export namespace Expectation {
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace SpecificPackageContainerOnPackage {
-		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support files. */
-		export interface File extends PackageContainerOnPackage {
+		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support reading files. */
+		export interface FileSource extends PackageContainerOnPackage {
 			accessors: {
 				[accessorId: string]:
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
+					| AccessorOnPackage.Quantel
+			}
+		}
+		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support writing files. */
+		export interface FileTarget extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTPProxy
 			}
 		}
