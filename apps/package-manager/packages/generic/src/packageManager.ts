@@ -317,7 +317,7 @@ export class PackageManagerHandler {
 			...this.dataSnapshot,
 
 			reportedStatuses: {
-				reportedWorkStatuses: this.callbacksHandler.reportedWorkStatuses,
+				reportedExpectationStatuses: this.callbacksHandler.reportedExpectationStatuses,
 				reportedPackageStatuses: this.callbacksHandler.reportedPackageStatuses,
 				reportedPackageContainerStatuses: this.callbacksHandler.reportedPackageContainerStatuses,
 			},
@@ -389,34 +389,28 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	private sendUpdatedStatusesIsRunning = false
 	private sendUpdatedStatusesRunAgain = false
 
-	private toReportExpectationStatus: {
-		[id: string]: {
-			workStatus: ExpectedPackageStatusAPI.WorkStatus | null
-			/** If the status is new and needs to be reported to Core */
-			isUpdated: boolean
-		}
-	} = {}
-	public reportedWorkStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus } = {}
+	private increment = 1
 
-	private toReportPackageStatus: {
-		[key: string]: {
-			containerId: string
-			packageId: string
-			packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-			/** If the status is new and needs to be reported to Core */
-			isUpdated: boolean
-		}
-	} = {}
-	public reportedPackageStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus } = {}
+	private toReportExpectationStatuses: ReportStatuses<ExpectedPackageStatusAPI.WorkStatus | null, undefined> = {}
+	public reportedExpectationStatuses: ReportStatuses<ExpectedPackageStatusAPI.WorkStatus, undefined> = {}
 
-	private toReportPackageContainerStatus: {
-		[containerId: string]: {
-			status: ExpectedPackageStatusAPI.PackageContainerStatus | null
-			/** If the status is new and needs to be reported to Core */
-			isUpdated: boolean
-		}
-	} = {}
-	public reportedPackageContainerStatuses: { [id: string]: ExpectedPackageStatusAPI.PackageContainerStatus } = {}
+	private toReportPackageStatus: ReportStatuses<
+		ExpectedPackageStatusAPI.PackageContainerPackageStatus | null,
+		{ containerId: string; packageId: string }
+	> = {}
+	public reportedPackageStatuses: ReportStatuses<
+		ExpectedPackageStatusAPI.PackageContainerPackageStatus,
+		{ containerId: string; packageId: string }
+	> = {}
+
+	private toReportPackageContainerStatus: ReportStatuses<
+		ExpectedPackageStatusAPI.PackageContainerStatus | null,
+		undefined
+	> = {}
+	public reportedPackageContainerStatuses: ReportStatuses<
+		ExpectedPackageStatusAPI.PackageContainerStatus,
+		undefined
+	> = {}
 
 	constructor(private packageManager: PackageManagerHandler) {
 		this.logger = this.packageManager.logger
@@ -435,13 +429,13 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		}
 	): void {
 		if (!expectaction) {
-			if (this.toReportExpectationStatus[expectationId]) {
+			if (this.toReportExpectationStatuses[expectationId]) {
 				this.updateExpectationStatus(expectationId, null)
 			}
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
 
-			const previouslyReported = this.toReportExpectationStatus[expectationId]?.workStatus
+			const previouslyReported = this.toReportExpectationStatuses[expectationId]?.status
 
 			// Remove undefined properties, so they don't mess with the spread operators below:
 			deleteAllUndefinedProperties(expectaction.statusReport)
@@ -465,9 +459,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				...statusInfo,
 
 				fromPackages: expectaction.fromPackages.map((fromPackage) => {
-					const prevPromPackage = this.toReportExpectationStatus[
-						expectationId
-					]?.workStatus?.fromPackages.find((p) => p.id === fromPackage.id)
+					const prevPromPackage = this.toReportExpectationStatuses[expectationId]?.status?.fromPackages.find(
+						(p) => p.id === fromPackage.id
+					)
 					return {
 						id: fromPackage.id,
 						expectedContentVersionHash: fromPackage.expectedContentVersionHash,
@@ -498,7 +492,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		if (!packageStatus) {
 			this.updatePackageContainerPackageStatus(containerId, packageId, null)
 		} else {
-			const previouslyReported = this.toReportPackageStatus[packageContainerPackageId]?.packageStatus
+			const previouslyReported = this.toReportPackageStatus[packageContainerPackageId]?.status
 
 			const containerStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
 				// Default properties:
@@ -590,15 +584,19 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 	public async cleanReportedStatuses() {
 		// Clean out all reported statuses, this is an easy way to sync a clean state with core
-		this.reportedWorkStatuses = {}
+		this.reportedExpectationStatuses = {}
 		await this.packageManager.coreHandler.core.callMethod(
 			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
 			[]
 		)
+
+		this.reportedPackageContainerStatuses = {}
 		await this.packageManager.coreHandler.core.callMethod(
 			PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
 			[]
 		)
+
+		this.reportedPackageStatuses = {}
 		await this.packageManager.coreHandler.core.callMethod(
 			PeripheralDeviceAPI.methods.removeAllPackageContainerStatusesOfDevice,
 			[]
@@ -608,9 +606,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		this.triggerReportUpdatedStatuses()
 	}
 	private updateExpectationStatus(expectationId: string, workStatus: ExpectedPackageStatusAPI.WorkStatus | null) {
-		this.toReportExpectationStatus[expectationId] = {
-			workStatus: workStatus,
-			isUpdated: true,
+		this.toReportExpectationStatuses[expectationId] = {
+			status: workStatus,
+			ids: undefined,
+			hash: this.getIncrement(),
 		}
 		this.triggerReportUpdatedStatuses()
 	}
@@ -621,10 +620,12 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	): void {
 		const key = `${containerId}_${packageId}`
 		this.toReportPackageStatus[key] = {
-			containerId,
-			packageId,
-			packageStatus,
-			isUpdated: true,
+			status: packageStatus,
+			ids: {
+				containerId,
+				packageId,
+			},
+			hash: this.getIncrement(),
 		}
 		this.triggerReportUpdatedStatuses()
 	}
@@ -634,7 +635,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	) {
 		this.toReportPackageContainerStatus[containerId] = {
 			status: containerStatus,
-			isUpdated: true,
+			ids: undefined,
+			hash: this.getIncrement(),
 		}
 		this.triggerReportUpdatedStatuses()
 	}
@@ -674,168 +676,151 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		}
 	}
 	private async reportUpdateExpectationStatus(): Promise<void> {
-		const changesTosend: UpdateExpectedPackageWorkStatusesChanges = []
-		const toReportWorkStatuses: { [id: string]: ExpectedPackageStatusAPI.WorkStatus | null } = {}
+		await this.reportStatus(
+			this.toReportExpectationStatuses,
+			this.reportedExpectationStatuses,
+			async (changesToSend) => {
+				// Send the changes to Core:
 
-		for (const [expectationId, o] of Object.entries(this.toReportExpectationStatus)) {
-			if (o.isUpdated) {
-				if (!o.workStatus) {
-					if (this.reportedWorkStatuses[expectationId]) {
-						// Removed
-						changesTosend.push({
-							id: expectationId,
+				const sendToCore: UpdateExpectedPackageWorkStatusesChanges = []
+
+				for (const change of changesToSend) {
+					const expectationId = change.key
+
+					if (change.type === 'delete') {
+						sendToCore.push({
 							type: 'delete',
-						})
-						toReportWorkStatuses[expectationId] = null
-					}
-				} else {
-					const lastReportedStatus = this.reportedWorkStatuses[expectationId]
-
-					if (!lastReportedStatus) {
-						// Inserted
-						changesTosend.push({
 							id: expectationId,
+						})
+					} else if (change.type === 'insert') {
+						sendToCore.push({
 							type: 'insert',
-							status: o.workStatus,
+							id: expectationId,
+							status: change.status,
 						})
 					} else {
 						// Updated
+
+						const reported = this.reportedExpectationStatuses[expectationId]
+						if (!reported)
+							throw new Error(
+								`Internal Error: Expectation ${expectationId} not found in reportedExpectationStatuses (it should be)`
+							)
+
 						const mod: Partial<ExpectedPackageStatusAPI.WorkStatus> = {}
-						for (const key of Object.keys(o.workStatus) as (keyof ExpectedPackageStatusAPI.WorkStatus)[]) {
-							if (o.workStatus[key] !== lastReportedStatus[key]) {
-								mod[key] = o.workStatus[key] as any
+						for (const key of Object.keys(change.status) as (keyof ExpectedPackageStatusAPI.WorkStatus)[]) {
+							if (change.status[key] !== reported.status[key]) {
+								mod[key] = change.status[key] as any
 							}
 						}
 						if (!_.isEmpty(mod)) {
-							changesTosend.push({
-								id: expectationId,
+							sendToCore.push({
 								type: 'update',
+								id: expectationId,
 								status: mod,
 							})
+						} else {
+							// send nothing
 						}
 					}
-					toReportWorkStatuses[expectationId] = o.workStatus
 				}
-			}
-		}
 
-		if (changesTosend.length) {
-			try {
-				// Send the batch of changes to Core:
 				await this.packageManager.coreHandler.core.callMethod(
 					PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses,
-					[changesTosend]
+					[sendToCore]
 				)
-
-				// If the update was successful, update the reported statuses:
-				for (const [expectationId, o] of Object.entries(this.toReportExpectationStatus)) {
-					if (o.isUpdated) {
-						const workStatus = toReportWorkStatuses[expectationId]
-						if (workStatus !== undefined) {
-							o.isUpdated = false
-
-							if (workStatus === null) {
-								delete this.reportedWorkStatuses[expectationId]
-							} else {
-								this.reportedWorkStatuses[expectationId] = workStatus
-							}
-						}
-					}
-				}
-			} catch (err) {
-				// Provide some context to the error:
-				this.logger.error(`Error when calling method updateExpectedPackageWorkStatuses: ${stringifyError(err)}`)
-				throw err
 			}
-		}
+		)
 	}
 	private async reportUpdatePackageContainerPackageStatus(): Promise<void> {
-		const changesTosend: UpdatePackageContainerPackageStatusesChanges = []
-		const toReportPackageStatuses: {
-			[id: string]: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
-		} = {}
-
-		for (const [key, o] of Object.entries(this.toReportPackageStatus)) {
-			if (o.isUpdated) {
-				if (!o.packageStatus) {
-					if (this.reportedPackageStatuses[key]) {
-						// Removed
-						changesTosend.push({
-							containerId: o.containerId,
-							packageId: o.packageId,
-							type: 'delete',
-						})
-						toReportPackageStatuses[key] = null
-					}
-				} else {
-					// Inserted / Updated
-					changesTosend.push({
-						containerId: o.containerId,
-						packageId: o.packageId,
-						type: 'update',
-						status: o.packageStatus,
-					})
-					toReportPackageStatuses[key] = o.packageStatus
-				}
-			}
-		}
-
-		if (changesTosend.length) {
-			try {
-				// Send the batch of changes to Core:
-				await this.packageManager.coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.updatePackageContainerPackageStatuses,
-					[changesTosend]
-				)
-				// If the update was successful, update the reported statuses:
-				for (const [key, o] of Object.entries(this.toReportPackageStatus)) {
-					if (o.isUpdated) {
-						const packageStatus = toReportPackageStatuses[key]
-						if (packageStatus !== undefined) {
-							o.isUpdated = false
-
-							if (packageStatus === null) {
-								delete this.reportedPackageStatuses[key]
+		await this.reportStatus(this.toReportPackageStatus, this.reportedPackageStatuses, async (changesToSend) => {
+			// Send the changes to Core:
+			await this.packageManager.coreHandler.core.callMethod(
+				PeripheralDeviceAPI.methods.updatePackageContainerPackageStatuses,
+				[
+					literal<UpdatePackageContainerPackageStatusesChanges>(
+						changesToSend.map((change) => {
+							if (change.type === 'delete') {
+								return {
+									type: 'delete',
+									containerId: change.ids.containerId,
+									packageId: change.ids.packageId,
+								}
 							} else {
-								this.reportedPackageStatuses[key] = packageStatus
+								// Inserted / Updated
+								return {
+									type: 'update',
+									containerId: change.ids.containerId,
+									packageId: change.ids.packageId,
+									status: change.status,
+								}
 							}
-						}
-					}
-				}
-			} catch (err) {
-				// Provide some context to the error:
-				this.logger.error(
-					`Error when calling method updatePackageContainerPackageStatuses: ${stringifyError(err)}`
-				)
-				throw err
-			}
-		}
+						})
+					),
+				]
+			)
+		})
 	}
 	private async reportUpdatePackageContainerStatus(): Promise<void> {
-		const changesTosend: UpdatePackageContainerStatusesChanges = []
-		const toReportPackageContainerStatus: {
-			[id: string]: ExpectedPackageStatusAPI.PackageContainerStatus | null
-		} = {}
+		await this.reportStatus(
+			this.toReportPackageContainerStatus,
+			this.reportedPackageContainerStatuses,
+			async (changesToSend) => {
+				// Send the changes to Core:
+				literal<UpdatePackageContainerStatusesChanges>(
+					await this.packageManager.coreHandler.core.callMethod(
+						PeripheralDeviceAPI.methods.updatePackageContainerStatuses,
+						[
+							changesToSend.map((change) => {
+								if (change.type === 'delete') {
+									return {
+										type: 'delete',
+										containerId: change.key,
+									}
+								} else {
+									// Inserted / Updated
+									return {
+										type: 'update',
+										containerId: change.key,
+										status: change.status,
+									}
+								}
+							}),
+						]
+					)
+				)
+			}
+		)
+	}
 
-		for (const [containerId, o] of Object.entries(this.toReportPackageContainerStatus)) {
-			if (o.isUpdated) {
+	private async reportStatus<Status, Ids>(
+		toReportStatus: ReportStatuses<Status | null, Ids>,
+		reportedStatuses: ReportStatuses<Status, Ids>,
+		sendChanges: (changesToSend: ChangesTosend<Status, Ids>) => Promise<void>
+	): Promise<void> {
+		const changesTosend: ChangesTosend<Status, Ids> = []
+
+		for (const [key, o] of Object.entries(toReportStatus)) {
+			if (o.hash) {
 				if (!o.status) {
-					if (this.reportedPackageContainerStatuses[containerId]) {
-						// Removed
+					// Removed
+					if (reportedStatuses[key]) {
 						changesTosend.push({
-							containerId: containerId,
 							type: 'delete',
+							key,
+							ids: o.ids,
+							hash: o.hash,
 						})
-						toReportPackageContainerStatus[containerId] = null
 					}
 				} else {
 					// Inserted / Updated
 					changesTosend.push({
-						containerId: containerId,
-						type: 'update',
+						type: reportedStatuses[key] ? 'update' : 'insert',
+						key,
+						ids: o.ids,
 						status: o.status,
+						hash: o.hash,
 					})
-					toReportPackageContainerStatus[containerId] = o.status
 				}
 			}
 		}
@@ -843,33 +828,36 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		if (changesTosend.length) {
 			try {
 				// Send the batch of changes to Core:
-				await this.packageManager.coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.updatePackageContainerStatuses,
-					[changesTosend]
-				)
+				await sendChanges(changesTosend)
 
 				// If the update was successful, update the reported statuses:
-				for (const [containerId, o] of Object.entries(this.toReportPackageContainerStatus)) {
-					if (o.isUpdated) {
-						const status = toReportPackageContainerStatus[containerId]
-						if (status !== undefined) {
-							o.isUpdated = false
 
-							if (status === null) {
-								delete this.reportedPackageContainerStatuses[containerId]
-							} else {
-								this.reportedPackageContainerStatuses[containerId] = status
-							}
+				for (const change of changesTosend) {
+					// Store the status we just sent into reportedStatuses:
+					if (change.type === 'delete') {
+						delete reportedStatuses[change.key]
+					} else {
+						reportedStatuses[change.key] = {
+							hash: change.hash,
+							ids: change.ids,
+							status: change.status,
 						}
+					}
+
+					// Now, check if the toReportStatus hash is still the same:
+					if (toReportStatus[change.key].hash === change.hash) {
+						// Ok, this means that we have sent the latest update to Core.
+						toReportStatus[change.key].hash = null
 					}
 				}
 			} catch (err) {
 				// Provide some context to the error:
-				this.logger.error(`Error when calling method updatePackageContainerStatuses: ${stringifyError(err)}`)
+				this.logger.error(`Error in reportStatus : ${stringifyError(err)}`)
 				throw err
 			}
 		}
 	}
+
 	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
@@ -887,6 +875,9 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		this.packageManager.monitoredPackages[monitorId] = expectedPackagesWraps
 
 		this.packageManager.triggerUpdatedExpectedPackages()
+	}
+	private getIncrement(): number {
+		return this.increment++
 	}
 }
 function wrapExpectedPackage(
@@ -1013,3 +1004,27 @@ export interface PackageManagerSettings {
 	delayRemovalPackageInfo?: number
 	useTemporaryFilePath: boolean
 }
+
+type ReportStatuses<Status, Ids> = {
+	[key: string]: {
+		status: Status
+		ids: Ids
+		/** A unique value updated whenever the value is updated */
+		hash: number | null
+	}
+}
+type ChangesTosend<Status, Ids> = (
+	| {
+			type: 'update' | 'insert'
+			key: string
+			ids: Ids
+			status: Status
+			hash: number
+	  }
+	| {
+			type: 'delete'
+			key: string
+			ids: Ids
+			hash: number
+	  }
+)[]
