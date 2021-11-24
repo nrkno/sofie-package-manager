@@ -107,8 +107,11 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
 
-		// Check that the target clip is of the right version:
+		// Check if we actually can read from the source package:
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success) return { fulfilled: false, reason: tryReading.reason }
 
+		// Check that the target clip is of the right version:
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
 		const issueVersions = compareUniversalVersions(
