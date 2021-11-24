@@ -391,22 +391,14 @@ export class ExpectationManager {
 				if (wip) {
 					wip.lastUpdated = Date.now()
 					if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
-						wip.trackedExp.status.actualVersionHash = actualVersionHash
-						wip.trackedExp.status.workProgress = progress
-
+						this.updateTrackedExpStatus(wip.trackedExp, undefined, undefined, {
+							actualVersionHash: actualVersionHash,
+							workProgress: progress,
+						})
 						this.logger.debug(
 							`Expectation "${JSON.stringify(
 								wip.trackedExp.exp.statusReport.label
 							)}" progress: ${progress}`
-						)
-
-						this.callbacks.reportExpectationStatus(
-							wip.trackedExp.id,
-							wip.trackedExp.exp,
-							actualVersionHash,
-							{
-								progress: progress,
-							}
 						)
 					} else {
 						// ignore
@@ -428,16 +420,9 @@ export class ExpectationManager {
 						this.updateTrackedExpStatus(
 							wip.trackedExp,
 							ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
-							reason
-						)
-						this.callbacks.reportExpectationStatus(
-							wip.trackedExp.id,
-							wip.trackedExp.exp,
-							actualVersionHash,
+							reason,
 							{
-								status: wip.trackedExp.state,
-								statusReason: wip.trackedExp.reason,
-								progress: 1,
+								workProgress: 1,
 							}
 						)
 
@@ -1148,6 +1133,8 @@ export class ExpectationManager {
 					) {
 						trackedExp.session.expectationCanBeRemoved = true
 
+						// Send a status that this expectation has been removed:
+						this.updatePackageContainerPackageStatus(trackedExp, true)
 						this.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
 					} else {
 						trackedExp.errorOnRemoveCount++
@@ -1302,21 +1289,29 @@ export class ExpectationManager {
 			})
 		}
 		if (updatedState || updatedReason || updatedStatus) {
-			this.updatePackageContainerPackageStatus(trackedExp)
+			this.updatePackageContainerPackageStatus(trackedExp, false)
 		}
 	}
-	private updatePackageContainerPackageStatus(trackedExp: TrackedExpectation) {
+	private updatePackageContainerPackageStatus(trackedExp: TrackedExpectation, isRemoved: boolean) {
 		for (const fromPackage of trackedExp.exp.fromPackages) {
 			for (const packageContainer of trackedExp.exp.endRequirement.targets) {
-				this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
-					contentVersionHash: trackedExp.status.actualVersionHash || '',
-					progress: trackedExp.status.workProgress || 0,
-					status: this.getPackageStatus(trackedExp),
-					statusReason: trackedExp.reason,
-					priority: trackedExp.exp.priority,
+				if (isRemoved) {
+					this.callbacks.reportPackageContainerPackageStatus(
+						packageContainer.containerId,
+						fromPackage.id,
+						null
+					)
+				} else {
+					this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
+						contentVersionHash: trackedExp.status.actualVersionHash || '',
+						progress: trackedExp.status.workProgress || 0,
+						status: this.getPackageStatus(trackedExp),
+						statusReason: trackedExp.reason,
+						priority: trackedExp.exp.priority,
 
-					isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
-				})
+						isPlaceholder: !!trackedExp.status.sourceIsPlaceholder,
+					})
+				}
 			}
 		}
 	}
@@ -1950,10 +1945,6 @@ export class ExpectationManager {
 
 					wip.trackedExp.errorCount++
 					this.updateTrackedExpStatus(wip.trackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, reason)
-					this.callbacks.reportExpectationStatus(wip.trackedExp.id, wip.trackedExp.exp, null, {
-						status: wip.trackedExp.state,
-						statusReason: wip.trackedExp.reason,
-					})
 					delete this.worksInProgress[wipId]
 				}
 			} else {
