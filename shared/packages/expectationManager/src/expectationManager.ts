@@ -16,6 +16,7 @@ import {
 	LogLevel,
 	deepEqual,
 	stringifyError,
+	diff,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
@@ -589,7 +590,7 @@ export class ExpectationManager {
 				} else {
 					this.updateTrackedExpStatus(trackedExp, undefined, {
 						user: `Updated just now`,
-						tech: `Updated ${Date.now()}`,
+						tech: `Updated ${Date.now()}, diff: (${diff(existingtrackedExp.exp, exp)})`,
 					})
 				}
 			}

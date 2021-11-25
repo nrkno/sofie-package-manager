@@ -104,3 +104,54 @@ export function stringifyError(error: unknown, noStack = false): string {
 	}
 	return str
 }
+
+/** Returns a string describing the first thing found that makes the two values different.
+ * Returns null if no differences are found.
+ */
+export function diff(a: unknown, b: unknown): string | null {
+	const innerDiff = diffInner(a, b)
+	if (innerDiff) {
+		return (innerDiff[1].length ? `${innerDiff[1].join('.')}: ` : '') + innerDiff[0]
+	}
+	return null
+}
+/** Returns [ 'diff explanation', [path] ] */
+function diffInner(a: unknown, b: unknown): [string, string[]] | null {
+	if (a === b) return null
+
+	if ((a == null || b == null || a == undefined || b == undefined) && a !== b) return [`${a} !== ${b}`, []] // Reduntant, gives nicer output for null & undefined
+	if (typeof a !== typeof b) return [`type ${typeof a} !== ${typeof b}`, []]
+
+	if (typeof a === 'object' && typeof b === 'object') {
+		if (a === null && b === null) return null
+		if (a === null || b === null) return [`${a} !== ${b}`, []]
+
+		if (Array.isArray(a) || Array.isArray(b)) {
+			if (!Array.isArray(a) || !Array.isArray(b)) {
+				if (Array.isArray(a)) return [`array !== object`, []]
+				else return [`object !== array`, []]
+			}
+
+			if (a.length !== b.length) return [`length: ${a.length} !== ${b.length}`, []]
+		}
+
+		const checkedKeys: { [key: string]: true } = {}
+		for (const key of Object.keys(a).concat(Object.keys(b))) {
+			if (checkedKeys[key]) continue // already checked this key
+
+			// const innerPath = pathOrg ? `${pathOrg}.${key}` : `${key}`
+
+			// @ts-expect-error keys
+			const innerDiff = diffInner(a[key], b[key])
+			if (innerDiff) {
+				return [innerDiff[0], [key, ...innerDiff[1]]]
+			}
+
+			checkedKeys[key] = true
+		}
+
+		// if (keys.length !== Object.keys(b).length) return 'different number of keys'
+		return null
+	}
+	return [`${a} !== ${b}`, []]
+}
