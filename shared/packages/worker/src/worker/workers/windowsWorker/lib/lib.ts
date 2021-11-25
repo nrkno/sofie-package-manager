@@ -36,6 +36,8 @@ export function compareUniversalVersions(
 		const source = sourceVersion[key] as VersionProperty
 		const target = targetVersion[key] as VersionProperty
 
+		if (source.omit || target.omit) continue // skip that comparison
+
 		if (source.value !== target.value) {
 			return {
 				success: false,
@@ -108,7 +110,7 @@ export interface UniversalVersion {
 	contentType: VersionProperty
 	[key: string]: VersionProperty
 }
-export type VersionProperty = { name: string; value: string | number | undefined }
+export type VersionProperty = { name: string; value: string | number | undefined; omit?: boolean }
 
 /** Looks through the packageContainers and return the first one we support access to. */
 export function findBestPackageContainerWithAccessToPackage(
