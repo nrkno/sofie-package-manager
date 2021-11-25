@@ -304,6 +304,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 				const byteCounter = new ByteCounter()
 				byteCounter.on('progress', (bytes: number) => {
+					if (writeStream?.usingCustomProgressEvent) return // ignore this callback, we'll be listening to writeStream.on('progress') instead.
+
 					if (fileSize) {
 						workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
 					}
@@ -313,6 +315,11 @@ export const FileCopy: ExpectationWindowsHandler = {
 				sourceStream = await lookupSource.handle.getPackageReadStream()
 				writeStream = await targetHandle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
 
+				if (writeStream.usingCustomProgressEvent) {
+					writeStream.on('progress', (progress) => {
+						workInProgress._reportProgress(actualSourceVersionHash, progress)
+					})
+				}
 				sourceStream.readStream.on('error', (err) => {
 					workInProgress._reportError(err)
 				})
