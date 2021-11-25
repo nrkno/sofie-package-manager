@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import { LoggerInstance } from './logger'
 import { WebsocketClient } from './websocketClient'
-import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
+import { ACTION_TIMEOUT, Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
 
 /**
  * The AdapterClient's sub-classes are used to connect to an AdapterServer in order to provide type-safe communication between processes (using web-sockets),
@@ -36,7 +36,18 @@ export abstract class AdapterClient<ME, OTHER> extends EventEmitter {
 					// On message from other party:
 					const fcn = (clientMethods as any)[message.type]
 					if (fcn) {
-						return fcn.call(clientMethods, ...message.args)
+						// Call the method, and ensure that it resolves in time:
+						const pResult = Promise.race([
+							fcn.call(clientMethods, ...message.args),
+
+							new Promise((_, reject) => {
+								setTimeout(() => {
+									reject(`Timeout of funtion "${message.type}"`)
+								}, ACTION_TIMEOUT)
+							}),
+						])
+
+						return pResult
 					} else {
 						throw new Error(`Unknown method "${message.type}"`)
 					}

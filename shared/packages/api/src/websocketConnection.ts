@@ -3,6 +3,7 @@ import EventEmitter from 'events'
 
 export const PING_TIME = 10 * 1000
 export const MESSAGE_TIMEOUT = 5000
+export const ACTION_TIMEOUT = MESSAGE_TIMEOUT - 500
 
 export abstract class WebsocketConnection extends EventEmitter {
 	protected ws?: WebSocket
