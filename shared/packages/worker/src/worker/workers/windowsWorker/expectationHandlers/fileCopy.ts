@@ -278,7 +278,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 				!isFileShareAccessorHandle(targetHandle) &&
 				!isHTTPProxyAccessorHandle(targetHandle)
 			)
-				throw new Error(`Source AccessHandler type is wrong`)
+				throw new Error(`Target AccessHandler type is wrong`)
 
 			let wasCancelled = false
 			let sourceStream: PackageReadStream | undefined = undefined
