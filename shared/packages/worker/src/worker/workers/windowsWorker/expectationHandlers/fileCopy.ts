@@ -25,6 +25,7 @@ import {
 	stringifyError,
 } from '@shared/api'
 import {
+	isATEMAccessorHandle,
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
@@ -263,7 +264,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY ||
+				lookupTarget.accessor.type === Accessor.AccessType.ATEM_MEDIA_STORE)
 		) {
 			// We can copy by using file streams
 			if (
@@ -276,7 +278,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPProxyAccessorHandle(targetHandle)
+				!isHTTPProxyAccessorHandle(targetHandle) &&
+				!isATEMAccessorHandle(targetHandle)
 			)
 				throw new Error(`Target AccessHandler type is wrong`)
 

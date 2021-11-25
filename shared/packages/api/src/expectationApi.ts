@@ -326,7 +326,8 @@ export namespace Expectation {
 			| ExpectedCorePackageInfo
 			| ExpectedHTTPFile
 			| ExpectedQuantelClip
-		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip
+			| ExpectedATEMFile
+		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip | ATEMFile
 		export interface Base {
 			type: Type
 		}
@@ -339,6 +340,7 @@ export namespace Expectation {
 			QUANTEL_CLIP = 'quantel_clip',
 			QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
 			QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
+			ATEM_FILE = 'atem_file',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
 
@@ -415,5 +417,13 @@ export namespace Expectation {
 			height: number
 		}
 		export type ExpectedQuantelClipPreview = ExpectedType<QuantelClipPreview>
+
+		export interface ATEMFile extends Base {
+			type: Type.ATEM_FILE
+			frameCount: number
+			name: string
+			hash: string
+		}
+		export type ExpectedATEMFile = ExpectedType<ATEMFile>
 	}
 }
