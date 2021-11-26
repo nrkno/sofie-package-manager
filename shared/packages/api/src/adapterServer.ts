@@ -1,5 +1,5 @@
 import { promiseTimeout, stringifyError } from './lib'
-import { MessageBase, MESSAGE_TIMEOUT } from './websocketConnection'
+import { ACTION_TIMEOUT, MessageBase } from './websocketConnection'
 import { ClientConnection } from './websocketServer'
 
 /**
@@ -22,7 +22,16 @@ export abstract class AdapterServer<ME, OTHER> {
 				// Handle message from the WorkerAgent:
 				const fcn = (serverMethods as any)[message.type]
 				if (fcn) {
-					return fcn(...message.args)
+					// Call the method, and ensure that it resolves in time:
+
+					// Note: It is better if the receiver times out the method call than the other party.
+					// This way we can differ between the called method timing out and a websocket timeout.
+
+					return promiseTimeout(
+						fcn.call(serverMethods, ...message.args),
+						ACTION_TIMEOUT,
+						this.timeoutMessage(message.type, message.args)
+					)
 				} else {
 					throw new Error(`Unknown method "${message.type}"`)
 				}
@@ -33,15 +42,21 @@ export abstract class AdapterServer<ME, OTHER> {
 				const fcn = (clientHook[type] as unknown) as (...args: any[]) => any
 				if (fcn) {
 					try {
-						return await promiseTimeout(fcn(...args), MESSAGE_TIMEOUT)
+						return await promiseTimeout(fcn(...args), ACTION_TIMEOUT, this.timeoutMessage(type, args))
 					} catch (err) {
-						throw new Error(`Error in message "${type}": ${stringifyError(err)}`)
+						throw new Error(`Error when executing method "${type}": ${stringifyError(err)}`)
 					}
 				} else {
 					throw new Error(`Unknown method "${type}"`)
 				}
 			}
 		}
+	}
+	private timeoutMessage(type: any, args: any[]): string {
+		const explainArgs = JSON.stringify(args).slice(0, 100) // limit the arguments to 100 chars
+		const receivedTime = new Date().toLocaleTimeString()
+
+		return `Timeout of function "${type}": ${explainArgs} (received: ${receivedTime})`
 	}
 }
 /** Options for the AdapterServer */

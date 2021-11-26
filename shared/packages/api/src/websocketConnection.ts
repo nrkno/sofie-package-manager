@@ -3,7 +3,19 @@ import EventEmitter from 'events'
 import { stringifyError } from './lib'
 
 export const PING_TIME = 10 * 1000
-export const MESSAGE_TIMEOUT = 5000
+/**
+ * Timeout of messages.
+ * If the sender doesn't recieve a reply after this time,
+ * the message is considered lost.
+ */
+export const MESSAGE_TIMEOUT = 10000
+/**
+ * Execution timeout.
+ * It is common courtesy that the receiver should reply with
+ * a timeout after this time,
+ * so that the sender doesn't consider the message lost.
+ */
+export const ACTION_TIMEOUT = MESSAGE_TIMEOUT - 1000
 
 export abstract class WebsocketConnection extends EventEmitter {
 	protected ws?: WebSocket
