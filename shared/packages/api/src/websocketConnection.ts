@@ -38,7 +38,7 @@ export abstract class WebsocketConnection extends EventEmitter {
 						const reply: MessageReply = {
 							i: msg.i,
 							r: true,
-							error: 'Error: Websocket message timeout',
+							error: `Error: Websocket message timeout: ${msg.type}, ${args}`,
 						}
 						this.handleReceivedMessage(reply)
 					}, MESSAGE_TIMEOUT),

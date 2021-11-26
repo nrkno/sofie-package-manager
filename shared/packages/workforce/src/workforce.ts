@@ -116,6 +116,12 @@ export class Workforce {
 						throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 				}
 			})
+			this.websocketServer.on('error', (err: unknown) => {
+				this.logger.error(`Workforce: WebsocketServer error: ${stringifyError(err)}`)
+			})
+			this.websocketServer.on('close', () => {
+				this.logger.error(`Workforce: WebsocketServer closed`)
+			})
 		}
 		this.workerHandler = new WorkerHandler(this)
 	}

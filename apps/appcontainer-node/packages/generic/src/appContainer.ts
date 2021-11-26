@@ -92,6 +92,12 @@ export class AppContainer {
 						throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 				}
 			})
+			this.websocketServer.on('error', (err: unknown) => {
+				this.logger.error(`AppContainer: WebsocketServer error: ${stringifyError(err)}`)
+			})
+			this.websocketServer.on('close', () => {
+				this.logger.error(`AppContainer: WebsocketServer closed`)
+			})
 		}
 
 		this.workforceAPI = new WorkforceAPI(this.logger)
