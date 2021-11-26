@@ -179,6 +179,12 @@ export class ExpectationManager {
 					}
 				}
 			})
+			this.websocketServer.on('error', (err: unknown) => {
+				this.logger.error(`Expectationmanager: WebsocketServer error: ${stringifyError(err)}`)
+			})
+			this.websocketServer.on('close', () => {
+				this.logger.error(`Expectationmanager: WebsocketServer closed`)
+			})
 			this.logger.info(`Expectation Manager running on port ${this.websocketServer.port}`)
 		} else {
 			// todo: handle direct connections
@@ -538,29 +544,38 @@ export class ExpectationManager {
 		for (const id of Object.keys(this.receivedUpdates.expectations)) {
 			const exp = this.receivedUpdates.expectations[id]
 
-			let isNew = false
-			let doUpdate = false
+			let difference: null | 'new' | 'major' | 'minor' = null
 			const existingtrackedExp: TrackedExpectation | undefined = this.trackedExpectations[id]
 			if (!existingtrackedExp) {
 				// new
-				doUpdate = true
-				isNew = true
-			} else if (!_.isEqual(existingtrackedExp.exp, exp)) {
-				const trackedExp = existingtrackedExp
+				difference = 'new'
+			} else {
+				const isSignificantlyDifferent = !_.isEqual(
+					_.omit(existingtrackedExp.exp, 'priority'),
+					_.omit(exp, 'priority')
+				)
+				const isPriorityDifferent = existingtrackedExp.exp.priority !== exp.priority
 
-				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
-					if (trackedExp.status.workInProgressCancel) {
-						this.logger.debug(`Cancelling ${trackedExp.id} due to update`)
-						await trackedExp.status.workInProgressCancel()
+				if (isSignificantlyDifferent) {
+					const trackedExp = existingtrackedExp
+
+					if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
+						if (trackedExp.status.workInProgressCancel) {
+							this.logger.debug(`Cancelling ${trackedExp.id} due to update`)
+							await trackedExp.status.workInProgressCancel()
+						}
 					}
+					difference = 'major'
+				} else if (isPriorityDifferent) {
+					difference = 'minor'
 				}
-				doUpdate = true
 			}
-			if (doUpdate) {
-				const trackedExp: TrackedExpectation = {
+
+			if (difference === 'new' || difference === 'major') {
+				const newTrackedExp: TrackedExpectation = {
 					id: id,
 					exp: exp,
-					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
+					state: existingtrackedExp?.state || 'unknown', // will be overwritten below
 					queriedWorkers: {},
 					availableWorkers: {},
 					noAvailableWorkersReason: {
@@ -581,17 +596,28 @@ export class ExpectationManager {
 					status: {},
 					session: null,
 				}
-				this.trackedExpectations[id] = trackedExp
-				if (isNew) {
-					this.updateTrackedExpStatus(trackedExp, undefined, {
+				this.trackedExpectations[id] = newTrackedExp
+				if (difference === 'new') {
+					this.updateTrackedExpStatus(newTrackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
 						user: `Added just now`,
 						tech: `Added ${Date.now()}`,
 					})
 				} else {
-					this.updateTrackedExpStatus(trackedExp, undefined, {
+					this.updateTrackedExpStatus(newTrackedExp, ExpectedPackageStatusAPI.WorkStatusState.NEW, {
 						user: `Updated just now`,
 						tech: `Updated ${Date.now()}, diff: (${diff(existingtrackedExp.exp, exp)})`,
 					})
+				}
+			} else if (difference === 'minor') {
+				// A minor update doesn't require a full re-evaluation of the expectation.
+
+				const trackedExp = this.trackedExpectations[id]
+				if (trackedExp) {
+					this.logger.debug(
+						`Minor update of expectation "${trackedExp.id}": ${diff(existingtrackedExp.exp, exp)}`
+					)
+
+					trackedExp.exp = exp
 				}
 			}
 		}
