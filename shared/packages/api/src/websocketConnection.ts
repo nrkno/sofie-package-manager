@@ -1,5 +1,6 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
+import { stringifyError } from './lib'
 
 export const PING_TIME = 10 * 1000
 export const MESSAGE_TIMEOUT = 5000
@@ -63,23 +64,32 @@ export abstract class WebsocketConnection extends EventEmitter {
 		} else {
 			const msg = message as MessageBase
 
-			this._onMessage(msg)
-				.then((result: any) => {
-					const reply: MessageReply = {
-						r: true,
-						i: msg.i,
-						result: result,
-					}
-					this.ws?.send(JSON.stringify(reply))
-				})
-				.catch((error: any) => {
-					const reply: MessageReply = {
-						r: true,
-						i: msg.i,
-						error: error.toString(),
-					}
-					this.ws?.send(JSON.stringify(reply))
-				})
+			try {
+				this._onMessage(msg)
+					.then((result: any) => {
+						const reply: MessageReply = {
+							r: true,
+							i: msg.i,
+							result: result,
+						}
+						this.ws?.send(JSON.stringify(reply))
+					})
+					.catch((error: any) => {
+						const reply: MessageReply = {
+							r: true,
+							i: msg.i,
+							error: stringifyError(error),
+						}
+						this.ws?.send(JSON.stringify(reply))
+					})
+			} catch (error) {
+				const reply: MessageReply = {
+					r: true,
+					i: msg.i,
+					error: 'Thrown Error: ' + stringifyError(error),
+				}
+				this.ws?.send(JSON.stringify(reply))
+			}
 		}
 	}
 
