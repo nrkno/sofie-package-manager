@@ -40,47 +40,77 @@ export class QuantelHTTPTransformerProxy {
 
 		// Proxy
 		this.router.get('/(quantel|gv)/*', async (ctx) => {
-			this.logger.debug(`Pass-through requests to transformer: ${ctx.path}`)
-			if (!this.transformerURL) {
-				ctx.status = 502
-				ctx.body = 'Transformer URL not set. Cannot talk to HTTP transformer.'
-				this.logger.warn('Transformer URL not set. Cannot talk to HTTP transformer.')
-				return
-			}
-			if (ctx.path.endsWith('init.mp4')) {
-				const initReq = await got(`${this.transformerURL}${ctx.path}`, { responseType: 'buffer' })
-				const initBuf = initReq.body
-				const stsc = initBuf.indexOf('stsc')
-				initBuf.writeUInt32BE(0, stsc + 8)
-				const stco = initBuf.indexOf('stco')
-				initBuf.writeUInt32BE(0, stco + 8)
-				ctx.type = initReq.headers['content-type'] || 'video/mpeg-4'
-				ctx.body = initBuf
-				return
-			}
-			if (this.smoothStream && ctx.path.endsWith('stream.mpd')) {
-				const smoothFestRes = await got(`${this.transformerURL}${ctx.path.slice(0, -4)}.xml`)
-				ctx.type = 'application/xml'
-				ctx.body = await manifestTransform(smoothFestRes.body)
-				return
-			} else {
-				// TODO - ideally this would stream - but that would hang on longer payloads
-				const initReq = await got(`${this.transformerURL}${ctx.path}`, { responseType: 'buffer' })
-				ctx.type = initReq.headers['content-type'] || 'application/octet-stream'
-				ctx.body = initReq.body
+			try {
+				// this.logger.debug(`Pass-through requests to transformer: ${ctx.path}`)
+				if (!this.transformerURL) {
+					ctx.status = 502
+					ctx.body = 'Transformer URL not set. Cannot talk to HTTP transformer.'
+					this.logger.warn('Transformer URL not set. Cannot talk to HTTP transformer.')
+					return
+				}
+				if (ctx.path.endsWith('init.mp4')) {
+					const initReq = await got(`${this.transformerURL}${ctx.path}`, { responseType: 'buffer' })
+					const initBuf = initReq.body
+					const stsc = initBuf.indexOf('stsc')
+					initBuf.writeUInt32BE(0, stsc + 8)
+					const stco = initBuf.indexOf('stco')
+					initBuf.writeUInt32BE(0, stco + 8)
+					ctx.type = initReq.headers['content-type'] || 'video/mpeg-4'
+					ctx.body = initBuf
+					return
+				}
+				if (this.smoothStream && ctx.path.endsWith('stream.mpd')) {
+					const smoothFestRes = await got(`${this.transformerURL}${ctx.path.slice(0, -4)}.xml`)
+					ctx.type = 'application/xml'
+					ctx.body = await manifestTransform(smoothFestRes.body)
+					return
+				} else {
+					// TODO - ideally this would stream - but that would hang on longer payloads
+					const initReq = await got(`${this.transformerURL}${ctx.path}`, { responseType: 'buffer' })
+					ctx.type = initReq.headers['content-type'] || 'application/octet-stream'
+					ctx.body = initReq.body
 
-				// await next() // todo: should we do this?
+					// await next() // todo: should we do this?
+				}
+			} catch (err: any) {
+				if (err.response) {
+					// Pass through response:
+					ctx.status = err.response.statusCode
+					ctx.body = err.response.body?.toString() || ''
+					if (err.response.headers) {
+						for (const header of Object.keys(err.response.headers)) {
+							ctx.set(header, err.response.headers[header])
+						}
+					}
+				} else {
+					throw err
+				}
 			}
 		})
 		this.router.get('/*', async (ctx, next) => {
-			const initReq = await got(
-				`${this.transformerURL}${ctx.path}` + (ctx.querystring ? `?${ctx.querystring}` : ''),
-				{ responseType: 'buffer' }
-			)
-			ctx.type = initReq.headers['content-type'] || 'application/octet-stream'
-			ctx.body = initReq.body
+			try {
+				const initReq = await got(
+					`${this.transformerURL}${ctx.path}` + (ctx.querystring ? `?${ctx.querystring}` : ''),
+					{ responseType: 'buffer' }
+				)
+				ctx.type = initReq.headers['content-type'] || 'application/octet-stream'
+				ctx.body = initReq.body
 
-			await next()
+				await next()
+			} catch (err: any) {
+				if (err.response) {
+					// Pass through response:
+					ctx.status = err.response.statusCode
+					ctx.body = err.response.body?.toString() || ''
+					if (err.response.headers) {
+						for (const header of Object.keys(err.response.headers)) {
+							ctx.set(header, err.response.headers[header])
+						}
+					}
+				} else {
+					throw err
+				}
+			}
 		})
 
 		this.app.use(this.router.routes()).use(this.router.allowedMethods())

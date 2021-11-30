@@ -1,8 +1,8 @@
 import { HelpfulEventEmitter } from './HelpfulEventEmitter'
-import { stringifyError } from './lib'
+import { promiseTimeout, stringifyError } from './lib'
 import { LoggerInstance } from './logger'
 import { WebsocketClient } from './websocketClient'
-import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
+import { Hook, MessageBase, MessageIdentifyClient, ACTION_TIMEOUT } from './websocketConnection'
 
 /**
  * The AdapterClient's sub-classes are used to connect to an AdapterServer in order to provide type-safe communication between processes (using web-sockets),
@@ -37,9 +37,16 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 					// On message from other party:
 					const fcn = (clientMethods as any)[message.type]
 					if (fcn) {
-						return fcn.call(clientMethods, ...message.args)
-					} else {
-						throw new Error(`Unknown method "${message.type}"`)
+						// Call the method, and ensure that it resolves in time:
+
+						// Note: It is better if the receiver times out the method call than the other party.
+						// This way we can differ between the called method timing out and a websocket timeout.
+
+						return promiseTimeout(
+							fcn.call(clientMethods, ...message.args),
+							ACTION_TIMEOUT,
+							this.timeoutMessage(message.type, message.args)
+						)
 					}
 				}
 			)
@@ -70,12 +77,16 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 				throw new Error(`AdapterClient: can't init() an internal connection, call hook() first!`)
 
 			const serverHook: OTHER = this.serverHook(id, clientMethods)
-			this._sendMessage = (type: keyof OTHER, ...args: any[]) => {
+			this._sendMessage = async (type: keyof OTHER, ...args: any[]) => {
 				if (this.terminated) throw new Error(`Can't send message due to being terminated`)
 
 				const fcn = serverHook[type] as any
 				if (fcn) {
-					return fcn(...args)
+					try {
+						return await promiseTimeout(fcn(...args), ACTION_TIMEOUT, this.timeoutMessage(type, args))
+					} catch (err) {
+						throw new Error(`Error when executing method "${type}": ${stringifyError(err)}`)
+					}
 				} else {
 					throw new Error(`Unknown method "${type}"`)
 				}
@@ -97,6 +108,12 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 	}
 	get connected(): boolean {
 		return this._connected
+	}
+	private timeoutMessage(type: any, args: any[]): string {
+		const explainArgs = JSON.stringify(args).slice(0, 100) // limit the arguments to 100 chars
+		const receivedTime = new Date().toLocaleTimeString()
+
+		return `Timeout of function "${type}": ${explainArgs} (received: ${receivedTime})`
 	}
 }
 /** Options for an AdepterClient */

@@ -49,13 +49,14 @@ export function waitTime(duration: number): Promise<void> {
 		setTimeout(resolve, duration)
 	})
 }
-export function promiseTimeout<T>(p: Promise<T>, timeoutTime: number): Promise<T> {
+export function promiseTimeout<T>(p: Promise<T>, timeoutTime: number, timeoutMessage?: string): Promise<T> {
 	return new Promise<T>((resolve, reject) => {
 		const timeout = setTimeout(() => {
-			reject('Timeout')
+			reject(timeoutMessage || 'Timeout')
 		}, timeoutTime)
 
-		p.then(resolve)
+		Promise.resolve(p)
+			.then(resolve)
 			.catch(reject)
 			.finally(() => {
 				clearTimeout(timeout)

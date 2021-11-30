@@ -1,8 +1,21 @@
 import WebSocket from 'ws'
 import { HelpfulEventEmitter } from './HelpfulEventEmitter'
+import { stringifyError } from './lib'
 
 export const PING_TIME = 10 * 1000
-export const MESSAGE_TIMEOUT = 5000
+/**
+ * Timeout of messages.
+ * If the sender doesn't recieve a reply after this time,
+ * the message is considered lost.
+ */
+export const MESSAGE_TIMEOUT = 10000
+/**
+ * Execution timeout.
+ * It is common courtesy that the receiver should reply with
+ * a timeout after this time,
+ * so that the sender doesn't consider the message lost.
+ */
+export const ACTION_TIMEOUT = MESSAGE_TIMEOUT - 1000
 
 export abstract class WebsocketConnection extends HelpfulEventEmitter {
 	protected ws?: WebSocket
@@ -37,7 +50,7 @@ export abstract class WebsocketConnection extends HelpfulEventEmitter {
 						const reply: MessageReply = {
 							i: msg.i,
 							r: true,
-							error: 'Error: Websocket message timeout',
+							error: `Error: Websocket message timeout: ${msg.type}, ${args}`,
 						}
 						this.handleReceivedMessage(reply)
 					}, MESSAGE_TIMEOUT),
@@ -63,23 +76,32 @@ export abstract class WebsocketConnection extends HelpfulEventEmitter {
 		} else {
 			const msg = message as MessageBase
 
-			this._onMessage(msg)
-				.then((result: any) => {
-					const reply: MessageReply = {
-						r: true,
-						i: msg.i,
-						result: result,
-					}
-					this.ws?.send(JSON.stringify(reply))
-				})
-				.catch((error: any) => {
-					const reply: MessageReply = {
-						r: true,
-						i: msg.i,
-						error: error.toString(),
-					}
-					this.ws?.send(JSON.stringify(reply))
-				})
+			try {
+				this._onMessage(msg)
+					.then((result: any) => {
+						const reply: MessageReply = {
+							r: true,
+							i: msg.i,
+							result: result,
+						}
+						this.ws?.send(JSON.stringify(reply))
+					})
+					.catch((error: any) => {
+						const reply: MessageReply = {
+							r: true,
+							i: msg.i,
+							error: stringifyError(error),
+						}
+						this.ws?.send(JSON.stringify(reply))
+					})
+			} catch (error) {
+				const reply: MessageReply = {
+					r: true,
+					i: msg.i,
+					error: 'Thrown Error: ' + stringifyError(error),
+				}
+				this.ws?.send(JSON.stringify(reply))
+			}
 		}
 	}
 

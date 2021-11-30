@@ -99,6 +99,12 @@ export class AppContainer {
 					}
 				}
 			)
+			this.websocketServer.on('error', (err: unknown) => {
+				this.logger.error(`AppContainer: WebsocketServer error: ${stringifyError(err)}`)
+			})
+			this.websocketServer.on('close', () => {
+				this.logger.error(`AppContainer: WebsocketServer closed`)
+			})
 		}
 
 		this.workforceAPI = new WorkforceAPI(this.logger)

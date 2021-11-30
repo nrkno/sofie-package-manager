@@ -1,4 +1,4 @@
-import { diff } from '../lib'
+import { diff, promiseTimeout, waitTime } from '../lib'
 
 describe('lib', () => {
 	test('diff', () => {
@@ -60,6 +60,55 @@ describe('lib', () => {
 				}
 			)
 		).toEqual('a.b.c.1.e: 1 !== 2')
+	})
+	test('promiseTimeout', async () => {
+		await expect(promiseTimeout(Promise.resolve(42), 300)).resolves.toEqual(42)
+		await expect(promiseTimeout(Promise.reject('errr'), 300)).rejects.toEqual('errr')
+
+		// @ts-expect-error input is a value, not a promise
+		await expect(promiseTimeout(42, 300)).resolves.toEqual(42)
+
+		await expect(
+			promiseTimeout(
+				(async () => {
+					await waitTime(50)
+					return 100
+				})(),
+				300
+			)
+		).resolves.toEqual(100)
+
+		await expect(
+			promiseTimeout(
+				(async () => {
+					await waitTime(50)
+					throw new Error('errr')
+				})(),
+				300
+			)
+		).rejects.toEqual(Error('errr'))
+
+		// Times out:
+		await expect(
+			promiseTimeout(
+				(async () => {
+					await waitTime(1000)
+					return 100
+				})(),
+				300
+			)
+		).rejects.toEqual('Timeout')
+
+		await expect(
+			promiseTimeout(
+				(async () => {
+					await waitTime(1000)
+					return 100
+				})(),
+				300,
+				`Custom timeout`
+			)
+		).rejects.toEqual('Custom timeout')
 	})
 })
 export {}

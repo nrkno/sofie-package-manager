@@ -1,4 +1,11 @@
-import { ExpectationManagerWorkerAgent, Reason, stringifyError, HelpfulEventEmitter } from '@shared/api'
+import {
+	ExpectationManagerWorkerAgent,
+	Reason,
+	stringifyError,
+	ACTION_TIMEOUT,
+	promiseTimeout,
+	HelpfulEventEmitter,
+} from '@shared/api'
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
@@ -27,8 +34,14 @@ export class WorkInProgress extends HelpfulEventEmitter implements IWorkInProgre
 	) {
 		super()
 	}
-	cancel(): Promise<void> {
-		return this._onCancel()
+	async cancel(): Promise<void> {
+		// Safe guard against timeouts:
+
+		await promiseTimeout(
+			this._onCancel(),
+			ACTION_TIMEOUT - 100,
+			`WorkInProgress.cancel() timeout "${this.properties.workLabel}"`
+		)
 	}
 
 	/**
