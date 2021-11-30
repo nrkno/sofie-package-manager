@@ -148,40 +148,46 @@ export class ExpectationManager {
 
 		this.status = this.updateStatus()
 		if (this.serverOptions.type === 'websocket') {
-			this.websocketServer = new WebsocketServer(this.serverOptions.port, (client: ClientConnection) => {
-				// A new client has connected
+			this.websocketServer = new WebsocketServer(
+				this.serverOptions.port,
+				this.logger,
+				(client: ClientConnection) => {
+					// A new client has connected
 
-				this.logger.info(`ExpectationManager: New ${client.clientType} connected, id "${client.clientId}"`)
+					this.logger.info(`ExpectationManager: New ${client.clientType} connected, id "${client.clientId}"`)
 
-				switch (client.clientType) {
-					case 'workerAgent': {
-						const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
+					switch (client.clientType) {
+						case 'workerAgent': {
+							const expectationManagerMethods = this.getWorkerAgentAPI(client.clientId)
 
-						const api = new WorkerAgentAPI(expectationManagerMethods, {
-							type: 'websocket',
-							clientConnection: client,
-						})
-						this.workerAgents[client.clientId] = { api, connected: true }
-						client.once('close', () => {
-							this.logger.warn(`ExpectationManager: Connection to Worker "${client.clientId}" closed`)
+							const api = new WorkerAgentAPI(expectationManagerMethods, {
+								type: 'websocket',
+								clientConnection: client,
+							})
+							this.workerAgents[client.clientId] = { api, connected: true }
+							client.once('close', () => {
+								this.logger.warn(`ExpectationManager: Connection to Worker "${client.clientId}" closed`)
 
-							this.workerAgents[client.clientId].connected = false
-							delete this.workerAgents[client.clientId]
-						})
-						this.logger.info(`ExpectationManager: Connection to Worker "${client.clientId}" established`)
-						this._triggerEvaluateExpectations(true)
-						break
-					}
-					case 'N/A':
-					case 'expectationManager':
-					case 'appContainer':
-						throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
-					default: {
-						assertNever(client.clientType)
-						throw new Error(`ExpectationManager: Unknown clientType "${client.clientType}"`)
+								this.workerAgents[client.clientId].connected = false
+								delete this.workerAgents[client.clientId]
+							})
+							this.logger.info(
+								`ExpectationManager: Connection to Worker "${client.clientId}" established`
+							)
+							this._triggerEvaluateExpectations(true)
+							break
+						}
+						case 'N/A':
+						case 'expectationManager':
+						case 'appContainer':
+							throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+						default: {
+							assertNever(client.clientType)
+							throw new Error(`ExpectationManager: Unknown clientType "${client.clientType}"`)
+						}
 					}
 				}
-			})
+			)
 			this.logger.info(`Expectation Manager running on port ${this.websocketServer.port}`)
 		} else {
 			// todo: handle direct connections

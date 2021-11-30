@@ -54,44 +54,51 @@ export class AppContainer {
 
 	constructor(private logger: LoggerInstance, private config: AppContainerProcessConfig) {
 		if (config.appContainer.port !== null) {
-			this.websocketServer = new WebsocketServer(config.appContainer.port, (client: ClientConnection) => {
-				// A new client has connected
+			this.websocketServer = new WebsocketServer(
+				config.appContainer.port,
+				this.logger,
+				(client: ClientConnection) => {
+					// A new client has connected
 
-				this.logger.debug(`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`)
+					this.logger.debug(
+						`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`
+					)
 
-				switch (client.clientType) {
-					case 'workerAgent': {
-						const workForceMethods = this.getWorkerAgentAPI(client.clientId)
-						const api = new WorkerAgentAPI(workForceMethods, {
-							type: 'websocket',
-							clientConnection: client,
-						})
-						const app = this.apps[client.clientId]
-						if (!app) {
-							throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
+					switch (client.clientType) {
+						case 'workerAgent': {
+							const workForceMethods = this.getWorkerAgentAPI(client.clientId)
+							const api = new WorkerAgentAPI(workForceMethods, {
+								type: 'websocket',
+								clientConnection: client,
+							})
+							const app = this.apps[client.clientId]
+							if (!app) {
+								throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
+							}
+							client.once('close', () => {
+								this.logger.warn(`Appcontainer: Connection to Worker "${client.clientId}" closed`)
+								delete app.workerAgentApi
+								delete this.apps[client.clientId]
+							})
+							this.logger.info(`Appcontainer: Connection to Worker "${client.clientId}" established`)
+							app.workerAgentApi = api
+
+							// Set upp the app for pinging and automatic spin-down:
+							app.monitorPing = true
+							app.lastPing = Date.now()
+							api.setSpinDownTime(app.spinDownTime)
+							break
 						}
-						app.workerAgentApi = api
-						client.once('close', () => {
-							this.logger.warn(`Appcontainer: Connection to Worker "${client.clientId}" closed`)
-							delete app.workerAgentApi
-							delete this.apps[client.clientId]
-						})
-						this.logger.info(`Appcontainer: Connection to Worker "${client.clientId}" established`)
-						// Set upp the app for pinging and automatic spin-down:
-						app.monitorPing = true
-						app.lastPing = Date.now()
-						api.setSpinDownTime(app.spinDownTime)
-						break
+						case 'expectationManager':
+						case 'appContainer':
+						case 'N/A':
+							throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+						default:
+							assertNever(client.clientType)
+							throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 					}
-					case 'expectationManager':
-					case 'appContainer':
-					case 'N/A':
-						throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
-					default:
-						assertNever(client.clientType)
-						throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 				}
-			})
+			)
 		}
 
 		this.workforceAPI = new WorkforceAPI(this.logger)
