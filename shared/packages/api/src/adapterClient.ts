@@ -1,4 +1,5 @@
-import { EventEmitter } from 'events'
+import { HelpfulEventEmitter } from './HelpfulEventEmitter'
+import { stringifyError } from './lib'
 import { LoggerInstance } from './logger'
 import { WebsocketClient } from './websocketClient'
 import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
@@ -8,7 +9,7 @@ import { Hook, MessageBase, MessageIdentifyClient } from './websocketConnection'
  * or (in the case where they run in the same process) hook directly into the AdapterServer, to call the methods directly.
  * @see {@link ./adapterServer.ts}
  */
-export abstract class AdapterClient<ME, OTHER> extends EventEmitter {
+export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 	/** Used for internal connections */
 	private serverHook?: Hook<OTHER, ME>
 
@@ -57,6 +58,9 @@ export abstract class AdapterClient<ME, OTHER> extends EventEmitter {
 				}
 				this.emit('disconnected')
 				this._connected = false
+			})
+			conn.on('error', (err) => {
+				this.logger.error(`AdapterClient: Error event: ${stringifyError(err)}`)
 			})
 			this._sendMessage = ((type: string, ...args: any[]) => conn.send(type, ...args)) as any
 

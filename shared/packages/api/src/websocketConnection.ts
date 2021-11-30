@@ -1,10 +1,10 @@
 import WebSocket from 'ws'
-import EventEmitter from 'events'
+import { HelpfulEventEmitter } from './HelpfulEventEmitter'
 
 export const PING_TIME = 10 * 1000
 export const MESSAGE_TIMEOUT = 5000
 
-export abstract class WebsocketConnection extends EventEmitter {
+export abstract class WebsocketConnection extends HelpfulEventEmitter {
 	protected ws?: WebSocket
 	private messageId = 0
 	private replies: {

@@ -1,4 +1,5 @@
 import WebSocket from 'ws'
+import { stringifyError } from './lib'
 
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 
@@ -34,6 +35,11 @@ export class WebsocketServer {
 			client.once('clientTypeReceived', () => {
 				// client.clientType has now been set
 				this.onConnection(client)
+			})
+			client.on('error', (err) => {
+				console.log(`WebsocketServer ws error: ${stringifyError(err)}`)
+				// TODO: should we close the client?
+				// client.close()
 			})
 		})
 	}
@@ -96,6 +102,9 @@ export class ClientConnection extends WebsocketConnection {
 			} else {
 				this.handleReceivedMessage(message)
 			}
+		})
+		this.ws.on('error', (err) => {
+			this.emit('error', err)
 		})
 	}
 

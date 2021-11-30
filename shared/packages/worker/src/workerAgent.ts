@@ -90,6 +90,9 @@ export class WorkerAgent {
 					this.initWorkForceAPIPromise?.reject(err)
 				})
 		})
+		this.workforceAPI.on('error', (err) => {
+			this.logger.error(`WorkerAgent: WorkforceAPI error event: ${stringifyError(err)}`)
+		})
 
 		this.appContainerAPI = new AppContainerAPI(this.logger)
 		this.appContainerAPI.on('disconnected', () => {
@@ -98,6 +101,9 @@ export class WorkerAgent {
 		this.appContainerAPI.on('connected', () => {
 			this.logger.info('Worker: AppContainer connected')
 			this.initAppContainerAPIPromise?.resolve() // To finish the init() function
+		})
+		this.appContainerAPI.on('error', (err) => {
+			this.logger.error(`WorkerAgent: AppContainerAPI error event: ${stringifyError(err)}`)
 		})
 
 		this.id = config.worker.workerId
@@ -254,6 +260,9 @@ export class WorkerAgent {
 		})
 		expectedManager.api.on('connected', () => {
 			this.logger.info('Worker: ExpectationManager connected')
+		})
+		expectedManager.api.on('error', (err) => {
+			this.logger.error(`WorkerAgent: ExpectationManagerAPI error event: ${stringifyError(err)}`)
 		})
 		const methods: ExpectationManagerWorkerAgent.WorkerAgent = literal<ExpectationManagerWorkerAgent.WorkerAgent>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {

@@ -118,6 +118,9 @@ export class AppContainer {
 					this.initWorkForceApiPromise?.reject(err)
 				})
 		})
+		this.workforceAPI.on('error', (err) => {
+			this.logger.error(`AppContainer: WorkforceAPI error event: ${stringifyError(err)}`)
+		})
 
 		this.id = config.appContainer.appContainerId
 		this.workForceConnectionOptions = this.config.appContainer.workforceURL

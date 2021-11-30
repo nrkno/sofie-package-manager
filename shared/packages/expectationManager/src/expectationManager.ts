@@ -142,6 +142,9 @@ export class ExpectationManager {
 					this.initWorkForceAPIPromise?.reject(err)
 				})
 		})
+		this.workforceAPI.on('error', (err) => {
+			this.logger.error(`ExpectationManager: Workforce error event: ${stringifyError(err)}`)
+		})
 
 		this.status = this.updateStatus()
 		if (this.serverOptions.type === 'websocket') {

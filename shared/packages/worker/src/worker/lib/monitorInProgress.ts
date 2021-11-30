@@ -1,5 +1,4 @@
-import { EventEmitter } from 'events'
-import { MonitorProperties, Reason, stringifyError } from '@shared/api'
+import { MonitorProperties, Reason, stringifyError, HelpfulEventEmitter } from '@shared/api'
 import { StatusCode } from '@sofie-automation/blueprints-integration'
 
 export interface MonitorInProgressEvents {
@@ -13,7 +12,7 @@ export declare interface IMonitorInProgress {
 	/** Stop the monitor */
 	stop: () => Promise<void>
 }
-export class MonitorInProgress extends EventEmitter implements IMonitorInProgress {
+export class MonitorInProgress extends HelpfulEventEmitter implements IMonitorInProgress {
 	constructor(public properties: MonitorProperties, private _onStop: () => Promise<void>) {
 		super()
 	}
