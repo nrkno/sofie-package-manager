@@ -39,7 +39,8 @@ export class AppContainer {
 			restarts: number
 			lastRestart: number
 			spinDownTime: number
-			workerAgentApi?: WorkerAgentAPI
+			/** If null, there is no websocket connection to the app */
+			workerAgentApi: WorkerAgentAPI | null
 			monitorPing: boolean
 			lastPing: number
 		}
@@ -77,8 +78,7 @@ export class AppContainer {
 							}
 							client.once('close', () => {
 								this.logger.warn(`Appcontainer: Connection to Worker "${client.clientId}" closed`)
-								delete app.workerAgentApi
-								delete this.apps[client.clientId]
+								app.workerAgentApi = null
 							})
 							this.logger.info(`Appcontainer: Connection to Worker "${client.clientId}" established`)
 							app.workerAgentApi = api
@@ -392,6 +392,8 @@ export class AppContainer {
 
 		const appId = `${this.id}_${this.appId++}`
 
+		this.logger.debug(`AppContainer: Spinning up app "${appId}" of type "${appType}"`)
+
 		const child = this.setupChildProcess(appType, appId, availableApp)
 		this.apps[appId] = {
 			process: child,
@@ -402,6 +404,7 @@ export class AppContainer {
 			monitorPing: false,
 			lastPing: Date.now(),
 			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
+			workerAgentApi: null,
 		}
 		return appId
 	}
@@ -415,6 +418,7 @@ export class AppContainer {
 		const success = app.process.kill()
 		if (!success) throw new Error(`Internal error: Killing of process "${app.process.pid}" failed`)
 
+		app.workerAgentApi = null
 		app.process.removeAllListeners()
 		delete this.apps[appId]
 	}
@@ -503,6 +507,8 @@ export class AppContainer {
 
 		for (const message of messages) {
 			try {
+				if (!message?.length) continue
+
 				const json = JSON.parse(`${message}`)
 
 				if (typeof json === 'object') {
@@ -523,7 +529,8 @@ export class AppContainer {
 					)
 				}
 			} catch (err) {
-				this.logger.debug(`${appId} stdout: ${message}`)
+				// There was an error parsing the message:
+				defaultLog(`${appId} stdout: ${message}`)
 			}
 		}
 	}
