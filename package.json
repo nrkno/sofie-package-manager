@@ -33,7 +33,7 @@
         "start:package-manager": "lerna run start --stream --scope @package-manager/app",
         "start:worker": "lerna run start --stream --scope @worker/app",
         "start:single-app": "lerna run start --stream --scope @single-app/app",
-        "postinstall": "node scripts/update-packages.js",
+        "preinstall": "node scripts/update-packages.js",
         "do:build-win32": "yarn install && yarn build && yarn build-win32 && yarn gather-built"
     },
     "devDependencies": {
@@ -60,8 +60,8 @@
         "node": ">=12.11.0"
     },
     "dependencies": {
-        "@sofie-automation/blueprints-integration": "1.37.0-nightly-release37-20211008-102301-5f72ed0.0",
-        "@sofie-automation/server-core-integration": "1.37.0-nightly-release37-20211008-102301-5f72ed0.0"
+        "@sofie-automation/blueprints-integration": "1.37.0",
+        "@sofie-automation/server-core-integration": "1.37.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "husky": {

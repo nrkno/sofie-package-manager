@@ -19,7 +19,6 @@
     "dependencies": {
         "@shared/api": "^1.37.0-alpha.1",
         "@shared/worker": "^1.37.0-alpha.1",
-        "@sofie-automation/blueprints-integration": "*",
         "@supercharge/promise-pool": "^1.7.0",
         "underscore": "^1.12.0"
     },
