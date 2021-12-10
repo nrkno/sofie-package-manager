@@ -95,7 +95,7 @@ export namespace Expectation {
 		type: Type.FILE_COPY
 
 		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.File[]
+			sources: SpecificPackageContainerOnPackage.FileCopySource[]
 		}
 		endRequirement: {
 			targets: [SpecificPackageContainerOnPackage.File]
@@ -294,6 +294,17 @@ export namespace Expectation {
 		export interface QuantelClip extends PackageContainerOnPackage {
 			accessors: {
 				[accessorId: string]: AccessorOnPackage.Quantel
+			}
+		}
+		/** Defines any PackageContainer that a FileCopy can use as a source  */
+		export interface FileCopySource extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
+					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
+					| AccessorOnPackage.Quantel
 			}
 		}
 	}
