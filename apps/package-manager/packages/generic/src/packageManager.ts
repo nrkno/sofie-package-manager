@@ -231,7 +231,6 @@ export class PackageManagerHandler {
 					}
 				}
 			}
-			console.log('expectedPackages', expectedPackages)
 
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
 		}, 300)
