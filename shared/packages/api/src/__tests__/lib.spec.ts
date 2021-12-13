@@ -1,4 +1,4 @@
-import { diff, promiseTimeout, waitTime } from '../lib'
+import { diff, promiseTimeout, stringifyError, waitTime } from '../lib'
 
 describe('lib', () => {
 	test('diff', () => {
@@ -109,6 +109,28 @@ describe('lib', () => {
 				`Custom timeout`
 			)
 		).rejects.toEqual('Custom timeout')
+	})
+
+	test('stringifyError', async () => {
+		const err = new Error('errr')
+		const obj = {
+			message: 'err message',
+			event: {
+				type: 'myevent',
+			},
+		}
+		const objReason = {
+			reason: 'err reason',
+		}
+		const emptyObject = {}
+
+		expect(stringifyError('asdf')).toEqual('asdf')
+		expect(stringifyError(err, true)).toEqual('Error: errr')
+		expect(stringifyError(err)).toMatch(/Error: errr[\s\S]*lib\.spec\.ts/gm)
+
+		expect(stringifyError(obj)).toEqual('{"message":"err message","event":{"type":"myevent"}}')
+		expect(stringifyError(objReason)).toEqual('err reason')
+		expect(stringifyError(emptyObject)).toEqual('{}')
 	})
 })
 export {}

@@ -103,6 +103,18 @@ export function stringifyError(error: unknown, noStack = false): string {
 			str += ', ' + (error as any).stack
 		}
 	}
+
+	if (str === '[object Object]') {
+		// A last try to make something useful:
+		try {
+			str = JSON.stringify(error)
+			if (str.length > 200) {
+				str = str.slice(0, 200) + '...'
+			}
+		} catch (e) {
+			str = '[Error in stringifyError: Failed to stringify]'
+		}
+	}
 	return str
 }
 
