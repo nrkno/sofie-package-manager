@@ -517,6 +517,11 @@ export class AppContainer {
 			try {
 				if (!message?.length) continue
 
+				// Ignore some messages:
+				if (message.indexOf('NODE_TLS_REJECT_UNAUTHORIZED') !== -1) {
+					continue
+				}
+
 				const json = JSON.parse(`${message}`)
 
 				if (typeof json === 'object') {
@@ -537,7 +542,8 @@ export class AppContainer {
 					)
 				}
 			} catch (err) {
-				// There was an error parsing the message:
+				// There was an error parsing the message (the probably message wasn't JSON).
+
 				defaultLog(`${appId} stdout: ${message}`)
 			}
 		}
