@@ -97,6 +97,9 @@ export function stringifyError(error: unknown, noStack = false): string {
 	if (error && typeof error === 'object' && (error as any).reason) {
 		str = `${(error as any).reason}`
 	}
+	if (error && typeof error === 'object' && (error as any).context) {
+		str += `, Context: ${(error as any).context}`
+	}
 
 	if (!noStack) {
 		if (error && typeof error === 'object' && (error as any).stack) {

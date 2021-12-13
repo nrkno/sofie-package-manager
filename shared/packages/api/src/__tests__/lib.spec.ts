@@ -123,6 +123,8 @@ describe('lib', () => {
 			reason: 'err reason',
 		}
 		const emptyObject = {}
+		const errWithContext = new Error('errr')
+		;(errWithContext as any).context = 'a context'
 
 		expect(stringifyError('asdf')).toEqual('asdf')
 		expect(stringifyError(err, true)).toEqual('Error: errr')
@@ -131,6 +133,8 @@ describe('lib', () => {
 		expect(stringifyError(obj)).toEqual('{"message":"err message","event":{"type":"myevent"}}')
 		expect(stringifyError(objReason)).toEqual('err reason')
 		expect(stringifyError(emptyObject)).toEqual('{}')
+
+		expect(stringifyError(errWithContext, true)).toEqual('Error: errr, Context: a context')
 	})
 })
 export {}
