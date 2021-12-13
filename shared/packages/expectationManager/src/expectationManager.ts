@@ -615,6 +615,8 @@ export class ExpectationManager {
 							user: `Added just now`,
 							tech: `Added ${Date.now()}`,
 						},
+						// Don't update the package status, since we don't know anything about the package yet.
+						dontUpdatePackage: true,
 					})
 				} else {
 					this.updateTrackedExpStatus(newTrackedExp, {
@@ -623,6 +625,8 @@ export class ExpectationManager {
 							user: `Updated just now`,
 							tech: `Updated ${Date.now()}, diff: (${diff(existingtrackedExp.exp, exp)})`,
 						},
+						// Don't update the package status, since the package likely hasn't changed:
+						dontUpdatePackage: true,
 					})
 				}
 			} else if (difference === 'minor') {
@@ -691,6 +695,8 @@ export class ExpectationManager {
 						user: 'Restarted by user',
 						tech: `Restarted by user`,
 					},
+					// Don't update the package status, since the package likely hasn't changed:
+					dontUpdatePackage: true,
 				})
 				trackedExp.lastEvaluationTime = 0 // To rerun ASAP
 			}
@@ -714,6 +720,8 @@ export class ExpectationManager {
 						user: 'Aborted by user',
 						tech: `Aborted by user`,
 					},
+					// Don't update the package status, since the package likely hasn't changed:
+					dontUpdatePackage: true,
 				})
 			}
 		}
@@ -919,12 +927,16 @@ export class ExpectationManager {
 								user: `${availableWorkersCount} workers available, about to start...`,
 								tech: `Found ${availableWorkersCount} workers who supports this Expectation`,
 							},
+							// Don't update the package status, since we don't know anything about the package yet:
+							dontUpdatePackage: true,
 						})
 						trackedExp.session.triggerExpectationAgain = true
 					} else {
 						// If we didn't query anyone, just skip ahead to next state without being too verbose:
 						this.updateTrackedExpStatus(trackedExp, {
 							state: ExpectedPackageStatusAPI.WorkStatusState.WAITING,
+							// Don't update the package status, since we don't know anything about the package yet:
+							dontUpdatePackage: true,
 						})
 					}
 				} else {
@@ -936,6 +948,8 @@ export class ExpectationManager {
 									user: `No Workers available (this is likely a configuration issue)`,
 									tech: `No Workers available`,
 								},
+								// Don't update the package status, since we don't know anything about the package yet:
+								dontUpdatePackage: true,
 							})
 						} else {
 							this.updateTrackedExpStatus(trackedExp, {
@@ -944,6 +958,8 @@ export class ExpectationManager {
 									user: `No Workers available (this is likely a configuration issue)`,
 									tech: `No Workers queried, ${Object.keys(this.workerAgents).length} available`,
 								},
+								// Don't update the package status, since we don't know anything about the package yet:
+								dontUpdatePackage: true,
 							})
 						}
 					} else {
@@ -955,6 +971,8 @@ export class ExpectationManager {
 									trackedExp.noAvailableWorkersReason.tech
 								}", have asked workers: [${Object.keys(trackedExp.queriedWorkers).join(',')}]`,
 							},
+							// Don't update the package status, since we don't know anything about the package yet:
+							dontUpdatePackage: true,
 						})
 					}
 				}
@@ -1020,7 +1038,6 @@ export class ExpectationManager {
 									error
 								)}"`,
 							},
-
 							isError: true,
 						})
 					}
@@ -1106,6 +1123,8 @@ export class ExpectationManager {
 						// Restart
 						this.updateTrackedExpStatus(trackedExp, {
 							state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
+							// Don't update the package status, since we don't know anything about the package at this point:
+							dontUpdatePackage: true,
 						})
 					} else {
 						// Do nothing, hopefully some will be available at a later iteration
@@ -1152,7 +1171,7 @@ export class ExpectationManager {
 									)}`,
 								},
 								// Should we se this here?
-								// dontUpdatePackageStatus: true,
+								// dontUpdatePackage: true,
 							})
 						}
 					} else {
@@ -1212,7 +1231,6 @@ export class ExpectationManager {
 						this.updateTrackedExpStatus(trackedExp, {
 							state: ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
 							reason: removed.reason,
-
 							isError: true,
 						})
 					}
@@ -1285,9 +1303,14 @@ export class ExpectationManager {
 			status?: Partial<TrackedExpectation['status']> | undefined
 			/** Whether the new state is due an error or not */
 			isError?: boolean
+			/**
+			 * If set, the package on packageContainer status won't be updated.
+			 * This is used to defer updates in situations where we don't really know what the status of the package is.
+			 * */
+			dontUpdatePackage?: boolean
 		}
 	) {
-		const { state, reason, status, isError } = upd
+		const { state, reason, status, isError, dontUpdatePackage } = upd
 
 		trackedExp.lastEvaluationTime = Date.now()
 		if (isError) trackedExp.lastErrorTime = Date.now()
@@ -1339,8 +1362,10 @@ export class ExpectationManager {
 				prevStatusReasons: trackedExp.prevStatusReasons,
 			})
 		}
-		if (updatedState || updatedReason || updatedStatus) {
-			this.updatePackageContainerPackageStatus(trackedExp, false)
+		if (!dontUpdatePackage) {
+			if (updatedState || updatedReason || updatedStatus) {
+				this.updatePackageContainerPackageStatus(trackedExp, false)
+			}
 		}
 	}
 	private updatePackageContainerPackageStatus(trackedExp: TrackedExpectation, isRemoved: boolean) {
@@ -1490,11 +1515,15 @@ export class ExpectationManager {
 			this.updateTrackedExpStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 				reason: noAssignedWorkerReason,
+				// Don't update the package status, since this means that we don't know anything about the package:
+				dontUpdatePackage: true,
 			})
 		} else {
 			// only update the reason
 			this.updateTrackedExpStatus(trackedExp, {
 				reason: noAssignedWorkerReason,
+				// Don't update the package status, since this means that we don't know anything about the package:
+				dontUpdatePackage: true,
 			})
 		}
 	}
