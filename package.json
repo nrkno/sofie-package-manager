@@ -37,9 +37,10 @@
         "do:build-win32": "yarn install && yarn build && yarn build-win32 && yarn gather-built"
     },
     "devDependencies": {
-        "@sofie-automation/code-standard-preset": "^0.2.2",
+        "@sofie-automation/code-standard-preset": "^0.5.0",
         "@types/jest": "^26.0.20",
         "deep-extend": "^0.6.0",
+        "eslint-plugin-jest": "^22.0.0",
         "eslint-plugin-prettier": "^3.3.1",
         "eslint": "7.19.0",
         "glob": "^7.1.6",
@@ -50,7 +51,7 @@
         "prettier": "^2.2.1",
         "rimraf": "^3.0.2",
         "ts-jest": "^26.5.0",
-        "typescript": "^4.0.0",
+        "typescript": "^4.2.0",
         "trash": "^7.1.0",
         "mkdirp": "^1.0.4",
         "find": "^0.3.0",
