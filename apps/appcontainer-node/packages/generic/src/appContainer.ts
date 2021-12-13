@@ -86,7 +86,9 @@ export class AppContainer {
 							// Set upp the app for pinging and automatic spin-down:
 							app.monitorPing = true
 							app.lastPing = Date.now()
-							api.setSpinDownTime(app.spinDownTime)
+							api.setSpinDownTime(app.spinDownTime).catch((err) => {
+								this.logger.error(`AppContainer: Error in spinDownTime: ${stringifyError(err)}`)
+							})
 							break
 						}
 						case 'expectationManager':
@@ -303,7 +305,7 @@ export class AppContainer {
 				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
 
 				// wait for the app to connect to us:
-				tryAfewTimes(async () => {
+				await tryAfewTimes(async () => {
 					if (this.apps[newAppId].workerAgentApi) {
 						return true
 					}
@@ -361,7 +363,7 @@ export class AppContainer {
 				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
 
 				// wait for the app to connect to us:
-				tryAfewTimes(async () => {
+				await tryAfewTimes(async () => {
 					if (this.apps[newAppId].workerAgentApi) {
 						return true
 					}

@@ -160,7 +160,7 @@ export class WorkerAgent {
 			}
 			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
 			// Wait for this.appContainerAPI to be ready before continuing:
-			new Promise<void>((resolve, reject) => {
+			await new Promise<void>((resolve, reject) => {
 				this.initAppContainerAPIPromise = { resolve, reject }
 			})
 		}
@@ -593,7 +593,9 @@ export class WorkerAgent {
 					this.logger.info(`Worker: is idle, requesting spinning down`)
 
 					if (this.appContainerAPI.connected) {
-						this.appContainerAPI.requestSpinDown()
+						this.appContainerAPI.requestSpinDown().catch((err) => {
+							this.logger.error(`Worker: appContainerAPI.requestSpinDown failed: ${stringifyError(err)}`)
+						})
 					} else {
 						// Huh, we're not connected to the appContainer.
 						// Well, we want to spin down anyway, so we'll do it:
@@ -605,7 +607,10 @@ export class WorkerAgent {
 		}
 		// Also ping the AppContainer
 		if (this.appContainerAPI.connected) {
-			this.appContainerAPI.ping()
+			this.appContainerAPI.ping().catch((err) => {
+				// We don't have to raise the error here if the ping fails, as reconnections are handled in other places:
+				this.logger.warn(`Worker: appContainerAPI.ping failed: ${stringifyError(err)}`)
+			})
 		}
 	}
 	private IDidSomeWork() {

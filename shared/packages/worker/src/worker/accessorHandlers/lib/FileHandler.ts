@@ -147,7 +147,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			},
 			async () => {
 				// Called on stop
-				watcher.close()
+				await watcher.close()
 			}
 		)
 

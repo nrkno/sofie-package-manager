@@ -540,7 +540,9 @@ export class ExpectationManager {
 
 		this.updateStatus(times)
 
-		this.checkIfNeedToScaleUp()
+		await this.checkIfNeedToScaleUp().catch((err) => {
+			this.logger.error(`Error in checkIfNeedToScaleUp: ${stringifyError(err)}`)
+		})
 
 		if (runAgainASAP) {
 			this._triggerEvaluateExpectations(true)

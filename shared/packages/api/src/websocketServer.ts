@@ -50,7 +50,7 @@ export class WebsocketServer extends HelpfulEventEmitter {
 				this.onConnection(client)
 			})
 			client.on('error', (err) => {
-				console.log(`WebsocketServer ws error: ${stringifyError(err)}`)
+				this.emit('error', `WebsocketServer ws error, client "${client.clientId}": ${stringifyError(err)}`)
 				// TODO: should we close the client?
 				// client.close()
 			})
