@@ -1,5 +1,4 @@
-import { EventEmitter } from 'events'
-import { StatusCode, MonitorProperties, Reason, stringifyError } from '@shared/api'
+import { StatusCode, MonitorProperties, Reason, stringifyError, HelpfulEventEmitter } from '@shared/api'
 
 export interface MonitorInProgressEvents {
 	status: (status: StatusCode, reason: Reason) => void
@@ -12,7 +11,7 @@ export declare interface IMonitorInProgress {
 	/** Stop the monitor */
 	stop: () => Promise<void>
 }
-export class MonitorInProgress extends EventEmitter implements IMonitorInProgress {
+export class MonitorInProgress extends HelpfulEventEmitter implements IMonitorInProgress {
 	constructor(public properties: MonitorProperties, private _onStop: () => Promise<void>) {
 		super()
 	}

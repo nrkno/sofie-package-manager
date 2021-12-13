@@ -39,7 +39,8 @@ export class AppContainer {
 			restarts: number
 			lastRestart: number
 			spinDownTime: number
-			workerAgentApi?: WorkerAgentAPI
+			/** If null, there is no websocket connection to the app */
+			workerAgentApi: WorkerAgentAPI | null
 			monitorPing: boolean
 			lastPing: number
 		}
@@ -54,43 +55,57 @@ export class AppContainer {
 
 	constructor(private logger: LoggerInstance, private config: AppContainerProcessConfig) {
 		if (config.appContainer.port !== null) {
-			this.websocketServer = new WebsocketServer(config.appContainer.port, (client: ClientConnection) => {
-				// A new client has connected
+			this.websocketServer = new WebsocketServer(
+				config.appContainer.port,
+				this.logger,
+				(client: ClientConnection) => {
+					// A new client has connected
 
-				this.logger.debug(`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`)
+					this.logger.debug(
+						`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`
+					)
 
-				switch (client.clientType) {
-					case 'workerAgent': {
-						const workForceMethods = this.getWorkerAgentAPI(client.clientId)
-						const api = new WorkerAgentAPI(workForceMethods, {
-							type: 'websocket',
-							clientConnection: client,
-						})
-						const app = this.apps[client.clientId]
-						if (!app) {
-							throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
+					switch (client.clientType) {
+						case 'workerAgent': {
+							const workForceMethods = this.getWorkerAgentAPI(client.clientId)
+							const api = new WorkerAgentAPI(workForceMethods, {
+								type: 'websocket',
+								clientConnection: client,
+							})
+							const app = this.apps[client.clientId]
+							if (!app) {
+								throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
+							}
+							client.once('close', () => {
+								this.logger.warn(`Appcontainer: Connection to Worker "${client.clientId}" closed`)
+								app.workerAgentApi = null
+							})
+							this.logger.info(`Appcontainer: Connection to Worker "${client.clientId}" established`)
+							app.workerAgentApi = api
+
+							// Set upp the app for pinging and automatic spin-down:
+							app.monitorPing = true
+							app.lastPing = Date.now()
+							api.setSpinDownTime(app.spinDownTime).catch((err) => {
+								this.logger.error(`AppContainer: Error in spinDownTime: ${stringifyError(err)}`)
+							})
+							break
 						}
-						app.workerAgentApi = api
-						client.once('close', () => {
-							this.logger.warn(`Appcontainer: Connection to Worker "${client.clientId}" closed`)
-							delete app.workerAgentApi
-							delete this.apps[client.clientId]
-						})
-						this.logger.info(`Appcontainer: Connection to Worker "${client.clientId}" established`)
-						// Set upp the app for pinging and automatic spin-down:
-						app.monitorPing = true
-						app.lastPing = Date.now()
-						api.setSpinDownTime(app.spinDownTime)
-						break
+						case 'expectationManager':
+						case 'appContainer':
+						case 'N/A':
+							throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+						default:
+							assertNever(client.clientType)
+							throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 					}
-					case 'expectationManager':
-					case 'appContainer':
-					case 'N/A':
-						throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
-					default:
-						assertNever(client.clientType)
-						throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 				}
+			)
+			this.websocketServer.on('error', (err: unknown) => {
+				this.logger.error(`AppContainer: WebsocketServer error: ${stringifyError(err)}`)
+			})
+			this.websocketServer.on('close', () => {
+				this.logger.error(`AppContainer: WebsocketServer closed`)
 			})
 		}
 
@@ -117,6 +132,9 @@ export class AppContainer {
 					this.logger.error(`AppContainer: Error in registerAvailableApps: ${stringifyError(err)}`)
 					this.initWorkForceApiPromise?.reject(err)
 				})
+		})
+		this.workforceAPI.on('error', (err) => {
+			this.logger.error(`AppContainer: WorkforceAPI error event: ${stringifyError(err)}`)
 		})
 
 		this.id = config.appContainer.appContainerId
@@ -287,7 +305,7 @@ export class AppContainer {
 				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
 
 				// wait for the app to connect to us:
-				tryAfewTimes(async () => {
+				await tryAfewTimes(async () => {
 					if (this.apps[newAppId].workerAgentApi) {
 						return true
 					}
@@ -345,7 +363,7 @@ export class AppContainer {
 				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
 
 				// wait for the app to connect to us:
-				tryAfewTimes(async () => {
+				await tryAfewTimes(async () => {
 					if (this.apps[newAppId].workerAgentApi) {
 						return true
 					}
@@ -382,6 +400,8 @@ export class AppContainer {
 
 		const appId = `${this.id}_${this.appId++}`
 
+		this.logger.debug(`AppContainer: Spinning up app "${appId}" of type "${appType}"`)
+
 		const child = this.setupChildProcess(appType, appId, availableApp)
 		this.apps[appId] = {
 			process: child,
@@ -392,6 +412,7 @@ export class AppContainer {
 			monitorPing: false,
 			lastPing: Date.now(),
 			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
+			workerAgentApi: null,
 		}
 		return appId
 	}
@@ -405,6 +426,7 @@ export class AppContainer {
 		const success = app.process.kill()
 		if (!success) throw new Error(`Internal error: Killing of process "${app.process.pid}" failed`)
 
+		app.workerAgentApi = null
 		app.process.removeAllListeners()
 		delete this.apps[appId]
 	}
@@ -493,6 +515,13 @@ export class AppContainer {
 
 		for (const message of messages) {
 			try {
+				if (!message?.length) continue
+
+				// Ignore some messages:
+				if (message.indexOf('NODE_TLS_REJECT_UNAUTHORIZED') !== -1) {
+					continue
+				}
+
 				const json = JSON.parse(`${message}`)
 
 				if (typeof json === 'object') {
@@ -513,7 +542,9 @@ export class AppContainer {
 					)
 				}
 			} catch (err) {
-				this.logger.debug(`${appId} stdout: ${message}`)
+				// There was an error parsing the message (the probably message wasn't JSON).
+
+				defaultLog(`${appId} stdout: ${message}`)
 			}
 		}
 	}

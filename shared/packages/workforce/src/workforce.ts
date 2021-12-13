@@ -55,66 +55,81 @@ export class Workforce {
 
 	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
 		if (config.workforce.port !== null) {
-			this.websocketServer = new WebsocketServer(config.workforce.port, (client: ClientConnection) => {
-				// A new client has connected
+			this.websocketServer = new WebsocketServer(
+				config.workforce.port,
+				this.logger,
+				(client: ClientConnection) => {
+					// A new client has connected
 
-				this.logger.info(`Workforce: New client "${client.clientType}" connected, id "${client.clientId}"`)
+					this.logger.info(`Workforce: New client "${client.clientType}" connected, id "${client.clientId}"`)
 
-				switch (client.clientType) {
-					case 'workerAgent': {
-						const workForceMethods = this.getWorkerAgentAPI()
-						const api = new WorkerAgentAPI(workForceMethods, {
-							type: 'websocket',
-							clientConnection: client,
-						})
-						this.workerAgents[client.clientId] = { api }
-						client.once('close', () => {
-							this.logger.warn(`Workforce: Connection to Worker "${client.clientId}" closed`)
-							delete this.workerAgents[client.clientId]
-						})
-						this.logger.info(`Workforce: Connection to Worker "${client.clientId}" established`)
-						break
-					}
-					case 'expectationManager': {
-						const workForceMethods = this.getExpectationManagerAPI()
-						const api = new ExpectationManagerAPI(workForceMethods, {
-							type: 'websocket',
-							clientConnection: client,
-						})
-						this.expectationManagers[client.clientId] = { api }
-						client.once('close', () => {
-							this.logger.warn(`Workforce: Connection to ExpectationManager "${client.clientId}" closed`)
-							delete this.expectationManagers[client.clientId]
-						})
-						this.logger.info(`Workforce: Connection to ExpectationManager "${client.clientId}" established`)
-						break
-					}
-					case 'appContainer': {
-						const workForceMethods = this.getAppContainerAPI(client.clientId)
-						const api = new AppContainerAPI(workForceMethods, {
-							type: 'websocket',
-							clientConnection: client,
-						})
-						this.appContainers[client.clientId] = {
-							api,
-							availableApps: [],
-							runningApps: [],
-							initialized: false,
+					switch (client.clientType) {
+						case 'workerAgent': {
+							const workForceMethods = this.getWorkerAgentAPI()
+							const api = new WorkerAgentAPI(workForceMethods, {
+								type: 'websocket',
+								clientConnection: client,
+							})
+							this.workerAgents[client.clientId] = { api }
+							client.once('close', () => {
+								this.logger.warn(`Workforce: Connection to Worker "${client.clientId}" closed`)
+								delete this.workerAgents[client.clientId]
+							})
+							this.logger.info(`Workforce: Connection to Worker "${client.clientId}" established`)
+							break
 						}
-						client.once('close', () => {
-							this.logger.warn(`Workforce: Connection to AppContainer "${client.clientId}" closed`)
-							delete this.appContainers[client.clientId]
-						})
-						this.logger.info(`Workforce: Connection to AppContainer "${client.clientId}" established`)
-						break
-					}
+						case 'expectationManager': {
+							const workForceMethods = this.getExpectationManagerAPI()
+							const api = new ExpectationManagerAPI(workForceMethods, {
+								type: 'websocket',
+								clientConnection: client,
+							})
+							this.expectationManagers[client.clientId] = { api }
+							client.once('close', () => {
+								this.logger.warn(
+									`Workforce: Connection to ExpectationManager "${client.clientId}" closed`
+								)
+								delete this.expectationManagers[client.clientId]
+							})
+							this.logger.info(
+								`Workforce: Connection to ExpectationManager "${client.clientId}" established`
+							)
+							break
+						}
+						case 'appContainer': {
+							const workForceMethods = this.getAppContainerAPI(client.clientId)
+							const api = new AppContainerAPI(workForceMethods, {
+								type: 'websocket',
+								clientConnection: client,
+							})
+							this.appContainers[client.clientId] = {
+								api,
+								availableApps: [],
+								runningApps: [],
+								initialized: false,
+							}
+							client.once('close', () => {
+								this.logger.warn(`Workforce: Connection to AppContainer "${client.clientId}" closed`)
+								delete this.appContainers[client.clientId]
+							})
+							this.logger.info(`Workforce: Connection to AppContainer "${client.clientId}" established`)
+							break
+						}
 
-					case 'N/A':
-						throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
-					default:
-						assertNever(client.clientType)
-						throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
+						case 'N/A':
+							throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+						default:
+							assertNever(client.clientType)
+							throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
+					}
 				}
+			)
+
+			this.websocketServer.on('error', (err: unknown) => {
+				this.logger.error(`Workforce: WebsocketServer error: ${stringifyError(err)}`)
+			})
+			this.websocketServer.on('close', () => {
+				this.logger.error(`Workforce: WebsocketServer closed`)
 			})
 		}
 		this.workerHandler = new WorkerHandler(this)

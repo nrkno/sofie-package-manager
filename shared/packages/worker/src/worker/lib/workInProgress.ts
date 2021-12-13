@@ -1,5 +1,11 @@
-import { EventEmitter } from 'events'
-import { ExpectationManagerWorkerAgent, Reason, stringifyError } from '@shared/api'
+import {
+	ExpectationManagerWorkerAgent,
+	Reason,
+	stringifyError,
+	ACTION_TIMEOUT,
+	promiseTimeout,
+	HelpfulEventEmitter,
+} from '@shared/api'
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */
@@ -17,7 +23,7 @@ export declare interface IWorkInProgress {
 	/** Cancels the job */
 	cancel: () => Promise<void>
 }
-export class WorkInProgress extends EventEmitter implements IWorkInProgress {
+export class WorkInProgress extends HelpfulEventEmitter implements IWorkInProgress {
 	private _reportProgressTimeout: NodeJS.Timeout | undefined
 	private _progress = 0
 	private _actualVersionHash: string | null = null
@@ -28,8 +34,14 @@ export class WorkInProgress extends EventEmitter implements IWorkInProgress {
 	) {
 		super()
 	}
-	cancel(): Promise<void> {
-		return this._onCancel()
+	async cancel(): Promise<void> {
+		// Safe guard against timeouts:
+
+		await promiseTimeout(
+			this._onCancel(),
+			ACTION_TIMEOUT - 100,
+			`WorkInProgress.cancel() timeout "${this.properties.workLabel}"`
+		)
 	}
 
 	/**

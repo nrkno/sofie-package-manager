@@ -1,5 +1,4 @@
-import { EventEmitter } from 'events'
-import { AccessorOnPackage, Expectation, PackageContainerExpectation, Reason } from '@shared/api'
+import { AccessorOnPackage, Expectation, PackageContainerExpectation, Reason, HelpfulEventEmitter } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 
@@ -151,7 +150,7 @@ export type SetupPackageContainerMonitorsResult =
  * A class emitted from putPackageStream() and putPackageInfo(), used to signal the progression of an ongoing write operation.
  * Users of this class are required to emit the events 'error' on error and 'close' upon completion
  */
-export class PutPackageHandler extends EventEmitter {
+export class PutPackageHandler extends HelpfulEventEmitter {
 	constructor(private onAbort: () => void) {
 		super()
 	}

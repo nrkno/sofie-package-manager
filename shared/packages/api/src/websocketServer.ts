@@ -1,14 +1,23 @@
+import { LoggerInstance } from 'winston'
 import WebSocket from 'ws'
+import { stringifyError } from './lib'
 
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
+import { HelpfulEventEmitter } from './HelpfulEventEmitter'
 
 export type OnMessageHandler = (message: MessageBase) => Promise<any>
 
-export class WebsocketServer {
+export class WebsocketServer extends HelpfulEventEmitter {
 	private wss: WebSocket.Server
 	private clients: ClientConnection[] = []
 
-	constructor(port: number, private onConnection: (client: ClientConnection) => void) {
+	constructor(
+		port: number,
+		private logger: LoggerInstance,
+		private onConnection: (client: ClientConnection) => void
+	) {
+		super()
+
 		this.wss = new WebSocket.Server({ port: port })
 
 		this.wss.on('close', () => {
@@ -18,12 +27,17 @@ export class WebsocketServer {
 				this.clients = []
 				client._onLostConnection()
 			})
+
+			this.emit('close')
+		})
+		this.wss.on('error', (err) => {
+			this.emit('error', err)
 		})
 
 		this.wss.on('connection', (ws) => {
 			// A new client has connected
 
-			const client = new ClientConnection(ws, () => Promise.reject('Not setup yet'))
+			const client = new ClientConnection(ws, this.logger, () => Promise.reject('Not setup yet'))
 			this.clients.push(client)
 
 			client.once('close', () => {
@@ -34,6 +48,11 @@ export class WebsocketServer {
 			client.once('clientTypeReceived', () => {
 				// client.clientType has now been set
 				this.onConnection(client)
+			})
+			client.on('error', (err) => {
+				this.emit('error', `WebsocketServer ws error, client "${client.clientId}": ${stringifyError(err)}`)
+				// TODO: should we close the client?
+				// client.close()
 			})
 		})
 	}
@@ -54,10 +73,12 @@ export class WebsocketServer {
 export class ClientConnection extends WebsocketConnection {
 	private pingInterval: NodeJS.Timeout
 	private hasReceivedPingFromClient = true
+	private failedPingCount = 0
 	public clientType: ClientType = 'N/A'
 	public clientId = 'N/A'
+	private isClosed = false
 
-	constructor(ws: WebSocket, onMessage: (message: MessageBase) => Promise<any>) {
+	constructor(ws: WebSocket, private logger: LoggerInstance, onMessage: (message: MessageBase) => Promise<any>) {
 		super(onMessage)
 
 		this.ws = ws
@@ -66,9 +87,19 @@ export class ClientConnection extends WebsocketConnection {
 		this.pingInterval = setInterval(() => {
 			if (this.ws) {
 				if (!this.hasReceivedPingFromClient) {
-					this.ws.terminate()
-					delete this.ws
-					this._onLostConnection()
+					this.failedPingCount++
+
+					if (this.failedPingCount > 2) {
+						this.logger.warn(`Ping failed, closing connection "${this.clientType}", "${this.clientId}"`)
+
+						this.ws.terminate()
+						delete this.ws
+						this._onLostConnection()
+					} else {
+						this.logger.warn(
+							`Ping failed, count: ${this.failedPingCount}, "${this.clientType}", "${this.clientId}"`
+						)
+					}
 				} else {
 					this.hasReceivedPingFromClient = false
 					this.ws.ping() // client will reply with 'pong'
@@ -80,6 +111,7 @@ export class ClientConnection extends WebsocketConnection {
 		}, PING_TIME)
 		this.ws.on('pong', () => {
 			this.hasReceivedPingFromClient = true
+			this.failedPingCount = 0
 		})
 		this.ws.on('close', () => {
 			this._onLostConnection()
@@ -97,14 +129,21 @@ export class ClientConnection extends WebsocketConnection {
 				this.handleReceivedMessage(message)
 			}
 		})
+		this.ws.on('error', (err) => {
+			this.emit('error', err)
+		})
 	}
 
 	_onLostConnection(): void {
-		clearTimeout(this.pingInterval)
-		this.emit('close')
+		if (!this.isClosed) {
+			this.isClosed = true
+			clearTimeout(this.pingInterval)
+			this.emit('close')
+		}
 	}
 	close(): void {
 		this.ws?.close()
+		this._onLostConnection()
 	}
 }
 export type ClientType = MessageIdentifyClient['clientType']

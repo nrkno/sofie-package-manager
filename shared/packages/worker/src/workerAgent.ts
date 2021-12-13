@@ -91,6 +91,9 @@ export class WorkerAgent {
 					this.initWorkForceAPIPromise?.reject(err)
 				})
 		})
+		this.workforceAPI.on('error', (err) => {
+			this.logger.error(`WorkerAgent: WorkforceAPI error event: ${stringifyError(err)}`)
+		})
 
 		this.appContainerAPI = new AppContainerAPI(this.logger)
 		this.appContainerAPI.on('disconnected', () => {
@@ -99,6 +102,9 @@ export class WorkerAgent {
 		this.appContainerAPI.on('connected', () => {
 			this.logger.info('Worker: AppContainer connected')
 			this.initAppContainerAPIPromise?.resolve() // To finish the init() function
+		})
+		this.appContainerAPI.on('error', (err) => {
+			this.logger.error(`WorkerAgent: AppContainerAPI error event: ${stringifyError(err)}`)
 		})
 
 		this.id = config.worker.workerId
@@ -155,7 +161,7 @@ export class WorkerAgent {
 			}
 			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
 			// Wait for this.appContainerAPI to be ready before continuing:
-			new Promise<void>((resolve, reject) => {
+			await new Promise<void>((resolve, reject) => {
 				this.initAppContainerAPIPromise = { resolve, reject }
 			})
 		}
@@ -255,6 +261,9 @@ export class WorkerAgent {
 		})
 		expectedManager.api.on('connected', () => {
 			this.logger.info('Worker: ExpectationManager connected')
+		})
+		expectedManager.api.on('error', (err) => {
+			this.logger.error(`WorkerAgent: ExpectationManagerAPI error event: ${stringifyError(err)}`)
 		})
 		const methods: ExpectationManagerWorkerAgent.WorkerAgent = literal<ExpectationManagerWorkerAgent.WorkerAgent>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {
@@ -585,7 +594,9 @@ export class WorkerAgent {
 					this.logger.info(`Worker: is idle, requesting spinning down`)
 
 					if (this.appContainerAPI.connected) {
-						this.appContainerAPI.requestSpinDown()
+						this.appContainerAPI.requestSpinDown().catch((err) => {
+							this.logger.error(`Worker: appContainerAPI.requestSpinDown failed: ${stringifyError(err)}`)
+						})
 					} else {
 						// Huh, we're not connected to the appContainer.
 						// Well, we want to spin down anyway, so we'll do it:
@@ -597,7 +608,10 @@ export class WorkerAgent {
 		}
 		// Also ping the AppContainer
 		if (this.appContainerAPI.connected) {
-			this.appContainerAPI.ping()
+			this.appContainerAPI.ping().catch((err) => {
+				// We don't have to raise the error here if the ping fails, as reconnections are handled in other places:
+				this.logger.warn(`Worker: appContainerAPI.ping failed: ${stringifyError(err)}`)
+			})
 		}
 	}
 	private IDidSomeWork() {
