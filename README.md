@@ -14,13 +14,14 @@ The packages in [tests/](tests/) contain unit/integration tests.
 
 ### Applications
 
-| Name                | Location                                             | Description                                                                                                                                                                                                                      |
-| ------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Workforce**       | [apps/workforce/app](apps/workforce/app)             | Mediates connections between the Workers and the Package Managers. _(Later: Will handle spin-up/down of workers according to the current need.)_                                                                                 |
-| **Package Manager** | [apps/package-manager/app](apps/package-manager/app) | The Package Manager receives `expectedPackages` from a [Sofie Core](https://github.com/nrkno/tv-automation-server-core), converts them into `Expectations`. Keeps track of work statues and distributes the work to the Workers. |
-| **Worker**          | [apps/worker/app](apps/worker/app)                   | Executes work orders from the Package Manager                                                                                                                                                                                    |
-| **HTTP-server**     | [apps/http-server/app](apps/http-server/app)         | A simple HTTP server, where files can be uploaded to and served from. (Often used for thumbnails & previews)                                                                                                                     |
-| **Single-app**      | [apps/single-app/app](apps/single-app/app)           | Runs one of each of the above in a single application.                                                                                                                                                                           |
+| Name                  | Location                                                 | Description                                                                                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Workforce**         | [apps/workforce/app](apps/workforce/app)                 | Mediates connections between the Workers and the Package Managers. _(Later: Will handle spin-up/down of workers according to the current need.)_                                                                                 |
+| **Package Manager**   | [apps/package-manager/app](apps/package-manager/app)     | The Package Manager receives `expectedPackages` from a [Sofie Core](https://github.com/nrkno/tv-automation-server-core), converts them into `Expectations`. Keeps track of work statues and distributes the work to the Workers. |
+| **Worker**            | [apps/worker/app](apps/worker/app)                       | Executes work orders from the Package Manager                                                                                                                                                                                    |
+| **AppContainer-node** | [apps/appcontainer-node/app](apps/appcontainer-node/app) | Spins up/down workers according to the current need. (This appContainer uses child processes, future ones could work with for example Kubernetes or AWS)                                                                         |
+| **HTTP-server**       | [apps/http-server/app](apps/http-server/app)             | A simple HTTP server, where files can be uploaded to and served from. (Often used for thumbnails & previews)                                                                                                                     |
+| **Single-app**        | [apps/single-app/app](apps/single-app/app)               | Runs one of each of the above in a single application.                                                                                                                                                                           |
 
 ### Packages (Libraries)
 
@@ -53,23 +54,16 @@ yarn lint
 yarn test
 
 
-# Start apps
-yarn start:workforce
-yarn start:package-manager
-yarn start:worker
-yarn start:http-server
+# Start the single-app (contains all apps)
 yarn start:single-app
 
 # (Windows only) Compile all apps into executables, and put into the deploy/ folder.
 yarn do:build-win32
 
-# Gather all built executables in a single folder
-yarn gather-built
-
 # To run a command for a single package, use the --scope option
 yarn build --scope @shared/api
 
-# CLI arguments can be passed like so:
+# CLI arguments can be passed like so: (note the double -- --)
 yarn start:workforce -- -- --port=8080
 
 # Documentation for the CLI agruments
