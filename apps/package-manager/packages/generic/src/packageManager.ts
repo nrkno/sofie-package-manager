@@ -723,10 +723,20 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					}
 				}
 
-				await this.packageManager.coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses,
-					[sendToCore]
-				)
+				try {
+					await this.packageManager.coreHandler.core.callMethod(
+						PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses,
+						[sendToCore]
+					)
+				} catch (err) {
+					// Ignore some errors:
+					if (`${err}`.match(/ExpectedPackages ".*" not found/)) {
+						// ignore these, we probably just have an old status on our side
+						this.logger.warn(`reportUpdateExpectationStatus: Ignored error: ${stringifyError(err)}`)
+					} else {
+						throw err
+					}
+				}
 			}
 		)
 	}
