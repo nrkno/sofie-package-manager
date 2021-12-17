@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/generic",
-    "version": "1.38.0-in-testing",
+    "version": "1.38.0-in-testing.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -15,9 +15,9 @@
         "@sofie-automation/server-core-integration": "*"
     },
     "dependencies": {
-        "@shared/api": "1.38.0-in-testing",
-        "@shared/expectation-manager": "1.38.0-in-testing",
-        "@shared/worker": "1.38.0-in-testing",
+        "@shared/api": "1.38.0-in-testing.0",
+        "@shared/expectation-manager": "1.38.0-in-testing.0",
+        "@shared/worker": "1.38.0-in-testing.0",
         "chokidar": "^3.5.1",
         "deep-extend": "^0.6.0",
         "fast-clone": "^1.5.13",

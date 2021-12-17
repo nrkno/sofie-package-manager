@@ -1,6 +1,6 @@
 {
     "name": "@boilerplate/generic",
-    "version": "1.38.0-in-testing",
+    "version": "1.38.0-in-testing.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",

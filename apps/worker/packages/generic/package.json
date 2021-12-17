@@ -1,6 +1,6 @@
 {
     "name": "@worker/generic",
-    "version": "1.38.0-in-testing",
+    "version": "1.38.0-in-testing.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -14,8 +14,8 @@
         "@sofie-automation/blueprints-integration": "*"
     },
     "dependencies": {
-        "@shared/api": "1.38.0-in-testing",
-        "@shared/worker": "1.38.0-in-testing"
+        "@shared/api": "1.38.0-in-testing.0",
+        "@shared/worker": "1.38.0-in-testing.0"
     },
     "devDependencies": {
         "lint-staged": "^7.2.0"

@@ -1,6 +1,6 @@
 {
     "name": "@shared/api",
-    "version": "1.38.0-in-testing",
+    "version": "1.38.0-in-testing.0",
     "main": "dist/index",
     "types": "dist/index",
     "files": [

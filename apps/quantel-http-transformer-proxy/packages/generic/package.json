@@ -1,6 +1,6 @@
 {
     "name": "@quantel-http-transformer-proxy/generic",
-    "version": "1.38.0-in-testing",
+    "version": "1.38.0-in-testing.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -16,7 +16,7 @@
     "dependencies": {
         "@koa/cors": "^3.0.0",
         "@koa/multer": "3.0.0",
-        "@shared/api": "1.38.0-in-testing",
+        "@shared/api": "1.38.0-in-testing.0",
         "got": "^11.8.2",
         "koa": "^2.11.0",
         "koa-bodyparser": "^4.3.0",
