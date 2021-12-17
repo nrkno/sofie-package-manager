@@ -10,9 +10,8 @@
     ],
     "scripts": {
         "ci": "yarn install && yarn build && yarn lint && yarn test",
-        "release:first-release": "lerna version --no-push",
-        "release:bump-release": "lerna version --conventional-commits --conventional-graduate --no-push",
-        "release:bump-prerelease": "lerna version --conventional-commits --conventional-prerelease --no-push",
+        "release:bump-release": "lerna version --conventional-commits --conventional-graduate --exact --no-push",
+        "release:bump-prerelease": "lerna version --conventional-commits --conventional-prerelease --exact --no-push",
         "setup": "lerna bootstrap",
         "reset": "node scripts/reset.js",
         "build": "lerna run build --stream",
@@ -33,7 +32,7 @@
         "start:package-manager": "lerna run start --stream --scope @package-manager/app",
         "start:worker": "lerna run start --stream --scope @worker/app",
         "start:single-app": "lerna run start --stream --scope @single-app/app",
-        "preinstall": "node scripts/update-packages.js",
+        "postinstall": "node scripts/update-packages.js",
         "do:build-win32": "yarn install && yarn build && yarn build-win32 && yarn gather-built"
     },
     "devDependencies": {
