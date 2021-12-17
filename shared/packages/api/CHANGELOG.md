@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.38.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.37.0...v1.38.0-alpha.0) (2021-12-17)
+
+
+### Bug Fixes
+
+* re-export blueprint-integration exports in @shared/api inputApi.ts ([803adc5](https://github.com/nrkno/tv-automation-package-manager/commit/803adc5affbc38c404e710ae1f539907f7717fba))
+
+
+
+
+
 # [1.37.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.37.0-alpha.1...v1.37.0) (2021-12-17)
 
 
