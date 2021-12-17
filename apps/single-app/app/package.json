@@ -1,6 +1,6 @@
 {
     "name": "@single-app/app",
-    "version": "1.38.0-alpha.0",
+    "version": "1.38.0-in-testing",
     "description": "Package Manager, http-proxy etc.. all in one application",
     "private": true,
     "scripts": {
@@ -16,13 +16,13 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@appcontainer-node/generic": "1.38.0-alpha.0",
-        "@http-server/generic": "1.38.0-alpha.0",
-        "@package-manager/generic": "1.38.0-alpha.0",
-        "@quantel-http-transformer-proxy/generic": "1.38.0-alpha.0",
-        "@shared/api": "1.38.0-alpha.0",
-        "@shared/worker": "1.38.0-alpha.0",
-        "@shared/workforce": "1.38.0-alpha.0",
+        "@appcontainer-node/generic": "1.38.0-in-testing",
+        "@http-server/generic": "1.38.0-in-testing",
+        "@package-manager/generic": "1.38.0-in-testing",
+        "@quantel-http-transformer-proxy/generic": "1.38.0-in-testing",
+        "@shared/api": "1.38.0-in-testing",
+        "@shared/worker": "1.38.0-in-testing",
+        "@shared/workforce": "1.38.0-in-testing",
         "underscore": "^1.12.0"
     },
     "peerDependencies": {

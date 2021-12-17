@@ -1,6 +1,6 @@
 {
     "name": "@boilerplate/app",
-    "version": "1.38.0-alpha.0",
+    "version": "1.38.0-in-testing",
     "description": "Boilerplace",
     "private": true,
     "scripts": {
@@ -16,7 +16,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@boilerplate/generic": "1.38.0-alpha.0"
+        "@boilerplate/generic": "1.38.0-in-testing"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"
