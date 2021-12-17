@@ -48,6 +48,9 @@ export class WindowsWorker extends GenericWorker {
 		location: WorkerLocation
 	) {
 		super(logger, config, location, sendMessageToManager, WindowsWorker.type)
+		if (process.platform !== 'win32') {
+			throw new Error('The Worker is a Windows-only application')
+		}
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
