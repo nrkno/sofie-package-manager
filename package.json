@@ -12,6 +12,7 @@
         "ci": "yarn install && yarn build && yarn lint && yarn test",
         "release:bump-release": "lerna version --conventional-commits --conventional-graduate --exact --no-push",
         "release:bump-prerelease": "lerna version --conventional-commits --conventional-prerelease --exact --no-push",
+        "set-version": "lerna version --exact --no-changelog --no-git-tag-version --no-push --yes",
         "setup": "lerna bootstrap",
         "reset": "node scripts/reset.js",
         "build": "lerna run build --stream",

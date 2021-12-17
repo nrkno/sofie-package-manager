@@ -1,6 +1,6 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.38.0-alpha.0",
+    "version": "1.39.0-in-development",
     "description": "Internal tests",
     "private": true,
     "scripts": {
@@ -17,12 +17,12 @@
         "windows-network-drive": "^3.0.1"
     },
     "dependencies": {
-        "@http-server/generic": "1.38.0-alpha.0",
-        "@package-manager/generic": "1.38.0-alpha.0",
-        "@shared/api": "1.38.0-alpha.0",
-        "@shared/expectation-manager": "1.38.0-alpha.0",
-        "@shared/worker": "1.38.0-alpha.0",
-        "@shared/workforce": "1.38.0-alpha.0",
+        "@http-server/generic": "1.39.0-in-development",
+        "@package-manager/generic": "1.39.0-in-development",
+        "@shared/api": "1.39.0-in-development",
+        "@shared/expectation-manager": "1.39.0-in-development",
+        "@shared/worker": "1.39.0-in-development",
+        "@shared/workforce": "1.39.0-in-development",
         "underscore": "^1.12.0"
     },
     "peerDependencies": {

@@ -1,6 +1,6 @@
 {
     "name": "@shared/worker",
-    "version": "1.38.0-alpha.0",
+    "version": "1.39.0-in-development",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
@@ -19,7 +19,7 @@
         "lint-staged": "^7.2.0"
     },
     "dependencies": {
-        "@shared/api": "1.38.0-alpha.0",
+        "@shared/api": "1.39.0-in-development",
         "abort-controller": "^3.0.0",
         "chokidar": "^3.5.1",
         "deep-diff": "^1.0.2",
