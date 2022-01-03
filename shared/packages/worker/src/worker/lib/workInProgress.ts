@@ -2,7 +2,7 @@ import {
 	ExpectationManagerWorkerAgent,
 	Reason,
 	stringifyError,
-	ACTION_TIMEOUT,
+	INNER_ACTION_TIMEOUT,
 	promiseTimeout,
 	HelpfulEventEmitter,
 } from '@shared/api'
@@ -39,7 +39,7 @@ export class WorkInProgress extends HelpfulEventEmitter implements IWorkInProgre
 
 		await promiseTimeout(
 			this._onCancel(),
-			ACTION_TIMEOUT - 100,
+			INNER_ACTION_TIMEOUT,
 			`WorkInProgress.cancel() timeout "${this.properties.workLabel}"`
 		)
 	}
