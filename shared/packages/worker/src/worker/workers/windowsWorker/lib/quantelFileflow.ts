@@ -1,8 +1,8 @@
-import fetch from 'node-fetch'
 import path from 'path'
 import xml from 'xml-js'
-import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { stringifyError } from '@shared/api'
+import { CancelablePromise } from '../../../lib/cancelablePromise'
+import { fetchWithTimeout } from '../../../accessorHandlers/lib/fetch'
 
 const DEFAULT_XML_JS_OPTIONS = {
 	compact: true,
@@ -28,7 +28,7 @@ async function getJobStatus(
 	fileflowBaseUrl: string,
 	jobId: string
 ): Promise<{ status: string; progress: number } | null> {
-	const requestResponse = await fetch(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}`)
+	const requestResponse = await fetchWithTimeout(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}`)
 	if (requestResponse.ok) {
 		const body = xml.xml2js(await requestResponse.text(), DEFAULT_XML_JS_OPTIONS) as xml.ElementCompact
 		const status = body.QJobResponse?.QJob?.status?._text as string
@@ -89,7 +89,7 @@ export function quantelFileflowCopy(
 			}
 		}
 
-		fetch(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/`, {
+		fetchWithTimeout(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/`, {
 			method: 'POST',
 			body: xml.js2xml(jobRequest, DEFAULT_XML_JS_OPTIONS),
 			headers: {
@@ -114,7 +114,7 @@ export function quantelFileflowCopy(
 								},
 							},
 						}
-						fetch(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}/status`, {
+						fetchWithTimeout(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}/status`, {
 							method: 'PUT',
 							body: xml.js2xml(cancelJobRequest),
 							headers: {

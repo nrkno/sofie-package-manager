@@ -306,8 +306,8 @@ describe('Handle unhappy paths', () => {
 function addCopyFileExpectation(
 	env: TestEnviromnent,
 	expectationId: string,
-	sources: Expectation.SpecificPackageContainerOnPackage.File[],
-	targets: [Expectation.SpecificPackageContainerOnPackage.File]
+	sources: Expectation.SpecificPackageContainerOnPackage.FileSource[],
+	targets: [Expectation.SpecificPackageContainerOnPackage.FileTarget]
 ) {
 	env.expectationManager.updateExpectations({
 		copy0: literal<Expectation.FileCopy>({
