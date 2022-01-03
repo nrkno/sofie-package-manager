@@ -17,6 +17,13 @@ export const MESSAGE_TIMEOUT = 10000
  */
 export const ACTION_TIMEOUT = MESSAGE_TIMEOUT - 1000
 
+/**
+ * "Inner execution timeout"
+ * To be used inside of actions, like when requesting an external resource or similar.
+ * This allows the action to gracefully handle an external timeout, by not triggering the ACTION_TIMEOUT.
+ */
+export const INNER_ACTION_TIMEOUT = ACTION_TIMEOUT - 1000
+
 export abstract class WebsocketConnection extends HelpfulEventEmitter {
 	protected ws?: WebSocket
 	private messageId = 0
