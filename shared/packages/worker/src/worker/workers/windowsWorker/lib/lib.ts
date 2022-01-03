@@ -146,10 +146,16 @@ export function findBestAccessorOnPackageContainer(
 }
 /** Return a standard cost for the various accessorHandler types */
 export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): number {
-	const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)
-	const target = findBestPackageContainerWithAccessToPackage(worker, exp.endRequirement.targets)
+	let sourceCost: number = Number.POSITIVE_INFINITY
+	if (exp.startRequirement.sources.length > 0) {
+		const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)
+		sourceCost = source ? getAccessorCost(source.accessor.type) : Number.POSITIVE_INFINITY
+	} else {
+		// If there are no sources defined, there is no cost for the source
+		sourceCost = 0
+	}
 
-	const sourceCost = source ? getAccessorCost(source.accessor.type) : Number.POSITIVE_INFINITY
+	const target = findBestPackageContainerWithAccessToPackage(worker, exp.endRequirement.targets)
 	const targetCost = target ? getAccessorCost(target.accessor.type) : Number.POSITIVE_INFINITY
 
 	return 30 * (sourceCost + targetCost)

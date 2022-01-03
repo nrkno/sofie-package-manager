@@ -205,7 +205,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			if (!isLocalFolderAccessorHandle(sourceHandle) && !isFileShareAccessorHandle(sourceHandle))
 				throw new Error(`Source AccessHandler type is wrong`)
 			if (!isLocalFolderAccessorHandle(targetHandle) && !isFileShareAccessorHandle(targetHandle))
-				throw new Error(`Source AccessHandler type is wrong`)
+				throw new Error(`Target AccessHandler type is wrong`)
 
 			if (sourceHandle.fullPath === targetHandle.fullPath) {
 				throw new Error('Unable to copy: Source and Target file paths are the same!')
@@ -278,7 +278,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 				!isFileShareAccessorHandle(targetHandle) &&
 				!isHTTPProxyAccessorHandle(targetHandle)
 			)
-				throw new Error(`Source AccessHandler type is wrong`)
+				throw new Error(`Target AccessHandler type is wrong`)
 
 			let wasCancelled = false
 			let sourceStream: PackageReadStream | undefined = undefined
@@ -352,7 +352,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			compareResourceIds(lookupSource.accessor.networkId, lookupTarget.accessor.networkId)
 		) {
 			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
-			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
+			if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Target AccessHandler type is wrong`)
 			if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
 
 			targetHandle.disableDriveMapping = true // FileFlow needs to use the network share, not the mapped network drive
