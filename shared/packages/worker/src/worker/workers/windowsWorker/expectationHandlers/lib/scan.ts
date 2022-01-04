@@ -16,8 +16,14 @@ import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
 
-interface FFProbeScanResult {
+export interface FFProbeScanResultStream {
+	index: number
+	codec_type: string
+}
+
+export interface FFProbeScanResult {
 	// to be defined...
+	streams?: FFProbeScanResultStream[]
 	format?: {
 		duration: number
 	}
