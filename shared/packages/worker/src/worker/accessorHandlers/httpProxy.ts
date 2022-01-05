@@ -123,6 +123,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		const fetch = fetchWithController(this.fullUrl, {
 			method: 'POST',
 			body: formData, // sourceStream.readStream,
+			refreshStream: sourceStream,
 		})
 		const streamHandler: PutPackageHandler = new PutPackageHandler(() => {
 			fetch.controller.abort()
