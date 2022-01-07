@@ -21,12 +21,14 @@ export namespace Expectation {
 		| QuantelClipThumbnail
 		| QuantelClipPreview
 		| JsonDataCopy
+		| FileVerify
 
 	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
 		FILE_COPY = 'file_copy',
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 		MEDIA_FILE_PREVIEW = 'media_file_preview',
+		FILE_VERIFY = 'file_verify',
 
 		PACKAGE_SCAN = 'package_scan',
 		PACKAGE_DEEP_SCAN = 'package_deep_scan',
@@ -266,6 +268,16 @@ export namespace Expectation {
 			version: Version.ExpectedFileOnDisk // maybe something else?
 		}
 		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+	}
+
+	/** Defines a "Verify File". Doesn't really do any work, just checks that the File exists at the Target. */
+	export interface FileVerify extends Base {
+		type: Type.FILE_VERIFY
+
+		startRequirement: {
+			sources: []
+		}
+		endRequirement: FileCopy['endRequirement']
 	}
 
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */

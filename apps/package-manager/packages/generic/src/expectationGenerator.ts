@@ -187,7 +187,12 @@ export function generateExpectations(
 		// No need to generate an expectation if there are no accessors:
 		if (!hasAnySourceAccessors || !hasAnyTargetAccessors) {
 			if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-				exp = generateMediaFileCopy(managerId, packageWrap, settings)
+				if (packageWrap.sources.length === 0) {
+					// If there are no sources defined, just verify that the file exists on the target:
+					exp = generateMediaFileVerify(managerId, packageWrap, settings)
+				} else {
+					exp = generateMediaFileCopy(managerId, packageWrap, settings)
+				}
 			} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.QUANTEL_CLIP) {
 				exp = generateQuantelCopy(managerId, packageWrap)
 			} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
@@ -258,7 +263,7 @@ export function generateExpectations(
 		}
 		if (alreadyHandled) continue
 
-		if (expectation0.type === Expectation.Type.FILE_COPY) {
+		if (expectation0.type === Expectation.Type.FILE_COPY || expectation0.type === Expectation.Type.FILE_VERIFY) {
 			const expectation = expectation0 as Expectation.FileCopy
 
 			if (!expectation0.external) {
@@ -405,6 +410,49 @@ function generateMediaFileCopy(
 	exp.id = hashObj(exp.endRequirement)
 	return exp
 }
+function generateMediaFileVerify(
+	managerId: string,
+	expWrap: ExpectedPackageWrap,
+	_settings: PackageManagerSettings
+): Expectation.FileVerify {
+	const expWrapMediaFile = expWrap as ExpectedPackageWrapMediaFile
+
+	const exp: Expectation.FileVerify = {
+		id: '', // set later
+		priority: expWrap.priority + PriorityAdditions.COPY,
+		managerId: managerId,
+		fromPackages: [
+			{
+				id: expWrap.expectedPackage._id,
+				expectedContentVersionHash: expWrap.expectedPackage.contentVersionHash,
+			},
+		],
+		type: Expectation.Type.FILE_VERIFY,
+		statusReport: {
+			label: `Check media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
+			description: `Check that file "${expWrapMediaFile.expectedPackage.content.filePath}" exists for the device "${expWrapMediaFile.playoutDeviceId}"`,
+			requiredForPlayout: true,
+			displayRank: 0,
+			sendReport: !expWrap.external,
+		},
+
+		startRequirement: {
+			sources: [],
+		},
+
+		endRequirement: {
+			targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
+			content: expWrapMediaFile.expectedPackage.content,
+			version: {
+				type: Expectation.Version.Type.FILE_ON_DISK,
+				...expWrapMediaFile.expectedPackage.version,
+			},
+		},
+		workOptions: {},
+	}
+	exp.id = hashObj(exp.endRequirement)
+	return exp
+}
 function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): Expectation.QuantelClipCopy {
 	const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
@@ -453,7 +501,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	return exp
 }
 function generatePackageScan(
-	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy,
+	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy,
 	settings: PackageManagerSettings
 ): Expectation.PackageScan {
 	return literal<Expectation.PackageScan>({
@@ -500,7 +548,7 @@ function generatePackageScan(
 	})
 }
 function generatePackageDeepScan(
-	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy,
+	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy,
 	settings: PackageManagerSettings
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
@@ -553,7 +601,7 @@ function generatePackageDeepScan(
 }
 
 function generateMediaFileThumbnail(
-	expectation: Expectation.FileCopy,
+	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.FileVerify,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
@@ -604,7 +652,7 @@ function generateMediaFileThumbnail(
 	})
 }
 function generateMediaFilePreview(
-	expectation: Expectation.FileCopy,
+	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.FileVerify,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer

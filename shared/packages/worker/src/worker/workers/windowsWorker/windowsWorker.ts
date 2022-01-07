@@ -29,6 +29,7 @@ import { QuantelThumbnail } from './expectationHandlers/quantelClipThumbnail'
 import { testFFMpeg, testFFProbe } from './expectationHandlers/lib/ffmpeg'
 import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
+import { FileVerify } from './expectationHandlers/fileVerify'
 
 /** This is a type of worker that runs on a windows machine */
 export class WindowsWorker extends GenericWorker {
@@ -92,6 +93,8 @@ export class WindowsWorker extends GenericWorker {
 		switch (exp.type) {
 			case Expectation.Type.FILE_COPY:
 				return FileCopy
+			case Expectation.Type.FILE_VERIFY:
+				return FileVerify
 			case Expectation.Type.PACKAGE_SCAN:
 				return PackageScan
 			case Expectation.Type.PACKAGE_DEEP_SCAN:
