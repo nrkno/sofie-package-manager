@@ -457,7 +457,20 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 	const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
 	const content = expWrapQuantelClip.expectedPackage.content
-	const label = content.title && content.guid ? `${content.title} (${content.guid})` : content.title || content.guid
+
+	let guid = content.guid
+	const title = content.title
+
+	if (title && guid) {
+		if (!guid.match(/^[0-9a-f-]+$/)) {
+			// The GUID is on the wrong format, if should only contain hexadecimal characters (and dashes).
+
+			// Discard the guid, and use the title instead, as a last resort:
+			guid = undefined
+		}
+	}
+
+	const label = title && guid ? `${title} (${guid})` : title || guid
 	const exp: Expectation.QuantelClipCopy = {
 		id: '', // set later
 		priority: expWrap.priority + PriorityAdditions.COPY,
@@ -472,7 +485,7 @@ function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): E
 
 		statusReport: {
 			label: `Copy Quantel clip ${label}`,
-			description: `Copy Quantel clip ${content.title || content.guid} to server for "${
+			description: `Copy Quantel clip ${title || guid} to server for "${
 				expWrapQuantelClip.playoutDeviceId
 			}", from ${expWrapQuantelClip.sources.map((source) => `"${source.label}"`).join(', ')}`,
 			requiredForPlayout: true,
