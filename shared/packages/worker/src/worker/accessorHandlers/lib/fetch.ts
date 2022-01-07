@@ -5,6 +5,7 @@ import { INNER_ACTION_TIMEOUT } from '@shared/api'
 export type FetchWithControllerOptions = Omit<RequestInit, 'signal'> & {
 	/**
 	 * If provided, will refresh the fetch abort timeout every time the 'data' event is fired.
+	 * This is useful when uploading files, to avoid the timeout from firing.
 	 */
 	refreshStream?: NodeJS.ReadableStream
 }
