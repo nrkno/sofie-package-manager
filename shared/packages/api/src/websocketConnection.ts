@@ -57,7 +57,7 @@ export abstract class WebsocketConnection extends HelpfulEventEmitter {
 						const reply: MessageReply = {
 							i: msg.i,
 							r: true,
-							error: `Error: Websocket message timeout: ${msg.type}, ${args}`,
+							error: `Error: Websocket message timeout: ${msg.type}, ${JSON.stringify(args)}`,
 						}
 						this.handleReceivedMessage(reply)
 					}, MESSAGE_TIMEOUT),

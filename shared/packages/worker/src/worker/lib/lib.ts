@@ -23,6 +23,8 @@ function getAccessorTypePriority(accessor: AccessorOnPackage.Any): number {
 		return 4 + (isLocal ? -0.1 : 0)
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
 		return 99999
+	} else if (accessor.type === Accessor.AccessType.ATEM_MEDIA_STORE) {
+		return 99999
 	} else {
 		assertNever(accessor.type)
 		return 99999

@@ -7,6 +7,7 @@ import { HTTPAccessorHandle } from './http'
 import { HTTPProxyAccessorHandle } from './httpProxy'
 import { LocalFolderAccessorHandle } from './localFolder'
 import { QuantelAccessorHandle } from './quantel'
+import { ATEMAccessorHandle } from './atem'
 
 export function getAccessorHandle<Metadata>(
 	worker: GenericWorker,
@@ -37,6 +38,8 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 		return FileShareAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.QUANTEL) {
 		return QuantelAccessorHandle
+	} else if (accessor.type === Accessor.AccessType.ATEM_MEDIA_STORE) {
+		return ATEMAccessorHandle
 	} else {
 		assertNever(accessor.type) // Assert  so as to not forget to add an if-clause above
 		throw new Error(`Unsupported Accessor type "${accessor.type}"`)
@@ -73,6 +76,11 @@ export function isQuantelClipAccessorHandle<Metadata>(
 ): accessorHandler is QuantelAccessorHandle<Metadata> {
 	return accessorHandler.type === QuantelAccessorHandle.type
 }
+export function isATEMAccessorHandle<Metadata>(
+	accessorHandler: GenericAccessorHandle<Metadata>
+): accessorHandler is ATEMAccessorHandle<Metadata> {
+	return accessorHandler.type === ATEMAccessorHandle.type
+}
 
 /** Returns a generic value for how costly it is to use an Accessor type. A higher value means that it is more expensive to access the accessor */
 export function getAccessorCost(accessorType: Accessor.AccessType | undefined): number {
@@ -81,6 +89,8 @@ export function getAccessorCost(accessorType: Accessor.AccessType | undefined): 
 		case Accessor.AccessType.LOCAL_FOLDER:
 			return 1
 		case Accessor.AccessType.QUANTEL:
+			return 1
+		case Accessor.AccessType.ATEM_MEDIA_STORE:
 			return 1
 		case Accessor.AccessType.CORE_PACKAGE_INFO:
 			return 2

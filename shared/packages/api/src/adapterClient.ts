@@ -47,6 +47,8 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 							ACTION_TIMEOUT,
 							this.timeoutMessage(message.type, message.args)
 						)
+					} else {
+						throw new Error(`Unknown method "${message.type}"`)
 					}
 				}
 			)

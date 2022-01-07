@@ -151,6 +151,9 @@ export type SetupPackageContainerMonitorsResult =
  * Users of this class are required to emit the events 'error' on error and 'close' upon completion
  */
 export class PutPackageHandler extends HelpfulEventEmitter {
+	/** If this is true, we should listen to the 'progress' event */
+	public usingCustomProgressEvent = false
+
 	constructor(private onAbort: () => void) {
 		super()
 	}

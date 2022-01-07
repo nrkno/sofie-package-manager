@@ -183,7 +183,7 @@ export interface PackageContainer {
  */
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Accessor {
-	export type Any = LocalFolder | FileShare | HTTP | HTTPProxy | Quantel | CorePackageCollection
+	export type Any = LocalFolder | FileShare | HTTP | HTTPProxy | Quantel | CorePackageCollection | AtemMediaStore
 
 	export enum AccessType {
 		LOCAL_FOLDER = 'local_folder',
@@ -192,6 +192,7 @@ export namespace Accessor {
 		HTTP_PROXY = 'http_proxy',
 		QUANTEL = 'quantel',
 		CORE_PACKAGE_INFO = 'core_package_info',
+		ATEM_MEDIA_STORE = 'atem_media_store',
 	}
 
 	/** Generic (used in extends) */
@@ -280,6 +281,19 @@ export namespace Accessor {
 		type: Accessor.AccessType.CORE_PACKAGE_INFO
 		// empty
 	}
+	export interface AtemMediaStore extends Base {
+		type: AccessType.ATEM_MEDIA_STORE
+		/** Name/id of the resource, this could for example be the computer name. */
+		resourceId?: string
+		/** Name/Id of the network the ATEM exists on. Used to differ between different networks. Leave empty if globally accessible. */
+		networkId?: string
+		/** Ip-address of the Atem */
+		atemHost: string
+		/** The index of the Atem media/clip banks */
+		bankIndex: number
+		/** What type of bank */
+		mediaType: 'clip' | 'still'
+	}
 }
 /**
  * AccessorOnPackage contains interfaces for Accessor definitions that are put ON the Package.
@@ -287,7 +301,7 @@ export namespace Accessor {
  */
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace AccessorOnPackage {
-	export type Any = LocalFolder | FileShare | HTTP | HTTPProxy | Quantel | CorePackageCollection
+	export type Any = LocalFolder | FileShare | HTTP | HTTPProxy | Quantel | CorePackageCollection | AtemMediaStore
 
 	export interface LocalFolder extends Partial<Accessor.LocalFolder> {
 		/** Path to the file (starting from .folderPath). If not set, the filePath of the ExpectedPackage will be used */
@@ -312,6 +326,9 @@ export namespace AccessorOnPackage {
 	// eslint-disable-next-line @typescript-eslint/no-empty-interface
 	export interface CorePackageCollection extends Partial<Accessor.CorePackageCollection> {
 		// empty
+	}
+	export interface AtemMediaStore extends Partial<Accessor.AtemMediaStore> {
+		filePath?: string
 	}
 }
 

@@ -25,6 +25,7 @@ import {
 	stringifyError,
 } from '@shared/api'
 import {
+	isATEMAccessorHandle,
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
@@ -263,7 +264,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY ||
+				lookupTarget.accessor.type === Accessor.AccessType.ATEM_MEDIA_STORE)
 		) {
 			// We can copy by using file streams
 			if (
@@ -276,7 +278,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
-				!isHTTPProxyAccessorHandle(targetHandle)
+				!isHTTPProxyAccessorHandle(targetHandle) &&
+				!isATEMAccessorHandle(targetHandle)
 			)
 				throw new Error(`Target AccessHandler type is wrong`)
 
@@ -304,6 +307,8 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 				const byteCounter = new ByteCounter()
 				byteCounter.on('progress', (bytes: number) => {
+					if (writeStream?.usingCustomProgressEvent) return // ignore this callback, we'll be listening to writeStream.on('progress') instead.
+
 					if (fileSize) {
 						workInProgress._reportProgress(actualSourceVersionHash, bytes / fileSize)
 					}
@@ -313,6 +318,11 @@ export const FileCopy: ExpectationWindowsHandler = {
 				sourceStream = await lookupSource.handle.getPackageReadStream()
 				writeStream = await targetHandle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
 
+				if (writeStream.usingCustomProgressEvent) {
+					writeStream.on('progress', (progress) => {
+						workInProgress._reportProgress(actualSourceVersionHash, progress)
+					})
+				}
 				sourceStream.readStream.on('error', (err) => {
 					workInProgress._reportError(err)
 				})
