@@ -1965,13 +1965,21 @@ export class ExpectationManager {
 		const waitingPackageContainers: TrackedPackageContainerExpectation[] = []
 
 		for (const exp of Object.values(this.trackedExpectations)) {
+			/** The expectation is waiting for a worker */
+			const isWaiting: boolean =
+				exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
+				exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING ||
+				exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY
+
+			/** Not supported by any worker */
+			const notSuppoertedByAnyWorker: boolean = Object.keys(exp.availableWorkers).length === 0
+			/** No worker has had time to work on it lately */
+			const notAssignedToAnyWorker: boolean =
+				!!exp.noWorkerAssignedTime && Date.now() - exp.noWorkerAssignedTime > this.constants.SCALE_UP_TIME
+
 			if (
-				(exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
-					exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING ||
-					exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY) &&
-				(Object.keys(exp.availableWorkers).length === 0 || // No workers supports it
-					(exp.noWorkerAssignedTime &&
-						Date.now() - exp.noWorkerAssignedTime > this.constants.SCALE_UP_TIME)) && // No worker has had time to work on it lately
+				isWaiting &&
+				(notSuppoertedByAnyWorker || notAssignedToAnyWorker) &&
 				!this.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
 			) {
 				if (!exp.waitingForWorkerTime) {
@@ -1980,10 +1988,14 @@ export class ExpectationManager {
 			} else {
 				exp.waitingForWorkerTime = null
 			}
-
-			if (exp.waitingForWorkerTime && Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME) {
-				if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
-					waitingExpectations.push(exp)
+			if (exp.waitingForWorkerTime) {
+				if (
+					Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME || // Don't scale up too fast
+					Object.keys(this.workerAgents).length === 0 // Although if there are no workers connected, we should scale up right away
+				) {
+					if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
+						waitingExpectations.push(exp)
+					}
 				}
 			}
 		}
