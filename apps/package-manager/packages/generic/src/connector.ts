@@ -69,9 +69,14 @@ export class Connector {
 
 	public async init(): Promise<void> {
 		try {
-			this._logger.info('Initializing Core...')
-			await this.coreHandler.init(this.config, this._process)
-			this._logger.info('Core initialized')
+			if (!this.config.packageManager.noCore) {
+				this._logger.info('Initializing Core...')
+				await this.coreHandler.init(this.config, this._process)
+				this._logger.info('Core initialized')
+			} else {
+				this._logger.info('Skipping connecting to Core...')
+				this.coreHandler.setNoCore()
+			}
 
 			this._logger.info('Initializing PackageManager...')
 			await this.packageManagerHandler.init(this.config, this.coreHandler)

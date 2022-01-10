@@ -100,6 +100,11 @@ const packageManagerArguments = defineArguments({
 		default: process.env.WATCH_FILES === '1',
 		describe: 'If true, will watch the file "expectedPackages.json" as an additional source of expected packages.',
 	},
+	noCore: {
+		type: 'boolean',
+		default: process.env.NO_CORE === '1',
+		describe: 'If true, Package Manager wont try to connect to Sofie Core',
+	},
 })
 /** CLI-argument-definitions for the Worker process */
 const workerArguments = defineArguments({
@@ -299,6 +304,7 @@ export interface PackageManagerConfig {
 		workforceURL: string | null
 
 		watchFiles: boolean
+		noCore: boolean
 	}
 }
 export function getPackageManagerConfig(): PackageManagerConfig {
@@ -321,6 +327,7 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 			workforceURL: argv.workforceURL,
 
 			watchFiles: argv.watchFiles,
+			noCore: argv.noCore,
 		},
 	}
 }

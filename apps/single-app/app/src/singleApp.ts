@@ -26,7 +26,9 @@ export async function startSingleApp(): Promise<void> {
 	logger.info('------------------------------------------------------------------')
 	logger.info('Starting Package Manager - Single App')
 
-	logger.info('Core:          ' + config.packageManager.coreHost + ':' + config.packageManager.corePort)
+	if (!config.packageManager.noCore) {
+		logger.info('Core:          ' + config.packageManager.coreHost + ':' + config.packageManager.corePort)
+	}
 	logger.info('------------------------------------------------------------------')
 	// eslint-disable-next-line no-console
 	console.log(JSON.stringify(config, undefined, 2))

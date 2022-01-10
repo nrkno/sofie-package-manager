@@ -153,9 +153,10 @@ export class PackageManagerHandler {
 			})
 			this._observers = []
 		}
+		if (this.coreHandler.notUsingCore) return // Abort if we are not using core
 		this.logger.debug('Renewing observers')
 
-		const expectedPackagesObserver = this.coreHandler.core.observe('deviceExpectedPackages')
+		const expectedPackagesObserver = this.coreHandler.observe('deviceExpectedPackages')
 		expectedPackagesObserver.added = () => {
 			this.triggerUpdatedExpectedPackages()
 		}
@@ -179,16 +180,12 @@ export class PackageManagerHandler {
 			const expectedPackages: ExpectedPackageWrap[] = []
 			const packageContainers: PackageContainers = {}
 
-			const objs = this.coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
-
-			const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
-			if (!activePlaylistObj) {
-				this.logger.warn(`Collection objects active_playlist not found`)
-				this.logger.info(`objs in deviceExpectedPackages:`, objs)
-				return
+			let activePlaylist: ActivePlaylist = {
+				_id: '',
+				active: false,
+				rehearsal: false,
 			}
-			const activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
-			const activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
+			let activeRundowns: ActiveRundown[] = []
 
 			// Add from external data:
 			{
@@ -198,29 +195,42 @@ export class PackageManagerHandler {
 				Object.assign(packageContainers, this.externalData.packageContainers)
 			}
 
-			// Add from Core collections:
-			{
-				const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
+			if (!this.coreHandler.notUsingCore) {
+				const objs = this.coreHandler.getCollection('deviceExpectedPackages').find(() => true)
 
-				if (!expectedPackageObjs.length) {
-					this.logger.warn(`Collection objects expected_packages not found`)
+				const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
+				if (!activePlaylistObj) {
+					this.logger.warn(`Collection objects active_playlist not found`)
 					this.logger.info(`objs in deviceExpectedPackages:`, objs)
 					return
 				}
-				for (const expectedPackageObj of expectedPackageObjs) {
-					for (const expectedPackage of expectedPackageObj.expectedPackages) {
-						// Note: There might be duplicates of packages here, to be deduplicated later
-						expectedPackages.push(expectedPackage)
+				activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
+				activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
+
+				// Add from Core collections:
+				{
+					const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
+
+					if (!expectedPackageObjs.length) {
+						this.logger.warn(`Collection objects expected_packages not found`)
+						this.logger.info(`objs in deviceExpectedPackages:`, objs)
+						return
 					}
-				}
+					for (const expectedPackageObj of expectedPackageObjs) {
+						for (const expectedPackage of expectedPackageObj.expectedPackages) {
+							// Note: There might be duplicates of packages here, to be deduplicated later
+							expectedPackages.push(expectedPackage)
+						}
+					}
 
-				const packageContainerObj = objs.find((o) => o.type === 'package_containers')
-				if (!packageContainerObj) {
-					this.logger.warn(`Collection objects package_containers not found`)
-					this.logger.info(`objs in deviceExpectedPackages:`, objs)
-					return
+					const packageContainerObj = objs.find((o) => o.type === 'package_containers')
+					if (!packageContainerObj) {
+						this.logger.warn(`Collection objects package_containers not found`)
+						this.logger.info(`objs in deviceExpectedPackages:`, objs)
+						return
+					}
+					Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
 				}
-				Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
 			}
 
 			// Add from Monitors:
@@ -556,21 +566,27 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {
-			case 'fetchPackageInfoMetadata':
-				return this.packageManager.coreHandler.core.callMethod(
+			case 'fetchPackageInfoMetadata': {
+				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
 					message.arguments
 				)
-			case 'updatePackageInfo':
-				return this.packageManager.coreHandler.core.callMethod(
+			}
+			case 'updatePackageInfo': {
+				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPI.methods.updatePackageInfo,
 					message.arguments
 				)
-			case 'removePackageInfo':
-				return this.packageManager.coreHandler.core.callMethod(
+			}
+			case 'removePackageInfo': {
+				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPI.methods.removePackageInfo,
 					message.arguments
 				)
+			}
 			case 'reportFromMonitorPackages':
 				this.reportMonitoredPackages(...message.arguments)
 				break
@@ -582,20 +598,23 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 	public async cleanReportedStatuses() {
 		// Clean out all reported statuses, this is an easy way to sync a clean state with core
+
+		if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+
 		this.reportedExpectationStatuses = {}
-		await this.packageManager.coreHandler.core.callMethod(
+		await this.packageManager.coreHandler.callMethod(
 			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
 			[]
 		)
 
 		this.reportedPackageContainerStatuses = {}
-		await this.packageManager.coreHandler.core.callMethod(
+		await this.packageManager.coreHandler.callMethod(
 			PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
 			[]
 		)
 
 		this.reportedPackageStatuses = {}
-		await this.packageManager.coreHandler.core.callMethod(
+		await this.packageManager.coreHandler.callMethod(
 			PeripheralDeviceAPI.methods.removeAllPackageContainerStatusesOfDevice,
 			[]
 		)
@@ -652,7 +671,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				Promise.resolve()
 					.then(async () => {
 						// Don't send any statuses if not connected:
-						if (!this.packageManager.coreHandler.core.connected) return
+						if (!this.packageManager.coreHandler.coreConnected) return
 
 						this.logger.debug('triggerReportUpdatedStatuses: sending statuses')
 
@@ -724,7 +743,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				}
 
 				try {
-					await this.packageManager.coreHandler.core.callMethod(
+					await this.packageManager.coreHandler.callMethod(
 						PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses,
 						[sendToCore]
 					)
@@ -743,7 +762,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	private async reportUpdatePackageContainerPackageStatus(): Promise<void> {
 		await this.reportStatus(this.toReportPackageStatus, this.reportedPackageStatuses, async (changesToSend) => {
 			// Send the changes to Core:
-			await this.packageManager.coreHandler.core.callMethod(
+			await this.packageManager.coreHandler.callMethod(
 				PeripheralDeviceAPI.methods.updatePackageContainerPackageStatuses,
 				[
 					literal<UpdatePackageContainerPackageStatusesChanges>(
@@ -776,7 +795,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			async (changesToSend) => {
 				// Send the changes to Core:
 				literal<UpdatePackageContainerStatusesChanges>(
-					await this.packageManager.coreHandler.core.callMethod(
+					await this.packageManager.coreHandler.callMethod(
 						PeripheralDeviceAPI.methods.updatePackageContainerStatuses,
 						[
 							changesToSend.map((change) => {

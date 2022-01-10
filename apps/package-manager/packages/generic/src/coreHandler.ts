@@ -4,6 +4,8 @@ import {
 	PeripheralDeviceAPI as P,
 	DDPConnectorOptions,
 	CollectionObj,
+	Observer,
+	Collection,
 } from '@sofie-automation/server-core-integration'
 
 import { DeviceConfig } from './connector'
@@ -36,7 +38,6 @@ export interface PeripheralDeviceCommand {
  * Represents a connection between the Gateway and Core
  */
 export class CoreHandler {
-	core!: CoreConnection
 	logger: LoggerInstance
 	public _observers: Array<any> = []
 	public deviceSettings: { [key: string]: any } = {}
@@ -44,6 +45,9 @@ export class CoreHandler {
 	public delayRemoval = 0
 	public delayRemovalPackageInfo = 0
 	public useTemporaryFilePath = false
+	public notUsingCore = false
+
+	private core!: CoreConnection
 
 	private _deviceOptions: DeviceConfig
 	private _onConnected?: () => any
@@ -113,6 +117,10 @@ export class CoreHandler {
 			process.exit(1) // eslint-disable-line no-process-exit
 			return
 		}
+	}
+	setNoCore() {
+		// This is used when PackageManager is used as a standalone app
+		this.notUsingCore = true
 	}
 	setPackageManagerHandler(handler: PackageManagerHandler): void {
 		this._packageManagerHandler = handler
@@ -291,6 +299,24 @@ export class CoreHandler {
 	}
 	retireExecuteFunction(cmdId: string): void {
 		delete this._executedFunctions[cmdId]
+	}
+	observe(collectionName: string): Observer {
+		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
+		if (!this.core) throw new Error('Core not initialized!')
+		return this.core.observe(collectionName)
+	}
+	getCollection(collectionName: string): Collection {
+		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
+		if (!this.core) throw new Error('Core not initialized!')
+		return this.core.getCollection(collectionName)
+	}
+	callMethod(methodName: string, attrs?: any[]): Promise<any> {
+		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
+		if (!this.core) throw new Error('Core not initialized!')
+		return this.core.callMethod(methodName, attrs)
+	}
+	get coreConnected(): boolean {
+		return this.core?.connected || false
 	}
 	setupObserverForPeripheralDeviceCommands(): void {
 		const observer = this.core.observe('peripheralDeviceCommands')

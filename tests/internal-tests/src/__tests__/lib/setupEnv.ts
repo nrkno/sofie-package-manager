@@ -38,6 +38,7 @@ const defaultTestConfig: SingleAppConfig = {
 		accessUrl: null,
 		workforceURL: null,
 		watchFiles: false,
+		noCore: false,
 	},
 	worker: {
 		workerId: 'worker',
