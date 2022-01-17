@@ -468,6 +468,18 @@ export class WorkerAgent {
 						this.activeMonitors[packageContainer.id][monitorId] = monitorInProgress
 						returnMonitors[monitorId] = monitorInProgress.properties
 
+						monitorInProgress.on('error', (internalError: unknown) => {
+							expectedManager.api
+								.monitorStatus(packageContainer.id, monitorId, StatusCode.FATAL, {
+									user: 'Internal Error',
+									tech: stringifyError(internalError),
+								})
+								.catch((err) => {
+									if (!this.terminated) {
+										this.logger.error(`Error in monitorStatus: ${stringifyError(err)}`)
+									}
+								})
+						})
 						monitorInProgress.on('status', (status: StatusCode, reason: Reason) => {
 							expectedManager.api
 								.monitorStatus(packageContainer.id, monitorId, status, reason)
