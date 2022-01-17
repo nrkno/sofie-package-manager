@@ -146,14 +146,14 @@ export function generateExpectations(
 	}
 
 	const smartbullExpectations: ExpectedPackageWrap[] = [] // Hack, Smartbull
-	let orgSmartbullExpectation: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
+	let orgSmartbullExpectedPackage: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
 	for (const packageWrap of expectedPackages) {
 		let exp: Expectation.Any | undefined = undefined
 
 		// Temporary hacks: handle smartbull:
 		if (packageWrap.expectedPackage._id.match(/smartbull_auto_clip/)) {
 			// hack
-			orgSmartbullExpectation = packageWrap
+			orgSmartbullExpectedPackage = packageWrap
 			continue
 		}
 		if (
@@ -185,7 +185,7 @@ export function generateExpectations(
 	}
 
 	// hack: handle Smartbull:
-	if (orgSmartbullExpectation) {
+	if (orgSmartbullExpectedPackage) {
 		// Sort alphabetically on filePath:
 		smartbullExpectations.sort((a, b) => {
 			const expA = a.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
@@ -202,8 +202,8 @@ export function generateExpectations(
 			| ExpectedPackageWrapMediaFile
 			| undefined
 		if (bestSmartbull) {
-			if (orgSmartbullExpectation.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-				const org = orgSmartbullExpectation as ExpectedPackageWrapMediaFile
+			if (orgSmartbullExpectedPackage.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+				const org = orgSmartbullExpectedPackage as ExpectedPackageWrapMediaFile
 
 				const newPackage: ExpectedPackageWrapMediaFile = {
 					...org,
