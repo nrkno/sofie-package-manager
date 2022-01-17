@@ -217,6 +217,8 @@ export function generateExpectations(
 				}
 				const exp = generateMediaFileCopy(managerId, newPackage, settings)
 				if (exp) {
+					// @ts-expect-error hack
+					exp.__isSmartbull = true
 					addExpectation(newPackage, exp)
 				}
 			} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
@@ -423,9 +425,16 @@ function generatePackageScan(
 	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy,
 	settings: PackageManagerSettings
 ): Expectation.PackageScan {
+	let priority = expectation.priority + PriorityAdditions.SCAN
+	// @ts-expect-error hack
+	if (exp.__isSmartbull) {
+		// Because the smartbull is using the scan result in order to build the Sofie rundown, the scan has a high priority:
+		priority = expectation.priority + 1
+	}
+
 	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
-		priority: expectation.priority + PriorityAdditions.SCAN,
+		priority: priority,
 		managerId: expectation.managerId,
 		type: Expectation.Type.PACKAGE_SCAN,
 		fromPackages: expectation.fromPackages,
