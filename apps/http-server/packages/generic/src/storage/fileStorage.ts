@@ -22,7 +22,7 @@ export class FileStorage extends Storage {
 	}
 
 	async init(): Promise<void> {
-		await mkdirp(path.dirname(this.config.httpServer.basePath))
+		await mkdirp(this.config.httpServer.basePath)
 	}
 
 	async listPackages(ctx: CTX): Promise<true | BadResponse> {
