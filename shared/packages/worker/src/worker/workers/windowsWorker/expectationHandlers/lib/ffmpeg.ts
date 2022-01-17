@@ -1,4 +1,6 @@
 import { ChildProcess, spawn } from 'child_process'
+import path from 'path'
+import mkdirp from 'mkdirp'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
@@ -80,9 +82,11 @@ export async function runffMpeg<Metadata>(
 
 	let pipeStdOut = false
 	if (isLocalFolderAccessorHandle(targetHandle)) {
+		await mkdirp(path.dirname(targetHandle.fullPath)) // Create folder if it doesn't exist
 		args.push(`"${targetHandle.fullPath}"`)
 	} else if (isFileShareAccessorHandle(targetHandle)) {
 		await targetHandle.prepareFileAccess()
+		await mkdirp(path.dirname(targetHandle.fullPath)) // Create folder if it doesn't exist
 		args.push(`"${targetHandle.fullPath}"`)
 	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
 		pipeStdOut = true
