@@ -26,3 +26,4 @@ yarn-error.log*
 deploy/
 lerna-debug.log
 tmp_packages_for_build/
+*.pfx

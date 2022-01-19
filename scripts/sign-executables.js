@@ -1,0 +1,67 @@
+const promisify = require("util").promisify
+const glob = promisify(require("glob"))
+const { exec } = require("child_process");
+const readline = require('readline');
+
+const execPromise = promisify(exec)
+
+/*
+This scripts signs all executables in the deploy/ folder with the certificate provided.
+*/
+
+const folderPath = 'deploy/'
+const certificatePath = '.'
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+;(async function () {
+
+
+    const executables = await glob(`${folderPath}/*.exe`)
+
+    const certificates = await glob(`${certificatePath}/*.pfx`)
+    
+
+    if (certificates.length === 0) {
+        console.log('No certificates found. To sign the resulting executables, add one or more certificates (*.pfx file) to the base folder.')
+        return
+    }
+    if (executables.length === 0) {
+        console.log(`No executables found in ${folderPath}`)
+        return
+    }
+
+    console.log(`Found ${executables.length} executables`)
+    console.log(`Found ${certificates.length} certificates`)
+
+    for (const certificate of certificates) {
+
+        console.log(`Signing with certificate ${certificate}...`)
+    
+    
+        const password = await new Promise((resolve) => {
+            rl.question('Enter password for certificate: ', resolve)
+        })
+    
+        for (const executable of executables) {
+            const e = await execPromise(`signtool sign /fd SHA256 /f ${certificate} ${password ? `/p ${password} ` : ''} ${executable}`)
+            if (e.stderr) console.log(e.stderr)
+            if (e.stdout) console.log(e.stdout)
+        }
+    }
+
+    
+    
+
+	console.log(`Done, signed ${executables.length} executables.`)
+})()
+.then(() => {
+    process.exit(0)
+})
+.catch((e) => {
+    console.error(e)
+    process.exit(1)
+})
