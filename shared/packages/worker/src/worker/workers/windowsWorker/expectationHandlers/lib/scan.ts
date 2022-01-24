@@ -262,9 +262,12 @@ export function scanMoreInfo(
 
 		let ffMpegProcess: ChildProcess | undefined = undefined
 
-		onCancel(() => {
+		const killFFMpeg = () => {
 			ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
 			ffMpegProcess?.kill()
+		}
+		onCancel(() => {
+			killFFMpeg()
 		})
 
 		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, { shell: true })
@@ -287,74 +290,95 @@ export function scanMoreInfo(
 
 			if (typeof stringData !== 'string') return
 
-			lastString = stringData
+			try {
+				lastString = stringData
 
-			const frameRegex = /^frame= +\d+/g
-			const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
-			const durationRegex = /Duration:\s?(\d+):(\d+):([\d.]+)/
-			const sceneRegex = /Parsed_showinfo_(.*)pts_time:([\d.]+)\s+/g
-			const blackDetectRegex = /(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
-			const freezeDetectStart = /(lavfi\.freezedetect\.freeze_start: )(\d+(.\d+)?)/g
-			const freezeDetectDuration = /(lavfi\.freezedetect\.freeze_duration: )(\d+(.\d+)?)/g
-			const freezeDetectEnd = /(lavfi\.freezedetect\.freeze_end: )(\d+(.\d+)?)/g
+				const frameRegex = /^frame= +\d+/g
+				const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
+				const durationRegex = /Duration:\s?(\d+):(\d+):([\d.]+)/
+				const sceneRegex = /Parsed_showinfo_(.*)pts_time:([\d.]+)\s+/g
+				const blackDetectRegex = /(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
+				const freezeDetectStart = /(lavfi\.freezedetect\.freeze_start: )(\d+(.\d+)?)/g
+				const freezeDetectDuration = /(lavfi\.freezedetect\.freeze_duration: )(\d+(.\d+)?)/g
+				const freezeDetectEnd = /(lavfi\.freezedetect\.freeze_end: )(\d+(.\d+)?)/g
 
-			const frameMatch = stringData.match(frameRegex)
-			if (frameMatch) {
-				const timeMatch = stringData.match(timeRegex)
-				if (timeMatch) {
-					const hh = timeMatch[1]
-					const mm = timeMatch[2]
-					const ss = timeMatch[3]
+				const frameMatch = stringData.match(frameRegex)
+				if (frameMatch) {
+					const timeMatch = stringData.match(timeRegex)
+					if (timeMatch) {
+						const hh = timeMatch[1]
+						const mm = timeMatch[2]
+						const ss = timeMatch[3]
 
-					const time = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
+						const time = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
 
-					if (fileDuration) {
-						onProgress(time / fileDuration)
+						if (fileDuration) {
+							onProgress(time / fileDuration)
+						}
+					}
+
+					// currentFrame = Number(frameMatch[0].replace('frame=', ''))
+				} else {
+					const durationMatch = stringData.match(durationRegex)
+					if (durationMatch) {
+						const hh = durationMatch[1]
+						const mm = durationMatch[2]
+						const ss = durationMatch[3]
+
+						fileDuration = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
+					}
+					let res: RegExpExecArray | null
+					while ((res = sceneRegex.exec(stringData)) !== null) {
+						scenes.push(parseFloat(res[2]))
+					}
+
+					while ((res = blackDetectRegex.exec(stringData)) !== null) {
+						blacks.push({
+							start: parseFloat(res[2]),
+							duration: parseFloat(res[8]),
+							end: parseFloat(res[5]),
+						})
+					}
+
+					while ((res = freezeDetectStart.exec(stringData)) !== null) {
+						freezes.push({
+							start: parseFloat(res[2]),
+							duration: 0.0,
+							end: 0.0,
+						})
+					}
+
+					let i = 0
+					while ((res = freezeDetectDuration.exec(stringData)) !== null) {
+						freezes[i++].duration = parseFloat(res[2])
+					}
+
+					i = 0
+					while ((res = freezeDetectEnd.exec(stringData)) !== null) {
+						freezes[i++].end = parseFloat(res[2])
 					}
 				}
-
-				// currentFrame = Number(frameMatch[0].replace('frame=', ''))
-			} else {
-				const durationMatch = stringData.match(durationRegex)
-				if (durationMatch) {
-					const hh = durationMatch[1]
-					const mm = durationMatch[2]
-					const ss = durationMatch[3]
-
-					fileDuration = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
-				}
-				let res: RegExpExecArray | null
-				while ((res = sceneRegex.exec(stringData)) !== null) {
-					scenes.push(parseFloat(res[2]))
-				}
-
-				while ((res = blackDetectRegex.exec(stringData)) !== null) {
-					blacks.push({
-						start: parseFloat(res[2]),
-						duration: parseFloat(res[8]),
-						end: parseFloat(res[5]),
-					})
-				}
-
-				while ((res = freezeDetectStart.exec(stringData)) !== null) {
-					freezes.push({
-						start: parseFloat(res[2]),
-						duration: 0.0,
-						end: 0.0,
-					})
-				}
-
-				let i = 0
-				while ((res = freezeDetectDuration.exec(stringData)) !== null) {
-					freezes[i++].duration = parseFloat(res[2])
-				}
-
-				i = 0
-				while ((res = freezeDetectEnd.exec(stringData)) !== null) {
-					freezes[i++].end = parseFloat(res[2])
+			} catch (err) {
+				if (err && typeof err === 'object') {
+					// If there was an error parsing the output, we should also provide the string we tried to parse:
+					onError(err, stringData)
+				} else {
+					onError(err, undefined)
 				}
 			}
 		})
+
+		const onError = (err: unknown, context: string | undefined) => {
+			if (ffMpegProcess) {
+				killFFMpeg()
+
+				reject(
+					`Error parsing FFProbe data. Error: "${err} ${
+						err && typeof err === 'object' ? (err as Error).stack : ''
+					}", context: "${context}" `
+				)
+			}
+		}
 
 		const onClose = (code: number | null) => {
 			if (ffMpegProcess) {
