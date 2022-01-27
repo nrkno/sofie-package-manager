@@ -154,14 +154,14 @@ export function generateExpectations(
 	}
 
 	const smartbullExpectations: ExpectedPackageWrap[] = [] // Hack, Smartbull
-	let orgSmartbullExpectation: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
+	let orgSmartbullExpectedPackage: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
 	for (const packageWrap of expectedPackages) {
 		let exp: Expectation.Any | undefined = undefined
 
 		// Temporary hacks: handle smartbull:
 		if (packageWrap.expectedPackage._id.match(/smartbull_auto_clip/)) {
 			// hack
-			orgSmartbullExpectation = packageWrap
+			orgSmartbullExpectedPackage = packageWrap
 			continue
 		}
 		if (
@@ -200,7 +200,7 @@ export function generateExpectations(
 	}
 
 	// hack: handle Smartbull:
-	if (orgSmartbullExpectation) {
+	if (orgSmartbullExpectedPackage) {
 		// Sort alphabetically on filePath:
 		smartbullExpectations.sort((a, b) => {
 			const expA = a.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
@@ -217,8 +217,8 @@ export function generateExpectations(
 			| ExpectedPackageWrapMediaFile
 			| undefined
 		if (bestSmartbull) {
-			if (orgSmartbullExpectation.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-				const org = orgSmartbullExpectation as ExpectedPackageWrapMediaFile
+			if (orgSmartbullExpectedPackage.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+				const org = orgSmartbullExpectedPackage as ExpectedPackageWrapMediaFile
 
 				const newPackage: ExpectedPackageWrapMediaFile = {
 					...org,
@@ -232,6 +232,8 @@ export function generateExpectations(
 				}
 				const exp = generateMediaFileCopy(managerId, newPackage, settings)
 				if (exp) {
+					// @ts-expect-error hack
+					exp.__isSmartbull = true
 					addExpectation(newPackage, exp)
 				}
 			} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
@@ -456,9 +458,16 @@ function generatePackageScan(
 	expectation: Expectation.FileCopy | Expectation.QuantelClipCopy,
 	settings: PackageManagerSettings
 ): Expectation.PackageScan {
+	let priority = expectation.priority + PriorityAdditions.SCAN
+
+	if ((expectation as any).__isSmartbull) {
+		// Because the smartbull is using the scan result in order to build the Sofie rundown, the scan has a high priority:
+		priority = expectation.priority + 1
+	}
+
 	return literal<Expectation.PackageScan>({
 		id: expectation.id + '_scan',
-		priority: expectation.priority + PriorityAdditions.SCAN,
+		priority: priority,
 		managerId: expectation.managerId,
 		type: Expectation.Type.PACKAGE_SCAN,
 		fromPackages: expectation.fromPackages,
