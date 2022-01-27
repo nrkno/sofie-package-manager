@@ -84,7 +84,7 @@ export class PackageManagerHandler {
 		private managerId: string,
 		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
-		private workForceConnectionOptions: ClientConnectionOptions
+		private workForceConnectionOptions: ClientConnectionOptions,
 		chaosMonkey: boolean
 	) {
 		this.logger = logger.category('PackageManager')
@@ -98,7 +98,7 @@ export class PackageManagerHandler {
 			this.workForceConnectionOptions,
 			this.callbacksHandler,
 			{
-				chaosMonkey: chaosMonkey
+				chaosMonkey: chaosMonkey,
 			}
 		)
 		this.expectationManager.on('error', (e) => `Caught error from ExpectationManager: ${stringifyError(e)}`)

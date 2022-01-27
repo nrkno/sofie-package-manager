@@ -2187,7 +2187,7 @@ function expLabel(exp: TrackedExpectation): string {
 	return `${id} ${exp.exp.statusReport.label.slice(0, 50)}`
 }
 export interface ExpectationManagerOptions {
-	constants: Partial<ExpectationManagerConstants>
+	constants?: Partial<ExpectationManagerConstants>
 	chaosMonkey?: boolean
 }
 export type ExpectationManagerServerOptions =
