@@ -426,8 +426,8 @@ function generatePackageScan(
 	settings: PackageManagerSettings
 ): Expectation.PackageScan {
 	let priority = expectation.priority + PriorityAdditions.SCAN
-	// @ts-expect-error hack
-	if (exp.__isSmartbull) {
+
+	if ((expectation as any).__isSmartbull) {
 		// Because the smartbull is using the scan result in order to build the Sofie rundown, the scan has a high priority:
 		priority = expectation.priority + 1
 	}
