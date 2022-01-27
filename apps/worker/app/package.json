@@ -1,6 +1,6 @@
 {
     "name": "@worker/app",
-    "version": "1.39.0-in-development",
+    "version": "1.39.0-in-development.0",
     "description": "Boilerplace",
     "private": true,
     "scripts": {
@@ -17,7 +17,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@worker/generic": "1.39.0-in-development"
+        "@worker/generic": "1.39.0-in-development.0"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"
