@@ -4,6 +4,10 @@ This is the "Package Manager" application of the [**Sofie** TV News Studio Autom
 
 _Note: This is a mono-repo._
 
+## Introduction and Quick Start
+
+See the [Installing Package Manager](https://nrkno.github.io/tv-automation-server-core/docs/getting-started/installation/installing-package-manager) page of the [Sofie System Documentation](https://nrkno.github.io/tv-automation-server-core/) to learn how to get started with Package Manager in a demo environment with CasparCG.
+
 ## File structure
 
 This is a mono-repo, all packages resides in [shared/packages](shared/packages) and [apps/](apps/).

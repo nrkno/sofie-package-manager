@@ -262,9 +262,12 @@ export function scanMoreInfo(
 
 		let ffMpegProcess: ChildProcess | undefined = undefined
 
-		onCancel(() => {
+		const killFFMpeg = () => {
 			ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
 			ffMpegProcess?.kill()
+		}
+		onCancel(() => {
+			killFFMpeg()
 		})
 
 		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, { shell: true })
@@ -287,18 +290,18 @@ export function scanMoreInfo(
 
 			if (typeof stringData !== 'string') return
 
-			lastString = stringData
-
-			const frameRegex = /^frame= +\d+/g
-			const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
-			const durationRegex = /Duration:\s?(\d+):(\d+):([\d.]+)/
-			const sceneRegex = /Parsed_showinfo_(.*)pts_time:([\d.]+)\s+/g
-			const blackDetectRegex = /(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
-			const freezeDetectStart = /(lavfi\.freezedetect\.freeze_start: )(\d+(.\d+)?)/g
-			const freezeDetectDuration = /(lavfi\.freezedetect\.freeze_duration: )(\d+(.\d+)?)/g
-			const freezeDetectEnd = /(lavfi\.freezedetect\.freeze_end: )(\d+(.\d+)?)/g
-
 			try {
+				lastString = stringData
+
+				const frameRegex = /^frame= +\d+/g
+				const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
+				const durationRegex = /Duration:\s?(\d+):(\d+):([\d.]+)/
+				const sceneRegex = /Parsed_showinfo_(.*)pts_time:([\d.]+)\s+/g
+				const blackDetectRegex = /(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
+				const freezeDetectStart = /(lavfi\.freezedetect\.freeze_start: )(\d+(.\d+)?)/g
+				const freezeDetectDuration = /(lavfi\.freezedetect\.freeze_duration: )(\d+(.\d+)?)/g
+				const freezeDetectEnd = /(lavfi\.freezedetect\.freeze_end: )(\d+(.\d+)?)/g
+
 				const frameMatch = stringData.match(frameRegex)
 				if (frameMatch) {
 					const timeMatch = stringData.match(timeRegex)
@@ -358,11 +361,25 @@ export function scanMoreInfo(
 			} catch (err) {
 				if (err && typeof err === 'object') {
 					// If there was an error parsing the output, we should also provide the string we tried to parse:
-					;(err as any).context = stringData
+					onError(err, stringData)
+				} else {
+					onError(err, undefined)
 				}
 				throw err
 			}
 		})
+
+		const onError = (err: unknown, context: string | undefined) => {
+			if (ffMpegProcess) {
+				killFFMpeg()
+
+				reject(
+					`Error parsing FFProbe data. Error: "${err} ${
+						err && typeof err === 'object' ? (err as Error).stack : ''
+					}", context: "${context}" `
+				)
+			}
+		}
 
 		const onClose = (code: number | null) => {
 			if (ffMpegProcess) {
