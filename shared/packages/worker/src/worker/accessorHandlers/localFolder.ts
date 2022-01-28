@@ -120,7 +120,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	async tryPackageRead(): Promise<AccessorHandlerResult> {
 		try {
 			// Check if we can open the file for reading:
-			const fd = await fsOpen(this.fullPath, 'r+')
+			const fd = await fsOpen(this.fullPath, 'r')
 
 			// If that worked, we seem to have read access.
 			await fsClose(fd)
