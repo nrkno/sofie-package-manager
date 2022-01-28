@@ -1317,6 +1317,7 @@ export class ExpectationManager {
 		if (isError) trackedExp.lastErrorTime = Date.now()
 
 		const prevState: ExpectedPackageStatusAPI.WorkStatusState = trackedExp.state
+		const prevReason: Reason = trackedExp.reason
 
 		let updatedState = false
 		let updatedReason = false
@@ -1330,10 +1331,11 @@ export class ExpectationManager {
 		if (reason && !_.isEqual(trackedExp.reason, reason)) {
 			trackedExp.reason = reason
 			updatedReason = true
-
-			trackedExp.prevStatusReasons[trackedExp.state] = {
-				user: trackedExp.reason.user,
-				tech: `${trackedExp.reason.tech} | ${new Date().toLocaleTimeString()}`,
+		}
+		if (updatedState || updatedReason) {
+			trackedExp.prevStatusReasons[prevState] = {
+				user: prevReason.user,
+				tech: `${prevReason.tech} | ${new Date().toLocaleTimeString()}`,
 			}
 		}
 
