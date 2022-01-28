@@ -40,6 +40,8 @@ export async function startSingleApp(): Promise<void> {
 	if (!workforce.getPort()) throw new Error(`Internal Error: Got no workforce port`)
 	const workforceURL = `ws://127.0.0.1:${workforce.getPort()}`
 
+	logger.info(`Workforce started on ${workforceURL}`)
+
 	config.packageManager.workforceURL = workforceURL
 	config.appContainer.workforceURL = workforceURL
 

@@ -17,7 +17,7 @@
         "@koa/cors": "^3.0.0",
         "@koa/multer": "3.0.0",
         "@shared/api": "1.39.0-in-development.0",
-        "got": "^11.8.2",
+        "got": "^12.0.1",
         "koa": "^2.11.0",
         "koa-bodyparser": "^4.3.0",
         "koa-range": "^0.3.0",
@@ -44,7 +44,7 @@
         "@types/koa__multer": "^2.0.2",
         "@types/mime-types": "^2.1.0",
         "@types/mkdirp": "^1.0.1",
-        "@types/node": "^12.19.9",
+        "@types/node": "^14.14.31",
         "@types/underscore": "^1.10.24",
         "@types/xml2js": "^0.4.7",
         "@types/yargs": "^15.0.12",
@@ -53,7 +53,7 @@
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
-        "node": ">=12.20.0"
+        "node": ">=14.18.0"
     },
     "lint-staged": {
         "*.{js,css,json,md,scss}": [
