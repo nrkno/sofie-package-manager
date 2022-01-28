@@ -1355,8 +1355,9 @@ export class ExpectationManager {
 			)
 		}
 
-		if (updatedState || updatedReason) {
+		if (updatedState || updatedReason || updatedStatus) {
 			this.callbacks.reportExpectationStatus(trackedExp.id, trackedExp.exp, null, {
+				progress: trackedExp.status.workProgress || 0,
 				priority: trackedExp.exp.priority,
 				status: updatedState || updatedReason ? trackedExp.state : undefined,
 				statusReason: updatedReason ? trackedExp.reason : undefined,
