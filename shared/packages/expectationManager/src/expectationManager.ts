@@ -334,7 +334,7 @@ export class ExpectationManager {
 		this._triggerEvaluateExpectations(true)
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.level = logLevel
+		this.logger.setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {
 		// This is for testing purposes only

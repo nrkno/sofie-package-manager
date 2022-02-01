@@ -3,7 +3,15 @@
 import * as Workforce from '@shared/workforce'
 import * as Worker from '@shared/worker'
 import * as Winston from 'winston'
-import { Expectation, ExpectationManagerWorkerAgent, LoggerInstance, Reason, SingleAppConfig } from '@shared/api'
+import {
+	Expectation,
+	ExpectationManagerWorkerAgent,
+	LoggerInstance,
+	LogLevel,
+	Reason,
+	setupLogging,
+	SingleAppConfig,
+} from '@shared/api'
 // import deepExtend from 'deep-extend'
 import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
@@ -76,10 +84,14 @@ export async function setupExpectationManager(
 	callbacks: ExpectationManagerCallbacks,
 	options?: ExpectationManagerOptions
 ) {
-	const logger = new Winston.Logger({}) as LoggerInstance
-	logger.add(Winston.transports.Console, {
-		level: debugLogging ? 'debug' : 'warn',
+	const logger = setupLogging({
+		process: {
+			certificates: [],
+			logPath: undefined,
+			unsafeSSL: false,
+		},
 	})
+	logger.setLogLevel(debugLogging ? LogLevel.DEBUG : LogLevel.WARN)
 
 	const expectationManager = new ExpectationManager(
 		logger,

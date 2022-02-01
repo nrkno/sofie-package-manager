@@ -233,7 +233,7 @@ export class WorkerAgent {
 		delete this.expectationManagers[id]
 	}
 	public async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.level = logLevel
+		this.logger.setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {
 		this.terminate()

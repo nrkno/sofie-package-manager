@@ -1,11 +1,14 @@
 import { DeviceConfigManifest, ConfigManifestEntryType } from '@sofie-automation/server-core-integration'
+import { LogLevel } from '@shared/api'
 
 export const PACKAGE_MANAGER_DEVICE_CONFIG: DeviceConfigManifest = {
 	deviceConfig: [
 		{
-			id: 'debugLogging',
-			name: 'Activate Debug Logging',
-			type: ConfigManifestEntryType.BOOLEAN,
+			id: 'logLevel',
+			name: 'Log level',
+			type: ConfigManifestEntryType.ENUM,
+			values: LogLevel,
+			defaultVal: 'info',
 		},
 		{
 			id: 'delayRemoval',

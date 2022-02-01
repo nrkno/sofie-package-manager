@@ -267,7 +267,7 @@ export class AppContainer {
 		// kill child processes
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.level = logLevel
+		this.logger.setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {
 		// This is for testing purposes only

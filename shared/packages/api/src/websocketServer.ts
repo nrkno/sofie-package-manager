@@ -1,9 +1,9 @@
-import { LoggerInstance } from 'winston'
 import WebSocket from 'ws'
 import { stringifyError } from './lib'
 
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 import { HelpfulEventEmitter } from './HelpfulEventEmitter'
+import { LoggerInstance } from './logger'
 
 export type OnMessageHandler = (message: MessageBase) => Promise<any>
 

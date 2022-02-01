@@ -1,8 +1,13 @@
-import Winston from 'winston'
+import _ from 'underscore'
+import * as Winston from 'winston'
 import { ProcessConfig } from './config'
+import { stringifyError } from './lib'
 
-export interface LoggerInstance extends Winston.LoggerInstance {
+export interface LoggerInstance extends Winston.Logger {
 	warning: never // logger.warning is not a function
+
+	getLogLevel: () => LogLevel
+	setLogLevel: (level: LogLevel, startup?: boolean) => void
 }
 export type LeveledLogMethod = Winston.LeveledLogMethod
 
@@ -10,59 +15,86 @@ export type LeveledLogMethod = Winston.LeveledLogMethod
 export function setupLogging(config: { process: ProcessConfig }): LoggerInstance {
 	// Setup logging --------------------------------------
 	const logPath = config.process.logPath
+	const isProduction = !process.execPath.match(/node.exe$/)
 
-	const logger = new Winston.Logger({}) as LoggerInstance
+	let logger: LoggerInstance
+	let transports: {
+		console?: Winston.transports.ConsoleTransportInstance
+		file?: Winston.transports.FileTransportInstance
+	}
+	function getLogLevel(): LogLevel {
+		return logger.level as LogLevel
+	}
+	function setLogLevel(level: LogLevel, startup = false) {
+		if (logger.level !== level || startup) {
+			logger.level = level
+			if (transports.console) {
+				transports.console.level = level
+			}
+			if (transports.file) {
+				transports.file.level = level
+			}
+		}
+	}
+
 	if (logPath) {
-		// Log json to file, human-readable to console
-		logger.add(Winston.transports.Console, {
+		// Log to file, as well as to console:
+		const transportConsole = new Winston.transports.Console({
 			level: 'verbose',
 			handleExceptions: true,
-			json: false,
+			handleRejections: true,
 		})
-		logger.add(Winston.transports.File, {
-			level: 'debug',
+		const transportFile = new Winston.transports.File({
+			level: 'silly',
 			handleExceptions: true,
-			json: true,
+			handleRejections: true,
 			filename: logPath,
 		})
-		logger.info('Logging to', logPath)
-		// Hijack console.log:
-		// const orgConsoleLog = console.log
-		// console.log = function (...args: any[]) {
-		// 	// orgConsoleLog('a')
-		// 	if (args.length >= 1) {
-		// 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// 		// @ts-ignore one or more arguments
-		// 		logger.debug(...args)
-		// 		orgConsoleLog(...args)
-		// 	}
-		// }
-	} else {
-		// Log json to console
-		logger.add(Winston.transports.Console, {
-			handleExceptions: true,
-			json: true,
-			stringify: (obj) => {
-				obj.localTimestamp = getCurrentTime()
-				// obj.randomId = Math.round(Math.random() * 10000)
-				return JSON.stringify(obj) // make single line
-			},
+
+		transports = {
+			console: transportConsole,
+			file: transportFile,
+		}
+		// @ts-expect-error hack
+		logger = Winston.createLogger({
+			format: Winston.format.json(),
+			transports: [transportConsole, transportFile],
 		})
+		logger.getLogLevel = getLogLevel
+		logger.setLogLevel = setLogLevel
+
+		logger.info('Logging to', logPath)
+	} else {
+		const transportConsole = new Winston.transports.Console({
+			level: 'silly',
+			handleExceptions: true,
+			handleRejections: true,
+		})
+		transports = {
+			console: transportConsole,
+		}
+
+		if (isProduction) {
+			// @ts-expect-error hack
+			logger = Winston.createLogger({
+				format: Winston.format.json(),
+				transports: [transportConsole],
+			})
+		} else {
+			const customFormat = Winston.format.printf((o) => {
+				const meta = _.omit(o, 'level', 'message', 'timestamp')
+				return `[${o.level}] ${safeStringify(o.message)} ${!_.isEmpty(meta) ? safeStringify(meta) : ''}`
+			})
+			// @ts-expect-error hack
+			logger = Winston.createLogger({
+				format: Winston.format.combine(Winston.format.timestamp(), customFormat),
+				transports: [transportConsole],
+			})
+		}
+		logger.getLogLevel = getLogLevel
+		logger.setLogLevel = setLogLevel
+
 		logger.info('Logging to Console')
-		// Hijack console.log:
-		// eslint-disable-next-line no-console
-		// console.log = function (...args: any[]) {
-		// 	// orgConsoleLog('a')
-		// 	if (args.length >= 1) {
-		// 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// 		// @ts-ignore one or more arguments
-		// 		logger.debug(...args)
-		// 	}
-		// }
-	}
-	function getCurrentTime() {
-		const v = Date.now()
-		return new Date(v).toISOString()
 	}
 
 	// Because the default NodeJS-handler sucks and wont display error properly
@@ -81,6 +113,21 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 	return logger
 }
 export enum LogLevel {
+	ERROR = 'error',
+	WARN = 'warn',
 	INFO = 'info',
+	VERBOSE = 'verbose',
 	DEBUG = 'debug',
+	SILLY = 'silly',
+}
+function safeStringify(o: any): string {
+	if (typeof o === 'string') return o
+	if (typeof o === 'number') return o + ''
+	if (typeof o === 'boolean') return o + ''
+
+	try {
+		return JSON.stringify(o) // make single line
+	} catch (e) {
+		return 'ERROR in safeStringify: ' + stringifyError(e)
+	}
 }

@@ -219,19 +219,21 @@ export class CoreHandler {
 				this.deviceSettings = {}
 			}
 
-			const logLevel = this.deviceSettings['debugLogging'] ? 'debug' : 'info'
-			if (logLevel !== this.logger.level) {
-				this.logger.level = logLevel
+			const logLevel = this.deviceSettings['logLevel'] ?? 'info'
+			if (logLevel !== this.logger.getLogLevel()) {
+				this.logger.setLogLevel(logLevel)
 
-				this.logger.info('Loglevel: ' + this.logger.level)
+				this.logger.info('Loglevel: ' + this.logger.getLogLevel())
 
 				// this.logger.debug('Test debug logging')
-				// // @ts-ignore
+				// this.logger.verbose('Test verbose')
+				// this.logger.info('Test info')
+				// this.logger.warn('Test warn')
+				// this.logger.error('Test error')
 				// this.logger.debug({ msg: 'test msg' })
-				// // @ts-ignore
 				// this.logger.debug({ message: 'test message' })
-				// // @ts-ignore
 				// this.logger.debug({ command: 'test command', context: 'test context' })
+				// this.logger.error('Testing error', new Error('This is the error'))
 
 				// this.logger.debug('End test debug logging')
 			}
@@ -250,9 +252,6 @@ export class CoreHandler {
 				this._packageManagerHandler.onSettingsChanged()
 			}
 		}
-	}
-	get logDebug(): boolean {
-		return !!this.deviceSettings['debugLogging']
 	}
 
 	executeFunction(cmd: PeripheralDeviceCommand): void {

@@ -288,7 +288,7 @@ export class Workforce {
 	}
 
 	public setLogLevel(logLevel: LogLevel): void {
-		this.logger.level = logLevel
+		this.logger.setLogLevel(logLevel)
 	}
 	public async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
 		const workerAgent = this.workerAgents[appId]
