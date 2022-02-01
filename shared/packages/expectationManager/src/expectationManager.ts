@@ -355,6 +355,12 @@ export class ExpectationManager {
 	async debugKillApp(appId: string): Promise<void> {
 		return this.workforceAPI._debugKillApp(appId)
 	}
+	getTroubleshootData(): any {
+		return {
+			trackedExpectations: this.getTrackedExpectations(),
+			workers: this.workerAgents,
+		}
+	}
 	/**
 	 * Schedule the evaluateExpectations() to run
 	 * @param asap If true, will re-schedule evaluateExpectations() to run as soon as possible

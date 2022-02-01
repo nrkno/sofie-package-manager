@@ -329,6 +329,7 @@ export class PackageManagerHandler {
 				reportedPackageStatuses: this.callbacksHandler.reportedPackageStatuses,
 				reportedPackageContainerStatuses: this.callbacksHandler.reportedPackageContainerStatuses,
 			},
+			expectationManager: this.expectationManager.getTroubleshootData(),
 		}
 	}
 	public async getExpetationManagerStatus(): Promise<any> {
