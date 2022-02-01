@@ -2,7 +2,7 @@ import Koa from 'koa'
 import Router from 'koa-router'
 import cors from '@koa/cors'
 import range from 'koa-range'
-import { default as got } from 'got'
+import got from 'got'
 import { QuantelHTTPTransformerProxyConfig, LoggerInstance, stringifyError } from '@shared/api'
 import { parseStringPromise as xmlParser } from 'xml2js'
 
