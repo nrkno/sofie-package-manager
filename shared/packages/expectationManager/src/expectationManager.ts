@@ -449,9 +449,9 @@ export class ExpectationManager {
 
 						if (this.handleTriggerByFullfilledIds(wip.trackedExp)) {
 							// Something was triggered, run again asap.
+							// We should reevaluate asap, so that any other expectation which might be waiting on this work could start.
+							this._triggerEvaluateExpectations(true)
 						}
-						// We should reevaluate asap, so that any other expectation which might be waiting on this worker could start.
-						this._triggerEvaluateExpectations(true)
 					} else {
 						// ignore
 					}
@@ -531,7 +531,6 @@ export class ExpectationManager {
 
 		this.monitorWorksInProgress()
 		times['timeMonitorWorksInProgress'] = Date.now() - startTime
-		startTime = Date.now()
 
 		// Iterate through all Expectations:
 		const { runAgainASAP, times: evaluateTimes } = await this._evaluateAllExpectations()
@@ -782,8 +781,8 @@ export class ExpectationManager {
 			trackedExp.session = null
 		}
 
-		// Step 1: Evaluate the Expectations which are in the states that can be handled in parallel:
-		for (const handleState of [
+		/** These states can be handled in parallel */
+		const handleStatesParallel = [
 			// Note: The order of these is important, as the states normally progress in this order:
 			ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
 			ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
@@ -791,7 +790,16 @@ export class ExpectationManager {
 			ExpectedPackageStatusAPI.WorkStatusState.NEW,
 			ExpectedPackageStatusAPI.WorkStatusState.WAITING,
 			ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
-		]) {
+		]
+
+		/** These states must be handled one at a time */
+		const handleStatesSerial = [
+			ExpectedPackageStatusAPI.WorkStatusState.READY,
+			ExpectedPackageStatusAPI.WorkStatusState.WORKING,
+		]
+
+		// Step 1: Evaluate the Expectations which are in the states that can be handled in parallel:
+		for (const handleState of handleStatesParallel) {
 			const startTime = Date.now()
 			// Filter out the ones that are in the state we're about to handle:
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
@@ -836,17 +844,12 @@ export class ExpectationManager {
 		const startTime = Date.now()
 		// Step 2: Evaluate the expectations, now one by one:
 		for (const trackedExp of tracked) {
-			let reiterateTrackedExp = true
-			let runCount = 0
-			while (reiterateTrackedExp) {
-				reiterateTrackedExp = false
-				runCount++
+			// Only handle the states that
+			if (handleStatesSerial.includes(trackedExp.state)) {
+				// Evaluate the Expectation:
 				await this.evaluateExpectationState(trackedExp)
-				if (trackedExp.session?.triggerExpectationAgain && runCount < 10) {
-					// Will cause this expectation to be evaluated again ASAP
-					reiterateTrackedExp = true
-				}
-				if (trackedExp.session?.triggerOtherExpectationsAgain || trackedExp.session?.triggerExpectationAgain) {
+
+				if (trackedExp.session?.triggerOtherExpectationsAgain) {
 					// Will cause another iteration of this._handleExpectations to be called again ASAP after this iteration has finished
 					runAgainASAP = true
 				}
@@ -894,7 +897,6 @@ export class ExpectationManager {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
 				// Check which workers might want to handle it:
 				// Reset properties:
-				// trackedExp.availableWorkers = []
 				trackedExp.status = {}
 
 				let hasQueriedAnyone = false
@@ -943,7 +945,6 @@ export class ExpectationManager {
 							// Don't update the package status, since we don't know anything about the package yet:
 							dontUpdatePackage: true,
 						})
-						trackedExp.session.triggerExpectationAgain = true
 					} else {
 						// If we didn't query anyone, just skip ahead to next state without being too verbose:
 						this.updateTrackedExpStatus(trackedExp, {
@@ -1029,7 +1030,6 @@ export class ExpectationManager {
 									},
 									status: newStatus,
 								})
-								trackedExp.session.triggerExpectationAgain = true
 							} else {
 								// Not ready to start
 								this.updateTrackedExpStatus(trackedExp, {
@@ -1171,7 +1171,6 @@ export class ExpectationManager {
 									state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 									reason: fulfilled.reason,
 								})
-								trackedExp.session.triggerExpectationAgain = true
 							}
 						} catch (error) {
 							// Do nothing, hopefully some will be available at a later iteration
@@ -1238,7 +1237,6 @@ export class ExpectationManager {
 								tech: 'Ready to start (after restart)',
 							},
 						})
-						trackedExp.session.triggerExpectationAgain = true
 					} else {
 						// Something went wrong when trying to remove
 						this.updateTrackedExpStatus(trackedExp, {
@@ -2174,8 +2172,6 @@ interface TrackedExpectation {
 }
 /** Contains some data which is persisted during an evaluation-session */
 interface ExpectationStateHandlerSession {
-	/** Set to true if the tracked expectation should be triggered again ASAP */
-	triggerExpectationAgain?: boolean
 	/** Set to true if the other tracked expectations should be triggered again ASAP */
 	triggerOtherExpectationsAgain?: boolean
 	/** Set to true when the tracked expectation can safely be removed */
