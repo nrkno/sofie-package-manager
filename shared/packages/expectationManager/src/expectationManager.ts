@@ -840,15 +840,9 @@ export class ExpectationManager {
 	private async evaluateExpectationState(trackedExp: TrackedExpectation): Promise<void> {
 		const timeSinceLastEvaluation = Date.now() - trackedExp.lastEvaluationTime
 		if (!trackedExp.session) trackedExp.session = {}
-		if (trackedExp.session.hadError) return // do nothing
+		if (trackedExp.session.hadError) return // There was an error during the session.
 
 		try {
-			if (Date.now() - trackedExp.lastErrorTime < this.constants.ERROR_WAIT_TIME) {
-				// There was an error not long ago, wait with this one.
-				trackedExp.session.hadError = true
-				return
-			}
-
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
 				// Check which workers might want to handle it:
 				// Reset properties:
@@ -1281,7 +1275,13 @@ export class ExpectationManager {
 		const { state, reason, status, isError, dontUpdatePackage } = upd
 
 		trackedExp.lastEvaluationTime = Date.now()
-		if (isError) trackedExp.lastErrorTime = Date.now()
+		if (isError) {
+			trackedExp.lastError = {
+				time: Date.now(),
+				reason: reason || { user: 'Unknown error', tech: 'Unknown error' },
+			}
+			if (trackedExp.session) trackedExp.session.hadError = true
+		}
 
 		const prevState: ExpectedPackageStatusAPI.WorkStatusState = trackedExp.state
 		const prevReason: Reason = trackedExp.reason
@@ -1893,7 +1893,7 @@ export class ExpectationManager {
 					workerId: wip.workerId,
 					cost: wip.cost,
 					label: wip.trackedExp.exp.statusReport.label,
-					progress: wip.trackedExp.status.workProgress || 0,
+					progress: Math.floor((wip.trackedExp.status.workProgress || 0) * 1000) / 1000,
 					expectationId: wip.trackedExp.id,
 				}
 			}),
