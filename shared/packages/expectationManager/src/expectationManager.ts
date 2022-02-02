@@ -23,6 +23,9 @@ import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integrati
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 import PromisePool from '@supercharge/promise-pool'
+import { ExpectationManagerConstants, getDefaultConstants } from './lib/constants'
+import { ExpectationStateHandlerSession, TrackedExpectation, WorkerAgentAssignment } from './lib/types'
+import { getDefaultTrackedExpectation, sortTrackedExpectations } from './lib/expectations'
 
 /**
  * The Expectation Manager is responsible for tracking the state of the Expectations,
@@ -112,18 +115,7 @@ export class ExpectationManager {
 		options?: ExpectationManagerOptions
 	) {
 		this.constants = {
-			// Default values:
-			EVALUATE_INTERVAL: 5 * 1000,
-			FULLFILLED_MONITOR_TIME: 30 * 1000,
-			WORK_TIMEOUT_TIME: 10 * 1000,
-			ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
-			SCALE_UP_TIME: 5 * 1000,
-			SCALE_UP_COUNT: 1,
-			WORKER_SUPPORT_TIME: 60 * 1000,
-			ERROR_WAIT_TIME: 10 * 1000,
-
-			FAILED_REMOVE_COUNT: 2,
-
+			...getDefaultConstants(),
 			...options?.constants,
 		}
 		this.workforceAPI = new WorkforceAPI(this.logger)
@@ -585,30 +577,8 @@ export class ExpectationManager {
 			}
 
 			if (difference === 'new' || difference === 'major') {
-				const newTrackedExp: TrackedExpectation = {
-					id: id,
-					exp: exp,
-					state: existingtrackedExp?.state || 'unknown', // will be overwritten below
-					queriedWorkers: {},
-					availableWorkers: {},
-					noAvailableWorkersReason: {
-						user: 'Unknown reason',
-						tech: 'N/A (init)',
-					},
-					lastEvaluationTime: 0,
-					waitingForWorkerTime: null,
-					noWorkerAssignedTime: null,
-					errorCount: 0,
-					lastErrorTime: 0,
-					errorOnRemoveCount: 0,
-					reason: {
-						user: '',
-						tech: '',
-					},
-					prevStatusReasons: existingtrackedExp?.prevStatusReasons || {},
-					status: {},
-					session: null,
-				}
+				const newTrackedExp = getDefaultTrackedExpectation(exp, existingtrackedExp)
+
 				this.trackedExpectations[id] = newTrackedExp
 				if (difference === 'new') {
 					this.updateTrackedExpStatus(newTrackedExp, {
@@ -747,24 +717,9 @@ export class ExpectationManager {
 		}
 	}
 	private getTrackedExpectations(): TrackedExpectation[] {
-		const tracked: TrackedExpectation[] = Object.values(this.trackedExpectations)
-		tracked.sort((a, b) => {
-			// Lowest lastErrorTime first, this is to make it so that if one expectation fails, it'll not block all the others
-			if (a.lastErrorTime > b.lastErrorTime) return 1
-			if (a.lastErrorTime < b.lastErrorTime) return -1
-
-			// Lowest priority first
-			if (a.exp.priority > b.exp.priority) return 1
-			if (a.exp.priority < b.exp.priority) return -1
-
-			// Lowest lastOperationTime first
-			if (a.lastEvaluationTime > b.lastEvaluationTime) return 1
-			if (a.lastEvaluationTime < b.lastEvaluationTime) return -1
-
-			return 0
-		})
-		return tracked
+		return sortTrackedExpectations(this.trackedExpectations, this.constants)
 	}
+
 	/** Iterate through the tracked Expectations */
 	private async _evaluateAllExpectations(): Promise<{ runAgainASAP: boolean; times: { [key: string]: number } }> {
 		/** If this is set to true, we want _evaluateExpectations() to be run again ASAP */
@@ -2082,34 +2037,6 @@ function expLabel(exp: TrackedExpectation): string {
 export interface ExpectationManagerOptions {
 	constants: Partial<ExpectationManagerConstants>
 }
-export interface ExpectationManagerConstants {
-	/** Time between iterations of the expectation queue [ms] */
-	EVALUATE_INTERVAL: number
-	/** Minimum time between re-evaluating fulfilled expectations [ms] */
-	FULLFILLED_MONITOR_TIME: number
-	/**
-	 * If the iteration of the queue has been going for this time
-	 * allow skipping the rest of the queue in order to reiterate the high-prio expectations [ms]
-	 */
-	ALLOW_SKIPPING_QUEUE_TIME: number
-
-	/** If there has been no updated on a work-in-progress, time it out after this time */
-	WORK_TIMEOUT_TIME: number
-
-	/** How long to wait before requesting more resources (workers) [ms] */
-	SCALE_UP_TIME: number
-	/** How many resources to request at a time */
-	SCALE_UP_COUNT: number
-
-	/** How often to re-query a worker if it supports an expectation [ms] */
-	WORKER_SUPPORT_TIME: number
-
-	/** How long to wait in case of an expectation error before trying again [ms] */
-	ERROR_WAIT_TIME: number
-
-	/** How many times to try to remove a package upon fail */
-	FAILED_REMOVE_COUNT: number
-}
 export type ExpectationManagerServerOptions =
 	| {
 			type: 'websocket'
@@ -2125,72 +2052,6 @@ interface TrackedWorkerAgent {
 	connected: boolean
 }
 
-interface TrackedExpectation {
-	/** Unique ID of the tracked expectation */
-	id: string
-	/** The Expectation */
-	exp: Expectation.Any
-
-	/** The current State of the expectation. */
-	state: ExpectedPackageStatusAPI.WorkStatusState
-	/** Reason for the current state. */
-	reason: Reason
-
-	/** Previous reasons, for each state. */
-	prevStatusReasons: { [status: string]: Reason }
-
-	/** List of worker ids that have gotten the question wether they support this expectation */
-	queriedWorkers: { [workerId: string]: number }
-	/** List of worker ids that supports this Expectation */
-	availableWorkers: { [workerId: string]: true }
-	noAvailableWorkersReason: Reason
-	/** Timestamp of the last time the expectation was evaluated. */
-	lastEvaluationTime: number
-	/** Timestamp to track how long the expectation has been waiting for a worker (can't start working), used to request more resources */
-	waitingForWorkerTime: number | null
-	/** Timestamp to track  how long the expectation has been waiting for a worker, used to restart to re-query for workers */
-	noWorkerAssignedTime: number | null
-	/** The number of times the expectation has failed */
-	errorCount: number
-	/** Timestamp to track the last time an error happened on the expectation */
-	lastErrorTime: number
-	/** How many times the Expectation failed to be Removed */
-	errorOnRemoveCount: number
-
-	/** These statuses are sent from the workers */
-	status: {
-		workProgress?: number
-		// workInProgress?: IWorkInProgress
-		workInProgressCancel?: () => Promise<void>
-		actualVersionHash?: string | null
-
-		sourceExists?: boolean
-		targetCanBeUsedWhileTransferring?: boolean
-		sourceIsPlaceholder?: boolean // todo: to be implemented (quantel)
-	}
-	/** A storage which is persistant only for a short while, during an evaluation of the Expectation. */
-	session: ExpectationStateHandlerSession | null
-}
-/** Contains some data which is persisted during an evaluation-session */
-interface ExpectationStateHandlerSession {
-	/** Set to true if the other tracked expectations should be triggered again ASAP */
-	triggerOtherExpectationsAgain?: boolean
-	/** Set to true when the tracked expectation can safely be removed */
-	expectationCanBeRemoved?: boolean
-
-	/** If there was an unexpected error */
-	hadError?: boolean
-
-	/** The Worker assigned to the Expectation during this evaluation-session */
-	assignedWorker?: WorkerAgentAssignment
-	noAssignedWorkerReason?: Reason
-}
-interface WorkerAgentAssignment {
-	worker: WorkerAgentAPI
-	id: string
-	cost: ExpectationManagerWorkerAgent.ExpectationCost
-	randomCost: number
-}
 export type MessageFromWorker = (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => Promise<any>
 
 export interface ExpectationManagerCallbacks {
