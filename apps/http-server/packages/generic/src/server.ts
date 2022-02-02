@@ -94,7 +94,7 @@ export class PackageProxyServer {
 		})
 
 		// Convenient pages:
-		this.router.get('/', async (ctx, next) => {
+		this.router.get('/', async (ctx) => {
 			let packageJson = { version: '0.0.0' }
 			try {
 				packageJson = JSON.parse(
@@ -106,7 +106,6 @@ export class PackageProxyServer {
 				// ignore
 			}
 			ctx.body = { name: 'Package proxy server', version: packageJson.version }
-			await next()
 		})
 		this.router.get('/uploadForm/:path+', async (ctx) => {
 			// ctx.response.status = result.code
@@ -117,6 +116,11 @@ export class PackageProxyServer {
 		})
 
 		this.app.use(this.router.routes()).use(this.router.allowedMethods())
+
+		this.app.use((ctx) => {
+			ctx.body = 'Page not found'
+			ctx.response.status = 404
+		})
 
 		return new Promise<void>((resolve, reject) => {
 			if (this.config.httpServer.port) {

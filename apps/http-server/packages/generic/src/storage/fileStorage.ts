@@ -71,7 +71,7 @@ export class FileStorage extends Storage {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
-			return { code: 404, reason: 'Not found' }
+			return { code: 404, reason: 'Package not found' }
 		}
 		let mimeType = mime.lookup(fullPath)
 		if (!mimeType) {
@@ -120,7 +120,7 @@ export class FileStorage extends Storage {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
-			return { code: 404, reason: 'Not found' }
+			return { code: 404, reason: 'Package not found' }
 		}
 
 		await fsUnlink(fullPath)
