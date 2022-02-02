@@ -12,7 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
-import { WorkforceStatus } from './status'
+import { WorkerStatus, WorkforceStatus } from './status'
 import { LogLevel } from './logger'
 import { ExpectedPackage, StatusCode } from './inputApi'
 
@@ -50,6 +50,7 @@ export namespace WorkForceWorkerAgent {
 	export interface WorkerAgent {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+		getStatus: () => Promise<WorkerStatus>
 
 		expectationManagerAvailable: (id: string, url: string) => Promise<void>
 		expectationManagerGone: (id: string) => Promise<void>

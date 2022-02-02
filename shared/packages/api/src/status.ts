@@ -1,7 +1,5 @@
 export interface WorkforceStatus {
-	workerAgents: {
-		id: string
-	}[]
+	workerAgents: WorkerStatus[]
 	expectationManagers: {
 		id: string
 		url?: string
@@ -44,5 +42,22 @@ export interface ExpectationManagerStatus {
 		label: string
 		progress: number
 		expectationId: string
+	}[]
+}
+export interface WorkerStatus {
+	id: string
+	activeMonitors: {
+		containerId: string
+		monitorId: string
+		label: string
+	}[]
+
+	currentJobs: {
+		cost: number
+		startCost: number
+		cancelled: boolean
+		wipId: number
+		progress: number
+		lastUpdated: number
 	}[]
 }

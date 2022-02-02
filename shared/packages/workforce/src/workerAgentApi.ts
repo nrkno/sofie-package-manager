@@ -1,4 +1,4 @@
-import { WorkForceWorkerAgent, AdapterServer, AdapterServerOptions, LogLevel } from '@shared/api'
+import { WorkForceWorkerAgent, AdapterServer, AdapterServerOptions, LogLevel, WorkerStatus } from '@shared/api'
 
 /**
  * Exposes the API-methods of a WorkerAgent, to be called from the Workforce
@@ -20,6 +20,9 @@ export class WorkerAgentAPI
 	}
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
+	}
+	async getStatus(): Promise<WorkerStatus> {
+		return this._sendMessage('getStatus')
 	}
 
 	async expectationManagerAvailable(id: string, url: string): Promise<void> {

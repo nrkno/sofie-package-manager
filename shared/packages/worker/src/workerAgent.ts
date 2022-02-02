@@ -22,6 +22,7 @@ import {
 	MonitorProperties,
 	Reason,
 	stringifyError,
+	WorkerStatus,
 } from '@shared/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -242,6 +243,32 @@ export class WorkerAgent {
 			// eslint-disable-next-line no-process-exit
 			process.exit(42)
 		}, 1)
+	}
+	async getStatus(): Promise<WorkerStatus> {
+		const activeMonitors: WorkerStatus['activeMonitors'] = []
+
+		for (const [containerId, monitors] of Object.entries(this.activeMonitors)) {
+			for (const [monitorId, monitor] of Object.entries(monitors)) {
+				activeMonitors.push({
+					containerId,
+					monitorId,
+					label: monitor.properties.label,
+				})
+			}
+		}
+
+		return {
+			id: this.id,
+			activeMonitors,
+			currentJobs: this.currentJobs.map((job) => ({
+				cost: job.cost.cost,
+				startCost: job.cost.startCost,
+				cancelled: job.cancelled,
+				wipId: job.wipId,
+				progress: Math.floor(job.progress * 1000) / 1000,
+				lastUpdated: job.lastUpdated,
+			})),
+		}
 	}
 	public async setSpinDownTime(spinDownTime: number): Promise<void> {
 		this.spinDownTime = spinDownTime
