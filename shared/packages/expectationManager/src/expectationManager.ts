@@ -1036,7 +1036,7 @@ export class ExpectationManager {
 									state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 									reason: readyToStart.reason,
 									status: newStatus,
-									isError: true,
+									isError: !readyToStart.isWaitingForAnother,
 								})
 							}
 						}
@@ -1579,6 +1579,7 @@ export class ExpectationManager {
 					user: `Waiting for "${waitingFor.exp.statusReport.label}"`,
 					tech: `Waiting for "${waitingFor.exp.statusReport.label}"`,
 				},
+				isWaitingForAnother: true,
 			}
 		}
 

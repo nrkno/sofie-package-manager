@@ -21,6 +21,7 @@ export type ReturnTypeIsExpectationReadyToStartWorkingOn =
 	| {
 			ready: false
 			sourceExists?: boolean
+			isWaitingForAnother?: boolean
 			reason: Reason
 	  }
 export type ReturnTypeIsExpectationFullfilled =
