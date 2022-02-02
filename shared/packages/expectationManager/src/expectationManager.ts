@@ -2032,7 +2032,12 @@ export class ExpectationManager {
 	}
 }
 function expLabel(exp: TrackedExpectation): string {
-	return `${exp.id.slice(0, 5)} ${exp.exp.statusReport.label.slice(0, 50)}`
+	let id = `${exp.id}`
+	if (id.length > 16) {
+		id = id.slice(0, 8) + '...' + id.slice(-8)
+	}
+
+	return `${id} ${exp.exp.statusReport.label.slice(0, 50)}`
 }
 export interface ExpectationManagerOptions {
 	constants: Partial<ExpectationManagerConstants>
