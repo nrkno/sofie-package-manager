@@ -16,7 +16,6 @@ export type FetchWithControllerOptions = Omit<RequestInit, 'signal'> & {
  */
 export function fetchWithTimeout(url: string, options?: Omit<RequestInit, 'signal'>): Promise<Response> {
 	// encode, to avoid issues with special characters such as åäöØÅÖÆÅ
-	url = encodeURI(url)
 	const o = fetchWithController(url, options)
 	return o.response
 }
@@ -30,6 +29,7 @@ export function fetchWithController(
 ): { response: Promise<Response>; controller: AbortController } {
 	const controller = new AbortController()
 
+	url = encodeURI(url)
 	return {
 		response: new Promise((resolve, reject) => {
 			const refreshTimeout = () => {

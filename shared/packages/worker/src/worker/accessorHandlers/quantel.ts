@@ -11,6 +11,7 @@ import {
 import { Accessor, AccessorOnPackage, Expectation, literal, Reason } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
+import { joinUrls } from './lib/pathJoin'
 
 /** The minimum amount of frames where a clip is minimumly playable */
 const MINIMUM_FRAMES = 10
@@ -360,10 +361,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				success: true,
 				baseURL,
 				url,
-				fullURL: [
-					baseURL.replace(/\/$/, ''), // trim trailing slash
-					url.replace(/^\//, ''), // trim leading slash
-				].join('/'),
+				fullURL: joinUrls(baseURL, url),
 			}
 		} else {
 			return {

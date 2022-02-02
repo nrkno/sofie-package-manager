@@ -11,6 +11,7 @@ import { GenericWorker } from '../worker'
 import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
+import { joinUrls } from './lib/pathJoin'
 
 /** Accessor handle for accessing files in HTTP- */
 export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -203,10 +204,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
-		return [
-			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-			this.filePath.replace(/^\//, ''), // trim leading slash
-		].join('/')
+		return joinUrls(this.baseUrl, this.filePath)
 	}
 
 	private checkAccessor(): AccessorHandlerResult {
@@ -336,10 +334,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove the package:
-				const fullUrl: string = [
-					this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-					entry.filePath,
-				].join('/')
+				const fullUrl: string = joinUrls(this.baseUrl, entry.filePath)
 
 				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)
@@ -378,10 +373,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 	/** Full path to the file containing deferred removals */
 	private get deferRemovePackagesPath(): string {
-		return [
-			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-			'__removePackages.json',
-		].join('/')
+		return joinUrls(this.baseUrl, '__removePackages.json')
 	}
 	/** */
 	private async getPackagesToRemove(): Promise<DelayPackageRemovalEntry[]> {
