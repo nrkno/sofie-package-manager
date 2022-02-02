@@ -304,6 +304,9 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		if (!this.accessor.folderPath) throw new Error(`LocalFolderAccessor: accessor.folderPath not set!`)
 		return this.accessor.folderPath
 	}
+	get orgFolderPath(): string {
+		return this.folderPath
+	}
 	/** Local path to the Package, ie the File */
 	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')

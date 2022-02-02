@@ -81,6 +81,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		if (!folderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
 		return folderPath
 	}
+	get orgFolderPath(): string {
+		const folderPath = this.originalFolderPath
+
+		if (!folderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
+		return folderPath
+	}
 	/** Full path to the package */
 	get fullPath(): string {
 		return this.getFullPath(this.filePath)

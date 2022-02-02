@@ -19,6 +19,7 @@ import { GenericWorker } from '../../worker'
 
 import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
+import { removeBasePath } from './pathJoin'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -44,6 +45,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 	}
 	/** Path to the PackageContainer, ie the folder */
 	protected abstract get folderPath(): string
+	protected abstract get orgFolderPath(): string
 
 	/** Schedule the package for later removal */
 	async delayPackageRemoval(filePath: string, ttl: number): Promise<void> {
@@ -135,6 +137,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		if (exists) await fsUnlink(filePath)
 	}
 	getFullPath(filePath: string): string {
+		filePath = removeBasePath(this.orgFolderPath, filePath)
+
 		return path.join(this.folderPath, filePath)
 	}
 	getMetadataPath(filePath: string): string {
