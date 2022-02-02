@@ -421,11 +421,7 @@ export class ExpectationManager {
 								workProgress: progress,
 							},
 						})
-						this.logger.debug(
-							`Expectation "${JSON.stringify(
-								wip.trackedExp.exp.statusReport.label
-							)}" progress: ${progress}`
-						)
+						this.logger.debug(`Expectation "${expLabel(wip.trackedExp)}" progress: ${progress}`)
 					} else {
 						// ignore
 					}
@@ -507,7 +503,7 @@ export class ExpectationManager {
 	 * Evaluates the Expectations and PackageContainerExpectations
 	 */
 	private async _evaluateExpectations(): Promise<void> {
-		this.logger.debug(Date.now() / 1000 + ' _evaluateExpectations ----------')
+		this.logger.verbose(Date.now() / 1000 + ' _evaluateExpectations ----------')
 
 		let startTime = Date.now()
 		const times: { [key: string]: number } = {}
@@ -579,7 +575,7 @@ export class ExpectationManager {
 
 					if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 						if (trackedExp.status.workInProgressCancel) {
-							this.logger.debug(`Cancelling ${trackedExp.id} due to update`)
+							this.logger.debug(`Cancelling ${expLabel(trackedExp)} due to update`)
 							await trackedExp.status.workInProgressCancel()
 						}
 					}
@@ -642,7 +638,7 @@ export class ExpectationManager {
 				const trackedExp = this.trackedExpectations[id]
 				if (trackedExp) {
 					this.logger.debug(
-						`Minor update of expectation "${trackedExp.id}": ${diff(existingtrackedExp.exp, exp)}`
+						`Minor update of expectation "${expLabel(trackedExp)}": ${diff(existingtrackedExp.exp, exp)}`
 					)
 
 					trackedExp.exp = exp
@@ -662,7 +658,7 @@ export class ExpectationManager {
 
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
-						this.logger.debug(`Cancelling ${trackedExp.id} due to removed`)
+						this.logger.verbose(`Cancelling ${expLabel(trackedExp)} due to removed`)
 						await trackedExp.status.workInProgressCancel()
 					}
 				}
@@ -691,7 +687,7 @@ export class ExpectationManager {
 			if (trackedExp) {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
-						this.logger.debug(`Cancelling ${trackedExp.id} due to restart`)
+						this.logger.verbose(`Cancelling ${expLabel(trackedExp)} due to restart`)
 						await trackedExp.status.workInProgressCancel()
 					}
 				}
@@ -716,7 +712,7 @@ export class ExpectationManager {
 			if (trackedExp) {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
-						this.logger.debug(`Cancelling ${trackedExp.id} due to abort`)
+						this.logger.verbose(`Cancelling ${expLabel(trackedExp)} due to abort`)
 						await trackedExp.status.workInProgressCancel()
 					}
 				}
@@ -801,7 +797,7 @@ export class ExpectationManager {
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
 
 			if (trackedWithState.length) {
-				this.logger.debug(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
+				this.logger.verbose(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
 			}
 
 			if (trackedWithState.length) {
@@ -824,13 +820,18 @@ export class ExpectationManager {
 			times[`time_${handleState}`] = Date.now() - startTime
 		}
 
-		this.logger.debug(`Handle other states..`)
-
 		// Step 1.5: Reset the session:
 		// Because during the next iteration, the worker-assignment need to be done in series
 		for (const trackedExp of tracked) {
 			trackedExp.session = null
 		}
+
+		this.logger.verbose(`Handle other states..`)
+		handleStatesSerial.forEach((handleState) => {
+			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
+			this.logger.verbose(`${handleState}, ${trackedWithState.length} expectations..`)
+		})
+		this.logger.verbose(`Worker count: ${Object.keys(this.workerAgents).length}`)
 
 		const startTime = Date.now()
 		// Step 2: Evaluate the expectations, now one by one:
@@ -854,13 +855,18 @@ export class ExpectationManager {
 					removeIds.push(trackedExp.id)
 				}
 			}
+
 			if (runAgainASAP && Date.now() - startTime > this.constants.ALLOW_SKIPPING_QUEUE_TIME) {
 				// Skip the rest of the queue, so that we don't get stuck on evaluating low-prio expectations.
+				this.logger.verbose(
+					`Skipping the rest of the queue (after ${this.constants.ALLOW_SKIPPING_QUEUE_TIME})`
+				)
 				break
 			}
 			if (this.receivedUpdates.expectationsHasBeenUpdated) {
 				// We have received new expectations. We should abort the evaluation-loop and restart from the beginning.
 				// So that we don't miss any high-prio Expectations.
+				this.logger.verbose(`Skipping the rest of the queue, due to expectations has been updated`)
 				runAgainASAP = true
 				break
 			}
@@ -1073,7 +1079,7 @@ export class ExpectationManager {
 					const assignedWorker = trackedExp.session.assignedWorker
 
 					try {
-						this.logger.debug(`workOnExpectation: "${trackedExp.exp.id}" (${trackedExp.exp.type})`)
+						this.logger.debug(`workOnExpectation: "${expLabel(trackedExp)}" (${trackedExp.exp.type})`)
 
 						// Start working on the Expectation:
 						const wipInfo = await assignedWorker.worker.workOnExpectation(
@@ -1278,7 +1284,9 @@ export class ExpectationManager {
 			}
 		} catch (err) {
 			this.logger.error(
-				`Error thrown in evaluateExpectationState for expectation "${trackedExp.id}": ${stringifyError(err)}`
+				`Error thrown in evaluateExpectationState for expectation "${expLabel(trackedExp)}": ${stringifyError(
+					err
+				)}`
 			)
 			this.updateTrackedExpStatus(trackedExp, {
 				reason: {
@@ -1355,11 +1363,13 @@ export class ExpectationManager {
 		// Log and report new states an reasons:
 		if (updatedState) {
 			this.logger.debug(
-				`${trackedExp.exp.statusReport.label}: New state: "${prevState}"->"${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
+				`${expLabel(trackedExp)}: New state: "${prevState}"->"${trackedExp.state}", reason: "${
+					trackedExp.reason.tech
+				}"`
 			)
 		} else if (updatedReason) {
 			this.logger.debug(
-				`${trackedExp.exp.statusReport.label}: State: "${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
+				`${expLabel(trackedExp)}: State: "${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
 			)
 		}
 
@@ -2009,7 +2019,7 @@ export class ExpectationManager {
 			}
 		}
 		for (const exp of waitingExpectations) {
-			this.logger.debug(`Requesting more resources to handle expectation "${exp.id}"`)
+			this.logger.debug(`Requesting more resources to handle expectation "${expLabel(exp)}"`)
 			await this.workforceAPI.requestResourcesForExpectation(exp.exp)
 		}
 
@@ -2042,7 +2052,7 @@ export class ExpectationManager {
 				if (Date.now() - wip.lastUpdated > this.constants.WORK_TIMEOUT_TIME) {
 					// It seems that the work has stalled..
 
-					this.logger.warn(`Work "${wipId}" on exp "${wip.trackedExp.id}" has stalled, restarting it`)
+					this.logger.warn(`Work "${wipId}" on exp "${expLabel(wip.trackedExp)}" has stalled, restarting it`)
 
 					// Restart the job:
 					const reason: Reason = {
@@ -2059,11 +2069,16 @@ export class ExpectationManager {
 				}
 			} else {
 				// huh, it seems that we have a workInProgress, but the trackedExpectation is not WORKING
-				this.logger.error(`WorkInProgress ${wipId} has an exp (${wip.trackedExp.id}) which is not working..`)
+				this.logger.error(
+					`WorkInProgress ${wipId} has an exp (${expLabel(wip.trackedExp)}) which is not working..`
+				)
 				delete this.worksInProgress[wipId]
 			}
 		}
 	}
+}
+function expLabel(exp: TrackedExpectation): string {
+	return `${exp.id.slice(0, 5)} ${exp.exp.statusReport.label.slice(0, 50)}`
 }
 export interface ExpectationManagerOptions {
 	constants: Partial<ExpectationManagerConstants>
