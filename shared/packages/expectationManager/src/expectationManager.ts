@@ -736,6 +736,17 @@ export class ExpectationManager {
 			trackedExp.session = null
 		}
 
+		const postProcessSession = (trackedExp: TrackedExpectation) => {
+			if (trackedExp.session?.triggerOtherExpectationsAgain) {
+				// Will cause another iteration of this._handleExpectations to be called again ASAP after this iteration has finished
+				runAgainASAP = true
+			}
+			if (trackedExp.session?.expectationCanBeRemoved) {
+				// The tracked expectation can be removed
+				removeIds.push(trackedExp.id)
+			}
+		}
+
 		/** These states can be handled in parallel */
 		const handleStatesParallel = [
 			// Note: The order of these is important, as the states normally progress in this order:
@@ -778,6 +789,7 @@ export class ExpectationManager {
 					})
 					.process(async (trackedExp) => {
 						await this.evaluateExpectationState(trackedExp)
+						postProcessSession(trackedExp)
 					})
 			}
 			times[`time_${handleState}`] = Date.now() - startTime
@@ -803,15 +815,7 @@ export class ExpectationManager {
 			if (handleStatesSerial.includes(trackedExp.state)) {
 				// Evaluate the Expectation:
 				await this.evaluateExpectationState(trackedExp)
-
-				if (trackedExp.session?.triggerOtherExpectationsAgain) {
-					// Will cause another iteration of this._handleExpectations to be called again ASAP after this iteration has finished
-					runAgainASAP = true
-				}
-				if (trackedExp.session?.expectationCanBeRemoved) {
-					// The tracked expectation can be removed
-					removeIds.push(trackedExp.id)
-				}
+				postProcessSession(trackedExp)
 			}
 
 			if (runAgainASAP && Date.now() - startTime > this.constants.ALLOW_SKIPPING_QUEUE_TIME) {
@@ -841,6 +845,8 @@ export class ExpectationManager {
 		const timeSinceLastEvaluation = Date.now() - trackedExp.lastEvaluationTime
 		if (!trackedExp.session) trackedExp.session = {}
 		if (trackedExp.session.hadError) return // There was an error during the session.
+
+		if (trackedExp.session.expectationCanBeRemoved) return // The expectation has been removed
 
 		try {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
@@ -1145,23 +1151,16 @@ export class ExpectationManager {
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.REMOVED) {
 				await this.assignWorkerToSession(trackedExp)
+				/** When true, the expectation can be removed */
+				let removeTheExpectation = false
 				if (trackedExp.session.assignedWorker) {
 					const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
-					if (
-						// Check if the removal was successful:
-						removed.removed ||
-						// If the removal was unsuccessful, we only allow re-tries a certain amount of times:
-						trackedExp.errorOnRemoveCount > this.constants.FAILED_REMOVE_COUNT
-					) {
-						trackedExp.session.expectationCanBeRemoved = true
-
-						// Send a status that this expectation has been removed:
-						this.updatePackageContainerPackageStatus(trackedExp, true)
-						this.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
+					// Check if the removal was successful:
+					if (removed.removed) {
+						removeTheExpectation = true
 					} else {
-						trackedExp.errorOnRemoveCount++
-
 						// Something went wrong when trying to handle the removal.
+						trackedExp.errorOnRemoveCount++
 						this.updateTrackedExpStatus(trackedExp, {
 							state: ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
 							reason: removed.reason,
@@ -1171,7 +1170,20 @@ export class ExpectationManager {
 				} else {
 					// No worker is available at the moment.
 					// Do nothing, hopefully some will be available at a later iteration
+					trackedExp.errorOnRemoveCount++
 					this.noWorkerAssigned(trackedExp)
+				}
+
+				// We only allow a number of failure-of-removals.
+				// After that, we'll remove the expectation to avoid congestion:
+				if (trackedExp.errorOnRemoveCount > this.constants.FAILED_REMOVE_COUNT) {
+					removeTheExpectation = true
+				}
+				if (removeTheExpectation) {
+					trackedExp.session.expectationCanBeRemoved = true
+					// Send a status that this expectation has been removed:
+					this.updatePackageContainerPackageStatus(trackedExp, true)
+					this.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
 				}
 			} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.RESTARTED) {
 				await this.assignWorkerToSession(trackedExp)
