@@ -8,7 +8,7 @@ import {
 	WorkforceConfig,
 	assertNever,
 	WorkForceAppContainer,
-	WorkforceStatus,
+	WorkforceStatusReport,
 	LogLevel,
 	Expectation,
 	PackageContainerExpectation,
@@ -216,8 +216,8 @@ export class Workforce {
 				return this.requestResourcesForPackageContainer(packageContainer)
 			},
 
-			getStatus: async (): Promise<WorkforceStatus> => {
-				return this.getStatus()
+			getStatusReport: async (): Promise<WorkforceStatusReport> => {
+				return this.getStatusReport()
 			},
 			_debugKillApp: async (appId: string): Promise<void> => {
 				return this._debugKillApp(appId)
@@ -260,10 +260,10 @@ export class Workforce {
 	public async requestResourcesForPackageContainer(packageContainer: PackageContainerExpectation): Promise<boolean> {
 		return this.workerHandler.requestResourcesForPackageContainer(packageContainer)
 	}
-	public async getStatus(): Promise<WorkforceStatus> {
+	public async getStatusReport(): Promise<WorkforceStatusReport> {
 		return {
 			workerAgents: await Promise.all(
-				Object.values(this.workerAgents).map((workerAgent) => workerAgent.api.getStatus())
+				Object.values(this.workerAgents).map((workerAgent) => workerAgent.api.getStatusReport())
 			),
 			expectationManagers: Object.entries(this.expectationManagers).map(([id, expMan]) => {
 				return {

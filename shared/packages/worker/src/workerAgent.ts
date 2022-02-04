@@ -22,7 +22,7 @@ import {
 	MonitorProperties,
 	Reason,
 	stringifyError,
-	WorkerStatus,
+	WorkerStatusReport,
 } from '@shared/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -244,8 +244,8 @@ export class WorkerAgent {
 			process.exit(42)
 		}, 1)
 	}
-	async getStatus(): Promise<WorkerStatus> {
-		const activeMonitors: WorkerStatus['activeMonitors'] = []
+	async getStatusReport(): Promise<WorkerStatusReport> {
+		const activeMonitors: WorkerStatusReport['activeMonitors'] = []
 
 		for (const [containerId, monitors] of Object.entries(this.activeMonitors)) {
 			for (const [monitorId, monitor] of Object.entries(monitors)) {

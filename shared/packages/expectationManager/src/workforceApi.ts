@@ -3,7 +3,7 @@ import {
 	AdapterClient,
 	LoggerInstance,
 	LogLevel,
-	WorkforceStatus,
+	WorkforceStatusReport,
 	Expectation,
 	PackageContainerExpectation,
 } from '@shared/api'
@@ -24,9 +24,9 @@ export class WorkforceAPI
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('registerExpectationManager', managerId, url)
 	}
-	async getStatus(): Promise<WorkforceStatus> {
+	async getStatusReport(): Promise<WorkforceStatusReport> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
-		return this._sendMessage('getStatus')
+		return this._sendMessage('getStatusReport')
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts

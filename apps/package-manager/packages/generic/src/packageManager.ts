@@ -334,7 +334,7 @@ export class PackageManagerHandler {
 	}
 	public async getExpetationManagerStatus(): Promise<any> {
 		return {
-			...(await this.expectationManager.getStatus()),
+			...(await this.expectationManager.getStatusReport()),
 			packageManager: {
 				workforceURL:
 					this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,

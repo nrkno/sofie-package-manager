@@ -13,7 +13,7 @@ import {
 	PackageContainerExpectation,
 	Reason,
 	assertNever,
-	ExpectationManagerStatus,
+	ExpectationManagerStatusReport,
 	LogLevel,
 	deepEqual,
 	stringifyError,
@@ -100,7 +100,7 @@ export class ExpectationManager {
 	} = {}
 	private terminated = false
 
-	private status: ExpectationManagerStatus
+	private statusReport: ExpectationManagerStatusReport
 	private serverAccessUrl = ''
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 
@@ -139,7 +139,7 @@ export class ExpectationManager {
 			this.logger.error(`ExpectationManager: Workforce error event: ${stringifyError(err)}`)
 		})
 
-		this.status = this.updateStatus()
+		this.statusReport = this.updateStatusReport()
 		if (this.serverOptions.type === 'websocket') {
 			this.websocketServer = new WebsocketServer(
 				this.serverOptions.port,
@@ -335,10 +335,10 @@ export class ExpectationManager {
 			process.exit(42)
 		}, 1)
 	}
-	async getStatus(): Promise<any> {
+	async getStatusReport(): Promise<any> {
 		return {
-			workforce: this.workforceAPI.connected ? await this.workforceAPI.getStatus() : {},
-			expectationManager: this.status,
+			workforce: this.workforceAPI.connected ? await this.workforceAPI.getStatusReport() : {},
+			expectationManager: this.statusReport,
 		}
 	}
 	async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
@@ -531,7 +531,7 @@ export class ExpectationManager {
 			times[key] = evaluateTimes[key]
 		}
 
-		this.updateStatus(times)
+		this.statusReport = this.updateStatusReport(times)
 
 		await this.checkIfNeedToScaleUp().catch((err) => {
 			this.logger.error(`Error in checkIfNeedToScaleUp: ${stringifyError(err)}`)
@@ -1873,8 +1873,8 @@ export class ExpectationManager {
 			)
 		}
 	}
-	private updateStatus(times?: { [key: string]: number }): ExpectationManagerStatus {
-		this.status = {
+	private updateStatusReport(times?: { [key: string]: number }): ExpectationManagerStatusReport {
+		const statusReport = {
 			id: this.managerId,
 			updated: Date.now(),
 			expectationStatistics: {
@@ -1910,7 +1910,7 @@ export class ExpectationManager {
 				}
 			}),
 		}
-		const expectationStatistics = this.status.expectationStatistics
+		const expectationStatistics = statusReport.expectationStatistics
 		for (const exp of Object.values(this.trackedExpectations)) {
 			expectationStatistics.countTotal++
 
@@ -1943,7 +1943,7 @@ export class ExpectationManager {
 				expectationStatistics.countError++
 			}
 		}
-		return this.status
+		return statusReport
 	}
 	private async checkIfNeedToScaleUp(): Promise<void> {
 		const waitingExpectations: TrackedExpectation[] = []

@@ -1,5 +1,5 @@
-export interface WorkforceStatus {
-	workerAgents: WorkerStatus[]
+export interface WorkforceStatusReport {
+	workerAgents: WorkerStatusReport[]
 	expectationManagers: {
 		id: string
 		url?: string
@@ -13,7 +13,7 @@ export interface WorkforceStatus {
 		}[]
 	}[]
 }
-export interface ExpectationManagerStatus {
+export interface ExpectationManagerStatusReport {
 	id: string
 	updated: number
 	expectationStatistics: {
@@ -44,7 +44,7 @@ export interface ExpectationManagerStatus {
 		expectationId: string
 	}[]
 }
-export interface WorkerStatus {
+export interface WorkerStatusReport {
 	id: string
 	activeMonitors: {
 		containerId: string

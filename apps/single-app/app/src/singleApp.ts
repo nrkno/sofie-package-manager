@@ -1,13 +1,9 @@
-// import * as ChildProcess from 'child_process'
-// import * as path from 'path'
-
 import * as HTTPServer from '@http-server/generic'
 import * as QuantelHTTPTransformerProxy from '@quantel-http-transformer-proxy/generic'
 import * as PackageManager from '@package-manager/generic'
 import * as Workforce from '@shared/workforce'
 import * as AppConatainerNode from '@appcontainer-node/generic'
 import { getSingleAppConfig, ProcessHandler, setupLogging } from '@shared/api'
-// import { MessageToAppContainerSpinUp, MessageToAppContainerType } from './__api'
 
 export async function startSingleApp(): Promise<void> {
 	const config = getSingleAppConfig()
