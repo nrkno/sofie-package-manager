@@ -18,6 +18,9 @@ import {
 	deepEqual,
 	stringifyError,
 	diff,
+	HelpfulEventEmitter,
+	Statuses,
+	hashObj,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
@@ -33,7 +36,7 @@ import { getDefaultTrackedExpectation, sortTrackedExpectations } from './lib/exp
  * @see FOR_DEVELOPERS.md
  */
 
-export class ExpectationManager {
+export class ExpectationManager extends HelpfulEventEmitter {
 	private constants: ExpectationManagerConstants
 
 	private workforceAPI: WorkforceAPI
@@ -78,6 +81,8 @@ export class ExpectationManager {
 	/** key-value store of which expectations are triggered when another is fullfilled */
 	private _triggerByFullfilledIds: { [fullfilledId: string]: string[] } = {}
 
+	private waitingExpectations: TrackedExpectation[] = []
+
 	private _evaluateExpectationsTimeout: NodeJS.Timeout | undefined = undefined
 	private _evaluateExpectationsIsBusy = false
 	private _evaluateExpectationsRunAsap = false
@@ -103,6 +108,11 @@ export class ExpectationManager {
 	private statusReport: ExpectationManagerStatusReport
 	private serverAccessUrl = ''
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
+	private statuses: Statuses = {}
+	private emittedStatusHash = ''
+	private statusMonitorInterval: NodeJS.Timeout | null = null
+	/** Timestamp, used to determine how long the work-queue has been stuck */
+	private monitorStatusWaiting: number | null = null
 
 	constructor(
 		private logger: LoggerInstance,
@@ -114,6 +124,7 @@ export class ExpectationManager {
 		private callbacks: ExpectationManagerCallbacks,
 		options?: ExpectationManagerOptions
 	) {
+		super()
 		this.constants = {
 			...getDefaultConstants(),
 			...options?.constants,
@@ -121,9 +132,14 @@ export class ExpectationManager {
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('ExpectationManager: Workforce disconnected')
+			this._updateStatus('workforce', {
+				statusCode: StatusCode.BAD,
+				message: 'Workforce disconnected (Restart Package Manager if this persists)',
+			})
 		})
 		this.workforceAPI.on('connected', () => {
 			this.logger.info('ExpectationManager: Workforce connected')
+			this._updateStatus('workforce', { statusCode: StatusCode.GOOD, message: '' })
 
 			this.workforceAPI
 				.registerExpectationManager(this.managerId, this.serverAccessUrl)
@@ -187,11 +203,19 @@ export class ExpectationManager {
 			})
 			this.websocketServer.on('close', () => {
 				this.logger.error(`Expectationmanager: WebsocketServer closed`)
+				this._updateStatus('expectationManager.server', {
+					statusCode: StatusCode.FATAL,
+					message: 'ExpectationManager server closed (Restart Package Manager)',
+				})
 			})
 			this.logger.info(`Expectation Manager running on port ${this.websocketServer.port}`)
 		} else {
 			// todo: handle direct connections
 		}
+
+		this.statusMonitorInterval = setInterval(() => {
+			this._monitorStatus()
+		}, 60 * 1000)
 	}
 
 	/** Initialize the ExpectationManager. This method is should be called shortly after the class has been instantiated. */
@@ -233,6 +257,10 @@ export class ExpectationManager {
 		if (this._evaluateExpectationsTimeout) {
 			clearTimeout(this._evaluateExpectationsTimeout)
 			this._evaluateExpectationsTimeout = undefined
+		}
+		if (this.statusMonitorInterval) {
+			clearInterval(this.statusMonitorInterval)
+			this.statusMonitorInterval = null
 		}
 	}
 	/** USED IN TESTS ONLY. Quickly reset the tracked work of the expectationManager. */
@@ -325,15 +353,22 @@ export class ExpectationManager {
 		this.receivedUpdates.packageContainersHasBeenUpdated = true
 		this._triggerEvaluateExpectations(true)
 	}
+	/** Called by Workforce */
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
 		this.logger.setLogLevel(logLevel)
 	}
+	/** Called by Workforce*/
 	async _debugKill(): Promise<void> {
 		// This is for testing purposes only
 		setTimeout(() => {
 			// eslint-disable-next-line no-process-exit
 			process.exit(42)
 		}, 1)
+	}
+	async onWorkForceStatus(statuses: Statuses): Promise<void> {
+		for (const [id, status] of Object.entries(statuses)) {
+			this._updateStatus(`workforce-${id}`, status)
+		}
 	}
 	async getStatusReport(): Promise<any> {
 		return {
@@ -1949,6 +1984,8 @@ export class ExpectationManager {
 		const waitingExpectations: TrackedExpectation[] = []
 		const waitingPackageContainers: TrackedPackageContainerExpectation[] = []
 
+		let requestsSentCount = 0
+
 		for (const exp of Object.values(this.trackedExpectations)) {
 			/** The expectation is waiting for a worker */
 			const isWaiting: boolean =
@@ -1957,14 +1994,14 @@ export class ExpectationManager {
 				exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY
 
 			/** Not supported by any worker */
-			const notSuppoertedByAnyWorker: boolean = Object.keys(exp.availableWorkers).length === 0
+			const notSupportedByAnyWorker: boolean = Object.keys(exp.availableWorkers).length === 0
 			/** No worker has had time to work on it lately */
 			const notAssignedToAnyWorker: boolean =
 				!!exp.noWorkerAssignedTime && Date.now() - exp.noWorkerAssignedTime > this.constants.SCALE_UP_TIME
 
 			if (
 				isWaiting &&
-				(notSuppoertedByAnyWorker || notAssignedToAnyWorker) &&
+				(notSupportedByAnyWorker || notAssignedToAnyWorker) &&
 				!this.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
 			) {
 				if (!exp.waitingForWorkerTime) {
@@ -1978,15 +2015,16 @@ export class ExpectationManager {
 					Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME || // Don't scale up too fast
 					Object.keys(this.workerAgents).length === 0 // Although if there are no workers connected, we should scale up right away
 				) {
-					if (waitingExpectations.length < this.constants.SCALE_UP_COUNT) {
-						waitingExpectations.push(exp)
-					}
+					waitingExpectations.push(exp)
 				}
 			}
 		}
 		for (const exp of waitingExpectations) {
-			this.logger.debug(`Requesting more resources to handle expectation "${expLabel(exp)}"`)
-			await this.workforceAPI.requestResourcesForExpectation(exp.exp)
+			if (requestsSentCount < this.constants.SCALE_UP_COUNT) {
+				requestsSentCount++
+				this.logger.debug(`Requesting more resources to handle expectation "${expLabel(exp)}"`)
+				await this.workforceAPI.requestResourcesForExpectation(exp.exp)
+			}
 		}
 
 		for (const packageContainer of Object.values(this.trackedPackageContainers)) {
@@ -2001,15 +2039,18 @@ export class ExpectationManager {
 				packageContainer.waitingForWorkerTime &&
 				Date.now() - packageContainer.waitingForWorkerTime > this.constants.SCALE_UP_TIME
 			) {
-				if (waitingPackageContainers.length < this.constants.SCALE_UP_COUNT) {
-					waitingPackageContainers.push(packageContainer)
-				}
+				waitingPackageContainers.push(packageContainer)
 			}
 		}
 		for (const packageContainer of waitingPackageContainers) {
-			this.logger.debug(`Requesting more resources to handle packageContainer "${packageContainer.id}"`)
-			await this.workforceAPI.requestResourcesForPackageContainer(packageContainer.packageContainer)
+			if (requestsSentCount < this.constants.SCALE_UP_COUNT) {
+				requestsSentCount++
+				this.logger.debug(`Requesting more resources to handle packageContainer "${packageContainer.id}"`)
+				await this.workforceAPI.requestResourcesForPackageContainer(packageContainer.packageContainer)
+			}
 		}
+
+		this.waitingExpectations = waitingExpectations
 	}
 	/** Monitor the Works in progress, to restart them if necessary */
 	private monitorWorksInProgress() {
@@ -2040,6 +2081,37 @@ export class ExpectationManager {
 				)
 				delete this.worksInProgress[wipId]
 			}
+		}
+	}
+
+	private _updateStatus(id: string, status: { statusCode: StatusCode; message: string } | null) {
+		this.statuses[id] = status
+
+		const statusHash = hashObj(this.statuses)
+		if (this.emittedStatusHash !== statusHash) {
+			this.emittedStatusHash = statusHash
+			this.emit('status', this.statuses)
+		}
+	}
+	private _monitorStatus() {
+		// If the work-queue is long (>10 items) and nothing has progressed for the past 10 minutes.
+
+		if (this.waitingExpectations.length > 10) {
+			if (!this.monitorStatusWaiting) {
+				this.monitorStatusWaiting = Date.now()
+			}
+		} else {
+			this.monitorStatusWaiting = null
+		}
+
+		const stuckDuration: number = this.monitorStatusWaiting ? Date.now() - this.monitorStatusWaiting : 0
+		if (stuckDuration > 10 * 60 * 1000) {
+			this._updateStatus('work-queue-stuck', {
+				statusCode: StatusCode.BAD,
+				message: `The Work-queue has been stuck for ${Math.round(
+					stuckDuration / 1000 / 60
+				)} minutes, and there are ${this.waitingExpectations.length} waiting`,
+			})
 		}
 	}
 }

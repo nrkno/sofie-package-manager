@@ -15,6 +15,7 @@ import {
 import { WorkerStatusReport, WorkforceStatusReport } from './statusReport'
 import { LogLevel } from './logger'
 import { ExpectedPackage, StatusCode } from './inputApi'
+import { Statuses } from './status'
 
 /** Contains textual descriptions for statuses. */
 export type Reason = ExpectedPackageStatusAPI.Reason
@@ -41,6 +42,8 @@ export namespace WorkForceExpectationManager {
 	export interface ExpectationManager {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+
+		onWorkForceStatus: (statuses: Statuses) => Promise<void>
 	}
 }
 

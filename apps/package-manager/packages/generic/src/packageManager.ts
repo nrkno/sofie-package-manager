@@ -25,6 +25,7 @@ import {
 	stringifyError,
 	Accessor,
 	AccessorOnPackage,
+	Statuses,
 } from '@shared/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -90,6 +91,10 @@ export class PackageManagerHandler {
 			this.workForceConnectionOptions,
 			this.callbacksHandler
 		)
+		this.expectationManager.on('error', (e) => `Caught error from ExpectationManager: ${stringifyError(e)}`)
+		this.expectationManager.on('status', (statuses: Statuses) => {
+			this.callbacksHandler.updateExpectationManagerStatuses(statuses)
+		})
 	}
 
 	async init(_config: PackageManagerConfig, coreHandler: CoreHandler): Promise<void> {
@@ -98,9 +103,6 @@ export class PackageManagerHandler {
 		this.coreHandler.setPackageManagerHandler(this)
 
 		this.logger.info('PackageManagerHandler init')
-
-		// const peripheralDevice = await coreHandler.core.getPeripheralDevice()
-		// const settings: TSRSettings = peripheralDevice.settings || {}
 
 		coreHandler.onConnected(() => {
 			this.setupObservers()
@@ -420,6 +422,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		ExpectedPackageStatusAPI.PackageContainerStatus,
 		undefined
 	> = {}
+	private expectationManagerStatuses: Statuses = {}
 
 	constructor(private packageManager: PackageManagerHandler) {
 		this.logger = this.packageManager.logger
@@ -623,6 +626,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	public onCoreConnected() {
 		this.triggerReportUpdatedStatuses()
 	}
+	public updateExpectationManagerStatuses(statuses: Statuses) {
+		this.expectationManagerStatuses = statuses
+		this.triggerReportUpdatedStatuses()
+	}
 	private updateExpectationStatus(expectationId: string, workStatus: ExpectedPackageStatusAPI.WorkStatus | null) {
 		this.toReportExpectationStatuses[expectationId] = {
 			status: workStatus,
@@ -679,6 +686,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 						await this.reportUpdateExpectationStatus()
 						await this.reportUpdatePackageContainerPackageStatus()
 						await this.reportUpdatePackageContainerStatus()
+
+						await this.checkAndReportPackageManagerStatus()
 					})
 					.catch((err) => {
 						this.logger.error(`Error in triggerReportUpdatedStatuses: ${stringifyError(err)}`)
@@ -884,6 +893,32 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				throw err
 			}
 		}
+	}
+	private async checkAndReportPackageManagerStatus() {
+		// If PM is not initialized properly (connected to workforce, workers etc)
+		// If PM has an issue with a PackageContainer (like "can't access a folder"
+		// If the work-queue is long (>10 items) and nothing has progressed for the past 10 minutes.
+
+		const statuses: Statuses = {}
+
+		for (const [containerId, container] of [
+			...Object.entries(this.reportedPackageContainerStatuses),
+			...Object.entries(this.toReportPackageContainerStatus),
+		]) {
+			statuses[`container-${containerId}`] = container.status
+				? {
+						statusCode: container.status?.status,
+						message: container.status?.statusReason.user,
+				  }
+				: null
+		}
+
+		for (const [id, status] of Object.entries(this.expectationManagerStatuses)) {
+			statuses[`expectationManager-${id}`] = status
+		}
+		this.packageManager.coreHandler
+			.setStatus(statuses)
+			.catch((e) => this.logger.error(`Error in updateCoreStatus : ${stringifyError(e)}`))
 	}
 
 	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {

@@ -11,7 +11,15 @@ import {
 import { DeviceConfig } from './connector'
 
 import fs from 'fs'
-import { LoggerInstance, PackageManagerConfig, ProcessHandler, stringifyError } from '@shared/api'
+import {
+	LoggerInstance,
+	PackageManagerConfig,
+	ProcessHandler,
+	StatusCode,
+	Statuses,
+	stringifyError,
+	hashObj,
+} from '@shared/api'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
@@ -58,6 +66,8 @@ export class CoreHandler {
 
 	private _statusInitialized = false
 	private _statusDestroyed = false
+	private statuses: Statuses = {}
+	private reportedStatusHash = ''
 
 	constructor(logger: LoggerInstance, deviceOptions: DeviceConfig) {
 		this.logger = logger
@@ -374,21 +384,12 @@ export class CoreHandler {
 		this.logger.info('getDevicesInfo')
 
 		return []
-		// const devices: any[] = []
-		// if (this._tsrHandler) {
-		// 	for (const device of this._tsrHandler.tsr.getDevices()) {
-		// 		devices.push({
-		// 			instanceId: device.instanceId,
-		// 			deviceId: device.deviceId,
-		// 			deviceName: device.deviceName,
-		// 			startTime: device.startTime,
-		// 			upTime: Date.now() - device.startTime,
-		// 		})
-		// 	}
-		// }
-		// return devices
 	}
-	updateCoreStatus(): Promise<any> {
+	async setStatus(statuses: Statuses): Promise<any> {
+		this.statuses = statuses
+		await this.updateCoreStatus()
+	}
+	private async updateCoreStatus(): Promise<any> {
 		let statusCode = P.StatusCode.GOOD
 		const messages: Array<string> = []
 
@@ -401,10 +402,24 @@ export class CoreHandler {
 			messages.push('Shut down')
 		}
 
-		return this.core.setStatus({
-			statusCode: statusCode,
-			messages: messages,
-		})
+		if (statusCode === P.StatusCode.GOOD) {
+			for (const status of Object.values(this.statuses)) {
+				if (status && status.statusCode !== StatusCode.GOOD) {
+					statusCode = Math.max(statusCode, status.statusCode)
+					messages.push(status.message)
+				}
+			}
+		}
+
+		const statusHash = hashObj({ statusCode, messages })
+		if (this.reportedStatusHash !== statusHash) {
+			this.reportedStatusHash = statusHash
+
+			await this.core.setStatus({
+				statusCode: statusCode,
+				messages: messages,
+			})
+		}
 	}
 	private _getVersions() {
 		const versions: { [packageName: string]: string } = {}

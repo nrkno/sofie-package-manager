@@ -102,6 +102,7 @@ export async function setupExpectationManager(
 		callbacks,
 		options
 	)
+	expectationManager.on('error', console.error)
 
 	// Initializing HTTP proxy Server:
 	// const httpServer = new HTTPServer.PackageProxyServer(logger, config)

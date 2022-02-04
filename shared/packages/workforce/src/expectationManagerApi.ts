@@ -1,4 +1,4 @@
-import { WorkForceExpectationManager, AdapterServer, AdapterServerOptions, LogLevel } from '@shared/api'
+import { WorkForceExpectationManager, AdapterServer, AdapterServerOptions, LogLevel, Statuses } from '@shared/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the Workforce
@@ -20,5 +20,8 @@ export class ExpectationManagerAPI
 	}
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
+	}
+	async onWorkForceStatus(statuses: Statuses): Promise<void> {
+		return this._sendMessage('onWorkForceStatus', statuses)
 	}
 }

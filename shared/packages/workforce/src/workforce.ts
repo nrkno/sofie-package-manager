@@ -13,6 +13,9 @@ import {
 	Expectation,
 	PackageContainerExpectation,
 	stringifyError,
+	hashObj,
+	Statuses,
+	StatusCode,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -52,6 +55,9 @@ export class Workforce {
 	private websocketServer?: WebsocketServer
 
 	private workerHandler: WorkerHandler
+	private _reportedStatuses: {
+		[expectationManagerId: string]: string // hash of status
+	} = {}
 
 	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
 		if (config.workforce.port !== null) {
@@ -74,8 +80,10 @@ export class Workforce {
 							client.once('close', () => {
 								this.logger.warn(`Workforce: Connection to Worker "${client.clientId}" closed`)
 								delete this.workerAgents[client.clientId]
+								this.evaluateStatus()
 							})
 							this.logger.info(`Workforce: Connection to Worker "${client.clientId}" established`)
+							this.evaluateStatus()
 							break
 						}
 						case 'expectationManager': {
@@ -89,11 +97,13 @@ export class Workforce {
 								this.logger.warn(
 									`Workforce: Connection to ExpectationManager "${client.clientId}" closed`
 								)
+								this.evaluateStatus()
 								delete this.expectationManagers[client.clientId]
 							})
 							this.logger.info(
 								`Workforce: Connection to ExpectationManager "${client.clientId}" established`
 							)
+							this.evaluateStatus()
 							break
 						}
 						case 'appContainer': {
@@ -111,8 +121,10 @@ export class Workforce {
 							client.once('close', () => {
 								this.logger.warn(`Workforce: Connection to AppContainer "${client.clientId}" closed`)
 								delete this.appContainers[client.clientId]
+								this.evaluateStatus()
 							})
 							this.logger.info(`Workforce: Connection to AppContainer "${client.clientId}" established`)
+							this.evaluateStatus()
 							break
 						}
 
@@ -175,6 +187,34 @@ export class Workforce {
 	}
 	getPort(): number | undefined {
 		return this.websocketServer?.port
+	}
+	evaluateStatus(): void {
+		const statuses: Statuses = {}
+
+		if (Object.keys(this.workerAgents).length === 0)
+			statuses['any-workers'] = {
+				statusCode: StatusCode.BAD,
+				message: 'No workers connected to workforce',
+			}
+
+		if (Object.keys(this.appContainers).length === 0)
+			statuses['any-appContainers'] = {
+				statusCode: StatusCode.BAD,
+				message: 'No workers connected to workforce',
+			}
+
+		const statusHash = hashObj(statuses)
+
+		// Report our status to each connected expectationManager:
+		for (const [id, expectationManager] of Object.entries(this.expectationManagers)) {
+			if (this._reportedStatuses[id] !== statusHash) {
+				this._reportedStatuses[id] = statusHash
+
+				expectationManager.api
+					.onWorkForceStatus(statuses)
+					.catch((e) => this.logger.error(`Error in onWorkForceStatus: ${stringifyError(e)}`))
+			}
+		}
 	}
 
 	/** Return the API-methods that the Workforce exposes to the WorkerAgent */
