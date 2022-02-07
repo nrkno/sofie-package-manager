@@ -1,4 +1,6 @@
-# Package manager
+# Sofie: The Modern TV News Studio Automation System (Package Manager)
+
+This is the "Package Manager" application of the [**Sofie** TV News Studio Automation System](https://github.com/nrkno/Sofie-TV-automation/).
 
 _Note: This is a mono-repo._
 
