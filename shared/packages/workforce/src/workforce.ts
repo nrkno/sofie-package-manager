@@ -58,6 +58,7 @@ export class Workforce {
 	private _reportedStatuses: {
 		[expectationManagerId: string]: string // hash of status
 	} = {}
+	private evaluateStatusTimeout: NodeJS.Timeout | null = null
 
 	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
 		if (config.workforce.port !== null) {
@@ -80,10 +81,10 @@ export class Workforce {
 							client.once('close', () => {
 								this.logger.warn(`Workforce: Connection to Worker "${client.clientId}" closed`)
 								delete this.workerAgents[client.clientId]
-								this.evaluateStatus()
+								this.triggerEvaluateStatus()
 							})
 							this.logger.info(`Workforce: Connection to Worker "${client.clientId}" established`)
-							this.evaluateStatus()
+							this.triggerEvaluateStatus()
 							break
 						}
 						case 'expectationManager': {
@@ -97,13 +98,13 @@ export class Workforce {
 								this.logger.warn(
 									`Workforce: Connection to ExpectationManager "${client.clientId}" closed`
 								)
-								this.evaluateStatus()
+								this.triggerEvaluateStatus()
 								delete this.expectationManagers[client.clientId]
 							})
 							this.logger.info(
 								`Workforce: Connection to ExpectationManager "${client.clientId}" established`
 							)
-							this.evaluateStatus()
+							this.triggerEvaluateStatus()
 							break
 						}
 						case 'appContainer': {
@@ -121,10 +122,10 @@ export class Workforce {
 							client.once('close', () => {
 								this.logger.warn(`Workforce: Connection to AppContainer "${client.clientId}" closed`)
 								delete this.appContainers[client.clientId]
-								this.evaluateStatus()
+								this.triggerEvaluateStatus()
 							})
 							this.logger.info(`Workforce: Connection to AppContainer "${client.clientId}" established`)
-							this.evaluateStatus()
+							this.triggerEvaluateStatus()
 							break
 						}
 
@@ -188,20 +189,38 @@ export class Workforce {
 	getPort(): number | undefined {
 		return this.websocketServer?.port
 	}
+	triggerEvaluateStatus(): void {
+		if (!this.evaluateStatusTimeout) {
+			this.evaluateStatusTimeout = setTimeout(() => {
+				this.evaluateStatusTimeout = null
+				this.evaluateStatus()
+			}, 500)
+		}
+	}
 	evaluateStatus(): void {
 		const statuses: Statuses = {}
 
-		if (Object.keys(this.workerAgents).length === 0)
-			statuses['any-workers'] = {
-				statusCode: StatusCode.BAD,
-				message: 'No workers connected to workforce',
-			}
+		statuses['any-workers'] =
+			Object.keys(this.workerAgents).length === 0
+				? {
+						statusCode: StatusCode.BAD,
+						message: 'No workers connected to workforce',
+				  }
+				: {
+						statusCode: StatusCode.GOOD,
+						message: '',
+				  }
 
-		if (Object.keys(this.appContainers).length === 0)
-			statuses['any-appContainers'] = {
-				statusCode: StatusCode.BAD,
-				message: 'No workers connected to workforce',
-			}
+		statuses['any-appContainers'] =
+			Object.keys(this.appContainers).length === 0
+				? {
+						statusCode: StatusCode.BAD,
+						message: 'No appContainers connected to workforce',
+				  }
+				: {
+						statusCode: StatusCode.GOOD,
+						message: '',
+				  }
 
 		const statusHash = hashObj(statuses)
 

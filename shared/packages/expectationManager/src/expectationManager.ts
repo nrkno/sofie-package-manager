@@ -2112,6 +2112,8 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					stuckDuration / 1000 / 60
 				)} minutes, and there are ${this.waitingExpectations.length} waiting`,
 			})
+		} else {
+			this._updateStatus('work-queue-stuck', { statusCode: StatusCode.GOOD, message: '' })
 		}
 	}
 }
