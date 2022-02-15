@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.39.0-in-development.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0-in-development.0...v1.39.0-in-development.1) (2022-02-15)
+
+
+### Bug Fixes
+
+* add expectationManager data (trackedExpectations) to troubleshoot-data ([7c867ad](https://github.com/nrkno/tv-automation-package-manager/commit/7c867ad24e6a9c40a022da98ea383ccca7479cc9))
+* bug fix: previews & thumbnails metadata files wasn't stored propery for non latin file names ([4c48084](https://github.com/nrkno/tv-automation-package-manager/commit/4c48084c80710a4c567373f0ae7bf2a8a857a6b1))
+* bug fix: progress wasn't reported for a work in progress ([105d1a1](https://github.com/nrkno/tv-automation-package-manager/commit/105d1a161083d50f8a4032639a7b269fa2cffb5c))
+* Don't mark "waiting for orher Expectation" as an error ([2b6413c](https://github.com/nrkno/tv-automation-package-manager/commit/2b6413cfed1eeb97779ca0853329d368dd10f766))
+* fix an issue in expectationManager where removed packages where not removed properly ([8dfe60c](https://github.com/nrkno/tv-automation-package-manager/commit/8dfe60c0a4be9807715a009cc66e09c11fbf33c2))
+* fs.open read access check ([2f9ab79](https://github.com/nrkno/tv-automation-package-manager/commit/2f9ab794e135e6e9a242fd277ff4f978c8457782))
+* Homogenized the headline with the other Sofie repos ([ba69704](https://github.com/nrkno/tv-automation-package-manager/commit/ba69704d913975e87bed3dec468dd02d3056095b))
+* http-server: calrify what kind of 404 it returns ([10a070d](https://github.com/nrkno/tv-automation-package-manager/commit/10a070d40a3bf1e86b12bc4d588788f6c2403371))
+* improve work queue in expectationManager ([f4b7410](https://github.com/nrkno/tv-automation-package-manager/commit/f4b7410f29939f325963da55e1d406772aa6939b))
+* let the worker fix an issue with the filePath automatically. ([0dfec72](https://github.com/nrkno/tv-automation-package-manager/commit/0dfec72fa4ba58b1bc81e0f15ca8987b6db77d91))
+* minor fix in error handling of expectation in expectationManager ([b890917](https://github.com/nrkno/tv-automation-package-manager/commit/b89091799b3f16131fe3c4648c65e03278aed619))
+* prevReasons wasn't updated properly ([0ec0593](https://github.com/nrkno/tv-automation-package-manager/commit/0ec059322c9bd8238ba6e3af623e97b7e4b6b9bc))
+* report status of Package Manager to Core ([4679e08](https://github.com/nrkno/tv-automation-package-manager/commit/4679e08b70fd917ae4e059e22f4b82a48e2491b5))
+* revert update of got-dependency, due to incompatible Typescript ([42e8a12](https://github.com/nrkno/tv-automation-package-manager/commit/42e8a12f2bc900bc0a99b4e97b7366618da15260))
+* status reporting from workforce ([ea43e87](https://github.com/nrkno/tv-automation-package-manager/commit/ea43e871c5401ac9ee7aa2b428a4f02d436d7d64))
+* tidy up urls for http-upload a bit ([753d5dc](https://github.com/nrkno/tv-automation-package-manager/commit/753d5dcad868dc8f3d10bacf598c5a034d85b04b))
+* update got-dep, possibly fixing a bug ([26d2ecd](https://github.com/nrkno/tv-automation-package-manager/commit/26d2ecd0273c0384568837e4b445780d6d23ac04))
+* Updated headline ([2d3c82f](https://github.com/nrkno/tv-automation-package-manager/commit/2d3c82fdd87b55f12c41c0b6919f31a55b7e9887))
+
+
+
+
+
 # [1.39.0-in-development.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.37.0-alpha.1...v1.39.0-in-development.0) (2022-01-27)
 
 
