@@ -20,7 +20,7 @@ import {
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer, previewffMpegArguments } from './lib'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
@@ -216,19 +216,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					throw new Error(`Unsupported Target AccessHandler`)
 				}
 
-				const args = [
-					'-hide_banner',
-					'-y', // Overwrite output files without asking.
-					'-threads 1', // Number of threads to use
-					`-i "${inputPath}"`, // Input file path
-					'-f webm', // format: webm
-					'-an', // blocks all audio streams
-					'-c:v libvpx', // encoder for video
-					`-b:v ${metadata.version.bitrate || '40k'}`,
-					'-auto-alt-ref 0',
-					`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
-					'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
-				]
+				const args = previewffMpegArguments(inputPath, true, metadata)
 
 				ffMpegProcess = await runffMpeg(
 					workInProgress,
