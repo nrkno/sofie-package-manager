@@ -111,17 +111,17 @@ export class WorkerAgent {
 		this.id = config.worker.workerId
 		this.workForceConnectionOptions = this.config.worker.workforceURL
 			? {
-					type: 'websocket',
-					url: this.config.worker.workforceURL,
-			  }
+				type: 'websocket',
+				url: this.config.worker.workforceURL,
+			}
 			: {
-					type: 'internal',
-			  }
+				type: 'internal',
+			}
 		this.appContainerConnectionOptions = this.config.worker.appContainerURL
 			? {
-					type: 'websocket',
-					url: this.config.worker.appContainerURL,
-			  }
+				type: 'websocket',
+				url: this.config.worker.appContainerURL,
+			}
 			: null
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
@@ -143,6 +143,8 @@ export class WorkerAgent {
 		)
 	}
 	async init(): Promise<void> {
+		this.logger.info(`WorkerAgent.init: Initializing...`)
+
 		await this._worker.init()
 
 		// Connect to WorkForce:
@@ -170,6 +172,8 @@ export class WorkerAgent {
 		this.IDidSomeWork()
 	}
 	terminate(): void {
+		this.logger.info(`WorkerAgent.terminate: Terminating...`)
+
 		this.terminated = true
 		this.workforceAPI.terminate()
 
@@ -372,8 +376,7 @@ export class WorkerAgent {
 							]).catch((error) => {
 								// Not much we can do about that error..
 								this.logger.error(
-									`WorkerAgent: timeout watch: Error in cancelJob (${
-										currentJob.wipId
+									`WorkerAgent: timeout watch: Error in cancelJob (${currentJob.wipId
 									}) ${stringifyError(error)}`
 								)
 							})

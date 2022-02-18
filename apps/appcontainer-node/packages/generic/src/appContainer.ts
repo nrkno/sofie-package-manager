@@ -1,4 +1,5 @@
 import * as ChildProcess from 'child_process'
+import * as process from 'process'
 import * as path from 'path'
 import * as fs from 'fs'
 import _ from 'underscore'
@@ -140,12 +141,17 @@ export class AppContainer {
 		this.id = config.appContainer.appContainerId
 		this.workForceConnectionOptions = this.config.appContainer.workforceURL
 			? {
-					type: 'websocket',
-					url: this.config.appContainer.workforceURL,
-			  }
+				type: 'websocket',
+				url: this.config.appContainer.workforceURL,
+			}
 			: {
-					type: 'internal',
-			  }
+				type: 'internal',
+			}
+
+		process.on('exit', (code) => {
+			this.logger.info(`AppContainer: Closing with exitCode ${code}`)
+			this.killAllApps()
+		})
 	}
 	async init(): Promise<void> {
 		await this.setupAvailableApps()
@@ -236,19 +242,19 @@ export class AppContainer {
 			// Look for the worker executable in the same folder:
 
 			const dirPath = path.dirname(process.execPath)
-			// Note: nexe causes issues with its virtual file system: https://github.com/nexe/nexe/issues/613#issuecomment-579107593
+				// Note: nexe causes issues with its virtual file system: https://github.com/nexe/nexe/issues/613#issuecomment-579107593
 
-			;(await fs.promises.readdir(dirPath)).forEach((fileName) => {
-				if (fileName.match(/worker/i)) {
-					this.availableApps[fileName] = {
-						file: path.join(dirPath, fileName),
-						args: (appId: string) => {
-							return [...getWorkerArgs(appId)]
-						},
-						cost: 0,
+				; (await fs.promises.readdir(dirPath)).forEach((fileName) => {
+					if (fileName.match(/worker/i)) {
+						this.availableApps[fileName] = {
+							file: path.join(dirPath, fileName),
+							args: (appId: string) => {
+								return [...getWorkerArgs(appId)]
+							},
+							cost: 0,
+						}
 					}
-				}
-			})
+				})
 		}
 		this.logger.info(`AppContainer: Available apps`)
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
@@ -430,6 +436,19 @@ export class AppContainer {
 		app.process.removeAllListeners()
 		delete this.apps[appId]
 	}
+	/** This is used to kill all ChildProcesses when terminating */
+	private killAllApps() {
+		Object.entries(this.apps).forEach(([appId, app]) => {
+			app.toBeKilled = true
+			const success = app.process.kill()
+			if (!success)
+				this.logger.error(`Internal error: App "${appId}" (PID: ${app.process.pid}) could not be killed`)
+
+			app.workerAgentApi = null
+			app.process.removeAllListeners()
+		})
+		this.apps = {}
+	}
 	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
 		return Object.entries(this.apps).map((o) => {
 			const [appId, app] = o
@@ -529,10 +548,10 @@ export class AppContainer {
 						json.level === 'error'
 							? this.logger.error
 							: json.level === 'warn'
-							? this.logger.warn
-							: json.level === 'info'
-							? this.logger.info
-							: defaultLog
+								? this.logger.warn
+								: json.level === 'info'
+									? this.logger.info
+									: defaultLog
 
 					const messageData = _.omit(json, ['message', 'localTimestamp', 'level'])
 
