@@ -19,7 +19,12 @@ import {
 	isQuantelClipAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer, previewffMpegArguments } from './lib'
+import {
+	checkWorkerHasAccessToPackageContainersOnPackage,
+	lookupAccessorHandles,
+	LookupPackageContainer,
+	previewFFMpegArguments,
+} from './lib'
 import { getSourceHTTPHandle } from './quantelClipThumbnail'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
@@ -202,7 +207,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 
 				await targetHandle.removePackage()
 
-				const args = previewffMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
+				const args = previewFFMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
 
 				ffMpegProcess = await runffMpeg(
 					workInProgress,

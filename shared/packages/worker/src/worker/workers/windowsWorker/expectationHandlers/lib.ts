@@ -294,7 +294,7 @@ interface PreviewMetadata {
 	}
 }
 
-export function previewffMpegArguments(input: string, seekableSource: boolean, metadata: PreviewMetadata): string[] {
+export function previewFFMpegArguments(input: string, seekableSource: boolean, metadata: PreviewMetadata): string[] {
 	return [
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
@@ -318,7 +318,7 @@ interface ThumbnailMetadata {
 	}
 }
 
-export function thumbnailffMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
+export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
 	return [
 		// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
 		'-hide_banner',

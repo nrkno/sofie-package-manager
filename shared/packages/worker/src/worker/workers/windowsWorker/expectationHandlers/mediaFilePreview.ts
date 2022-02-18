@@ -20,7 +20,12 @@ import {
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer, previewffMpegArguments } from './lib'
+import {
+	checkWorkerHasAccessToPackageContainersOnPackage,
+	lookupAccessorHandles,
+	LookupPackageContainer,
+	previewFFMpegArguments,
+} from './lib'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
@@ -216,7 +221,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					throw new Error(`Unsupported Target AccessHandler`)
 				}
 
-				const args = previewffMpegArguments(inputPath, true, metadata)
+				const args = previewFFMpegArguments(inputPath, true, metadata)
 
 				ffMpegProcess = await runffMpeg(
 					workInProgress,
