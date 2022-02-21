@@ -67,7 +67,9 @@ export function scanWithFFProbe(
 			const args = ['-hide_banner', `-i "${inputPath}"`, '-show_streams', '-show_format', '-print_format', 'json']
 			let ffProbeProcess: ChildProcess | undefined = undefined
 			onCancel(() => {
+				ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
 				ffProbeProcess?.kill()
+				reject('Cancelled')
 			})
 
 			ffProbeProcess = execFile(file, args, (err, stdout, _stderr) => {
@@ -267,6 +269,7 @@ export function scanMoreInfo(
 		}
 		onCancel(() => {
 			killFFMpeg()
+			reject('Cancelled')
 		})
 
 		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args)
