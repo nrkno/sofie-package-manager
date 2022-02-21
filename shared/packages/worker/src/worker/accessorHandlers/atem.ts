@@ -11,7 +11,7 @@ import { GenericWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'
 import * as crypto from 'crypto'
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import tmp from 'tmp'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -547,8 +547,8 @@ function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<
 
 function ffprobe(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const command = [process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe', ...args]
-		exec(command.join(' '), (error, stdout) => {
+		const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
+		execFile(file, args, (error, stdout) => {
 			if (error) {
 				reject(error)
 			} else {
@@ -560,8 +560,8 @@ function ffprobe(args: string[]): Promise<string> {
 
 function ffmpeg(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const command = [process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', '-v error', ...args]
-		exec(command.join(' '), (error, stdout) => {
+		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		execFile(file, ['-v error', ...args], (error, stdout) => {
 			if (error) {
 				reject(error)
 			} else {
