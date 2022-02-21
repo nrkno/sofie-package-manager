@@ -1,5 +1,4 @@
 import * as ChildProcess from 'child_process'
-import * as process from 'process'
 import * as path from 'path'
 import * as fs from 'fs'
 import _ from 'underscore'
@@ -141,12 +140,12 @@ export class AppContainer {
 		this.id = config.appContainer.appContainerId
 		this.workForceConnectionOptions = this.config.appContainer.workforceURL
 			? {
-				type: 'websocket',
-				url: this.config.appContainer.workforceURL,
-			}
+					type: 'websocket',
+					url: this.config.appContainer.workforceURL,
+			  }
 			: {
-				type: 'internal',
-			}
+					type: 'internal',
+			  }
 
 		process.on('exit', (code) => {
 			this.logger.info(`AppContainer: Closing with exitCode ${code}`)
@@ -242,19 +241,19 @@ export class AppContainer {
 			// Look for the worker executable in the same folder:
 
 			const dirPath = path.dirname(process.execPath)
-				// Note: nexe causes issues with its virtual file system: https://github.com/nexe/nexe/issues/613#issuecomment-579107593
+			// Note: nexe causes issues with its virtual file system: https://github.com/nexe/nexe/issues/613#issuecomment-579107593
 
-				; (await fs.promises.readdir(dirPath)).forEach((fileName) => {
-					if (fileName.match(/worker/i)) {
-						this.availableApps[fileName] = {
-							file: path.join(dirPath, fileName),
-							args: (appId: string) => {
-								return [...getWorkerArgs(appId)]
-							},
-							cost: 0,
-						}
+			;(await fs.promises.readdir(dirPath)).forEach((fileName) => {
+				if (fileName.match(/worker/i)) {
+					this.availableApps[fileName] = {
+						file: path.join(dirPath, fileName),
+						args: (appId: string) => {
+							return [...getWorkerArgs(appId)]
+						},
+						cost: 0,
 					}
-				})
+				}
+			})
 		}
 		this.logger.info(`AppContainer: Available apps`)
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
@@ -358,6 +357,8 @@ export class AppContainer {
 				},
 			}
 		}
+
+		this.logger.debug(`Available apps: ${Object.keys(this.availableApps).join(', ')}`)
 
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			// Do we already have any instance of the appType running?
@@ -548,10 +549,10 @@ export class AppContainer {
 						json.level === 'error'
 							? this.logger.error
 							: json.level === 'warn'
-								? this.logger.warn
-								: json.level === 'info'
-									? this.logger.info
-									: defaultLog
+							? this.logger.warn
+							: json.level === 'info'
+							? this.logger.info
+							: defaultLog
 
 					const messageData = _.omit(json, ['message', 'localTimestamp', 'level'])
 
