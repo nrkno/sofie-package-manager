@@ -1,4 +1,4 @@
-import { exec, ChildProcess, spawn } from 'child_process'
+import { execFile, ChildProcess, spawn } from 'child_process'
 import { Expectation, assertNever } from '@shared/api'
 import {
 	isQuantelClipAccessorHandle,
@@ -62,22 +62,15 @@ export function scanWithFFProbe(
 				assertNever(sourceHandle)
 				throw new Error('Unknown handle')
 			}
+			const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
 			// Use FFProbe to scan the file:
-			const args = [
-				process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
-				'-hide_banner',
-				`-i "${inputPath}"`,
-				'-show_streams',
-				'-show_format',
-				'-print_format',
-				'json',
-			]
+			const args = ['-hide_banner', `-i "${inputPath}"`, '-show_streams', '-show_format', '-print_format', 'json']
 			let ffProbeProcess: ChildProcess | undefined = undefined
 			onCancel(() => {
 				ffProbeProcess?.kill()
 			})
 
-			ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
+			ffProbeProcess = execFile(file, args, (err, stdout, _stderr) => {
 				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
 				ffProbeProcess = undefined
 				if (err) {
@@ -126,8 +119,8 @@ export function scanFieldOrder(
 			return
 		}
 
+		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
 		const args = [
-			process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
 			'-hide_banner',
 			'-filter:v idet',
 			`-frames:v ${targetVersion.fieldOrderScanDuration || 200}`,
@@ -165,7 +158,7 @@ export function scanFieldOrder(
 			reject('Cancelled')
 		})
 
-		ffProbeProcess = exec(args.join(' '), (err, _stdout, stderr) => {
+		ffProbeProcess = execFile(file, args, (err, _stdout, stderr) => {
 			// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
 			ffProbeProcess = undefined
 			if (err) {
@@ -276,7 +269,7 @@ export function scanMoreInfo(
 			killFFMpeg()
 		})
 
-		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, { shell: true })
+		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args)
 
 		const scenes: number[] = []
 		const freezes: ScanAnomaly[] = []
@@ -380,8 +373,7 @@ export function scanMoreInfo(
 				killFFMpeg()
 
 				reject(
-					`Error parsing FFProbe data. Error: "${err} ${
-						err && typeof err === 'object' ? (err as Error).stack : ''
+					`Error parsing FFProbe data. Error: "${err} ${err && typeof err === 'object' ? (err as Error).stack : ''
 					}", context: "${context}" `
 				)
 			}
