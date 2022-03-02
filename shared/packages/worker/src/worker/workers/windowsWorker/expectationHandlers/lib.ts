@@ -91,17 +91,17 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 
 export type LookupPackageContainer<Metadata> =
 	| {
-			ready: true
-			accessor: AccessorOnPackage.Any
-			handle: GenericAccessorHandle<Metadata>
-			// reason: Reason
-	  }
+		ready: true
+		accessor: AccessorOnPackage.Any
+		handle: GenericAccessorHandle<Metadata>
+		// reason: Reason
+	}
 	| {
-			ready: false
-			accessor: undefined
-			// handle: undefined
-			reason: Reason
-	  }
+		ready: false
+		accessor: undefined
+		// handle: undefined
+		reason: Reason
+	}
 export interface LookupChecks {
 	/** Check that the accessor-handle supports reading */
 	read?: boolean
@@ -149,12 +149,10 @@ export async function lookupAccessorHandles<Metadata>(
 			const readResult = handle.checkHandleRead()
 			if (!readResult.success) {
 				errorReason = {
-					user: `There is an issue with the configuration for the PackageContainer "${
-						packageContainer.label
-					}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						readResult.reason.tech
-					}`,
+					user: `There is an issue with the configuration for the PackageContainer "${packageContainer.label
+						}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${readResult.reason.tech
+						}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -165,12 +163,10 @@ export async function lookupAccessorHandles<Metadata>(
 			const readResult = await handle.checkPackageReadAccess()
 			if (!readResult.success) {
 				errorReason = {
-					user: `Can't read the Package from PackageContainer "${packageContainer.label}" (on accessor "${
-						accessor.label || accessorId
-					}"), due to: ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						readResult.reason.tech
-					}`,
+					user: `Can't read the Package from PackageContainer "${packageContainer.label}" (on accessor "${accessor.label || accessorId
+						}"), due to: ${readResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${readResult.reason.tech
+						}`,
 				}
 
 				continue // Maybe next accessor works?
@@ -184,9 +180,8 @@ export async function lookupAccessorHandles<Metadata>(
 			if (!compareVersionResult.success) {
 				errorReason = {
 					user: `Won't read from the package, due to: ${compareVersionResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						compareVersionResult.reason.tech
-					}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${compareVersionResult.reason.tech
+						}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -197,12 +192,10 @@ export async function lookupAccessorHandles<Metadata>(
 			const writeResult = handle.checkHandleWrite()
 			if (!writeResult.success) {
 				errorReason = {
-					user: `There is an issue with the configuration for the PackageContainer "${
-						packageContainer.label
-					}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
-					tech: `${packageContainer.label}: lookupTargets: Accessor "${accessor.label || accessorId}": ${
-						writeResult.reason.tech
-					}`,
+					user: `There is an issue with the configuration for the PackageContainer "${packageContainer.label
+						}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
+					tech: `${packageContainer.label}: lookupTargets: Accessor "${accessor.label || accessorId}": ${writeResult.reason.tech
+						}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -212,12 +205,10 @@ export async function lookupAccessorHandles<Metadata>(
 			const writeAccessResult = await handle.checkPackageContainerWriteAccess()
 			if (!writeAccessResult.success) {
 				errorReason = {
-					user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${
-						accessor.label || accessorId
-					}"), due to: ${writeAccessResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						writeAccessResult.reason.tech
-					}`,
+					user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${accessor.label || accessorId
+						}"), due to: ${writeAccessResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${writeAccessResult.reason.tech
+						}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -293,4 +284,49 @@ export function formatTimeCode(duration: number): string {
 	duration -= seconds * SECOND
 
 	return `${padTime(hours, 2)}:${padTime(minutes, 2)}:${padTime(seconds, 2)}.${padTime(duration, 3)}`
+}
+
+interface PreviewMetadata {
+	version: {
+		bitrate: string
+		height?: number
+		width?: number
+	}
+}
+
+export function previewFFMpegArguments(input: string, seekableSource: boolean, metadata: PreviewMetadata): string[] {
+	return [
+		'-hide_banner',
+		'-y', // Overwrite output files without asking.
+		'-threads 1', // Number of threads to use
+		seekableSource ? '-seekable 0' : undefined,
+		`-i "${input}"`, // Input file path
+		'-f webm', // format: webm
+		'-an', // blocks all audio streams
+		'-c:v libvpx-vp9', // encoder for video (use VP9)
+		`-b:v ${metadata.version.bitrate || '40k'}`,
+		'-auto-alt-ref 1',
+		`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
+		'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
+	].filter(Boolean) as string[] // remove undefined values
+}
+
+interface ThumbnailMetadata {
+	version: {
+		height: number
+		width: number
+	}
+}
+
+export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
+	return [
+		// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
+		'-hide_banner',
+		seekTimeCode ? `-ss ${seekTimeCode}` : undefined,
+		`-i "${input}"`,
+		`-f image2`,
+		'-frames:v 1',
+		`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}`,
+		'-threads 1',
+	].filter(Boolean) as string[] // remove undefined values
 }

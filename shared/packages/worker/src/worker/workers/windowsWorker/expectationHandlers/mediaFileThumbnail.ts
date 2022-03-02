@@ -25,6 +25,7 @@ import {
 	formatTimeCode,
 	lookupAccessorHandles,
 	LookupPackageContainer,
+	thumbnailFFMpegArguments,
 } from './lib'
 import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
@@ -221,17 +222,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				}
 
 				// Use FFMpeg to generate the thumbnail:
-				const args: string[] = [
-					// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
-					'-hide_banner',
-					seekTimeCode ? `-ss ${seekTimeCode}` : '',
-					`-i "${inputPath}"`,
-					`-f image2`,
-					'-frames:v 1',
-					`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:` +
-						`${metadata.version.height}`,
-					'-threads 1',
-				]
+				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode)
 
 				ffMpegProcess = await runffMpeg(
 					workInProgress,
