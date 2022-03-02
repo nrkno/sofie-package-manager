@@ -20,6 +20,7 @@
         "lintfix": "yarn lint --fix",
         "lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
         "test": "lerna run test --stream",
+        "test:ci": "lerna run test --stream --ignore=@tests/**",
         "test:changed": "lerna run --since origin/master --include-dependents test",
         "test:update": "lerna run test -- -u",
         "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",

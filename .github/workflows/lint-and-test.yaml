@@ -71,6 +71,6 @@ jobs:
           CI: true
       - name: Run unit tests
         run: |
-          yarn test
+          yarn test:ci
         env:
           CI: true
