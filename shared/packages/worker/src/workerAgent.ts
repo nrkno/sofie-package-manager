@@ -143,6 +143,8 @@ export class WorkerAgent {
 		)
 	}
 	async init(): Promise<void> {
+		this.logger.info(`WorkerAgent.init: Initializing...`)
+
 		await this._worker.init()
 
 		// Connect to WorkForce:
@@ -170,6 +172,8 @@ export class WorkerAgent {
 		this.IDidSomeWork()
 	}
 	terminate(): void {
+		this.logger.info(`WorkerAgent.terminate: Terminating...`)
+
 		this.terminated = true
 		this.workforceAPI.terminate()
 

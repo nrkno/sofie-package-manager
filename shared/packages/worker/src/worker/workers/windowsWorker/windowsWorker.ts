@@ -52,6 +52,7 @@ export class WindowsWorker extends GenericWorker {
 		if (process.platform !== 'win32') {
 			throw new Error('The Worker is a Windows-only application')
 		}
+		this.logger.debug(`Worker started`)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
@@ -63,12 +64,14 @@ export class WindowsWorker extends GenericWorker {
 				this.logger.error(`Error in checkExecutables: ${stringifyError(err)}`)
 			})
 		}, 10 * 1000)
+		this.logger.debug(`Worker initialized`)
 	}
 	terminate(): void {
 		if (this.monitor) {
 			clearInterval(this.monitor)
 			delete this.monitor
 		}
+		this.logger.debug(`Worker terminated`)
 	}
 	private async checkExecutables() {
 		this.testFFMpeg = await testFFMpeg()

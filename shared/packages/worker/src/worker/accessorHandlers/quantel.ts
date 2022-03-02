@@ -384,7 +384,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	}
 	private async getQuantelGateway(): Promise<QuantelGateway> {
 		/** Persistant store for Quantel gatews */
-		const cacheGateways = this.ensureCache<{ [id: string]: QuantelGateway }>('gateways', {})
+		const cacheGateways = this.ensureCache<Record<string, QuantelGateway>>('gateways', {})
 
 		// These errors are just for types. User-facing checks are done in this.checkAccessor()
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
@@ -403,6 +403,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		if (!gateway) {
 			gateway = new QuantelGateway()
+			this.worker.logger.debug(`Quantel.QuantelGateway`, `Created new Quantel Gateway client "${id}"`)
 			await gateway.init(this.accessor.quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
 
 			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway`, e))
@@ -471,6 +472,8 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		let server: ServerInfo | null = null
 		if (this.accessor.serverId) server = await quantel.getServer()
+
+		this.worker.logger.debug(`Quantel.QuantelGateway`, `Searching for clip "${guid}"...`)
 
 		return (
 			await quantel.searchClip({

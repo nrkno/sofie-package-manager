@@ -146,6 +146,11 @@ export class AppContainer {
 			: {
 					type: 'internal',
 			  }
+
+		process.on('exit', (code) => {
+			this.logger.info(`AppContainer: Closing with exitCode ${code}`)
+			this.killAllApps()
+		})
 	}
 	async init(): Promise<void> {
 		await this.setupAvailableApps()
@@ -353,6 +358,8 @@ export class AppContainer {
 			}
 		}
 
+		this.logger.debug(`Available apps: ${Object.keys(this.availableApps).join(', ')}`)
+
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			// Do we already have any instance of the appType running?
 			let runningApp = Object.values(this.apps).find((app) => {
@@ -429,6 +436,19 @@ export class AppContainer {
 		app.workerAgentApi = null
 		app.process.removeAllListeners()
 		delete this.apps[appId]
+	}
+	/** This is used to kill all ChildProcesses when terminating */
+	private killAllApps() {
+		Object.entries(this.apps).forEach(([appId, app]) => {
+			app.toBeKilled = true
+			const success = app.process.kill()
+			if (!success)
+				this.logger.error(`Internal error: App "${appId}" (PID: ${app.process.pid}) could not be killed`)
+
+			app.workerAgentApi = null
+			app.process.removeAllListeners()
+		})
+		this.apps = {}
 	}
 	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
 		return Object.entries(this.apps).map((o) => {

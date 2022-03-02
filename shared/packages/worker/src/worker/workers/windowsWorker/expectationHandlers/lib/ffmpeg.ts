@@ -25,9 +25,7 @@ export function testFFProbe(): Promise<string | null> {
 }
 export function testFFExecutable(ffExecutable: string): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {
-		const ffMpegProcess: ChildProcess = spawn(ffExecutable, ['-version'], {
-			shell: true,
-		})
+		const ffMpegProcess: ChildProcess = spawn(ffExecutable, ['-version'])
 		let output = ''
 		ffMpegProcess.stderr?.on('data', (data) => {
 			const str = data.toString()
@@ -97,9 +95,7 @@ export async function runffMpeg<Metadata>(
 	}
 
 	log?.('ffmpeg: spawn..')
-	let ffMpegProcess: ChildProcess | undefined = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
-		shell: true,
-	})
+	let ffMpegProcess: ChildProcess | undefined = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args)
 	log?.('ffmpeg: spawned')
 
 	if (pipeStdOut) {
