@@ -294,3 +294,48 @@ export function formatTimeCode(duration: number): string {
 
 	return `${padTime(hours, 2)}:${padTime(minutes, 2)}:${padTime(seconds, 2)}.${padTime(duration, 3)}`
 }
+
+interface PreviewMetadata {
+	version: {
+		bitrate: string
+		height?: number
+		width?: number
+	}
+}
+
+export function previewFFMpegArguments(input: string, seekableSource: boolean, metadata: PreviewMetadata): string[] {
+	return [
+		'-hide_banner',
+		'-y', // Overwrite output files without asking.
+		'-threads 1', // Number of threads to use
+		seekableSource ? '-seekable 0' : undefined,
+		`-i "${input}"`, // Input file path
+		'-f webm', // format: webm
+		'-an', // blocks all audio streams
+		'-c:v libvpx-vp9', // encoder for video (use VP9)
+		`-b:v ${metadata.version.bitrate || '40k'}`,
+		'-auto-alt-ref 1',
+		`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
+		'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
+	].filter(Boolean) as string[] // remove undefined values
+}
+
+interface ThumbnailMetadata {
+	version: {
+		height: number
+		width: number
+	}
+}
+
+export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
+	return [
+		// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
+		'-hide_banner',
+		seekTimeCode ? `-ss ${seekTimeCode}` : undefined,
+		`-i "${input}"`,
+		`-f image2`,
+		'-frames:v 1',
+		`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}`,
+		'-threads 1',
+	].filter(Boolean) as string[] // remove undefined values
+}

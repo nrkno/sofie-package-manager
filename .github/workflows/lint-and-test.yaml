@@ -1,0 +1,76 @@
+name: Lint and Test
+
+# Controls when the action will run.
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v**'
+  pull_request:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  lint:
+    name: Lint and Type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+           node-version: '14'
+      - name: Cache node_modules
+        uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Prepare Environment
+        run: yarn
+        env:
+          CI: true
+      - name: Type check
+        run: yarn build
+        env:
+          CI: true
+      - name: Lint
+        run: |
+          yarn lint
+        env:
+          CI: true
+
+  test:
+    name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node_version: ['14', '16', '17']
+        os: [ubuntu-latest] # [windows-latest, macOS-latest]
+    timeout-minutes: 10
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node_version }}
+      - name: Cache node_modules
+        uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Prepare Environment
+        run: |
+          yarn
+          yarn build
+        env:
+          CI: true
+      - name: Run unit tests
+        run: |
+          yarn test:ci
+        env:
+          CI: true
