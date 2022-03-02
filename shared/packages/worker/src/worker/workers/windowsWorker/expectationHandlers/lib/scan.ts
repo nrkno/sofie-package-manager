@@ -376,7 +376,8 @@ export function scanMoreInfo(
 				killFFMpeg()
 
 				reject(
-					`Error parsing FFProbe data. Error: "${err} ${err && typeof err === 'object' ? (err as Error).stack : ''
+					`Error parsing FFProbe data. Error: "${err} ${
+						err && typeof err === 'object' ? (err as Error).stack : ''
 					}", context: "${context}" `
 				)
 			}

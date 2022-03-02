@@ -228,7 +228,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		// Wrapping, to enable the consumer to listen to the streamHandler.emit('close') event.
 		setImmediate(() => {
-			; (async () => {
+			;(async () => {
 				const server = await quantel.getServer()
 
 				if (!server) throw new Error(`Server ${this.accessor.serverId} not found!`)
