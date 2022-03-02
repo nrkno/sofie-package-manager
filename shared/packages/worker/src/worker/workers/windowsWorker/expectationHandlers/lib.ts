@@ -91,17 +91,17 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 
 export type LookupPackageContainer<Metadata> =
 	| {
-		ready: true
-		accessor: AccessorOnPackage.Any
-		handle: GenericAccessorHandle<Metadata>
-		// reason: Reason
-	}
+			ready: true
+			accessor: AccessorOnPackage.Any
+			handle: GenericAccessorHandle<Metadata>
+			// reason: Reason
+	  }
 	| {
-		ready: false
-		accessor: undefined
-		// handle: undefined
-		reason: Reason
-	}
+			ready: false
+			accessor: undefined
+			// handle: undefined
+			reason: Reason
+	  }
 export interface LookupChecks {
 	/** Check that the accessor-handle supports reading */
 	read?: boolean
@@ -149,10 +149,12 @@ export async function lookupAccessorHandles<Metadata>(
 			const readResult = handle.checkHandleRead()
 			if (!readResult.success) {
 				errorReason = {
-					user: `There is an issue with the configuration for the PackageContainer "${packageContainer.label
-						}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${readResult.reason.tech
-						}`,
+					user: `There is an issue with the configuration for the PackageContainer "${
+						packageContainer.label
+					}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						readResult.reason.tech
+					}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -163,10 +165,12 @@ export async function lookupAccessorHandles<Metadata>(
 			const readResult = await handle.checkPackageReadAccess()
 			if (!readResult.success) {
 				errorReason = {
-					user: `Can't read the Package from PackageContainer "${packageContainer.label}" (on accessor "${accessor.label || accessorId
-						}"), due to: ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${readResult.reason.tech
-						}`,
+					user: `Can't read the Package from PackageContainer "${packageContainer.label}" (on accessor "${
+						accessor.label || accessorId
+					}"), due to: ${readResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						readResult.reason.tech
+					}`,
 				}
 
 				continue // Maybe next accessor works?
@@ -180,8 +184,9 @@ export async function lookupAccessorHandles<Metadata>(
 			if (!compareVersionResult.success) {
 				errorReason = {
 					user: `Won't read from the package, due to: ${compareVersionResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${compareVersionResult.reason.tech
-						}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						compareVersionResult.reason.tech
+					}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -192,10 +197,12 @@ export async function lookupAccessorHandles<Metadata>(
 			const writeResult = handle.checkHandleWrite()
 			if (!writeResult.success) {
 				errorReason = {
-					user: `There is an issue with the configuration for the PackageContainer "${packageContainer.label
-						}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
-					tech: `${packageContainer.label}: lookupTargets: Accessor "${accessor.label || accessorId}": ${writeResult.reason.tech
-						}`,
+					user: `There is an issue with the configuration for the PackageContainer "${
+						packageContainer.label
+					}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
+					tech: `${packageContainer.label}: lookupTargets: Accessor "${accessor.label || accessorId}": ${
+						writeResult.reason.tech
+					}`,
 				}
 				continue // Maybe next accessor works?
 			}
@@ -205,10 +212,12 @@ export async function lookupAccessorHandles<Metadata>(
 			const writeAccessResult = await handle.checkPackageContainerWriteAccess()
 			if (!writeAccessResult.success) {
 				errorReason = {
-					user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${accessor.label || accessorId
-						}"), due to: ${writeAccessResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${writeAccessResult.reason.tech
-						}`,
+					user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${
+						accessor.label || accessorId
+					}"), due to: ${writeAccessResult.reason.user}`,
+					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+						writeAccessResult.reason.tech
+					}`,
 				}
 				continue // Maybe next accessor works?
 			}
