@@ -1,4 +1,4 @@
-import hostProcess from 'process'
+import * as hostProcess from 'process'
 import { getWorkerConfig, ProcessHandler, setupLogging } from '@shared/api'
 import { WorkerAgent } from '@shared/worker'
 
