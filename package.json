@@ -16,7 +16,7 @@
         "reset": "node scripts/reset.js",
         "build": "lerna run build --stream",
         "build:changed": "lerna run build --since head --exclude-dependents --stream",
-        "lint": "lerna exec -- eslint . --ext .ts,.tsx",
+        "lint": "lerna exec --stream -- eslint . --ext .ts,.tsx",
         "lintfix": "yarn lint --fix",
         "lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
         "test": "lerna run test --stream",
