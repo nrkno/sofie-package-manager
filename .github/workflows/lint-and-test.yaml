@@ -33,7 +33,7 @@ jobs:
         env:
           CI: true
       - name: Type check
-        run: yarn typecheck
+        run: yarn build
         env:
           CI: true
       - name: Lint
