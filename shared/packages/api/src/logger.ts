@@ -99,16 +99,10 @@ export function setupLogging(config: { process: ProcessConfig }): LoggerInstance
 
 	// Because the default NodeJS-handler sucks and wont display error properly
 	process.on('unhandledRejection', (reason: any, p: any) => {
-		logger.error('Unhandled Promise rejection, see below')
-		logger.error('reason:', reason)
-		logger.error('promise:', p)
-		// logger.error('c:', c)
+		logger.error(`Unhandled Promise rejection, reason: ${reason}, promise: ${p}`)
 	})
 	process.on('warning', (e: any) => {
-		logger.warn('Unhandled warning, see below')
-		logger.error('error', e)
-		logger.error('error.reason', e.reason || e.message)
-		logger.error('error.stack', e.stack)
+		logger.error(`Unhandled warning: ${stringifyError(e)}`)
 	})
 	return logger
 }
