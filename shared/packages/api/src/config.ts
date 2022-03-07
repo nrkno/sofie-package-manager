@@ -221,6 +221,17 @@ const quantelHTTPTransformerProxyConfigArguments = defineArguments({
 		default: process.env.QUANTEL_HTTP_TRANSFORMER_URL || undefined,
 		describe: 'URL to the Quantel-HTTP-Transformer',
 	},
+
+	quantelTransformerRateLimitDuration: {
+		type: 'number',
+		default: parseInt(process.env.QUANTEL_HTTP_TRANSFORMER_RATE_LIMIT_DURATION || '', 10) || undefined,
+		describe: 'Rate Limit Duration for the Quantel-HTTP-Transformer [ms]',
+	},
+	quantelTransformerRateLimitMax: {
+		type: 'number',
+		default: parseInt(process.env.QUANTEL_HTTP_TRANSFORMER_RATE_LIMIT_MAX || '', 10) || undefined,
+		describe: 'Rate Limit Max for the Quantel-HTTP-Transformer',
+	},
 })
 
 export interface ProcessConfig {
@@ -455,6 +466,9 @@ export interface QuantelHTTPTransformerProxyConfig {
 		port: number
 
 		transformerURL?: string
+
+		rateLimitDuration?: number
+		rateLimitMax?: number
 	}
 }
 export function getQuantelHTTPTransformerProxyConfig(): QuantelHTTPTransformerProxyConfig {
@@ -468,6 +482,8 @@ export function getQuantelHTTPTransformerProxyConfig(): QuantelHTTPTransformerPr
 		quantelHTTPTransformerProxy: {
 			port: argv.quantelProxyPort,
 			transformerURL: argv.quantelTransformerURL,
+			rateLimitDuration: argv.quantelTransformerRateLimitDuration,
+			rateLimitMax: argv.quantelTransformerRateLimitMax,
 		},
 	}
 }

@@ -2,6 +2,7 @@ import Koa from 'koa'
 import Router from 'koa-router'
 import cors from '@koa/cors'
 import range from 'koa-range'
+import ratelimit from 'koa-ratelimit'
 import got from 'got'
 import { QuantelHTTPTransformerProxyConfig, LoggerInstance, stringifyError } from '@shared/api'
 import { parseStringPromise as xmlParser } from 'xml2js'
@@ -28,6 +29,33 @@ export class QuantelHTTPTransformerProxy {
 		this.app.use(
 			cors({
 				origin: '*',
+			})
+		)
+
+		// Apply a rate limit, to avoid overloading the http-transformer server.
+		const RATE_LIMIT_DURATION = config.quantelHTTPTransformerProxy.rateLimitDuration ?? 10 * 1000 // ms
+		const RATE_LIMIT_MAX = config.quantelHTTPTransformerProxy.rateLimitMax ?? 10
+		const db = new Map()
+		this.app.use(
+			ratelimit({
+				driver: 'memory',
+				db: db,
+				duration: RATE_LIMIT_DURATION,
+				max: RATE_LIMIT_MAX,
+				errorMessage: 'Rate limit exceeded',
+				id: (ctx) => ctx.ip,
+				headers: {
+					remaining: 'Rate-Limit-Remaining',
+					reset: 'Rate-Limit-Reset',
+					total: 'Rate-Limit-Total',
+				},
+				disableHeader: false,
+				// whitelist: (ctx) => {
+				// 	// some logic that returns a boolean
+				// },
+				// blacklist: (ctx) => {
+				// 	// some logic that returns a boolean
+				// },
 			})
 		)
 	}
