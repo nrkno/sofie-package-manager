@@ -1,4 +1,4 @@
-import { ChildProcess, spawn } from 'child_process'
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import path from 'path'
 import mkdirp from 'mkdirp'
 import {
@@ -25,20 +25,20 @@ export function testFFProbe(): Promise<string | null> {
 }
 export function testFFExecutable(ffExecutable: string): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {
-		const ffMpegProcess: ChildProcess = spawn(ffExecutable, ['-version'])
+		const ffMpegProcess = spawn(ffExecutable, ['-version'])
 		let output = ''
-		ffMpegProcess.stderr?.on('data', (data) => {
+		ffMpegProcess.stderr.on('data', (data) => {
 			const str = data.toString()
 			output += str
 		})
-		ffMpegProcess.stdout?.on('data', (data) => {
+		ffMpegProcess.stdout.on('data', (data) => {
 			const str = data.toString()
 			output += str
 		})
 		ffMpegProcess.on('error', (err) => {
 			resolve(`Process ${ffExecutable} emitted error: ${stringifyError(err)}`)
 		})
-		ffMpegProcess.on('close', (code) => {
+		ffMpegProcess.on('exit', (code) => {
 			const m = output.match(/version ([\w-]+)/) // version N-102494-g2899fb61d2
 
 			if (code === 0) {
@@ -95,7 +95,10 @@ export async function runffMpeg<Metadata>(
 	}
 
 	log?.('ffmpeg: spawn..')
-	let ffMpegProcess: ChildProcess | undefined = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args)
+	let ffMpegProcess: ChildProcessWithoutNullStreams | undefined = spawn(
+		process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
+		args
+	)
 	log?.('ffmpeg: spawned')
 
 	if (pipeStdOut) {
@@ -121,7 +124,7 @@ export async function runffMpeg<Metadata>(
 	const lastFewLines: string[] = []
 
 	let fileDuration: number | undefined = undefined
-	ffMpegProcess.stderr?.on('data', (data) => {
+	ffMpegProcess.stderr.on('data', (data) => {
 		const str = data.toString()
 
 		log?.('ffmpeg:' + str)
@@ -181,7 +184,7 @@ export async function runffMpeg<Metadata>(
 
 	return {
 		cancel: () => {
-			ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffMpegProcess?.stdin.write('q') // send "q" to quit, because .kill() doesn't quite do it.
 			ffMpegProcess?.kill()
 		},
 	}

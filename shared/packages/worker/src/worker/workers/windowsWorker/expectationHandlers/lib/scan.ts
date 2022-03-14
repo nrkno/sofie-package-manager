@@ -15,6 +15,7 @@ import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
+import { MAX_EXEC_BUFFER } from '../../../../lib/lib'
 
 export interface FFProbeScanResultStream {
 	index: number
@@ -72,21 +73,28 @@ export function scanWithFFProbe(
 				reject('Cancelled')
 			})
 
-			ffProbeProcess = execFile(file, args, (err, stdout, _stderr) => {
-				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-				ffProbeProcess = undefined
-				if (err) {
-					reject(err)
-					return
+			ffProbeProcess = execFile(
+				file,
+				args,
+				{
+					maxBuffer: MAX_EXEC_BUFFER,
+				},
+				(err, stdout, _stderr) => {
+					// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+					ffProbeProcess = undefined
+					if (err) {
+						reject(err)
+						return
+					}
+					const json: any = JSON.parse(stdout)
+					if (!json.streams || !json.streams[0]) {
+						reject(new Error(`File doesn't seem to be a media file`))
+						return
+					}
+					json.filePath = filePath
+					resolve(json)
 				}
-				const json: any = JSON.parse(stdout)
-				if (!json.streams || !json.streams[0]) {
-					reject(new Error(`File doesn't seem to be a media file`))
-					return
-				}
-				json.filePath = filePath
-				resolve(json)
-			})
+			)
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 			// Because we have no good way of using ffprobe to generate the into we want,
 			// we resort to faking it:
@@ -160,27 +168,34 @@ export function scanFieldOrder(
 			reject('Cancelled')
 		})
 
-		ffProbeProcess = execFile(file, args, (err, _stdout, stderr) => {
-			// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-			ffProbeProcess = undefined
-			if (err) {
-				reject(err)
-				return
-			}
+		ffProbeProcess = execFile(
+			file,
+			args,
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+			},
+			(err, _stdout, stderr) => {
+				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+				ffProbeProcess = undefined
+				if (err) {
+					reject(err)
+					return
+				}
 
-			const FieldRegex = /Multi frame detection: TFF:\s+(\d+)\s+BFF:\s+(\d+)\s+Progressive:\s+(\d+)/
+				const FieldRegex = /Multi frame detection: TFF:\s+(\d+)\s+BFF:\s+(\d+)\s+Progressive:\s+(\d+)/
 
-			const res = FieldRegex.exec(stderr)
-			if (res === null) {
-				resolve(FieldOrder.Unknown)
-			} else {
-				const tff = parseInt(res[1])
-				const bff = parseInt(res[2])
-				const fieldOrder =
-					tff <= 10 && bff <= 10 ? FieldOrder.Progressive : tff > bff ? FieldOrder.TFF : FieldOrder.BFF
-				resolve(fieldOrder)
+				const res = FieldRegex.exec(stderr)
+				if (res === null) {
+					resolve(FieldOrder.Unknown)
+				} else {
+					const tff = parseInt(res[1])
+					const bff = parseInt(res[2])
+					const fieldOrder =
+						tff <= 10 && bff <= 10 ? FieldOrder.Progressive : tff > bff ? FieldOrder.TFF : FieldOrder.BFF
+					resolve(fieldOrder)
+				}
 			}
-		})
+		)
 	})
 }
 
