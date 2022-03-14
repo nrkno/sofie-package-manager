@@ -1,4 +1,4 @@
-import * as ChildProcess from 'child_process'
+import * as cp from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import _ from 'underscore'
@@ -33,7 +33,7 @@ export class AppContainer {
 
 	private apps: {
 		[appId: string]: {
-			process: ChildProcess.ChildProcess
+			process: cp.ChildProcess
 			appType: string
 			toBeKilled: boolean
 			restarts: number
@@ -460,28 +460,24 @@ export class AppContainer {
 			}
 		})
 	}
-	private setupChildProcess(
-		appType: string,
-		appId: string,
-		availableApp: AvailableAppInfo
-	): ChildProcess.ChildProcess {
+	private setupChildProcess(appType: string, appId: string, availableApp: AvailableAppInfo): cp.ChildProcess {
 		this.logger.debug(`AppContainer: Starting process "${appId}" (${appType}): "${availableApp.file}"`)
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
 
-		const child = ChildProcess.execFile(availableApp.file, availableApp.args(appId), {
+		const child = cp.spawn(availableApp.file, availableApp.args(appId), {
 			cwd: cwd,
 		})
 
-		child.stdout?.on('data', (message) => {
+		child.stdout.on('data', (message) => {
 			this.logFromApp(appId, appType, message, this.logger.debug)
 		})
-		child.stderr?.on('data', (message) => {
+		child.stderr.on('data', (message) => {
 			this.logFromApp(appId, appType, message, this.logger.error)
 			// this.logger.debug(`${appId} stderr: ${message}`)
 		})
-		child.once('close', (code) => {
+		child.once('exit', (code) => {
 			const app = this.apps[appId]
 			if (app && !app.toBeKilled) {
 				// Try to restart the application

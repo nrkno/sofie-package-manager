@@ -69,3 +69,5 @@ export interface AccessorWithPackageContainer<T extends PackageContainerOnPackag
 	accessorId: string
 	prio: number
 }
+
+export const MAX_EXEC_BUFFER = 10_486_750
