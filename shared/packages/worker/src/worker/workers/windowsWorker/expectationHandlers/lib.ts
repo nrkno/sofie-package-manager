@@ -308,7 +308,7 @@ export function previewFFMpegArguments(input: string, seekableSource: boolean, m
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
 		'-threads 1', // Number of threads to use
-		seekableSource ? '-seekable 0' : undefined,
+		seekableSource ? undefined : '-seekable 0',
 		`-i "${input}"`, // Input file path
 		'-f webm', // format: webm
 		'-an', // blocks all audio streams
