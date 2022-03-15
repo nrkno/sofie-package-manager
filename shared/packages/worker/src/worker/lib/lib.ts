@@ -69,3 +69,10 @@ export interface AccessorWithPackageContainer<T extends PackageContainerOnPackag
 	accessorId: string
 	prio: number
 }
+
+/**
+ * Maximum buffer when running child_process.execFile. Large spikes of data being sent over STDIO streams can overload
+ * this buffer which will result in the child_process' termination. A large buffer (10M) allows us sufficient time to
+ * process the incoming data.
+ */
+export const MAX_EXEC_BUFFER = 10_486_750

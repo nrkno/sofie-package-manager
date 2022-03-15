@@ -17,6 +17,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { promisify } from 'util'
 import { UniversalVersion } from '../workers/windowsWorker/lib/lib'
+import { MAX_EXEC_BUFFER } from '../lib/lib'
 
 const fsReadFile = promisify(fs.readFile)
 
@@ -548,26 +549,40 @@ function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<
 function ffprobe(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
-		execFile(file, args, (error, stdout) => {
-			if (error) {
-				reject(error)
-			} else {
-				resolve(stdout)
+		execFile(
+			file,
+			args,
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+			},
+			(error, stdout) => {
+				if (error) {
+					reject(error)
+				} else {
+					resolve(stdout)
+				}
 			}
-		})
+		)
 	})
 }
 
 function ffmpeg(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-		execFile(file, ['-v error', ...args], (error, stdout) => {
-			if (error) {
-				reject(error)
-			} else {
-				resolve(stdout)
+		execFile(
+			file,
+			['-v error', ...args],
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+			},
+			(error, stdout) => {
+				if (error) {
+					reject(error)
+				} else {
+					resolve(stdout)
+				}
 			}
-		})
+		)
 	})
 }
 

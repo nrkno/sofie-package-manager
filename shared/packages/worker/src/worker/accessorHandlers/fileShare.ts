@@ -21,6 +21,7 @@ import networkDrive from 'windows-network-drive'
 import { exec } from 'child_process'
 import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
+import { MAX_EXEC_BUFFER } from '../lib/lib'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -444,19 +445,17 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			}
 			// We're reverting to accessing through the direct path instead
 			if (this.accessor.userName) {
-				const MAX_BUFFER_SIZE = 2000 * 1024
-
 				// Try to add the credentials to the share in Windows:
 				const setupCredentialsCommand = `net use "${folderPath}" /user:${this.accessor.userName} ${this.accessor.password}`
 				try {
-					await pExec(setupCredentialsCommand, { maxBuffer: MAX_BUFFER_SIZE })
+					await pExec(setupCredentialsCommand, { maxBuffer: MAX_EXEC_BUFFER })
 				} catch (err) {
 					if (stringifyError(err, true).match(/multiple connections to a/i)) {
 						// "Multiple connections to a server or shared resource by the same user, using more than one user name, are not allowed. Disconnect all previous connections to the server or shared resource and try again."
 
 						// Remove the old and try again:
 						await pExec(`net use "${folderPath}" /d`)
-						await pExec(setupCredentialsCommand, { maxBuffer: MAX_BUFFER_SIZE })
+						await pExec(setupCredentialsCommand, { maxBuffer: MAX_EXEC_BUFFER })
 					} else {
 						throw err
 					}
