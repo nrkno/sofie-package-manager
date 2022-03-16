@@ -97,7 +97,10 @@ export async function runffMpeg<Metadata>(
 	log?.('ffmpeg: spawn..')
 	let ffMpegProcess: ChildProcessWithoutNullStreams | undefined = spawn(
 		process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
-		args
+		args,
+		{
+			windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+		}
 	)
 	log?.('ffmpeg: spawned')
 

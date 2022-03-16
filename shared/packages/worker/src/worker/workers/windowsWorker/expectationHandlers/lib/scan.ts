@@ -78,6 +78,7 @@ export function scanWithFFProbe(
 				args,
 				{
 					maxBuffer: MAX_EXEC_BUFFER,
+					windowsVerbatimArguments: true, // To fix an issue with ffprobe.exe on Windows
 				},
 				(err, stdout, _stderr) => {
 					// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
@@ -161,22 +162,23 @@ export function scanFieldOrder(
 			assertNever(sourceHandle)
 		}
 
-		let ffProbeProcess: ChildProcess | undefined = undefined
+		let ffmpegProcess: ChildProcess | undefined = undefined
 		onCancel(() => {
-			ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
-			ffProbeProcess?.kill()
+			ffmpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffmpegProcess?.kill()
 			reject('Cancelled')
 		})
 
-		ffProbeProcess = execFile(
+		ffmpegProcess = execFile(
 			file,
 			args,
 			{
 				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
 			},
 			(err, _stdout, stderr) => {
 				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-				ffProbeProcess = undefined
+				ffmpegProcess = undefined
 				if (err) {
 					reject(err)
 					return
@@ -287,7 +289,9 @@ export function scanMoreInfo(
 			reject('Cancelled')
 		})
 
-		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args)
+		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
+			windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+		})
 
 		const scenes: number[] = []
 		const freezes: ScanAnomaly[] = []
