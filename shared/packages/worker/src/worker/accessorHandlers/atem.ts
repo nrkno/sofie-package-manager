@@ -554,6 +554,7 @@ function ffprobe(args: string[]): Promise<string> {
 			args,
 			{
 				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
 			},
 			(error, stdout) => {
 				if (error) {
@@ -574,6 +575,7 @@ function ffmpeg(args: string[]): Promise<string> {
 			['-v error', ...args],
 			{
 				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
 			},
 			(error, stdout) => {
 				if (error) {
