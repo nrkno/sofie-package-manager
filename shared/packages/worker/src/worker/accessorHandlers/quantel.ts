@@ -403,10 +403,10 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		if (!gateway) {
 			gateway = new QuantelGateway()
-			this.worker.logger.debug(`Quantel.QuantelGateway`, `Created new Quantel Gateway client "${id}"`)
+			this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
 			await gateway.init(this.accessor.quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
 
-			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway`, e))
+			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway: ${JSON.stringify(e)}`))
 
 			cacheGateways[id] = gateway
 		}
@@ -473,7 +473,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		let server: ServerInfo | null = null
 		if (this.accessor.serverId) server = await quantel.getServer()
 
-		this.worker.logger.debug(`Quantel.QuantelGateway`, `Searching for clip "${guid}"...`)
+		this.worker.logger.debug(`Quantel.QuantelGateway: Searching for clip "${guid}"...`)
 
 		return (
 			await quantel.searchClip({

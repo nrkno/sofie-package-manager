@@ -111,7 +111,10 @@ export class QuantelHTTPTransformerProxy {
 						}
 					}
 				} else {
-					throw err
+					ctx.status = 502
+					ctx.body = 'Bad Gateway'
+					this.logger.error(JSON.stringify(err))
+					return
 				}
 			}
 		})
@@ -136,7 +139,10 @@ export class QuantelHTTPTransformerProxy {
 						}
 					}
 				} else {
-					throw err
+					ctx.status = 502
+					ctx.body = 'Bad Gateway'
+					this.logger.error(JSON.stringify(err))
+					return
 				}
 			}
 		})
