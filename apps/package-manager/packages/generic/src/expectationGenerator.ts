@@ -536,7 +536,7 @@ function generatePackageScan(
 		statusReport: {
 			label: `Scanning`,
 			description: `Scanning the media, to provide data to the Sofie GUI`,
-			requiredForPlayout: false,
+			requiredForPlayout: !!(expectation as any).__isSmartbull, // For smartbull, the scan result _is_ required for playout
 			displayRank: 10,
 			sendReport: expectation.statusReport.sendReport,
 		},
