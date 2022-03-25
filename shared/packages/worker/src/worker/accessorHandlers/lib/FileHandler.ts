@@ -213,7 +213,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								seenFiles.set(filePath, version)
 							} catch (err) {
 								version = null
-								this.worker.logger.error(`${stringifyError(err)}`)
+								this.worker.logger.error(
+									`GenericFileAccessorHandle.setupPackagesMonitor: Unexpected Exception cautght: ${stringifyError(
+										err
+									)}`
+								)
 
 								monitorInProgress._reportStatus(StatusCode.BAD, {
 									user: 'Error when accessing watched file',
@@ -319,7 +323,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					})
 			})
 			.on('error', (err) => {
-				this.worker.logger.error(`${stringifyError(err)}`)
+				this.worker.logger.error(
+					`GenericFileAccessorHandle.setupPackagesMonitor: watcher.error: Unexpected error event: ${stringifyError(
+						err
+					)}`
+				)
 				monitorInProgress._reportStatus(StatusCode.BAD, {
 					user: 'Error in file watcher',
 					tech: `chokidar error: ${stringifyError(err)}`,

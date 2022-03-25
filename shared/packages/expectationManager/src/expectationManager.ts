@@ -1682,6 +1682,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 								delete this.trackedPackageContainers[containerId]
 							} else {
+								this.logger.error(
+									`ExpectationManager._updateReceivedPackageContainerExpectations: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
+										result.reason
+									)}`
+								)
 								this.updateTrackedPackageContainerStatus(
 									trackedPackageContainer,
 									StatusCode.BAD,
@@ -1689,6 +1694,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 								)
 							}
 						} catch (err) {
+							this.logger.error(
+								`ExpectationManager._updateReceivedPackageContainerExpectations: Caught exception: ${JSON.stringify(
+									err
+								)}`
+							)
 							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 								user: 'Internal Error',
 								tech: `Error when removing: ${stringifyError(err)}`,
@@ -1719,6 +1729,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 							)
 							if (!disposeMonitorResult.success) {
 								badStatus = true
+								this.logger.error(
+									`ExpectationManager._evaluateAllTrackedPackageContainers: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
+										disposeMonitorResult.reason
+									)}`
+								)
 								this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 									user: `Unable to restart monitor, due to ${disposeMonitorResult.reason.user}`,
 									tech: `Unable to restart monitor: ${disposeMonitorResult.reason.tech}`,
@@ -1774,6 +1789,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					}
 					if (notSupportReason) {
 						badStatus = true
+						this.logger.error(
+							`ExpectationManager._evaluateAllTrackedPackageContainers: doYouSupportPackageContainer could not find a supportive worker: ${JSON.stringify(
+								notSupportReason
+							)}`
+						)
 						this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 							user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
 							tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
@@ -1811,6 +1831,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 								}
 							} else {
 								badStatus = true
+								this.logger.error(
+									`ExpectationManager._evaluateAllTrackedPackageContainers: setupPackageContainerMonitors did not suceed: ${JSON.stringify(
+										monitorSetup.reason
+									)}`
+								)
 								this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 									user: `Unable to set up monitors for PackageContainer, due to: ${monitorSetup.reason.user}`,
 									tech: `Unable to set up monitors for PackageContainer, due to: ${monitorSetup.reason.tech}`,
@@ -1824,6 +1849,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					)
 					if (!cronJobStatus.success) {
 						badStatus = true
+						this.logger.error(
+							`ExpectationManager._evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not suceed: ${JSON.stringify(
+								cronJobStatus.reason
+							)}`
+						)
 						this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 							user: 'Cron job not completed, due to: ' + cronJobStatus.reason.user,
 							tech: 'Cron job not completed, due to: ' + cronJobStatus.reason.tech,
@@ -1839,6 +1869,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					})
 				}
 			} catch (err) {
+				this.logger.error(`ExpectationManager._evaluateAllTrackedPackageContainers: ${JSON.stringify(err)}`)
 				this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 					user: 'Internal Error',
 					tech: `Unhandled Error: ${stringifyError(err)}`,
@@ -2106,6 +2137,9 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 		const stuckDuration: number = this.monitorStatusWaiting ? Date.now() - this.monitorStatusWaiting : 0
 		if (stuckDuration > 10 * 60 * 1000) {
+			this.logger.error(
+				`ExpectationManager._monitorStatus: Work Queue is Stuck for ${stuckDuration / 1000 / 60} minutest`
+			)
 			this._updateStatus('work-queue-stuck', {
 				statusCode: StatusCode.BAD,
 				message: `The Work-queue has been stuck for ${Math.round(
