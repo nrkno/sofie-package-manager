@@ -280,6 +280,11 @@ export class WorkerAgent {
 
 		this.setupIntervalCheck()
 	}
+	private getStartCost(): number {
+		const workerMultiplier: number = this.config.worker.costMultiplier || 1
+
+		return this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) * workerMultiplier
+	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {
 		this.logger.info(`Worker: Connecting to Expectation Manager "${id}" at url "${url}"`)
@@ -309,9 +314,7 @@ export class WorkerAgent {
 
 				return {
 					cost: cost * workerMultiplier,
-					startCost:
-						this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) *
-						workerMultiplier,
+					startCost: this.getStartCost(),
 				}
 			},
 			isExpectationReadyToStartWorkingOn: async (
@@ -333,6 +336,18 @@ export class WorkerAgent {
 				timeout: number
 			): Promise<ExpectationManagerWorkerAgent.WorkInProgressInfo> => {
 				this.IDidSomeWork()
+
+				// Tmp: we're only allowing one work per worker
+				if (this.currentJobs.length > 0) {
+					this.logger.warn(
+						`workOnExpectation called, even though there are ${
+							this.currentJobs.length
+						} current jobs. Startcost now: ${this.getStartCost()}, spcified cost=${
+							cost.cost
+						}, specified startCost=${cost.startCost}`
+					)
+				}
+
 				const currentJob: CurrentJob = {
 					cost: cost,
 					cancelled: false,

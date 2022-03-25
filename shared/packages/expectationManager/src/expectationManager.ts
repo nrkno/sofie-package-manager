@@ -1057,7 +1057,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 				if (
 					trackedExp.session.assignedWorker &&
 					// Only allow starting if the job can start in a short while:
-					trackedExp.session.assignedWorker.cost.startCost > 10
+					trackedExp.session.assignedWorker.cost.startCost > 0 // 2022-03-25: We're setting this to 0 to only allow one job per worker
 				) {
 					trackedExp.session.noAssignedWorkerReason = {
 						user: `Workers are busy`,
