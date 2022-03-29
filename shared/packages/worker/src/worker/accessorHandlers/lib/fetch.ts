@@ -1,6 +1,30 @@
 import AbortController from 'abort-controller'
 import fetch, { Response, RequestInit } from 'node-fetch'
 import { INNER_ACTION_TIMEOUT } from '@shared/api'
+import { Agent as HTTPAgent } from 'http'
+import { Agent as HTTPSAgent } from 'https'
+import { URL } from 'url'
+
+const MAX_FREE_SOCKETS = 5
+const MAX_SOCKETS_PER_HOST = 5
+const MAX_ALL_SOCKETS = 25
+const HTTP_TIMEOUT = 5000
+
+const fetchHTTPAgent = new HTTPAgent({
+	keepAlive: true,
+	maxFreeSockets: MAX_FREE_SOCKETS,
+	maxSockets: MAX_SOCKETS_PER_HOST,
+	maxTotalSockets: MAX_ALL_SOCKETS,
+	timeout: HTTP_TIMEOUT,
+})
+
+const fetchHTTPSAgent = new HTTPSAgent({
+	keepAlive: true,
+	maxFreeSockets: MAX_FREE_SOCKETS,
+	maxSockets: MAX_SOCKETS_PER_HOST,
+	maxTotalSockets: MAX_ALL_SOCKETS,
+	timeout: HTTP_TIMEOUT,
+})
 
 export type FetchWithControllerOptions = Omit<RequestInit, 'signal'> & {
 	/**
@@ -19,6 +43,15 @@ export function fetchWithTimeout(url: string, options?: Omit<RequestInit, 'signa
 	const o = fetchWithController(url, options)
 	return o.response
 }
+
+function selectAgent(parsedUrl: URL) {
+	if (parsedUrl.protocol === 'https:') {
+		return fetchHTTPSAgent
+	} else {
+		return fetchHTTPAgent
+	}
+}
+
 /**
  * Fetches a url using node-fetch and times out prudently.
  * Returns the response and the AbortController
@@ -53,7 +86,7 @@ export function fetchWithController(
 				})
 			}
 
-			fetch(url, { ...options, signal: controller.signal })
+			fetch(url, { ...options, signal: controller.signal, agent: selectAgent })
 				.then((response) => {
 					// At this point, the headers have been received.
 
