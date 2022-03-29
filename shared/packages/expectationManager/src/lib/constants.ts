@@ -32,7 +32,7 @@ export function getDefaultConstants(): ExpectationManagerConstants {
 		// Default values:
 		EVALUATE_INTERVAL: 5 * 1000,
 		FULLFILLED_MONITOR_TIME: 30 * 1000,
-		WORK_TIMEOUT_TIME: 10 * 1000,
+		WORK_TIMEOUT_TIME: 30 * 1000,
 		ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
 		SCALE_UP_TIME: 5 * 1000,
 		SCALE_UP_COUNT: 1,

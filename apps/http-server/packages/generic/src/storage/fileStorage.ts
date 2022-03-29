@@ -5,7 +5,7 @@ import mime from 'mime-types'
 import mkdirp from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
 import { CTX, CTXPost } from '../lib'
-import { HTTPServerConfig } from '@shared/api'
+import { HTTPServerConfig, LoggerInstance } from '@shared/api'
 import { BadResponse, Storage } from './storage'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
@@ -17,7 +17,7 @@ const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
 
 export class FileStorage extends Storage {
-	constructor(private config: HTTPServerConfig) {
+	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
 		super()
 	}
 
@@ -71,6 +71,7 @@ export class FileStorage extends Storage {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
+			this.logger.error(`[404] GET ${ctx.URL}`)
 			return { code: 404, reason: 'Package not found' }
 		}
 		let mimeType = mime.lookup(fullPath)
@@ -102,7 +103,7 @@ export class FileStorage extends Storage {
 			// store plain text into file
 			await fsWriteFile(fullPath, ctx.request.body.text)
 
-			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
 			return true
 		} else if (ctx.request.files?.length) {
 			const file = ctx.request.files[0] as any
@@ -110,9 +111,10 @@ export class FileStorage extends Storage {
 
 			stream.pipe(fs.createWriteStream(fullPath))
 
-			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
 			return true
 		} else {
+			this.logger.error(`[400] POST ${ctx.URL}`)
 			return { code: 400, reason: 'No files provided' }
 		}
 	}
@@ -120,6 +122,7 @@ export class FileStorage extends Storage {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
+			this.logger.error(`[404] DELETE ${ctx.URL}`)
 			return { code: 404, reason: 'Package not found' }
 		}
 

@@ -43,7 +43,7 @@ export class PackageProxyServer {
 		)
 
 		// todo: Add other storages?
-		this.storage = new FileStorage(this.config)
+		this.storage = new FileStorage(this.logger, this.config)
 	}
 
 	async init(): Promise<void> {
@@ -76,6 +76,8 @@ export class PackageProxyServer {
 				}
 			}
 
+			this.logger.warn(`[403] ${ctx.request.URL}`)
+
 			ctx.response.status = 403
 			ctx.body = 'Api key "?apiKey=API_KEY" missing or is invalid.'
 		})
@@ -87,9 +89,11 @@ export class PackageProxyServer {
 			await this.handleStorage(ctx, () => this.storage.getPackage(ctx.params.path, ctx))
 		})
 		this.router.post('/package/:path+', async (ctx) => {
+			this.logger.warn(`POST ${ctx.request.URL}`)
 			await this.handleStorage(ctx, () => this.storage.postPackage(ctx.params.path, ctx))
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
+			this.logger.warn(`DELETE ${ctx.request.URL}`)
 			await this.handleStorage(ctx, () => this.storage.deletePackage(ctx.params.path, ctx))
 		})
 
