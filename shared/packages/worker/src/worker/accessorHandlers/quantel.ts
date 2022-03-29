@@ -473,7 +473,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		let server: ServerInfo | null = null
 		if (this.accessor.serverId) server = await quantel.getServer()
 
-		this.worker.logger.debug(`Quantel.QuantelGateway: Searching for clip "${guid}"...`)
+		// this.worker.logger.debug(`Quantel.QuantelGateway: Searching for clip "${guid}"...`)
 
 		return (
 			await quantel.searchClip({

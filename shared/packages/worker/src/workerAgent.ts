@@ -428,7 +428,9 @@ export class WorkerAgent {
 						currentJob.lastUpdated = Date.now()
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
 						this.logger.warn(
-							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
+							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to error: (${
+								this.currentJobs.length
+							}): ${stringifyError(error)}`
 						)
 
 						expectedManager.api

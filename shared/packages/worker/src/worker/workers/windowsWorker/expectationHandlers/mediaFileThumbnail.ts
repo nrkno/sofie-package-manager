@@ -225,10 +225,8 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode)
 
 				ffMpegProcess = await runffMpeg(
-					workInProgress,
 					args,
 					targetHandle,
-					sourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
 						ffMpegProcess = undefined
@@ -244,6 +242,14 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 							},
 							undefined
 						)
+					},
+					async (err) => {
+						worker.logger.debug(`ffmpeg failed: ${args.join(' ')}: ${stringifyError(err)}`)
+						ffMpegProcess = undefined
+						workInProgress._reportError(err)
+					},
+					async (progress: number) => {
+						workInProgress._reportProgress(sourceVersionHash, progress)
 					}
 					// ,worker.logger.debug
 				)

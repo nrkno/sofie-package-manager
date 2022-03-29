@@ -209,13 +209,13 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 
 				const args = previewFFMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
 
+				worker.logger.debug(`Starting ffmpeg: ${args.join(' ')}`)
 				ffMpegProcess = await runffMpeg(
-					workInProgress,
 					args,
 					targetHandle,
-					actualSourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
+						worker.logger.debug(`Finished ffmpeg: ${args.join(' ')}`)
 						ffMpegProcess = undefined
 						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
@@ -229,6 +229,14 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 							},
 							undefined
 						)
+					},
+					async (err) => {
+						worker.logger.debug(`ffmpeg failed: ${args.join(' ')}: ${stringifyError(err)}`)
+						ffMpegProcess = undefined
+						workInProgress._reportError(err)
+					},
+					async (progress: number) => {
+						workInProgress._reportProgress(actualSourceVersionHash, progress)
 					}
 					// ,worker.logger.debug
 				)

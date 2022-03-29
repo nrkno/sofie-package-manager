@@ -10,7 +10,6 @@ import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { assertNever, stringifyError } from '@shared/api'
-import { WorkInProgress } from '../../../../lib/workInProgress'
 
 export interface FFMpegProcess {
 	cancel: () => void
@@ -56,15 +55,15 @@ export function testFFExecutable(ffExecutable: string): Promise<string | null> {
 
 /** Spawn an ffmpeg process and make it to output its content to the target */
 export async function runffMpeg<Metadata>(
-	workInProgress: WorkInProgress,
 	/** Arguments to send into ffmpeg, excluding the final arguments for output */
 	args: string[],
 	targetHandle:
 		| LocalFolderAccessorHandle<Metadata>
 		| FileShareAccessorHandle<Metadata>
 		| HTTPProxyAccessorHandle<Metadata>,
-	actualSourceVersionHash: string,
 	onDone: () => Promise<void>,
+	onFail: (err?: any) => Promise<void>,
+	onProgress?: (progress: number) => Promise<void>,
 	log?: (str: string) => void
 ): Promise<FFMpegProcess> {
 	let FFMpegIsDone = false
@@ -73,7 +72,8 @@ export async function runffMpeg<Metadata>(
 	const maybeDone = () => {
 		if (FFMpegIsDone && uploadIsDone) {
 			onDone().catch((error) => {
-				workInProgress._reportError(error)
+				// workInProgress._reportError(error)
+				onFail(error).catch((error) => log?.(`runffMpeg onFail callback failed: ${stringifyError(error)}`))
 			})
 		}
 	}
@@ -112,7 +112,7 @@ export async function runffMpeg<Metadata>(
 
 		const writeStream = await targetHandle.putPackageStream(ffMpegProcess.stdout)
 		writeStream.on('error', (err) => {
-			workInProgress._reportError(err)
+			onFail(err).catch((error) => log?.(`onFail callback failed: ${stringifyError(error)}`))
 			log?.('ffmpeg: err' + err)
 		})
 		writeStream.once('close', () => {
@@ -149,9 +149,12 @@ export async function runffMpeg<Metadata>(
 				const ss = m2[3]
 
 				const progress = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
-				workInProgress._reportProgress(
-					actualSourceVersionHash,
-					((uploadIsDone ? 1 : 0.9) * progress) / fileDuration
+				// workInProgress._reportProgress(
+				// 	actualSourceVersionHash,
+				// 	((uploadIsDone ? 1 : 0.9) * progress) / fileDuration
+				// )
+				onProgress?.(((uploadIsDone ? 1 : 0.9) * progress) / fileDuration).catch((err) =>
+					log?.(`runffMpeg onProgress update failed: ${stringifyError(err)}`)
 				)
 				return
 			}
@@ -171,7 +174,10 @@ export async function runffMpeg<Metadata>(
 				FFMpegIsDone = true
 				maybeDone()
 			} else {
-				workInProgress._reportError(new Error(`FFMpeg exit code ${code}: ${lastFewLines.join('\n')}`))
+				// workInProgress._reportError(new Error(`FFMpeg exit code ${code}: ${lastFewLines.join('\n')}`))
+				onFail(new Error(`FFMpeg exit code ${code}: ${lastFewLines.join('\n')}`)).catch((err) =>
+					log?.(`runffMpeg onFail callback failed: ${stringifyError(err)}`)
+				)
 			}
 		}
 	}
@@ -183,7 +189,8 @@ export async function runffMpeg<Metadata>(
 	})
 
 	// Report back an initial status, because it looks nice:
-	workInProgress._reportProgress(actualSourceVersionHash, 0)
+	// workInProgress._reportProgress(actualSourceVersionHash, 0)
+	onProgress?.(0).catch((err) => log?.(`runffMpeg onProgress update failed: ${stringifyError(err)}`))
 
 	return {
 		cancel: () => {
