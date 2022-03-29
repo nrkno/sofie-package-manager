@@ -94,6 +94,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 	} = {}
 	private worksInProgress: {
 		[id: string]: {
+			wipId: number
 			properties: ExpectationManagerWorkerAgent.WorkInProgressProperties
 			trackedExp: TrackedExpectation
 			workerId: string
@@ -1085,6 +1086,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 						// trackedExp.status.workInProgress = new WorkInProgressReceiver(wipInfo.properties)
 						this.worksInProgress[`${assignedWorker.id}_${wipInfo.wipId}`] = {
+							wipId: wipInfo.wipId,
 							properties: wipInfo.properties,
 							trackedExp: trackedExp,
 							workerId: assignedWorker.id,
@@ -2104,6 +2106,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 						reason,
 					})
 					delete this.worksInProgress[wipId]
+
+					// Send a cancel request to the worker as a courtesy:
+					wip.worker.cancelWorkInProgress(wip.wipId).catch((err) => {
+						this.logger.error(`Error when cancelling timed out work "${wipId}" ${stringifyError(err)}`)
+					})
 				}
 			} else {
 				// huh, it seems that we have a workInProgress, but the trackedExpectation is not WORKING
