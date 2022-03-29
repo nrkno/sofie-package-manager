@@ -229,8 +229,8 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 							},
 							undefined
 						)
-					},
-					worker.logger.debug
+					}
+					// ,worker.logger.debug
 				)
 			})
 
