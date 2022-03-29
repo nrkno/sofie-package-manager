@@ -4021,6 +4021,13 @@ elegant-spinner@^1.0.1:
   resolved "https://registry.yarnpkg.com/elegant-spinner/-/elegant-spinner-1.0.1.tgz#db043521c95d7e303fd8f345bedc3349cfb0729e"
   integrity sha1-2wQ1IcldfjA/2PNFvtwzSc+wcp4=
 
+eloquent-ffmpeg@^0.14.0:
+  version "0.14.0"
+  resolved "https://registry.yarnpkg.com/eloquent-ffmpeg/-/eloquent-ffmpeg-0.14.0.tgz#52169662d964027f0f2a240f6f975d8bf4c46659"
+  integrity sha512-ToNxO2TiFQF5BZ3iwuXbGkAHeAiNxam5BlpxBpo1C3eYrk7/REIyNbdP3wmcBngOFIqlI6hOmVSZyoCi8CmrLw==
+  optionalDependencies:
+    ntsuspend "^1.0.0"
+
 emittery@^0.7.1:
   version "0.7.2"
   resolved "https://registry.yarnpkg.com/emittery/-/emittery-0.7.2.tgz#25595908e13af0f5674ab419396e2fb394cdfa82"
@@ -8193,6 +8200,11 @@ npmlog@^4.1.2:
     console-control-strings "~1.1.0"
     gauge "~2.7.3"
     set-blocking "~2.0.0"
+
+ntsuspend@^1.0.0:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/ntsuspend/-/ntsuspend-1.0.2.tgz#170a4f6bc8e22d08259be2355c163c23918ad3c2"
+  integrity sha512-JaQJRHgg2LV2q5NL6jHHi/DwwPBGrAeZwla3hCnDdkZZQH3VtNriDkbfPBjmCXR8mABtTqiL7TphrFavYEUVZQ==
 
 number-is-nan@^1.0.0:
   version "1.0.1"

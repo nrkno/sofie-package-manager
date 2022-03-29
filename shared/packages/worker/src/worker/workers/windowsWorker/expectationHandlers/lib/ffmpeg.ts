@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
+import ffmpeg from 'eloquent-ffmpeg'
 import path from 'path'
 import mkdirp from 'mkdirp'
 import {
@@ -23,35 +24,17 @@ export function testFFMpeg(): Promise<string | null> {
 export function testFFProbe(): Promise<string | null> {
 	return testFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
 }
-export function testFFExecutable(ffExecutable: string): Promise<string | null> {
-	return new Promise<string | null>((resolve) => {
-		const ffMpegProcess = spawn(ffExecutable, ['-version'])
-		let output = ''
-		ffMpegProcess.stderr.on('data', (data) => {
-			const str = data.toString()
-			output += str
-		})
-		ffMpegProcess.stdout.on('data', (data) => {
-			const str = data.toString()
-			output += str
-		})
-		ffMpegProcess.on('error', (err) => {
-			resolve(`Process ${ffExecutable} emitted error: ${stringifyError(err)}`)
-		})
-		ffMpegProcess.on('exit', (code) => {
-			const m = output.match(/version ([\w-]+)/) // version N-102494-g2899fb61d2
-
-			if (code === 0) {
-				if (m) {
-					resolve(null)
-				} else {
-					resolve(`Process ${ffExecutable} bad version: ${output}`)
-				}
-			} else {
-				resolve(`Process ${ffExecutable} exited with code ${code}`)
-			}
-		})
-	})
+export async function testFFExecutable(ffExecutable: string): Promise<string | null> {
+	try {
+		const version = await ffmpeg.getVersion()
+		if (version.version.match(/([\w-]+)/)) {
+			return null
+		} else {
+			return `Process ${ffExecutable} bad version: ${version.version}`
+		}
+	} catch (err) {
+		return `Process ${ffExecutable} emitted error: ${stringifyError(err)}`
+	}
 }
 
 /** Spawn an ffmpeg process and make it to output its content to the target */
