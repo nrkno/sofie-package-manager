@@ -34,7 +34,11 @@ export function fetchWithController(
 		response: new Promise((resolve, reject) => {
 			const refreshTimeout = () => {
 				return setTimeout(() => {
-					reject(new Error(`Timeout when fetching "${url}"`))
+					reject(
+						new Error(
+							`Timeout when fetching ${options?.method || ' '}"${url}" after ${INNER_ACTION_TIMEOUT}ms`
+						)
+					)
 
 					// Don't leave the request hanging and possibly consume bandwidth:
 					controller.abort()
