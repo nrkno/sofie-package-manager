@@ -244,8 +244,8 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 							},
 							undefined
 						)
-					}
-					// worker.logger.info
+					},
+					worker.logger.debug
 				)
 			} else {
 				throw new Error(
