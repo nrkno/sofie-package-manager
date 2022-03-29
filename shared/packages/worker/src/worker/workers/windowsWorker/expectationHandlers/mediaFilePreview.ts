@@ -26,7 +26,7 @@ import {
 	LookupPackageContainer,
 	previewFFMpegArguments,
 } from './lib'
-import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -223,12 +223,13 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 				const args = previewFFMpegArguments(inputPath, true, metadata)
 
-				ffMpegProcess = await runffMpeg(
+				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
 					// actualSourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
+						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
 						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
@@ -244,7 +245,9 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 						)
 					},
 					async (err) => {
-						worker.logger.debug(`ffmpeg failed: ${args.join(' ')}: ${stringifyError(err)}`)
+						worker.logger.debug(
+							`FFMpeg failed [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}: ${stringifyError(err)}`
+						)
 						ffMpegProcess = undefined
 						workInProgress._reportError(err)
 					},
@@ -253,6 +256,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					}
 					//,worker.logger.debug
 				)
+				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
 			})
 
 			return workInProgress

@@ -27,7 +27,7 @@ import {
 	LookupPackageContainer,
 	thumbnailFFMpegArguments,
 } from './lib'
-import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -224,11 +224,12 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				// Use FFMpeg to generate the thumbnail:
 				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode)
 
-				ffMpegProcess = await runffMpeg(
+				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
 					async () => {
 						// Called when ffmpeg has finished
+						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
 						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
@@ -244,7 +245,9 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 						)
 					},
 					async (err) => {
-						worker.logger.debug(`ffmpeg failed: ${args.join(' ')}: ${stringifyError(err)}`)
+						worker.logger.debug(
+							`FFMpeg failed [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}: ${stringifyError(err)}`
+						)
 						ffMpegProcess = undefined
 						workInProgress._reportError(err)
 					},
@@ -253,6 +256,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 					}
 					// ,worker.logger.debug
 				)
+				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
 			} else {
 				throw new Error(
 					`MediaFileThumbnail.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`

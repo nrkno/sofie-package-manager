@@ -26,7 +26,7 @@ import {
 	previewFFMpegArguments,
 } from './lib'
 import { getSourceHTTPHandle } from './quantelClipThumbnail'
-import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
 export const QuantelClipPreview: ExpectationWindowsHandler = {
@@ -209,13 +209,12 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 
 				const args = previewFFMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
 
-				worker.logger.debug(`Starting ffmpeg: ${args.join(' ')}`)
-				ffMpegProcess = await runffMpeg(
+				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
 					async () => {
 						// Called when ffmpeg has finished
-						worker.logger.debug(`Finished ffmpeg: ${args.join(' ')}`)
+						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
 						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
@@ -231,7 +230,9 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 						)
 					},
 					async (err) => {
-						worker.logger.debug(`ffmpeg failed: ${args.join(' ')}: ${stringifyError(err)}`)
+						worker.logger.debug(
+							`FFMpeg failed [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}: ${stringifyError(err)}`
+						)
 						ffMpegProcess = undefined
 						workInProgress._reportError(err)
 					},
@@ -240,6 +241,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 					}
 					// ,worker.logger.debug
 				)
+				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
 			})
 
 			return workInProgress

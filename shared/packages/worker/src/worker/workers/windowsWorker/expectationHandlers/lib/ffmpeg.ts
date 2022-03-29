@@ -12,6 +12,7 @@ import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFol
 import { assertNever, stringifyError } from '@shared/api'
 
 export interface FFMpegProcess {
+	pid: number
 	cancel: () => void
 }
 /** Check if FFMpeg is available, returns null if no error found */
@@ -54,7 +55,7 @@ export function testFFExecutable(ffExecutable: string): Promise<string | null> {
 }
 
 /** Spawn an ffmpeg process and make it to output its content to the target */
-export async function runffMpeg<Metadata>(
+export async function spawnFFMpeg<Metadata>(
 	/** Arguments to send into ffmpeg, excluding the final arguments for output */
 	args: string[],
 	targetHandle:
@@ -73,7 +74,7 @@ export async function runffMpeg<Metadata>(
 		if (FFMpegIsDone && uploadIsDone) {
 			onDone().catch((error) => {
 				// workInProgress._reportError(error)
-				onFail(error).catch((error) => log?.(`runffMpeg onFail callback failed: ${stringifyError(error)}`))
+				onFail(error).catch((error) => log?.(`spawnFFMpeg onFail callback failed: ${stringifyError(error)}`))
 			})
 		}
 	}
@@ -104,6 +105,12 @@ export async function runffMpeg<Metadata>(
 	)
 	log?.('ffmpeg: spawned')
 
+	function killFFMpeg() {
+		ffMpegProcess?.stdin.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+		ffMpegProcess?.kill()
+		ffMpegProcess = undefined
+	}
+
 	if (pipeStdOut) {
 		log?.('ffmpeg: pipeStdOut')
 		if (!ffMpegProcess.stdout) {
@@ -113,7 +120,8 @@ export async function runffMpeg<Metadata>(
 		const writeStream = await targetHandle.putPackageStream(ffMpegProcess.stdout)
 		writeStream.on('error', (err) => {
 			onFail(err).catch((error) => log?.(`onFail callback failed: ${stringifyError(error)}`))
-			log?.('ffmpeg: err' + err)
+			log?.('ffmpeg: pipeStdOut err: ' + stringifyError(err))
+			killFFMpeg()
 		})
 		writeStream.once('close', () => {
 			uploadIsDone = true
@@ -154,7 +162,7 @@ export async function runffMpeg<Metadata>(
 				// 	((uploadIsDone ? 1 : 0.9) * progress) / fileDuration
 				// )
 				onProgress?.(((uploadIsDone ? 1 : 0.9) * progress) / fileDuration).catch((err) =>
-					log?.(`runffMpeg onProgress update failed: ${stringifyError(err)}`)
+					log?.(`spawnFFMpeg onProgress update failed: ${stringifyError(err)}`)
 				)
 				return
 			}
@@ -176,7 +184,7 @@ export async function runffMpeg<Metadata>(
 			} else {
 				// workInProgress._reportError(new Error(`FFMpeg exit code ${code}: ${lastFewLines.join('\n')}`))
 				onFail(new Error(`FFMpeg exit code ${code}: ${lastFewLines.join('\n')}`)).catch((err) =>
-					log?.(`runffMpeg onFail callback failed: ${stringifyError(err)}`)
+					log?.(`spawnFFMpeg onFail callback failed: ${stringifyError(err)}`)
 				)
 			}
 		}
@@ -190,12 +198,13 @@ export async function runffMpeg<Metadata>(
 
 	// Report back an initial status, because it looks nice:
 	// workInProgress._reportProgress(actualSourceVersionHash, 0)
-	onProgress?.(0).catch((err) => log?.(`runffMpeg onProgress update failed: ${stringifyError(err)}`))
+	onProgress?.(0).catch((err) => log?.(`spawnFFMpeg onProgress update failed: ${stringifyError(err)}`))
 
 	return {
+		pid: ffMpegProcess.pid,
 		cancel: () => {
-			ffMpegProcess?.stdin.write('q') // send "q" to quit, because .kill() doesn't quite do it.
-			ffMpegProcess?.kill()
+			killFFMpeg()
+			onFail(`Cancelled`).catch((err) => log?.(`spawnFFMpeg onFail callback failed: ${stringifyError(err)}`))
 		},
 	}
 }
