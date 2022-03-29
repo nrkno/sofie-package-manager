@@ -29,7 +29,7 @@
 		"mkdirp": "^1.0.4",
 		"node-fetch": "^2.6.1",
 		"tmp": "~0.2.1",
-		"tv-automation-quantel-gateway-client": "^2.0.2",
+		"tv-automation-quantel-gateway-client": "2.0.5-nightly-latest-20220303-125803-c460f04.0",
 		"windows-network-drive": "^3.0.1",
 		"xml-js": "^1.6.11"
 	},

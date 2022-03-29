@@ -10680,6 +10680,13 @@ tunnel-agent@^0.6.0:
   dependencies:
     safe-buffer "^5.0.1"
 
+tv-automation-quantel-gateway-client@2.0.5-nightly-latest-20220303-125803-c460f04.0:
+  version "2.0.5-nightly-latest-20220303-125803-c460f04.0"
+  resolved "https://registry.yarnpkg.com/tv-automation-quantel-gateway-client/-/tv-automation-quantel-gateway-client-2.0.5-nightly-latest-20220303-125803-c460f04.0.tgz#69ae3a8fdae3b97bd35708dd5dc52c5067a7c89a"
+  integrity sha512-lJB8XRmDATC/FDYGk/bAuvKW5hIAq+PZQx6u8StY9bvoEVE6iQQXCEP/u0lVdv+w1Qfm1/vrCTQfBu0nQKAnoQ==
+  dependencies:
+    got "^11.8.2"
+
 tv-automation-quantel-gateway-client@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/tv-automation-quantel-gateway-client/-/tv-automation-quantel-gateway-client-2.0.2.tgz#5d5db5525e1d3af8e575edeccd223cac672184f9"
