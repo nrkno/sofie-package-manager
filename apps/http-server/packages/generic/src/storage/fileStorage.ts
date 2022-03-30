@@ -67,12 +67,24 @@ export class FileStorage extends Storage {
 
 		return true
 	}
-	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+	private async getFileInfo(
+		paramPath: string
+	): Promise<
+		| {
+				found: false
+		  }
+		| {
+				found: true
+				fullPath: string
+				mimeType: string
+				length: number
+				lastModified: Date
+		  }
+	> {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
-			this.logger.error(`[404] GET ${ctx.URL}`)
-			return { code: 404, reason: 'Package not found' }
+			return { found: false }
 		}
 		let mimeType = mime.lookup(fullPath)
 		if (!mimeType) {
@@ -83,11 +95,44 @@ export class FileStorage extends Storage {
 
 		const stat = await fsStat(fullPath)
 
-		ctx.type = mimeType // or use mime.contentType(fullPath) ?
-		const readStream = fs.createReadStream(fullPath)
-		ctx.body = readStream
+		return {
+			found: true,
+			fullPath,
+			mimeType,
+			length: stat.size,
+			lastModified: stat.mtime,
+		}
+	}
+	async headPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+		const fileInfo = await this.getFileInfo(paramPath)
 
-		ctx.length = stat.size
+		if (!fileInfo.found) {
+			this.logger.error(`[404] HEAD ${ctx.URL}`)
+			return { code: 404, reason: 'Package not found' }
+		}
+
+		ctx.type = fileInfo.mimeType
+		ctx.length = fileInfo.length
+		ctx.lastModified = fileInfo.lastModified
+
+		ctx.response.status = 204
+
+		ctx.body = undefined
+
+		return true
+	}
+	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+		const fileInfo = await this.getFileInfo(paramPath)
+		if (!fileInfo.found) {
+			this.logger.error(`[404] GET ${ctx.URL}`)
+			return { code: 404, reason: 'Package not found' }
+		}
+
+		ctx.type = fileInfo.mimeType // or use mime.contentType(fullPath) ?
+		ctx.length = fileInfo.length
+		ctx.lastModified = fileInfo.lastModified
+		const readStream = fs.createReadStream(fileInfo.fullPath)
+		ctx.body = readStream
 
 		return true
 	}
@@ -104,6 +149,7 @@ export class FileStorage extends Storage {
 			await fsWriteFile(fullPath, ctx.request.body.text)
 
 			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.response.status = 201
 			return true
 		} else if (ctx.request.files?.length) {
 			const file = ctx.request.files[0] as any
@@ -112,6 +158,7 @@ export class FileStorage extends Storage {
 			stream.pipe(fs.createWriteStream(fullPath))
 
 			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.response.status = 201
 			return true
 		} else {
 			this.logger.error(`[400] POST ${ctx.URL}`)

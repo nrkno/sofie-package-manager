@@ -84,7 +84,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true }
 	}
 	async tryPackageRead(): Promise<AccessorHandlerResult> {
-		// TODO: Do a OPTIONS request?
+		// TODO: Do a HEAD request?
 		// 204 or 404 is "not found"
 		// Access-Control-Allow-Methods should contain GET
 		return { success: true }
@@ -231,7 +231,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 	}
 	private async fetchHeader() {
-		const fetch = fetchWithController(this.fullUrl)
+		const fetch = fetchWithController(this.fullUrl, {
+			method: 'HEAD',
+		})
 		const res = await fetch.response
 
 		res.body.on('error', () => {
@@ -244,8 +246,6 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			lastModified: res.headers.get('last-modified'),
 			etags: res.headers.get('etag'),
 		}
-		// We've got the headers, abort the call so we don't have to download the whole file:
-		fetch.controller.abort()
 
 		return {
 			status: res.status,

@@ -258,7 +258,9 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 	}
 	private async fetchHeader() {
-		const fetch = fetchWithController(this.fullUrl)
+		const fetch = fetchWithController(this.fullUrl, {
+			method: 'HEAD',
+		})
 		const res = await fetch.response
 
 		res.body.on('error', () => {
@@ -271,8 +273,6 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			lastModified: res.headers.get('last-modified'),
 			etags: res.headers.get('etag'),
 		}
-		// We've got the headers, abort the call so we don't have to download the whole file:
-		fetch.controller.abort()
 
 		return {
 			status: res.status,

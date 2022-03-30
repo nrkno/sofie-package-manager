@@ -3,6 +3,7 @@ import { CTX, CTXPost } from '../lib'
 export abstract class Storage {
 	abstract init(): Promise<void>
 	abstract listPackages(ctx: CTX): Promise<true | BadResponse>
+	abstract headPackage(path: string, ctx: CTX): Promise<true | BadResponse>
 	abstract getPackage(path: string, ctx: CTX): Promise<true | BadResponse>
 	abstract postPackage(path: string, ctx: CTXPost): Promise<true | BadResponse>
 	abstract deletePackage(path: string, ctx: CTXPost): Promise<true | BadResponse>
