@@ -182,7 +182,7 @@ export class WorkerAgent {
 		}
 		for (const currentJob of this.currentJobs) {
 			if (currentJob.wipId) {
-				this.cancelJob(currentJob.wipId).catch((error) => {
+				this.cancelJob(currentJob).catch((error) => {
 					this.logger.error(`WorkerAgent.terminate: Error in cancelJob: ${stringifyError(error)}`)
 				})
 			}
@@ -378,7 +378,7 @@ export class WorkerAgent {
 							this.removeJob(currentJob)
 
 							Promise.race([
-								this.cancelJob(currentJob.wipId),
+								this.cancelJob(currentJob),
 								new Promise((_, reject) => {
 									setTimeout(
 										() =>
@@ -632,8 +632,16 @@ export class WorkerAgent {
 			}
 		}
 	}
-	private async cancelJob(wipId: number): Promise<void> {
-		const currentJob = this.currentJobs.find((job) => job.wipId === wipId)
+	private async cancelJob(currentJobOrId: CurrentJob | number): Promise<void> {
+		let wipId: number
+		let currentJob: CurrentJob | undefined
+		if (typeof currentJobOrId === 'number') {
+			wipId = currentJobOrId
+			currentJob = this.currentJobs.find((job) => job.wipId === wipId)
+		} else {
+			currentJob = currentJobOrId
+			wipId = currentJob.wipId
+		}
 
 		if (currentJob) {
 			if (currentJob.workInProgress) {
