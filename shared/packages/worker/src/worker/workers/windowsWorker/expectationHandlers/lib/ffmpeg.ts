@@ -140,6 +140,8 @@ export async function spawnFFMpeg<Metadata>(
 
 		log?.('ffmpeg:' + str)
 
+		// Duration is reported by FFMpeg at the beginning, this means that it successfully opened the source
+		// stream and has begun processing
 		const m = str.match(/Duration:\s?(\d+):(\d+):([\d.]+)/)
 		if (m) {
 			const hh = m[1]
@@ -147,9 +149,16 @@ export async function spawnFFMpeg<Metadata>(
 			const ss = m[3]
 
 			fileDuration = parseInt(hh, 10) * 3600 + parseInt(mm, 10) * 60 + parseFloat(ss)
+
+			// Report back an initial status, because it looks nice:
+			// workInProgress._reportProgress(actualSourceVersionHash, 0)
+			onProgress?.(0).catch((err) => log?.(`spawnFFMpeg onProgress update failed: ${stringifyError(err)}`))
+
 			return
 		}
 		if (fileDuration) {
+			// Time position in source is reported periodically, but we need fileDuration to convert that into
+			// percentages
 			const m2 = str.match(/time=\s?(\d+):(\d+):([\d.]+)/)
 			if (m2) {
 				const hh = m2[1]
@@ -195,10 +204,6 @@ export async function spawnFFMpeg<Metadata>(
 	ffMpegProcess.on('exit', (code) => {
 		onClose(code)
 	})
-
-	// Report back an initial status, because it looks nice:
-	// workInProgress._reportProgress(actualSourceVersionHash, 0)
-	onProgress?.(0).catch((err) => log?.(`spawnFFMpeg onProgress update failed: ${stringifyError(err)}`))
 
 	return {
 		pid: ffMpegProcess.pid,
