@@ -14,6 +14,7 @@ import {
 	Expectation,
 	waitTime,
 	APPCONTAINER_PING_TIME,
+	APPCONTAINER_MAX_KEEPALIVE,
 	PackageContainerExpectation,
 	Reason,
 	stringifyError,
@@ -43,6 +44,7 @@ export class AppContainer {
 			workerAgentApi: WorkerAgentAPI | null
 			monitorPing: boolean
 			lastPing: number
+			start: number
 		}
 	} = {}
 	private availableApps: {
@@ -420,6 +422,7 @@ export class AppContainer {
 			lastPing: Date.now(),
 			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
 			workerAgentApi: null,
+			start: Date.now(),
 		}
 		return appId
 	}
@@ -513,6 +516,17 @@ export class AppContainer {
 						)
 					})
 				}
+			}
+			// try to avoid shutting down all workers at the same time
+			const randomizeOffset = 2.5 * APPCONTAINER_PING_TIME * Math.random()
+			if (Date.now() - app.start > APPCONTAINER_MAX_KEEPALIVE + randomizeOffset) {
+				this.spinDown(appId, `Lifetime exceeded Max KeepAlive for apps: ${APPCONTAINER_MAX_KEEPALIVE}ms`).catch(
+					(error) => {
+						this.logger.error(
+							`AppContainer: Error when spinning down app "${appId}": ${stringifyError(error)}`
+						)
+					}
+				)
 			}
 		}
 		this.spinUpMinimumApps().catch((error) => {
