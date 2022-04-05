@@ -350,26 +350,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	/** */
 	private async getPackagesToRemove(): Promise<DelayPackageRemovalEntry[]> {
-		const RETRY_COUNT = 5
-		let retries = 0
-		let packagesToRemove: DelayPackageRemovalEntry[] | undefined = undefined
-		let lastError
-		do {
-			try {
-				packagesToRemove = await this.fetchJSON(this.deferRemovePackagesPath)
-			} catch (e) {
-				if (e instanceof Error && e.message.match(/Timeout when fetching/)) {
-					lastError = e
-				} else {
-					throw e
-				}
-			}
-			retries++
-		} while (packagesToRemove === undefined && retries < RETRY_COUNT)
-		if (packagesToRemove === undefined && retries >= RETRY_COUNT && lastError) {
-			throw lastError
-		}
-		return packagesToRemove ?? []
+		return (await this.fetchJSON(this.deferRemovePackagesPath)) ?? []
 	}
 	private async storePackagesToRemove(packagesToRemove: DelayPackageRemovalEntry[]): Promise<void> {
 		await this.storeJSON(this.deferRemovePackagesPath, packagesToRemove)
