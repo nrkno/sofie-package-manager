@@ -3,7 +3,7 @@
 const promisify = require('util').promisify
 const cp = require('child_process')
 const path = require('path')
-const nexe = require('nexe')
+const { exec: pkg } = require('pkg')
 const exec = promisify(cp.exec)
 const glob = promisify(require('glob'))
 
@@ -26,7 +26,6 @@ if (!executableName) {
 }
 
 ;(async () => {
-
 	log(`Collecting dependencies for ${packageJson.name}...`)
 	// List all Lerna packages:
 	const list = await exec('yarn lerna list -a --json')
@@ -77,18 +76,24 @@ if (!executableName) {
 	await Promise.all(ps)
 	ps = []
 
-	log(`Compiling using nexe...`)
+	log(`Compiling using pkg...`)
 
-	const nexeOutputPath = path.join(outputDirectory, executableName)
+	const pkgOutputPath = path.join(outputDirectory, executableName)
 
-	console.log('nexeOutputPath', nexeOutputPath)
+	console.log('pkgOutputPath', pkgOutputPath)
 
-	await nexe.compile({
-		input: path.join(basePath, './dist/index.js'),
-		output: nexeOutputPath,
-		// build: true, //required to use patches
-		targets: ['windows-x64-12.18.1'],
-	})
+	// await nexe.compile({
+	// 	input: path.join(basePath, './dist/index.js'),
+	// 	output: pkgOutputPath,
+	// 	// build: true, //required to use patches
+	// 	targets: ['windows-x64-12.18.1'],
+	// })
+
+	const TARGET = 'node16-win-x64'
+
+	const options = []
+
+	await pkg([path.join(basePath, './dist/index.js'), '--target', TARGET, '--output', pkgOutputPath, ...options])
 
 	log(`Cleaning up...`)
 	// Clean up after ourselves:
