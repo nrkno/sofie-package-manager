@@ -16,6 +16,7 @@ import {
 	hashObj,
 	Statuses,
 	StatusCode,
+	setLogLevel,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -60,7 +61,9 @@ export class Workforce {
 	} = {}
 	private evaluateStatusTimeout: NodeJS.Timeout | null = null
 
-	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, config: WorkforceConfig) {
+		this.logger = logger.category('Workforce')
 		if (config.workforce.port !== null) {
 			this.websocketServer = new WebsocketServer(
 				config.workforce.port,
@@ -145,7 +148,7 @@ export class Workforce {
 				this.logger.error(`Workforce: WebsocketServer closed`)
 			})
 		}
-		this.workerHandler = new WorkerHandler(this)
+		this.workerHandler = new WorkerHandler(this.logger, this)
 	}
 
 	async init(): Promise<void> {
@@ -345,7 +348,7 @@ export class Workforce {
 	}
 
 	public setLogLevel(logLevel: LogLevel): void {
-		this.logger.setLogLevel(logLevel)
+		setLogLevel(logLevel)
 	}
 	public async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
 		const workerAgent = this.workerAgents[appId]

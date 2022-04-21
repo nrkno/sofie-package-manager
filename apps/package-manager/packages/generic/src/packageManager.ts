@@ -74,14 +74,16 @@ export class PackageManagerHandler {
 		packageContainerExpectations: {},
 	}
 
+	private logger: LoggerInstance
 	constructor(
-		public logger: LoggerInstance,
+		logger: LoggerInstance,
 		private managerId: string,
 		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions
 	) {
-		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this)
+		this.logger = logger.category('PackageManager')
+		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this.logger, this)
 
 		this.expectationManager = new ExpectationManager(
 			this.logger,
@@ -424,8 +426,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	> = {}
 	private expectationManagerStatuses: Statuses = {}
 
-	constructor(private packageManager: PackageManagerHandler) {
-		this.logger = this.packageManager.logger
+	constructor(logger: LoggerInstance, private packageManager: PackageManagerHandler) {
+		this.logger = logger.category('ExpectationManagerCallbacksHandler')
 	}
 
 	public reportExpectationStatus(

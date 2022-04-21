@@ -9,7 +9,7 @@ export class WorkforceAPI
 	extends AdapterClient<WorkForceAppContainer.AppContainer, WorkForceAppContainer.WorkForce>
 	implements WorkForceAppContainer.WorkForce {
 	constructor(logger: LoggerInstance) {
-		super(logger, 'appContainer')
+		super(logger.category('WorkforceAPI'), 'appContainer')
 	}
 	async registerAvailableApps(availableApps: { appType: string }[]): Promise<void> {
 		return this._sendMessage('registerAvailableApps', availableApps)

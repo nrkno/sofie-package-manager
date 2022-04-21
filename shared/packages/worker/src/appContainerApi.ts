@@ -9,7 +9,7 @@ export class AppContainerAPI
 	extends AdapterClient<AppContainerWorkerAgent.WorkerAgent, AppContainerWorkerAgent.AppContainer>
 	implements AppContainerWorkerAgent.AppContainer {
 	constructor(logger: LoggerInstance) {
-		super(logger, 'workerAgent')
+		super(logger.category('AppContainerAPI'), 'workerAgent')
 	}
 	async ping(): Promise<void> {
 		return this._sendMessage('ping')

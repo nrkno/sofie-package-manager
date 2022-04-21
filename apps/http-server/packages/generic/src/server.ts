@@ -20,8 +20,10 @@ export class PackageProxyServer {
 	private upload = multer({ limits: { fileSize: 300 * 1024 * 1024 } })
 
 	private storage: Storage
+	private logger: LoggerInstance
 
-	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
+	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
+		this.logger = logger.category('PackageProxyServer')
 		this.app.on('error', (err) => {
 			const errString = stringifyError(err)
 

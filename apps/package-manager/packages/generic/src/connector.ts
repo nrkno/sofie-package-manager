@@ -36,12 +36,10 @@ export class Connector {
 	private packageManagerHandler: PackageManagerHandler
 	private coreHandler: CoreHandler
 
-	constructor(
-		private _logger: LoggerInstance,
-		private config: PackageManagerConfig,
-		private _process: ProcessHandler
-	) {
-		this.coreHandler = new CoreHandler(this._logger, this.config.packageManager)
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, private config: PackageManagerConfig, private _process: ProcessHandler) {
+		this.logger = logger.category('Connector')
+		this.coreHandler = new CoreHandler(this.logger, this.config.packageManager)
 
 		const packageManagerServerOptions: ExpectationManagerServerOptions =
 			config.packageManager.port !== null
@@ -59,7 +57,7 @@ export class Connector {
 			: { type: 'internal' }
 
 		this.packageManagerHandler = new PackageManagerHandler(
-			this._logger,
+			this.logger,
 			config.packageManager.deviceId || 'manager0',
 			packageManagerServerOptions,
 			config.packageManager.accessUrl || undefined,
@@ -70,34 +68,34 @@ export class Connector {
 	public async init(): Promise<void> {
 		try {
 			if (!this.config.packageManager.noCore) {
-				this._logger.info('Initializing Core...')
+				this.logger.info('Initializing Core...')
 				await this.coreHandler.init(this.config, this._process)
-				this._logger.info('Core initialized')
+				this.logger.info('Core initialized')
 			} else {
-				this._logger.info('Skipping connecting to Core...')
+				this.logger.info('Skipping connecting to Core...')
 				this.coreHandler.setNoCore()
 			}
 
-			this._logger.info('Initializing PackageManager...')
+			this.logger.info('Initializing PackageManager...')
 			await this.packageManagerHandler.init(this.config, this.coreHandler)
-			this._logger.info('PackageManager initialized')
+			this.logger.info('PackageManager initialized')
 
 			if (this.config.packageManager.watchFiles) {
-				this._logger.info('Initializing file watcher...')
+				this.logger.info('Initializing file watcher...')
 				await this.initFileWatcher(this.packageManagerHandler)
-				this._logger.info('file watcher initialized')
+				this.logger.info('file watcher initialized')
 			}
 
-			this._logger.info('Initialization done')
+			this.logger.info('Initialization done')
 			return
 		} catch (e) {
-			this._logger.error(`Error during initialization: ${stringifyError(e)}`)
+			this.logger.error(`Error during initialization: ${stringifyError(e)}`)
 
 			if (this.coreHandler) {
-				this.coreHandler.destroy().catch(this._logger.error)
+				this.coreHandler.destroy().catch(this.logger.error)
 			}
 
-			this._logger.info('Shutting down in 10 seconds!')
+			this.logger.info('Shutting down in 10 seconds!')
 			setTimeout(() => {
 				// eslint-disable-next-line no-process-exit
 				process.exit(0)
@@ -110,7 +108,7 @@ export class Connector {
 		const fileName = path.join(process.cwd(), './expectedPackages.json')
 		const watcher = chokidar.watch(fileName, { persistent: true })
 
-		this._logger.info(`Watching file "${fileName}"`)
+		this.logger.info(`Watching file "${fileName}"`)
 
 		watcher
 			.on('add', () => {
@@ -123,17 +121,17 @@ export class Connector {
 				triggerReloadInput()
 			})
 			.on('error', (error) => {
-				this._logger.error(`Error emitter in Filewatcher: ${stringifyError(error)}`)
+				this.logger.error(`Error emitter in Filewatcher: ${stringifyError(error)}`)
 			})
 		const triggerReloadInput = () => {
 			setTimeout(() => {
 				reloadInput().catch((error) => {
-					this._logger.error(`Error in reloadInput: ${stringifyError(error)}`)
+					this.logger.error(`Error in reloadInput: ${stringifyError(error)}`)
 				})
 			}, 100)
 		}
 		const reloadInput = async () => {
-			this._logger.info(`Change detected in ${fileName}`)
+			this.logger.info(`Change detected in ${fileName}`)
 			// Check that the file exists:
 			try {
 				await fsAccess(fileName)

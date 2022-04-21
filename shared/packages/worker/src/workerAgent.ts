@@ -23,6 +23,7 @@ import {
 	Reason,
 	stringifyError,
 	WorkerStatusReport,
+	setLogLevel,
 } from '@shared/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -67,8 +68,10 @@ export class WorkerAgent {
 	private activeMonitors: { [containerId: string]: { [monitorId: string]: MonitorInProgress } } = {}
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
+	private logger: LoggerInstance
 
-	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
+	constructor(logger: LoggerInstance, private config: WorkerConfig) {
+		this.logger = logger.category('WorkerAgent')
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('Worker: Workforce disconnected')
@@ -238,7 +241,7 @@ export class WorkerAgent {
 		delete this.expectationManagers[id]
 	}
 	public async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.setLogLevel(logLevel)
+		setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {
 		this.terminate()

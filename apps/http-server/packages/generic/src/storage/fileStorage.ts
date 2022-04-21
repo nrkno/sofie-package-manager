@@ -17,8 +17,10 @@ const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
 
 export class FileStorage extends Storage {
-	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
 		super()
+		this.logger = logger.category('FileStorage')
 	}
 
 	async init(): Promise<void> {

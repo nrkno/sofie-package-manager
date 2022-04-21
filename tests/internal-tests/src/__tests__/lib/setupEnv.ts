@@ -8,9 +8,13 @@ import {
 	ExpectationManagerWorkerAgent,
 	LoggerInstance,
 	LogLevel,
+	ProcessConfig,
 	Reason,
+	setLogLevel,
+	setupLogger,
 	setupLogging,
 	SingleAppConfig,
+	initializeLogger,
 } from '@shared/api'
 // import deepExtend from 'deep-extend'
 import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
@@ -79,19 +83,14 @@ const defaultTestConfig: SingleAppConfig = {
 }
 
 export async function setupExpectationManager(
+	config: { process: ProcessConfig },
 	debugLogging: boolean,
 	workerCount: number = 1,
 	callbacks: ExpectationManagerCallbacks,
 	options?: ExpectationManagerOptions
 ) {
-	const logger = setupLogging({
-		process: {
-			certificates: [],
-			logPath: undefined,
-			unsafeSSL: false,
-		},
-	})
-	logger.setLogLevel(debugLogging ? LogLevel.DEBUG : LogLevel.WARN)
+	const logger = setupLogger(config, '')
+	setLogLevel(debugLogging ? LogLevel.DEBUG : LogLevel.WARN)
 
 	const expectationManager = new ExpectationManager(
 		logger,
@@ -172,7 +171,17 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	const WORK_TIMEOUT_TIME = 900 // ms
 	const ERROR_WAIT_TIME = 500
 
+	const config: { process: ProcessConfig } = {
+		process: {
+			certificates: [],
+			logPath: undefined,
+			unsafeSSL: false,
+		},
+	}
+	initializeLogger(config)
+
 	const em = await setupExpectationManager(
+		config,
 		debugLogging,
 		1,
 		{
