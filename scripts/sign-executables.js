@@ -51,23 +51,34 @@ const rl = readline.createInterface({
 	console.log(`Found ${executables.length} executables`)
 	console.log(`Found ${certificates.length} certificates`)
 
+	let signedAny = false
+
 	for (const certificate of certificates) {
-		console.log(`Signing with certificate ${certificate}...`)
+		console.log(`\nSigning with certificate ${certificate}...`)
 
 		const password = await new Promise((resolve) => {
 			rl.question('Enter password for certificate: ', resolve)
 		})
 
-		for (const executable of executables) {
-			const e = await execPromise(
-				`signtool sign /fd SHA256 /f ${certificate} ${password ? `/p ${password} ` : ''} ${executable}`
-			)
-			if (e.stderr) console.log(e.stderr)
-			if (e.stdout) console.log(e.stdout)
+		if (!password) {
+			console.log('No password provided, skipping...')
+		} else {
+			signedAny = true
+			for (const executable of executables) {
+				const e = await execPromise(
+					`signtool sign /fd SHA256 /f ${certificate} ${password ? `/p ${password} ` : ''} ${executable}`
+				)
+				if (e.stderr) console.log(e.stderr)
+				if (e.stdout) console.log(e.stdout)
+			}
 		}
 	}
 
-	console.log(`Done, signed ${executables.length} executables.`)
+	if (signedAny) {
+		console.log(`Done, signed ${executables.length} executables.`)
+	} else {
+		console.log(`Done, but didn't sign any executables.`)
+	}
 })()
 	.then(() => {
 		process.exit(0)
