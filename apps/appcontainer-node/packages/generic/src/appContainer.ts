@@ -20,6 +20,7 @@ import {
 	stringifyError,
 	LeveledLogMethod,
 	setLogLevel,
+	isNodeRunningInDebugMode,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
@@ -32,6 +33,7 @@ export class AppContainer {
 	private id: string
 	private workForceConnectionOptions: ClientConnectionOptions
 	private appId = 0
+	private usedInspectPorts = new Set<number>()
 
 	private apps: {
 		[appId: string]: {
@@ -469,8 +471,24 @@ export class AppContainer {
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
 
+		let inspectPort: number | undefined = undefined
+		if (isNodeRunningInDebugMode()) {
+			// Also start child processes in debug mode:
+			for (let i = 9100; i < 10000; i++) {
+				if (!this.usedInspectPorts.has(i)) {
+					inspectPort = i
+					break
+				}
+			}
+		}
+		if (inspectPort) this.logger.debug(`Child process will be started in debug mode with port ${inspectPort}`)
+
 		const child = cp.spawn(availableApp.file, availableApp.args(appId), {
 			cwd: cwd,
+			env: {
+				...process.env,
+				NODE_OPTIONS: inspectPort ? `--inspect=127.0.0.1:${inspectPort}` : undefined,
+			},
 		})
 
 		child.stdout.on('data', (message) => {
@@ -481,6 +499,7 @@ export class AppContainer {
 			// this.logger.debug(`${appId} stderr: ${message}`)
 		})
 		child.once('exit', (code) => {
+			if (inspectPort) this.usedInspectPorts.delete(inspectPort)
 			const app = this.apps[appId]
 			if (app && !app.toBeKilled) {
 				// Try to restart the application
