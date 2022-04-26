@@ -34,6 +34,7 @@ export class AppContainer {
 	private workForceConnectionOptions: ClientConnectionOptions
 	private appId = 0
 	private usedInspectPorts = new Set<number>()
+	private busyPorts = new Set<number>()
 
 	private apps: {
 		[appId: string]: {
@@ -475,13 +476,16 @@ export class AppContainer {
 		if (isNodeRunningInDebugMode()) {
 			// Also start child processes in debug mode:
 			for (let i = 9100; i < 10000; i++) {
-				if (!this.usedInspectPorts.has(i)) {
+				if (!this.usedInspectPorts.has(i) && !this.busyPorts.has(i)) {
 					inspectPort = i
 					break
 				}
 			}
 		}
-		if (inspectPort) this.logger.debug(`Child process will be started in debug mode with port ${inspectPort}`)
+		if (inspectPort) {
+			this.logger.debug(`Child process will be started in debug mode with port ${inspectPort}`)
+			this.usedInspectPorts.add(inspectPort)
+		}
 
 		const child = cp.spawn(availableApp.file, availableApp.args(appId), {
 			cwd: cwd,
@@ -565,6 +569,13 @@ export class AppContainer {
 				// Ignore some messages:
 				if (message.indexOf('NODE_TLS_REJECT_UNAUTHORIZED') !== -1) {
 					continue
+				}
+
+				// Handle an issue with busy ports:
+				const m = `${message}`.match(/Starting inspector on 127.0.0.1:(\d+) failed/i)
+				if (m) {
+					const busyPort = parseInt(m[1])
+					this.busyPorts.add(busyPort)
 				}
 
 				const json = JSON.parse(`${message}`)
