@@ -103,56 +103,6 @@ export function generateExpectations(
 		activeRundownMap.set(activeRundown._id, activeRundown)
 	}
 
-	function getInitialPriority(packageWrap: ExpectedPackageWrap, exp: Expectation.Any): number {
-		// Returns the initial priority, based on the expectedPackage
-
-		const activeRundown: ActiveRundown | undefined = packageWrap.expectedPackage.rundownId
-			? activeRundownMap.get(packageWrap.expectedPackage.rundownId)
-			: undefined
-
-		if (activeRundown) {
-			// The expected package is in an active rundown.
-			// Earlier rundowns should have higher priority:
-			return exp.priority + activeRundown._rank + PriorityMagnitude.PLAY_NOW
-		} else {
-			// The expected package is in an inactive rundown.
-			// Make that a low priority:
-			return exp.priority + PriorityMagnitude.OTHER
-		}
-	}
-	function addExpectation(packageWrap: ExpectedPackageWrap, exp: Expectation.Any) {
-		// Set the priority of the Expectation:
-		exp.priority = getInitialPriority(packageWrap, exp)
-
-		const existingExp = expectations[exp.id]
-		if (existingExp) {
-			// There is already an expectation pointing at the same place.
-
-			existingExp.priority = Math.min(existingExp.priority, exp.priority)
-
-			const existingPackage = existingExp.fromPackages[0]
-			const newPackage = exp.fromPackages[0]
-
-			if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
-				// log warning:
-				logger.warn(`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`)
-				logger.warn(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
-				logger.warn(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
-				logger.warn(`${JSON.stringify(exp.startRequirement)}`)
-
-				// TODO: log better warnings!
-			} else {
-				existingExp.fromPackages.push(exp.fromPackages[0])
-			}
-		} else {
-			expectations[exp.id] = {
-				...exp,
-				sideEffect: packageWrap.expectedPackage.sideEffect,
-				external: packageWrap.external,
-			}
-		}
-	}
-
 	const smartbullExpectations: ExpectedPackageWrap[] = [] // Hack, Smartbull
 	let orgSmartbullExpectedPackage: ExpectedPackageWrap | undefined = undefined // Hack, Smartbull
 	for (const packageWrap of expectedPackages) {
@@ -199,7 +149,7 @@ export function generateExpectations(
 				exp = generateJsonDataCopy(managerId, packageWrap, settings)
 			}
 			if (exp) {
-				addExpectation(packageWrap, exp)
+				addExpectation(logger, activeRundownMap, expectations, packageWrap, exp)
 			}
 		}
 	}
@@ -239,7 +189,7 @@ export function generateExpectations(
 				if (exp) {
 					// @ts-expect-error hack
 					exp.__isSmartbull = true
-					addExpectation(newPackage, exp)
+					addExpectation(logger, activeRundownMap, expectations, newPackage, exp)
 				}
 			} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
 		}
@@ -923,4 +873,64 @@ export function generatePackageContainerExpectations(
 	}
 
 	return o
+}
+
+function getInitialPriority(
+	activeRundownMap: Map<string, ActiveRundown>,
+	packageWrap: ExpectedPackageWrap,
+	exp: Expectation.Any
+): number {
+	// Returns the initial priority, based on the expectedPackage
+
+	const activeRundown: ActiveRundown | undefined = packageWrap.expectedPackage.rundownId
+		? activeRundownMap.get(packageWrap.expectedPackage.rundownId)
+		: undefined
+
+	if (activeRundown) {
+		// The expected package is in an active rundown.
+		// Earlier rundowns should have higher priority:
+		return exp.priority + activeRundown._rank + PriorityMagnitude.PLAY_NOW
+	} else {
+		// The expected package is in an inactive rundown.
+		// Make that a low priority:
+		return exp.priority + PriorityMagnitude.OTHER
+	}
+}
+function addExpectation(
+	logger: LoggerInstance,
+	activeRundownMap: Map<string, ActiveRundown>,
+	expectations: { [id: string]: GenerateExpectation },
+	packageWrap: ExpectedPackageWrap,
+	exp: Expectation.Any
+) {
+	// Set the priority of the Expectation:
+	exp.priority = getInitialPriority(activeRundownMap, packageWrap, exp)
+
+	const existingExp = expectations[exp.id]
+	if (existingExp) {
+		// There is already an expectation pointing at the same place.
+
+		existingExp.priority = Math.min(existingExp.priority, exp.priority)
+
+		const existingPackage = existingExp.fromPackages[0]
+		const newPackage = exp.fromPackages[0]
+
+		if (existingPackage.expectedContentVersionHash !== newPackage.expectedContentVersionHash) {
+			// log warning:
+			logger.warn(`WARNING: 2 expectedPackages have the same content, but have different contentVersions!`)
+			logger.warn(`"${existingPackage.id}": ${existingPackage.expectedContentVersionHash}`)
+			logger.warn(`"${newPackage.id}": ${newPackage.expectedContentVersionHash}`)
+			logger.warn(`${JSON.stringify(exp.startRequirement)}`)
+
+			// TODO: log better warnings!
+		} else {
+			existingExp.fromPackages.push(exp.fromPackages[0])
+		}
+	} else {
+		expectations[exp.id] = {
+			...exp,
+			sideEffect: packageWrap.expectedPackage.sideEffect,
+			external: packageWrap.external,
+		}
+	}
 }
