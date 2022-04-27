@@ -832,7 +832,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		)
 	}
 
-	private async reportStatus<Status, Ids>(
+	private async reportStatus<Status extends { [key: string]: any } | null, Ids>(
 		toReportStatus: ReportStatuses<Status | null, Ids>,
 		reportedStatuses: ReportStatuses<Status, Ids>,
 		sendChanges: (changesToSend: ChangesTosend<Status, Ids>) => Promise<void>
@@ -840,7 +840,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		const changesTosend: ChangesTosend<Status, Ids> = []
 
 		for (const [key, o] of Object.entries(toReportStatus)) {
-			if (o.hash) {
+			if (o.hash !== null) {
 				if (!o.status) {
 					// Removed
 					if (reportedStatuses[key]) {
@@ -884,9 +884,18 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					}
 
 					// Now, check if the toReportStatus hash is still the same:
-					if (toReportStatus[change.key].hash === change.hash) {
+					const orgToReportStaus = toReportStatus[change.key] as ReportStatus<Status, Ids> | undefined
+					if (orgToReportStaus && orgToReportStaus.hash === change.hash) {
 						// Ok, this means that we have sent the latest update to Core.
-						toReportStatus[change.key].hash = null
+
+						if (orgToReportStaus.status === null) {
+							// The original data was deleted, so we can delete it, to prevent mamory leaks:
+							delete toReportStatus[change.key]
+							delete reportedStatuses[change.key]
+						} else {
+							// Set the hash to null
+							orgToReportStaus.hash = null
+						}
 					}
 				}
 			} catch (err) {
@@ -942,6 +951,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		this.packageManager.triggerUpdatedExpectedPackages()
 	}
 	private getIncrement(): number {
+		if (this.increment >= Number.MAX_SAFE_INTEGER) this.increment = 0
 		return this.increment++
 	}
 }
@@ -1071,12 +1081,13 @@ export interface PackageManagerSettings {
 }
 
 type ReportStatuses<Status, Ids> = {
-	[key: string]: {
-		status: Status
-		ids: Ids
-		/** A unique value updated whenever the value is updated */
-		hash: number | null
-	}
+	[key: string]: ReportStatus<Status, Ids>
+}
+type ReportStatus<Status, Ids> = {
+	status: Status
+	ids: Ids
+	/** A unique value updated whenever the status is updated, or set to null if the status has already been reported. */
+	hash: number | null
 }
 type ChangesTosend<Status, Ids> = (
 	| {
