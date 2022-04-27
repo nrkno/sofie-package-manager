@@ -51,13 +51,18 @@ export async function startSingleApp(): Promise<void> {
 	const connector = new PackageManager.Connector(baseLogger, config, process)
 	const expectationManager = connector.getExpectationManager()
 
-	logger.info('Initializing HTTP proxy Server')
-	const httpServer = new HTTPServer.PackageProxyServer(baseLogger, config)
-	await httpServer.init()
+	if (!config.singleApp.noHTTPServers) {
+		logger.info('Initializing HTTP proxy Server')
+		const httpServer = new HTTPServer.PackageProxyServer(baseLogger, config)
+		await httpServer.init()
 
-	logger.info('Initializing Quantel HTTP Transform proxy Server')
-	const quantelHTTPTransformerProxy = new QuantelHTTPTransformerProxy.QuantelHTTPTransformerProxy(baseLogger, config)
-	await quantelHTTPTransformerProxy.init()
+		logger.info('Initializing Quantel HTTP Transform proxy Server')
+		const quantelHTTPTransformerProxy = new QuantelHTTPTransformerProxy.QuantelHTTPTransformerProxy(
+			baseLogger,
+			config
+		)
+		await quantelHTTPTransformerProxy.init()
+	}
 
 	logger.info('Initializing Package Manager (and Expectation Manager)')
 	expectationManager.hookToWorkforce(workforce.getExpectationManagerHook())
