@@ -86,17 +86,27 @@ export function fetchWithController(
 				})
 			}
 
-			fetch(url, { ...options, signal: controller.signal, agent: selectAgent })
-				.then((response) => {
+			const doTheFetch = () =>
+				fetch(url, { ...options, signal: controller.signal, agent: selectAgent }).then((response) => {
 					// At this point, the headers have been received.
 
 					// Clear the timeout:
 					clearTimeout(timeout)
 					resolve(response)
 				})
-				.catch((err) => {
+
+			doTheFetch().catch((err) => {
+				if (`${err}`.match(/connect EADDRINUSE/)) {
+					// This means that a local port is already in use.
+					// We should try again once as it often is a temporary issue:
+
+					doTheFetch().catch((err) => {
+						reject(err)
+					})
+				} else {
 					reject(err)
-				})
+				}
+			})
 		}),
 		controller,
 	}
