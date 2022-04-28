@@ -7,9 +7,7 @@ const rimraf = promisify(require('rimraf'))
 
 const basePath = process.cwd()
 
-
 ;(async () => {
-
 	log(`Cleaning up...`)
 
 	await rimraf(path.resolve(path.join(basePath, 'tmp_packages_for_build')))
