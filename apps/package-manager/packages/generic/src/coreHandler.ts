@@ -10,7 +10,6 @@ import {
 
 import { DeviceConfig } from './connector'
 
-import fs from 'fs'
 import {
 	LoggerInstance,
 	PackageManagerConfig,
@@ -426,25 +425,6 @@ export class CoreHandler {
 
 		if (process.env.npm_package_version) {
 			versions['_process'] = process.env.npm_package_version
-		}
-
-		const dirNames = ['@sofie-automation/server-core-integration']
-		try {
-			const nodeModulesDirectories = fs.readdirSync('node_modules')
-			for (const dir of nodeModulesDirectories) {
-				try {
-					if (dirNames.indexOf(dir) !== -1) {
-						let file = 'node_modules/' + dir + '/package.json'
-						file = fs.readFileSync(file, 'utf8')
-						const json = JSON.parse(file)
-						versions[dir] = json.version || 'N/A'
-					}
-				} catch (e) {
-					this.logger.error(`Error in _getVersions, dir "${dir}": ${stringifyError(e)}`)
-				}
-			}
-		} catch (e) {
-			this.logger.error(`Error in _getVersions: ${stringifyError(e)}`)
 		}
 		return versions
 	}
