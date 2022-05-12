@@ -2,21 +2,17 @@
 // import * as PackageManager from '@package-manager/generic'
 import * as Workforce from '@shared/workforce'
 import * as Worker from '@shared/worker'
-import * as Winston from 'winston'
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
-	LoggerInstance,
 	LogLevel,
 	ProcessConfig,
 	Reason,
 	setLogLevel,
 	setupLogger,
-	setupLogging,
 	SingleAppConfig,
 	initializeLogger,
 } from '@shared/api'
-// import deepExtend from 'deep-extend'
 import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
@@ -25,6 +21,7 @@ const defaultTestConfig: SingleAppConfig = {
 	singleApp: {
 		workerCount: 1,
 		workforcePort: 0,
+		noHTTPServers: false,
 	},
 	process: {
 		logPath: '',

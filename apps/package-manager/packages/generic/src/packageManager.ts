@@ -295,7 +295,7 @@ export class PackageManagerHandler {
 			this.settings
 		)
 		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
-		// console.log(JSON.stringify(expectations, null, 2))
+		// this.logger.debug(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
 		const packageContainerExpectations = this.expectationGeneratorApi.getPackageContainerExpectations(
