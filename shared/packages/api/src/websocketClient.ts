@@ -13,14 +13,16 @@ export class WebsocketClient extends WebsocketConnection {
 	private connected = false
 	private reconnectTimeout: NodeJS.Timeout | null = null
 
+	private logger: LoggerInstance
 	constructor(
-		private logger: LoggerInstance,
+		logger: LoggerInstance,
 		private readonly id: string,
 		private readonly url: string,
 		private readonly clientType: MessageIdentifyClient['clientType'],
 		onMessage: (message: MessageBase) => Promise<any>
 	) {
 		super(onMessage)
+		this.logger = logger.category('WebsocketClient')
 	}
 
 	async connect(): Promise<void> {

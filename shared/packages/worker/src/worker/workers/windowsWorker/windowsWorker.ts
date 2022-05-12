@@ -48,7 +48,7 @@ export class WindowsWorker extends GenericWorker {
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
-		super(logger, config, location, sendMessageToManager, WindowsWorker.type)
+		super(logger.category('WindowsWorker'), config, location, sendMessageToManager, WindowsWorker.type)
 		if (process.platform !== 'win32') {
 			throw new Error('The Worker is a Windows-only application')
 		}

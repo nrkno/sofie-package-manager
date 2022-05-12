@@ -197,6 +197,11 @@ const appContainerArguments = defineArguments({
 })
 /** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
+	noHTTPServers: {
+		type: 'boolean',
+		default: process.env.NO_HTTP_SERVERS === '1',
+		describe: 'If set, the app will not start the HTTP servers',
+	},
 	workerCount: {
 		type: 'number',
 		default: parseInt(process.env.WORKER_COUNT || '', 10) || 1,
@@ -416,6 +421,7 @@ export interface SingleAppConfig
 		AppContainerProcessConfig,
 		QuantelHTTPTransformerProxyConfig {
 	singleApp: {
+		noHTTPServers: boolean
 		workerCount: number
 		workforcePort: number
 	}
@@ -452,6 +458,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		packageManager: getPackageManagerConfig().packageManager,
 		worker: getWorkerConfig().worker,
 		singleApp: {
+			noHTTPServers: argv.noHTTPServers ?? false,
 			workerCount: argv.workerCount || 1,
 			workforcePort: argv.workforcePort,
 		},

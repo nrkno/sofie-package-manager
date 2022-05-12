@@ -17,7 +17,7 @@ export class WorkforceAPI
 	extends AdapterClient<WorkForceExpectationManager.ExpectationManager, WorkForceExpectationManager.WorkForce>
 	implements WorkForceExpectationManager.WorkForce {
 	constructor(logger: LoggerInstance) {
-		super(logger, 'expectationManager')
+		super(logger.category('WorkforceAPI'), 'expectationManager')
 	}
 
 	async registerExpectationManager(managerId: string, url: string): Promise<void> {

@@ -8,7 +8,7 @@
         "build:main": "tsc -p tsconfig.json",
         "build-win32": "mkdir deploy & node ../../../scripts/build-win32.js package-manager-single-app.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
-        "start": "node dist/index.js",
+        "start": "node --inspect dist/index.js",
         "precommit": "lint-staged"
     },
     "devDependencies": {

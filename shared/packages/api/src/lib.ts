@@ -201,3 +201,9 @@ function diffInner(a: unknown, b: unknown): [string, string[]] | null {
 	}
 	return [`${a} !== ${b}`, []]
 }
+export function isNodeRunningInDebugMode(): boolean {
+	return (
+		// @ts-expect-error v8debug is a NodeJS global
+		typeof v8debug === 'object' || /--debug|--inspect/.test(process.execArgv.join(' ') + process.env.NODE_OPTIONS)
+	)
+}

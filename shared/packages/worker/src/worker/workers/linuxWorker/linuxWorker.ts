@@ -26,7 +26,7 @@ export class LinuxWorker extends GenericWorker {
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		location: WorkerLocation
 	) {
-		super(logger, config, location, sendMessageToManager, LinuxWorker.type)
+		super(logger.category('LinuxWorker'), config, location, sendMessageToManager, LinuxWorker.type)
 	}
 	async doYouSupportExpectation(_exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return {

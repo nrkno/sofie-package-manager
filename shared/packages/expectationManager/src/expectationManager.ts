@@ -21,6 +21,7 @@ import {
 	HelpfulEventEmitter,
 	Statuses,
 	hashObj,
+	setLogLevel,
 } from '@shared/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
@@ -115,8 +116,9 @@ export class ExpectationManager extends HelpfulEventEmitter {
 	/** Timestamp, used to determine how long the work-queue has been stuck */
 	private monitorStatusWaiting: number | null = null
 
+	private logger: LoggerInstance
 	constructor(
-		private logger: LoggerInstance,
+		logger: LoggerInstance,
 		public readonly managerId: string,
 		private serverOptions: ExpectationManagerServerOptions,
 		/** At what url the ExpectationManager can be reached on */
@@ -126,6 +128,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		options?: ExpectationManagerOptions
 	) {
 		super()
+		this.logger = logger.category('ExpectationManager')
 		this.constants = {
 			...getDefaultConstants(),
 			...options?.constants,
@@ -356,7 +359,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 	}
 	/** Called by Workforce */
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.setLogLevel(logLevel)
+		setLogLevel(logLevel)
 	}
 	/** Called by Workforce*/
 	async _debugKill(): Promise<void> {

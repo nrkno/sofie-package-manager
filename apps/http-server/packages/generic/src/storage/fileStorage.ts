@@ -5,7 +5,7 @@ import mime from 'mime-types'
 import mkdirp from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
 import { CTX, CTXPost } from '../lib'
-import { HTTPServerConfig, LoggerInstance } from '@shared/api'
+import { HTTPServerConfig } from '@shared/api'
 import { BadResponse, Storage } from './storage'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
@@ -17,7 +17,7 @@ const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
 
 export class FileStorage extends Storage {
-	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
+	constructor(private config: HTTPServerConfig) {
 		super()
 	}
 
@@ -107,7 +107,6 @@ export class FileStorage extends Storage {
 		const fileInfo = await this.getFileInfo(paramPath)
 
 		if (!fileInfo.found) {
-			this.logger.error(`[404] HEAD ${ctx.URL}`)
 			return { code: 404, reason: 'Package not found' }
 		}
 
@@ -124,7 +123,6 @@ export class FileStorage extends Storage {
 	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
 		const fileInfo = await this.getFileInfo(paramPath)
 		if (!fileInfo.found) {
-			this.logger.error(`[404] GET ${ctx.URL}`)
 			return { code: 404, reason: 'Package not found' }
 		}
 
@@ -161,7 +159,6 @@ export class FileStorage extends Storage {
 			ctx.response.status = 201
 			return true
 		} else {
-			this.logger.error(`[400] POST ${ctx.URL}`)
 			return { code: 400, reason: 'No files provided' }
 		}
 	}
@@ -169,7 +166,6 @@ export class FileStorage extends Storage {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
-			this.logger.error(`[404] DELETE ${ctx.URL}`)
 			return { code: 404, reason: 'Package not found' }
 		}
 
