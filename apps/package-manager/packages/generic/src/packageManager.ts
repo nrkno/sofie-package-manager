@@ -2,7 +2,6 @@ import _ from 'underscore'
 import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
-import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
 import {
 	ExpectationManager,
 	ExpectationManagerCallbacks,
@@ -34,6 +33,9 @@ import {
 	UpdatePackageContainerPackageStatusesChanges,
 	UpdatePackageContainerStatusesChanges,
 } from './api'
+import { GenerateExpectationApi } from './generateExpectations/api'
+
+import * as NRK from './generateExpectations/nrk'
 
 export class PackageManagerHandler {
 	public coreHandler!: CoreHandler
@@ -74,6 +76,8 @@ export class PackageManagerHandler {
 		packageContainerExpectations: {},
 	}
 
+	private expectationGeneratorApi: GenerateExpectationApi
+
 	private logger: LoggerInstance
 	constructor(
 		logger: LoggerInstance,
@@ -97,6 +101,8 @@ export class PackageManagerHandler {
 		this.expectationManager.on('status', (statuses: Statuses) => {
 			this.callbacksHandler.updateExpectationManagerStatuses(statuses)
 		})
+
+		this.expectationGeneratorApi = NRK.api
 	}
 
 	async init(_config: PackageManagerConfig, coreHandler: CoreHandler): Promise<void> {
@@ -279,7 +285,7 @@ export class PackageManagerHandler {
 		this.dataSnapshot.packageContainers = this.packageContainersCache
 
 		// Step 1: Generate expectations:
-		const expectations = generateExpectations(
+		const expectations = this.expectationGeneratorApi.getExpectations(
 			this.logger,
 			this.expectationManager.managerId,
 			this.packageContainersCache,
@@ -292,7 +298,7 @@ export class PackageManagerHandler {
 		// console.log(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
-		const packageContainerExpectations = generatePackageContainerExpectations(
+		const packageContainerExpectations = this.expectationGeneratorApi.getPackageContainerExpectations(
 			this.expectationManager.managerId,
 			this.packageContainersCache,
 			activePlaylist
