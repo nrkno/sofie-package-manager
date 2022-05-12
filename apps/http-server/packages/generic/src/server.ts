@@ -31,7 +31,7 @@ export class PackageProxyServer {
 			if (errString.match(/ECONNRESET|ECONNABORTED|ECANCELED/)) {
 				// ignore these
 			} else {
-				this.logger.warn(`PackageProxyServer Error: ${errString}`)
+				this.logger.error(`PackageProxyServer Error: ${errString}`)
 			}
 		})
 
@@ -94,11 +94,11 @@ export class PackageProxyServer {
 			await this.handleStorage(ctx, () => this.storage.headPackage(ctx.params.path, ctx))
 		})
 		this.router.post('/package/:path+', async (ctx) => {
-			this.logger.warn(`POST ${ctx.request.URL}`)
+			this.logger.debug(`POST ${ctx.request.URL}`)
 			await this.handleStorage(ctx, () => this.storage.postPackage(ctx.params.path, ctx))
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
-			this.logger.warn(`DELETE ${ctx.request.URL}`)
+			this.logger.debug(`DELETE ${ctx.request.URL}`)
 			await this.handleStorage(ctx, () => this.storage.deletePackage(ctx.params.path, ctx))
 		})
 
