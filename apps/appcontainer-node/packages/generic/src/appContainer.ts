@@ -286,6 +286,10 @@ export class AppContainer {
 			process.exit(42)
 		}, 1)
 	}
+	/** FOR DEBUGGING ONLY. Cut websocket connections, in order to ensure that they are restarted */
+	async _debugSendKillConnections(): Promise<void> {
+		this.workforceAPI.debugCutConnection()
+	}
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any

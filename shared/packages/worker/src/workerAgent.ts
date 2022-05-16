@@ -251,6 +251,11 @@ export class WorkerAgent {
 			process.exit(42)
 		}, 1)
 	}
+	/** FOR DEBUGGING ONLY. Cut websocket connections, in order to ensure that they are restarted */
+	async _debugSendKillConnections(): Promise<void> {
+		this.workforceAPI.debugCutConnection()
+		this.appContainerAPI.debugCutConnection()
+	}
 	async getStatusReport(): Promise<WorkerStatusReport> {
 		const activeMonitors: WorkerStatusReport['activeMonitors'] = []
 

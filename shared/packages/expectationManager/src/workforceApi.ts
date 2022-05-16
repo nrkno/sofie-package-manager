@@ -40,6 +40,10 @@ export class WorkforceAPI
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('_debugKillApp', appId)
 	}
+	async _debugSendKillConnections(): Promise<void> {
+		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
+		return this._sendMessage('_debugSendKillConnections')
+	}
 	async requestResourcesForExpectation(exp: Expectation.Any): Promise<boolean> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('requestResourcesForExpectation', exp)
