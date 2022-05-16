@@ -29,7 +29,7 @@
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
-        "node": ">=14.18.0"
+        "node": "^14.18.0"
     },
     "lint-staged": {
         "*.{js,css,json,md,scss}": [
