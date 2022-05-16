@@ -77,6 +77,11 @@ export class WebsocketClient extends WebsocketConnection {
 		this.ws?.close()
 		this.ws?.removeAllListeners()
 	}
+	/** FOR DEBUGGING ONLY. Cuts off the connection, used to ensure that reconnections work as intended */
+	_debugCutConnection(): void {
+		// this.ws?.close()
+		this.ws?.terminate()
+	}
 
 	private onLostConnection() {
 		if (this.connected) {

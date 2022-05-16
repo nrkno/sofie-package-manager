@@ -284,6 +284,9 @@ export class Workforce {
 			_debugKillApp: async (appId: string): Promise<void> => {
 				return this._debugKillApp(appId)
 			},
+			_debugSendKillConnections: async (): Promise<void> => {
+				return this._debugSendKillConnections()
+			},
 		}
 	}
 	/** Return the API-methods that the Workforce exposes to the AppContainer */
@@ -375,6 +378,19 @@ export class Workforce {
 
 		if (appId === 'workforce') return this._debugKill()
 		throw new Error(`App with id "${appId}" not found`)
+	}
+	public async _debugSendKillConnections(): Promise<void> {
+		for (const workerAgent of Object.values(this.workerAgents)) {
+			await workerAgent.api._debugSendKillConnections()
+		}
+
+		for (const appContainer of Object.values(this.appContainers)) {
+			await appContainer.api._debugSendKillConnections()
+		}
+
+		for (const expectationManager of Object.values(this.expectationManagers)) {
+			await expectationManager.api._debugSendKillConnections()
+		}
 	}
 
 	public async removeExpectationManager(managerId: string): Promise<void> {

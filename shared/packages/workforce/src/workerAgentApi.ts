@@ -21,6 +21,9 @@ export class WorkerAgentAPI
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
 	}
+	async _debugSendKillConnections(): Promise<void> {
+		return this._sendMessage('_debugSendKillConnections')
+	}
 	async getStatusReport(): Promise<WorkerStatusReport> {
 		return this._sendMessage('getStatusReport')
 	}

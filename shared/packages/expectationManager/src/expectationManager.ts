@@ -39,6 +39,7 @@ import { getDefaultTrackedExpectation, sortTrackedExpectations } from './lib/exp
 
 export class ExpectationManager extends HelpfulEventEmitter {
 	private constants: ExpectationManagerConstants
+	private enableChaosMonkey = false
 
 	private workforceAPI: WorkforceAPI
 
@@ -133,6 +134,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			...getDefaultConstants(),
 			...options?.constants,
 		}
+		this.enableChaosMonkey = options?.chaosMonkey ?? false
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('ExpectationManager: Workforce disconnected')
@@ -244,6 +246,13 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		await new Promise<void>((resolve, reject) => {
 			this.initWorkForceAPIPromise = { resolve, reject }
 		})
+		if (this.enableChaosMonkey) {
+			// Chaos-monkey, make the various processes cut their connections, to ensure that the reconnection works:
+			setInterval(() => {
+				this.logger.info('Chaos Monkey says: "KILLING CONNNECTIONS" ==========')
+				this.sendDebugKillConnections().catch(this.logger.error)
+			}, 30 * 1000)
+		}
 
 		this.logger.info(`ExpectationManager: Initialized"`)
 	}
@@ -285,6 +294,10 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		// this.worksInProgress
 
 		this._triggerEvaluateExpectations(true)
+	}
+	/** USED IN TESTS ONLY. Send out a message to all connected processes that they are to cut their connections. This is to test resilience. */
+	async sendDebugKillConnections(): Promise<void> {
+		await this.workforceAPI._debugSendKillConnections()
 	}
 	/** Returns a Hook used to hook up a WorkerAgent to our API-methods. */
 	getWorkerAgentHook(): Hook<
@@ -368,6 +381,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			// eslint-disable-next-line no-process-exit
 			process.exit(42)
 		}, 1)
+	}
+	/** FOR DEBUGGING ONLY. Cut websocket connections, in order to ensure that they are restarted */
+	async _debugSendKillConnections(): Promise<void> {
+		this.workforceAPI.debugCutConnection()
+		// note: workers cut their own connections
 	}
 	async onWorkForceStatus(statuses: Statuses): Promise<void> {
 		for (const [id, status] of Object.entries(statuses)) {
@@ -2124,7 +2142,6 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			}
 		}
 	}
-
 	private _updateStatus(id: string, status: { statusCode: StatusCode; message: string } | null) {
 		this.statuses[id] = status
 
@@ -2170,7 +2187,8 @@ function expLabel(exp: TrackedExpectation): string {
 	return `${id} ${exp.exp.statusReport.label.slice(0, 50)}`
 }
 export interface ExpectationManagerOptions {
-	constants: Partial<ExpectationManagerConstants>
+	constants?: Partial<ExpectationManagerConstants>
+	chaosMonkey?: boolean
 }
 export type ExpectationManagerServerOptions =
 	| {

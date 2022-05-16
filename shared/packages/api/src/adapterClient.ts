@@ -108,6 +108,13 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 		this.conn?.close()
 		delete this.serverHook
 	}
+	/** FOR DEBUGGING ONLY. Cut the connection in order to ensure that they are restarted */
+	debugCutConnection(): void {
+		// Delay the cut, to ensure that the message has time to propagate:
+		setTimeout(() => {
+			this.conn?._debugCutConnection()
+		}, 1000)
+	}
 	get connected(): boolean {
 		return this._connected
 	}
