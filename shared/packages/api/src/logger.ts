@@ -33,7 +33,7 @@ export function initializeLogger(config: { process: ProcessConfig }): void {
 	const processLogger = setupLogger(config, 'process', 'Process', true)
 	// Because the default NodeJS-handler sucks and wont display error properly
 	process.on('unhandledRejection', (reason: any, p: any) => {
-		processLogger.error(`Unhandled Promise rejection, reason: ${reason}, promise: ${p}`)
+		processLogger.error(`Unhandled Promise rejection, reason: ${stringifyError(reason)}, promise: ${p}`)
 	})
 	process.on('warning', (e: any) => {
 		processLogger.error(`Unhandled warning: ${stringifyError(e)}`)
