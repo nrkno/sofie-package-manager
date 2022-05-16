@@ -106,8 +106,13 @@ export async function spawnFFMpeg<Metadata>(
 	log?.('ffmpeg: spawned')
 
 	function killFFMpeg() {
-		ffMpegProcess?.stdin.write('q') // send "q" to quit, because .kill() doesn't quite do it.
-		ffMpegProcess?.kill()
+		// ensure this function doesn't throw, since it is called from various error event handlers
+		try {
+			ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffMpegProcess?.kill()
+		} catch (e) {
+			// This is probably OK, errors likely means that the process is already dead
+		}
 		ffMpegProcess = undefined
 	}
 
