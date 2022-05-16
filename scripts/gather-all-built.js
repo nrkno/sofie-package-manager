@@ -22,7 +22,14 @@ const targetFolder = 'deploy/'
 	// clear folder:
 	const files = await fseReaddir(targetFolder)
 	for (const file of files) {
-		if (!file.match(/ffmpeg|ffprobe|filestorage/i)) {
+		if (
+			// Only match executables:
+			file.match(/.*\.exe/) &&
+			// Leave the ffmpeg / ffprobe files:
+			!file.match(/ffmpeg|ffprobe/) &&
+			// Leave the filestorage folder:
+			!file.match(/filestorage/)
+		) {
 			await fseUnlink(path.join(targetFolder, file))
 		}
 	}

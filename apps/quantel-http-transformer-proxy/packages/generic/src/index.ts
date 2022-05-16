@@ -1,11 +1,18 @@
 import { QuantelHTTPTransformerProxy } from './server'
-import { getQuantelHTTPTransformerProxyConfig, ProcessHandler, setupLogging, stringifyError } from '@shared/api'
+import {
+	getQuantelHTTPTransformerProxyConfig,
+	ProcessHandler,
+	initializeLogger,
+	stringifyError,
+	setupLogger,
+} from '@shared/api'
 
 export { QuantelHTTPTransformerProxy }
 export async function startProcess(): Promise<void> {
 	const config = getQuantelHTTPTransformerProxyConfig()
 
-	const logger = setupLogging(config)
+	initializeLogger(config)
+	const logger = setupLogger(config, '')
 
 	logger.info('------------------------------------------------------------------')
 	logger.info('Starting Quantel HTTP Transformer Proxy Server')

@@ -18,6 +18,8 @@ import {
 	Statuses,
 	stringifyError,
 	hashObj,
+	setLogLevel,
+	getLogLevel,
 } from '@shared/api'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
@@ -45,7 +47,7 @@ export interface PeripheralDeviceCommand {
  * Represents a connection between the Gateway and Core
  */
 export class CoreHandler {
-	logger: LoggerInstance
+	private logger: LoggerInstance
 	public _observers: Array<any> = []
 	public deviceSettings: { [key: string]: any } = {}
 
@@ -69,7 +71,7 @@ export class CoreHandler {
 	private reportedStatusHash = ''
 
 	constructor(logger: LoggerInstance, deviceOptions: DeviceConfig) {
-		this.logger = logger
+		this.logger = logger.category('CoreHandler')
 		this._deviceOptions = deviceOptions
 	}
 
@@ -229,10 +231,10 @@ export class CoreHandler {
 			}
 
 			const logLevel = this.deviceSettings['logLevel'] ?? 'info'
-			if (logLevel !== this.logger.getLogLevel()) {
-				this.logger.setLogLevel(logLevel)
+			if (logLevel !== getLogLevel()) {
+				setLogLevel(logLevel)
 
-				this.logger.info('Loglevel: ' + this.logger.getLogLevel())
+				this.logger.info('Loglevel: ' + getLogLevel())
 
 				// this.logger.debug('Test debug logging')
 				// this.logger.verbose('Test verbose')

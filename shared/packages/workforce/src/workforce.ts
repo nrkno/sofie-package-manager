@@ -16,6 +16,7 @@ import {
 	hashObj,
 	Statuses,
 	StatusCode,
+	setLogLevel,
 } from '@shared/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -60,7 +61,9 @@ export class Workforce {
 	} = {}
 	private evaluateStatusTimeout: NodeJS.Timeout | null = null
 
-	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, config: WorkforceConfig) {
+		this.logger = logger.category('Workforce')
 		if (config.workforce.port !== null) {
 			this.websocketServer = new WebsocketServer(
 				config.workforce.port,
@@ -145,7 +148,7 @@ export class Workforce {
 				this.logger.error(`Workforce: WebsocketServer closed`)
 			})
 		}
-		this.workerHandler = new WorkerHandler(this)
+		this.workerHandler = new WorkerHandler(this.logger, this)
 	}
 
 	async init(): Promise<void> {
@@ -281,6 +284,9 @@ export class Workforce {
 			_debugKillApp: async (appId: string): Promise<void> => {
 				return this._debugKillApp(appId)
 			},
+			_debugSendKillConnections: async (): Promise<void> => {
+				return this._debugSendKillConnections()
+			},
 		}
 	}
 	/** Return the API-methods that the Workforce exposes to the AppContainer */
@@ -345,7 +351,7 @@ export class Workforce {
 	}
 
 	public setLogLevel(logLevel: LogLevel): void {
-		this.logger.setLogLevel(logLevel)
+		setLogLevel(logLevel)
 	}
 	public async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
 		const workerAgent = this.workerAgents[appId]
@@ -372,6 +378,19 @@ export class Workforce {
 
 		if (appId === 'workforce') return this._debugKill()
 		throw new Error(`App with id "${appId}" not found`)
+	}
+	public async _debugSendKillConnections(): Promise<void> {
+		for (const workerAgent of Object.values(this.workerAgents)) {
+			await workerAgent.api._debugSendKillConnections()
+		}
+
+		for (const appContainer of Object.values(this.appContainers)) {
+			await appContainer.api._debugSendKillConnections()
+		}
+
+		for (const expectationManager of Object.values(this.expectationManagers)) {
+			await expectationManager.api._debugSendKillConnections()
+		}
 	}
 
 	public async removeExpectationManager(managerId: string): Promise<void> {

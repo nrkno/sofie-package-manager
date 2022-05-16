@@ -2,17 +2,17 @@
 // import * as PackageManager from '@package-manager/generic'
 import * as Workforce from '@shared/workforce'
 import * as Worker from '@shared/worker'
-import * as Winston from 'winston'
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
-	LoggerInstance,
 	LogLevel,
+	ProcessConfig,
 	Reason,
-	setupLogging,
+	setLogLevel,
+	setupLogger,
 	SingleAppConfig,
+	initializeLogger,
 } from '@shared/api'
-// import deepExtend from 'deep-extend'
 import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
@@ -21,6 +21,7 @@ const defaultTestConfig: SingleAppConfig = {
 	singleApp: {
 		workerCount: 1,
 		workforcePort: 0,
+		noHTTPServers: false,
 	},
 	process: {
 		logPath: '',
@@ -79,19 +80,14 @@ const defaultTestConfig: SingleAppConfig = {
 }
 
 export async function setupExpectationManager(
+	config: { process: ProcessConfig },
 	debugLogging: boolean,
 	workerCount: number = 1,
 	callbacks: ExpectationManagerCallbacks,
 	options?: ExpectationManagerOptions
 ) {
-	const logger = setupLogging({
-		process: {
-			certificates: [],
-			logPath: undefined,
-			unsafeSSL: false,
-		},
-	})
-	logger.setLogLevel(debugLogging ? LogLevel.DEBUG : LogLevel.WARN)
+	const logger = setupLogger(config, '')
+	setLogLevel(debugLogging ? LogLevel.DEBUG : LogLevel.WARN)
 
 	const expectationManager = new ExpectationManager(
 		logger,
@@ -172,7 +168,17 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	const WORK_TIMEOUT_TIME = 900 // ms
 	const ERROR_WAIT_TIME = 500
 
+	const config: { process: ProcessConfig } = {
+		process: {
+			certificates: [],
+			logPath: undefined,
+			unsafeSSL: false,
+		},
+	}
+	initializeLogger(config)
+
 	const em = await setupExpectationManager(
+		config,
 		debugLogging,
 		1,
 		{

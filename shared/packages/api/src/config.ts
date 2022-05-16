@@ -105,6 +105,11 @@ const packageManagerArguments = defineArguments({
 		default: process.env.NO_CORE === '1',
 		describe: 'If true, Package Manager wont try to connect to Sofie Core',
 	},
+	chaosMonkey: {
+		type: 'boolean',
+		default: process.env.CHAOS_MONKEY === '1',
+		describe: 'If true, enables the "chaos monkey"-feature, which will randomly kill processes every few seconds',
+	},
 })
 /** CLI-argument-definitions for the Worker process */
 const workerArguments = defineArguments({
@@ -197,6 +202,11 @@ const appContainerArguments = defineArguments({
 })
 /** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
+	noHTTPServers: {
+		type: 'boolean',
+		default: process.env.NO_HTTP_SERVERS === '1',
+		describe: 'If set, the app will not start the HTTP servers',
+	},
 	workerCount: {
 		type: 'number',
 		default: parseInt(process.env.WORKER_COUNT || '', 10) || 1,
@@ -316,6 +326,7 @@ export interface PackageManagerConfig {
 
 		watchFiles: boolean
 		noCore: boolean
+		chaosMonkey: boolean
 	}
 }
 export function getPackageManagerConfig(): PackageManagerConfig {
@@ -339,6 +350,7 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 
 			watchFiles: argv.watchFiles,
 			noCore: argv.noCore,
+			chaosMonkey: argv.chaosMonkey,
 		},
 	}
 }
@@ -416,6 +428,7 @@ export interface SingleAppConfig
 		AppContainerProcessConfig,
 		QuantelHTTPTransformerProxyConfig {
 	singleApp: {
+		noHTTPServers: boolean
 		workerCount: number
 		workforcePort: number
 	}
@@ -452,6 +465,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		packageManager: getPackageManagerConfig().packageManager,
 		worker: getWorkerConfig().worker,
 		singleApp: {
+			noHTTPServers: argv.noHTTPServers ?? false,
 			workerCount: argv.workerCount || 1,
 			workforcePort: argv.workforcePort,
 		},

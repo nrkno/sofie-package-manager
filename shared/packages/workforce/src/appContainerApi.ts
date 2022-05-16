@@ -29,6 +29,9 @@ export class AppContainerAPI
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
 	}
+	async _debugSendKillConnections(): Promise<void> {
+		return this._sendMessage('_debugSendKillConnections')
+	}
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any

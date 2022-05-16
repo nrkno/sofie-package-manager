@@ -21,6 +21,9 @@ export class ExpectationManagerAPI
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
 	}
+	async _debugSendKillConnections(): Promise<void> {
+		return this._sendMessage('_debugSendKillConnections')
+	}
 	async onWorkForceStatus(statuses: Statuses): Promise<void> {
 		return this._sendMessage('onWorkForceStatus', statuses)
 	}

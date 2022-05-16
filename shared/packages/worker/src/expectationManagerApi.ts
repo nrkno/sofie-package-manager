@@ -9,7 +9,7 @@ export class ExpectationManagerAPI
 	extends AdapterClient<ExpectationManagerWorkerAgent.WorkerAgent, ExpectationManagerWorkerAgent.ExpectationManager>
 	implements ExpectationManagerWorkerAgent.ExpectationManager {
 	constructor(logger: LoggerInstance) {
-		super(logger, 'workerAgent')
+		super(logger.category('ExpectationManagerAPI'), 'workerAgent')
 	}
 
 	async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {

@@ -2,7 +2,6 @@ import _ from 'underscore'
 import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
-import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
 import {
 	ExpectationManager,
 	ExpectationManagerCallbacks,
@@ -34,6 +33,9 @@ import {
 	UpdatePackageContainerPackageStatusesChanges,
 	UpdatePackageContainerStatusesChanges,
 } from './api'
+import { GenerateExpectationApi } from './generateExpectations/api'
+
+import * as NRK from './generateExpectations/nrk'
 
 export class PackageManagerHandler {
 	public coreHandler!: CoreHandler
@@ -74,14 +76,19 @@ export class PackageManagerHandler {
 		packageContainerExpectations: {},
 	}
 
+	private expectationGeneratorApi: GenerateExpectationApi
+
+	private logger: LoggerInstance
 	constructor(
-		public logger: LoggerInstance,
+		logger: LoggerInstance,
 		private managerId: string,
 		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
-		private workForceConnectionOptions: ClientConnectionOptions
+		private workForceConnectionOptions: ClientConnectionOptions,
+		chaosMonkey: boolean
 	) {
-		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this)
+		this.logger = logger.category('PackageManager')
+		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this.logger, this)
 
 		this.expectationManager = new ExpectationManager(
 			this.logger,
@@ -89,12 +96,17 @@ export class PackageManagerHandler {
 			this.serverOptions,
 			this.serverAccessUrl,
 			this.workForceConnectionOptions,
-			this.callbacksHandler
+			this.callbacksHandler,
+			{
+				chaosMonkey: chaosMonkey,
+			}
 		)
 		this.expectationManager.on('error', (e) => `Caught error from ExpectationManager: ${stringifyError(e)}`)
 		this.expectationManager.on('status', (statuses: Statuses) => {
 			this.callbacksHandler.updateExpectationManagerStatuses(statuses)
 		})
+
+		this.expectationGeneratorApi = NRK.api
 	}
 
 	async init(_config: PackageManagerConfig, coreHandler: CoreHandler): Promise<void> {
@@ -277,7 +289,7 @@ export class PackageManagerHandler {
 		this.dataSnapshot.packageContainers = this.packageContainersCache
 
 		// Step 1: Generate expectations:
-		const expectations = generateExpectations(
+		const expectations = this.expectationGeneratorApi.getExpectations(
 			this.logger,
 			this.expectationManager.managerId,
 			this.packageContainersCache,
@@ -287,10 +299,10 @@ export class PackageManagerHandler {
 			this.settings
 		)
 		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
-		// console.log(JSON.stringify(expectations, null, 2))
+		// this.logger.debug(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
-		const packageContainerExpectations = generatePackageContainerExpectations(
+		const packageContainerExpectations = this.expectationGeneratorApi.getPackageContainerExpectations(
 			this.expectationManager.managerId,
 			this.packageContainersCache,
 			activePlaylist
@@ -424,8 +436,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	> = {}
 	private expectationManagerStatuses: Statuses = {}
 
-	constructor(private packageManager: PackageManagerHandler) {
-		this.logger = this.packageManager.logger
+	constructor(logger: LoggerInstance, private packageManager: PackageManagerHandler) {
+		this.logger = logger.category('ExpectationManagerCallbacksHandler')
 	}
 
 	public reportExpectationStatus(
@@ -830,7 +842,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		)
 	}
 
-	private async reportStatus<Status, Ids>(
+	private async reportStatus<Status extends { [key: string]: any } | null, Ids>(
 		toReportStatus: ReportStatuses<Status | null, Ids>,
 		reportedStatuses: ReportStatuses<Status, Ids>,
 		sendChanges: (changesToSend: ChangesTosend<Status, Ids>) => Promise<void>
@@ -838,7 +850,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		const changesTosend: ChangesTosend<Status, Ids> = []
 
 		for (const [key, o] of Object.entries(toReportStatus)) {
-			if (o.hash) {
+			if (o.hash !== null) {
 				if (!o.status) {
 					// Removed
 					if (reportedStatuses[key]) {
@@ -882,9 +894,18 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					}
 
 					// Now, check if the toReportStatus hash is still the same:
-					if (toReportStatus[change.key].hash === change.hash) {
+					const orgToReportStaus = toReportStatus[change.key] as ReportStatus<Status, Ids> | undefined
+					if (orgToReportStaus && orgToReportStaus.hash === change.hash) {
 						// Ok, this means that we have sent the latest update to Core.
-						toReportStatus[change.key].hash = null
+
+						if (orgToReportStaus.status === null) {
+							// The original data was deleted, so we can delete it, to prevent mamory leaks:
+							delete toReportStatus[change.key]
+							delete reportedStatuses[change.key]
+						} else {
+							// Set the hash to null
+							orgToReportStaus.hash = null
+						}
 					}
 				}
 			} catch (err) {
@@ -940,6 +961,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		this.packageManager.triggerUpdatedExpectedPackages()
 	}
 	private getIncrement(): number {
+		if (this.increment >= Number.MAX_SAFE_INTEGER) this.increment = 0
 		return this.increment++
 	}
 }
@@ -1069,12 +1091,13 @@ export interface PackageManagerSettings {
 }
 
 type ReportStatuses<Status, Ids> = {
-	[key: string]: {
-		status: Status
-		ids: Ids
-		/** A unique value updated whenever the value is updated */
-		hash: number | null
-	}
+	[key: string]: ReportStatus<Status, Ids>
+}
+type ReportStatus<Status, Ids> = {
+	status: Status
+	ids: Ids
+	/** A unique value updated whenever the status is updated, or set to null if the status has already been reported. */
+	hash: number | null
 }
 type ChangesTosend<Status, Ids> = (
 	| {

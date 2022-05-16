@@ -9,7 +9,7 @@ export class WorkforceAPI
 	extends AdapterClient<WorkForceWorkerAgent.WorkerAgent, WorkForceWorkerAgent.WorkForce>
 	implements WorkForceWorkerAgent.WorkForce {
 	constructor(logger: LoggerInstance) {
-		super(logger, 'workerAgent')
+		super(logger.category('WorkforceAPI'), 'workerAgent')
 	}
 	async getExpectationManagerList(): Promise<{ id: string; url: string }[]> {
 		return this._sendMessage('getExpectationManagerList', undefined)

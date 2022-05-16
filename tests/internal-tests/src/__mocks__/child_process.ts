@@ -25,6 +25,7 @@ function spawn(command: string, args: string[] = []) {
 		setImmediate(() => {
 			robocopy(spawned, args).catch((err) => {
 				console.log(err)
+				spawned.emit('exit', 9999)
 				spawned.emit('close', 9999)
 			})
 		})
@@ -32,6 +33,7 @@ function spawn(command: string, args: string[] = []) {
 		setImmediate(() => {
 			ffmpeg(spawned, args).catch((err) => {
 				console.log(err)
+				spawned.emit('exit', 9999)
 				spawned.emit('close', 9999)
 			})
 		})
@@ -39,6 +41,7 @@ function spawn(command: string, args: string[] = []) {
 		setImmediate(() => {
 			ffprobe(spawned, args).catch((err) => {
 				console.log(err)
+				spawned.emit('exit', 9999)
 				spawned.emit('close', 9999)
 			})
 		})
@@ -133,24 +136,32 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 
 			await fsCopyFile(source, destination)
 		}
+		spawned.emit('exit', 1) // OK
 		spawned.emit('close', 1) // OK
 	} catch (err) {
 		// console.log(err)
+		spawned.emit('exit', 16) // Serious error. Robocopy did not copy any files.
 		spawned.emit('close', 16) // Serious error. Robocopy did not copy any files.
 	}
 }
 async function ffmpeg(spawned: SpawnedProcess, args: string[]) {
 	if (args[0] === '-version') {
-		spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
-		spawned.emit('close', 0) // OK
+		setImmediate(() => {
+			spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
+			spawned.emit('exit', 0) // OK
+			spawned.emit('close', 0) // note: close allways fires after exit
+		})
 	} else {
 		throw new Error(`Mock child_process.spawn: Unsupported arguments: "${args}"`)
 	}
 }
 async function ffprobe(spawned: SpawnedProcess, args: string[]) {
 	if (args[0] === '-version') {
-		spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
-		spawned.emit('close', 0) // OK
+		setImmediate(() => {
+			spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
+			spawned.emit('exit', 0) // OK
+			spawned.emit('close', 0) // note: close allways fires after exit
+		})
 	} else {
 		throw new Error(`Mock child_process.spawn: Unsupported arguments: "${args}"`)
 	}

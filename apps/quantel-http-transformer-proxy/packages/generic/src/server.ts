@@ -13,7 +13,9 @@ export class QuantelHTTPTransformerProxy {
 	private transformerURL: string | undefined = undefined
 	private smoothStream = false
 
-	constructor(private logger: LoggerInstance, private config: QuantelHTTPTransformerProxyConfig) {
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, private config: QuantelHTTPTransformerProxyConfig) {
+		this.logger = logger.category('QuantelHTTPTransformerProxy')
 		if (this.config.quantelHTTPTransformerProxy.transformerURL) {
 			this.transformerURL = this.config.quantelHTTPTransformerProxy.transformerURL
 		}

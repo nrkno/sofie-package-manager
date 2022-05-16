@@ -30,6 +30,7 @@ export namespace WorkForceExpectationManager {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		setLogLevelOfApp: (appId: string, logLevel: LogLevel) => Promise<void>
 		_debugKillApp(appId: string): Promise<void>
+		_debugSendKillConnections(): Promise<void>
 		getStatusReport: () => Promise<WorkforceStatusReport>
 
 		requestResourcesForExpectation: (exp: Expectation.Any) => Promise<boolean>
@@ -42,6 +43,7 @@ export namespace WorkForceExpectationManager {
 	export interface ExpectationManager {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+		_debugSendKillConnections: () => Promise<void>
 
 		onWorkForceStatus: (statuses: Statuses) => Promise<void>
 	}
@@ -53,6 +55,7 @@ export namespace WorkForceWorkerAgent {
 	export interface WorkerAgent {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+		_debugSendKillConnections: () => Promise<void>
 		getStatusReport: () => Promise<WorkerStatusReport>
 
 		expectationManagerAvailable: (id: string, url: string) => Promise<void>
@@ -184,6 +187,7 @@ export namespace WorkForceAppContainer {
 	export interface AppContainer {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+		_debugSendKillConnections: () => Promise<void>
 
 		requestAppTypeForExpectation: (
 			exp: Expectation.Any

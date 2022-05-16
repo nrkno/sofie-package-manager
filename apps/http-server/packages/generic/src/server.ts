@@ -20,8 +20,10 @@ export class PackageProxyServer {
 	private upload = multer({ limits: { fileSize: 300 * 1024 * 1024 } })
 
 	private storage: Storage
+	private logger: LoggerInstance
 
-	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
+	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
+		this.logger = logger.category('PackageProxyServer')
 		this.app.on('error', (err) => {
 			const errString = stringifyError(err)
 
@@ -29,7 +31,7 @@ export class PackageProxyServer {
 			if (errString.match(/ECONNRESET|ECONNABORTED|ECANCELED/)) {
 				// ignore these
 			} else {
-				this.logger.warn(`PackageProxyServer Error: ${errString}`)
+				this.logger.error(`PackageProxyServer Error: ${errString}`)
 			}
 		})
 
@@ -43,7 +45,7 @@ export class PackageProxyServer {
 		)
 
 		// todo: Add other storages?
-		this.storage = new FileStorage(this.logger, this.config)
+		this.storage = new FileStorage(this.config)
 	}
 
 	async init(): Promise<void> {
@@ -92,11 +94,11 @@ export class PackageProxyServer {
 			await this.handleStorage(ctx, () => this.storage.headPackage(ctx.params.path, ctx))
 		})
 		this.router.post('/package/:path+', async (ctx) => {
-			this.logger.warn(`POST ${ctx.request.URL}`)
+			this.logger.debug(`POST ${ctx.request.URL}`)
 			await this.handleStorage(ctx, () => this.storage.postPackage(ctx.params.path, ctx))
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
-			this.logger.warn(`DELETE ${ctx.request.URL}`)
+			this.logger.debug(`DELETE ${ctx.request.URL}`)
 			await this.handleStorage(ctx, () => this.storage.deletePackage(ctx.params.path, ctx))
 		})
 

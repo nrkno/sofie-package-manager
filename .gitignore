@@ -28,3 +28,6 @@ lerna-debug.log
 tmp_packages_for_build/
 *.pfx
 build.lock
+ffmpeg.exe
+ffprobe.exe
+apps/single-app/app/expectedPackages.json_smartbull
