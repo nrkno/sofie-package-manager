@@ -61,7 +61,8 @@ export class Connector {
 			config.packageManager.deviceId || 'manager0',
 			packageManagerServerOptions,
 			config.packageManager.accessUrl || undefined,
-			workForceConnectionOptions
+			workForceConnectionOptions,
+			config.packageManager.chaosMonkey
 		)
 	}
 

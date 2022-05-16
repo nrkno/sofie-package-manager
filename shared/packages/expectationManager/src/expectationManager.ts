@@ -39,6 +39,7 @@ import { getDefaultTrackedExpectation, sortTrackedExpectations } from './lib/exp
 
 export class ExpectationManager extends HelpfulEventEmitter {
 	private constants: ExpectationManagerConstants
+	private enableChaosMonkey = false
 
 	private workforceAPI: WorkforceAPI
 
@@ -133,6 +134,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			...getDefaultConstants(),
 			...options?.constants,
 		}
+		this.enableChaosMonkey = options?.chaosMonkey ?? false
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('ExpectationManager: Workforce disconnected')
@@ -244,11 +246,13 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		await new Promise<void>((resolve, reject) => {
 			this.initWorkForceAPIPromise = { resolve, reject }
 		})
-		// Chaos-monkey, make the various processes cut their connections, to ensure that the reconnection works:
-		// setInterval(() => {
-		// 	this.logger.info('======= KILLING CONNNECTIONS ==========')
-		// 	this.sendDebugKillConnections().catch(this.logger.error)
-		// }, 30 * 1000)
+		if (this.enableChaosMonkey) {
+			// Chaos-monkey, make the various processes cut their connections, to ensure that the reconnection works:
+			setInterval(() => {
+				this.logger.info('Chaos Monkey says: "KILLING CONNNECTIONS" ==========')
+				this.sendDebugKillConnections().catch(this.logger.error)
+			}, 30 * 1000)
+		}
 
 		this.logger.info(`ExpectationManager: Initialized"`)
 	}
@@ -2138,7 +2142,6 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			}
 		}
 	}
-
 	private _updateStatus(id: string, status: { statusCode: StatusCode; message: string } | null) {
 		this.statuses[id] = status
 
@@ -2185,6 +2188,7 @@ function expLabel(exp: TrackedExpectation): string {
 }
 export interface ExpectationManagerOptions {
 	constants: Partial<ExpectationManagerConstants>
+	chaosMonkey?: boolean
 }
 export type ExpectationManagerServerOptions =
 	| {
