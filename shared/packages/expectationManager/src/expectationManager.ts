@@ -1752,7 +1752,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 							)
 							if (!disposeMonitorResult.success) {
 								badStatus = true
-								this.logger.error(
+								this.logger.verbose(
 									`ExpectationManager._evaluateAllTrackedPackageContainers: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
 										disposeMonitorResult.reason
 									)}`
@@ -1812,7 +1812,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					}
 					if (notSupportReason) {
 						badStatus = true
-						this.logger.error(
+						this.logger.verbose(
 							`ExpectationManager._evaluateAllTrackedPackageContainers: doYouSupportPackageContainer could not find a supportive worker: ${JSON.stringify(
 								notSupportReason
 							)}`
@@ -1854,7 +1854,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 								}
 							} else {
 								badStatus = true
-								this.logger.error(
+								this.logger.verbose(
 									`ExpectationManager._evaluateAllTrackedPackageContainers: setupPackageContainerMonitors did not suceed: ${JSON.stringify(
 										monitorSetup.reason
 									)}`
@@ -1872,7 +1872,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					)
 					if (!cronJobStatus.success) {
 						badStatus = true
-						this.logger.error(
+						this.logger.verbose(
 							`ExpectationManager._evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not suceed: ${JSON.stringify(
 								cronJobStatus.reason
 							)}`
@@ -2165,7 +2165,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		const stuckDuration: number = this.monitorStatusWaiting ? Date.now() - this.monitorStatusWaiting : 0
 		if (stuckDuration > 10 * 60 * 1000) {
 			this.logger.error(
-				`ExpectationManager._monitorStatus: Work Queue is Stuck for ${stuckDuration / 1000 / 60} minutest`
+				`ExpectationManager._monitorStatus: Work Queue is Stuck for ${stuckDuration / 1000 / 60} minutes`
 			)
 			this._updateStatus('work-queue-stuck', {
 				statusCode: StatusCode.BAD,
