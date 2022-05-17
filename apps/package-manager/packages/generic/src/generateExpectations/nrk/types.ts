@@ -57,7 +57,7 @@ export enum PriorityMagnitude {
 export enum PriorityAdditions {
 	COPY = 0,
 	SCAN = 100,
-	DEEP_SCAN = 1001,
 	THUMBNAIL = 1002,
 	PREVIEW = 1003,
+	DEEP_SCAN = 1004,
 }

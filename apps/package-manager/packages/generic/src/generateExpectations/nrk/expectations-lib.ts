@@ -232,7 +232,7 @@ export function generatePackageDeepScan(
 			label: `Deep Scanning`,
 			description: `Detecting scenes, black frames, freeze frames etc.`,
 			requiredForPlayout: false,
-			displayRank: 11,
+			displayRank: 13,
 			sendReport: expectation.statusReport.sendReport,
 		},
 
