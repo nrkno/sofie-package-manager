@@ -309,7 +309,7 @@ export function scanMoreInfo(
 		if (!ffMpegProcess.stderr) {
 			throw new Error('spawned ffprobe-process stdin is null!')
 		}
-		let lastString = ''
+		let previousStringData = ''
 		let fileDuration: number | undefined = undefined
 		ffMpegProcess.stderr.on('data', (data: any) => {
 			const stringData = data.toString()
@@ -317,8 +317,6 @@ export function scanMoreInfo(
 			if (typeof stringData !== 'string') return
 
 			try {
-				lastString = stringData
-
 				const frameRegex = /^frame= +\d+/g
 				const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
 				const durationRegex = /Duration:\s?(\d+):(\d+):([\d.]+)/
@@ -384,10 +382,11 @@ export function scanMoreInfo(
 						freezes[i++].end = parseFloat(res[2])
 					}
 				}
+				previousStringData = stringData
 			} catch (err) {
 				if (err && typeof err === 'object') {
 					// If there was an error parsing the output, we should also provide the string we tried to parse:
-					onError(err, stringData)
+					onError(err, previousStringData + '\r\n' + stringData)
 				} else {
 					onError(err, undefined)
 				}
@@ -426,7 +425,7 @@ export function scanMoreInfo(
 						blacks,
 					})
 				} else {
-					reject(`FFProbe exited with code ${code} (${lastString})`)
+					reject(`FFProbe exited with code ${code} (${previousStringData})`)
 				}
 			}
 		}
