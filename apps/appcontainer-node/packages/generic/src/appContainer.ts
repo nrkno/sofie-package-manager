@@ -40,6 +40,7 @@ export class AppContainer {
 		[appId: string]: {
 			process: cp.ChildProcess
 			appType: string
+			/** Set to true when the process is about to be killed */
 			toBeKilled: boolean
 			restarts: number
 			lastRestart: number
@@ -68,43 +69,49 @@ export class AppContainer {
 				config.appContainer.port,
 				this.logger,
 				(client: ClientConnection) => {
-					// A new client has connected
+					try {
+						// A new client has connected
 
-					this.logger.debug(`New client "${client.clientType}" connected, id "${client.clientId}"`)
+						this.logger.debug(`New client "${client.clientType}" connected, id "${client.clientId}"`)
 
-					switch (client.clientType) {
-						case 'workerAgent': {
-							const workForceMethods = this.getWorkerAgentAPI(client.clientId)
-							const api = new WorkerAgentAPI(workForceMethods, {
-								type: 'websocket',
-								clientConnection: client,
-							})
-							const app = this.apps[client.clientId]
-							if (!app) {
-								throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
+						switch (client.clientType) {
+							case 'workerAgent': {
+								const workForceMethods = this.getWorkerAgentAPI(client.clientId)
+								const api = new WorkerAgentAPI(workForceMethods, {
+									type: 'websocket',
+									clientConnection: client,
+								})
+								const app = this.apps[client.clientId]
+								if (!app) {
+									throw new Error(
+										`Unknown app "${client.clientId}" just connected to the appContainer`
+									)
+								}
+								client.once('close', () => {
+									this.logger.warn(`Connection to Worker "${client.clientId}" closed`)
+									app.workerAgentApi = null
+								})
+								this.logger.info(`Connection to Worker "${client.clientId}" established`)
+								app.workerAgentApi = api
+
+								// Set upp the app for pinging and automatic spin-down:
+								app.monitorPing = true
+								app.lastPing = Date.now()
+								api.setSpinDownTime(app.spinDownTime).catch((err) => {
+									this.logger.error(`Error in spinDownTime: ${stringifyError(err)}`)
+								})
+								break
 							}
-							client.once('close', () => {
-								this.logger.warn(`Connection to Worker "${client.clientId}" closed`)
-								app.workerAgentApi = null
-							})
-							this.logger.info(`Connection to Worker "${client.clientId}" established`)
-							app.workerAgentApi = api
-
-							// Set upp the app for pinging and automatic spin-down:
-							app.monitorPing = true
-							app.lastPing = Date.now()
-							api.setSpinDownTime(app.spinDownTime).catch((err) => {
-								this.logger.error(`Error in spinDownTime: ${stringifyError(err)}`)
-							})
-							break
+							case 'expectationManager':
+							case 'appContainer':
+							case 'N/A':
+								throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+							default:
+								assertNever(client.clientType)
+								throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 						}
-						case 'expectationManager':
-						case 'appContainer':
-						case 'N/A':
-							throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
-						default:
-							assertNever(client.clientType)
-							throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
+					} catch (error) {
+						this.logger.error(stringifyError(error))
 					}
 				}
 			)
@@ -444,7 +451,9 @@ export class AppContainer {
 
 		app.toBeKilled = true
 		const success = app.process.kill()
-		if (!success) throw new Error(`Internal error: Killing of process "${app.process.pid}" failed`)
+		if (!success) {
+			this.logger.error(`Internal error: Killing of process "${app.process.pid}" failed`)
+		}
 
 		app.workerAgentApi = null
 		app.process.removeAllListeners()
@@ -474,7 +483,6 @@ export class AppContainer {
 		})
 	}
 	private setupChildProcess(appType: string, appId: string, availableApp: AvailableAppInfo): cp.ChildProcess {
-		this.logger.debug(`Starting process "${appId}" (${appType}): "${availableApp.file}"`)
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
@@ -502,6 +510,8 @@ export class AppContainer {
 			},
 		})
 
+		this.logger.info(`Starting process "${appId}" (${appType}), pid=${child.pid}: "${availableApp.file}"`)
+
 		child.stdout.on('data', (message) => {
 			this.logFromApp(appId, appType, message, this.logger.debug)
 		})
@@ -509,27 +519,44 @@ export class AppContainer {
 			this.logFromApp(appId, appType, message, this.logger.error)
 			// this.logger.debug(`${appId} stderr: ${message}`)
 		})
+		child.on('error', (err) => {
+			this.logger.error(`PID=${child.pid} Error: ${stringifyError(err)}`)
+			// TODO: handle errors better?
+
+			try {
+				// Try to kill the child process, if it isn't already dead:
+				if (child.killed) child.kill()
+			} catch (err) {
+				this.logger.error(`Error when killing ${child.pid}: ${stringifyError(err)}`)
+			}
+		})
 		child.once('exit', (code) => {
 			if (inspectPort) this.usedInspectPorts.delete(inspectPort)
 			const app = this.apps[appId]
-			if (app && !app.toBeKilled) {
-				// Try to restart the application
+			if (app) {
+				if (!app.toBeKilled) {
+					// Try to restart the application
 
-				const timeUntilRestart = Math.max(0, app.lastRestart - Date.now() + RESTART_COOLDOWN)
-				this.logger.warn(
-					`App ${app.process.pid} (${appType}) closed with code (${code}), trying to restart in ${timeUntilRestart} ms (restarts: ${app.restarts})`
-				)
+					const timeUntilRestart = Math.max(0, app.lastRestart - Date.now() + RESTART_COOLDOWN)
+					this.logger.warn(
+						`App ${child.pid} (${appType}) closed with code (${code}), trying to restart in ${timeUntilRestart} ms (restarts: ${app.restarts})`
+					)
 
-				setTimeout(() => {
-					app.lastRestart = Date.now()
-					app.restarts++
+					setTimeout(() => {
+						app.lastRestart = Date.now()
+						app.restarts++
 
-					app.process.removeAllListeners()
+						app.process.removeAllListeners()
 
-					const newChild = this.setupChildProcess(appType, appId, availableApp)
+						const newChild = this.setupChildProcess(appType, appId, availableApp)
 
-					app.process = newChild
-				}, timeUntilRestart)
+						app.process = newChild
+					}, timeUntilRestart)
+				} else {
+					this.logger.debug(`App ${app.process.pid} (${appType}) closed with code (${code})`)
+				}
+			} else {
+				this.logger.warn(`Unexpected App ${child.pid} (${appType}) closed with code (${code})`)
 			}
 		})
 
