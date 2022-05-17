@@ -58,6 +58,7 @@ const defaultTestConfig: SingleAppConfig = {
 		windowsDriveLetters: ['X', 'Y', 'Z'],
 		sourcePackageStabilityThreshold: 0, // Disabling this to speed up the tests
 		costMultiplier: 1,
+		considerCPULoad: null,
 	},
 	quantelHTTPTransformerProxy: {
 		port: 0,
@@ -75,6 +76,7 @@ const defaultTestConfig: SingleAppConfig = {
 			networkIds: [],
 			windowsDriveLetters: ['X', 'Y', 'Z'],
 			costMultiplier: 1,
+			considerCPULoad: null,
 		},
 	},
 }

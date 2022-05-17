@@ -27,6 +27,7 @@ import {
 } from '@shared/api'
 
 import { AppContainerAPI } from './appContainerApi'
+import { CPUTracker } from './cpuTracker'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { MonitorInProgress } from './worker/lib/monitorInProgress'
 import { IWorkInProgress } from './worker/lib/workInProgress'
@@ -68,6 +69,7 @@ export class WorkerAgent {
 	private activeMonitors: { [containerId: string]: { [monitorId: string]: MonitorInProgress } } = {}
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
+	private cpuTracker = new CPUTracker()
 	private logger: LoggerInstance
 
 	constructor(logger: LoggerInstance, private config: WorkerConfig) {
@@ -191,6 +193,7 @@ export class WorkerAgent {
 			}
 		}
 		if (this.intervalCheckTimer) clearInterval(this.intervalCheckTimer)
+		this.cpuTracker.terminate()
 		this._worker.terminate()
 	}
 	/** Called when running in the same-process-mode, it */
@@ -288,10 +291,23 @@ export class WorkerAgent {
 
 		this.setupIntervalCheck()
 	}
-	private getStartCost(): number {
+	private getStartCost(exp: Expectation.Any): number {
 		const workerMultiplier: number = this.config.worker.costMultiplier || 1
 
-		return this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) * workerMultiplier
+		let systemStartCost = 0
+		if (this.config.worker.considerCPULoad !== null) {
+			if (exp.workOptions.allowWaitForCPU) {
+				if (exp.workOptions.usesCPUCount && exp.workOptions.usesCPUCount > this.cpuTracker.idleCPUCount) {
+					// If we don't have the cpu's available right now, we should wait until they are:
+					systemStartCost += 60 * 1000 // arbitrary cost
+				}
+			}
+		}
+
+		return (
+			(this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) + systemStartCost) *
+			workerMultiplier
+		)
 	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {
@@ -318,11 +334,16 @@ export class WorkerAgent {
 			): Promise<ExpectationManagerWorkerAgent.ExpectationCost> => {
 				const cost = await this._worker.getCostFortExpectation(exp)
 
-				const workerMultiplier: number = this.config.worker.costMultiplier || 1
+				let workerMultiplier: number = this.config.worker.costMultiplier || 1
+
+				if (this.config.worker.considerCPULoad !== null) {
+					// adjust the workerMultiplier based on the current cpu usage, so that workers that are on systems with low CPU usage will be prioritized:
+					workerMultiplier /= Math.min(1, Math.max(0.1, 1 - this.cpuTracker.cpuUsage))
+				}
 
 				return {
 					cost: cost * workerMultiplier,
-					startCost: this.getStartCost(),
+					startCost: this.getStartCost(exp),
 				}
 			},
 			isExpectationReadyToStartWorkingOn: async (
@@ -350,7 +371,7 @@ export class WorkerAgent {
 					this.logger.warn(
 						`workOnExpectation called, even though there are ${
 							this.currentJobs.length
-						} current jobs. Startcost now: ${this.getStartCost()}, spcified cost=${
+						} current jobs. Startcost now: ${this.getStartCost(exp)}, spcified cost=${
 							cost.cost
 						}, specified startCost=${cost.startCost}`
 					)

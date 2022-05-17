@@ -144,6 +144,12 @@ const workerArguments = defineArguments({
 		default: process.env.WORKER_COST_MULTIPLIER || 1,
 		describe: 'Multiply the cost of the worker with this',
 	},
+	considerCPULoad: {
+		type: 'number',
+		default: process.env.WORKER_CONSIDER_CPU_LOAD || '',
+		describe:
+			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
+	},
 })
 /** CLI-argument-definitions for the AppContainer process */
 const appContainerArguments = defineArguments({
@@ -198,6 +204,12 @@ const appContainerArguments = defineArguments({
 		type: 'number',
 		default: process.env.WORKER_COST_MULTIPLIER || 1,
 		describe: 'Multiply the cost of the worker with this',
+	},
+	considerCPULoad: {
+		type: 'number',
+		default: process.env.WORKER_CONSIDER_CPU_LOAD || '',
+		describe:
+			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
 	},
 })
 /** CLI-argument-definitions for the "Single" process */
@@ -358,11 +370,13 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 export interface WorkerConfig {
 	process: ProcessConfig
 	worker: {
+		// Note: when changing these values, remember to also update appContainer.ts
 		workforceURL: string | null
 		appContainerURL: string | null
 		resourceId: string
 		networkIds: string[]
 		costMultiplier: number
+		considerCPULoad: number | null
 	} & WorkerAgentConfig
 }
 export function getWorkerConfig(): WorkerConfig {
@@ -383,6 +397,7 @@ export function getWorkerConfig(): WorkerConfig {
 			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
 			costMultiplier:
 				(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) || 1,
+			considerCPULoad: parseFloat(argv.considerCPULoad) || null,
 		},
 	}
 }
@@ -414,6 +429,7 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 				costMultiplier:
 					(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) ||
 					1,
+				considerCPULoad: parseFloat(argv.considerCPULoad) || null,
 			},
 		},
 	}

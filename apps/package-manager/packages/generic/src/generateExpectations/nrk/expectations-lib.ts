@@ -49,6 +49,7 @@ export function generateMediaFileCopy(
 		},
 		workOptions: {
 			removeDelay: settings.delayRemoval,
+			allowWaitForCPU: false,
 			useTemporaryFilePath: settings.useTemporaryFilePath,
 		},
 	}
@@ -93,7 +94,9 @@ export function generateMediaFileVerify(
 				...expWrapMediaFile.expectedPackage.version,
 			},
 		},
-		workOptions: {},
+		workOptions: {
+			allowWaitForCPU: false,
+		},
 	}
 	exp.id = hashObj(exp.endRequirement)
 	return exp
@@ -151,6 +154,7 @@ export function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageW
 			},
 		},
 		workOptions: {
+			allowWaitForCPU: false,
 			// removeDelay: 0 // Not used by Quantel
 		},
 	}
@@ -206,6 +210,7 @@ export function generatePackageScan(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			allowWaitForCPU: false,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -258,6 +263,8 @@ export function generatePackageDeepScan(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			allowWaitForCPU: true,
+			usesCPUCount: 2, // well, FFMpeg might use more
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -310,6 +317,8 @@ export function generateMediaFileThumbnail(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			allowWaitForCPU: true,
+			usesCPUCount: 1, // well, FFMpeg might use more
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -360,6 +369,8 @@ export function generateMediaFilePreview(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			allowWaitForCPU: true,
+			usesCPUCount: 2, // well, FFMpeg might use more
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -411,6 +422,8 @@ export function generateQuantelClipThumbnail(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			allowWaitForCPU: true,
+			usesCPUCount: 2, // well, FFMpeg might use more
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -463,6 +476,8 @@ export function generateQuantelClipPreview(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			allowWaitForCPU: true,
+			usesCPUCount: 2, // well, FFMpeg might use more
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -513,6 +528,7 @@ export function generateJsonDataCopy(
 		workOptions: {
 			removeDelay: settings.delayRemoval,
 			useTemporaryFilePath: settings.useTemporaryFilePath,
+			allowWaitForCPU: false,
 		},
 	}
 	exp.id = hashObj(exp.endRequirement)

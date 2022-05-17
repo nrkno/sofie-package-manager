@@ -224,6 +224,9 @@ export class AppContainer {
 				this.config.appContainer.worker.costMultiplier
 					? `--costMultiplier=${this.config.appContainer.worker.costMultiplier}`
 					: '',
+				this.config.appContainer.worker.considerCPULoad
+					? `--costMultiplier=${this.config.appContainer.worker.considerCPULoad}`
+					: '',
 				this.config.appContainer.worker.resourceId
 					? `--resourceId=${this.config.appContainer.worker.resourceId}`
 					: '',

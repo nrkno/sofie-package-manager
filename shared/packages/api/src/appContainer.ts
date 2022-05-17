@@ -19,6 +19,7 @@ export interface AppContainerConfig {
 		networkIds: string[]
 		windowsDriveLetters: WorkerAgentConfig['windowsDriveLetters']
 		costMultiplier: number
+		considerCPULoad: number | null
 	}
 }
 

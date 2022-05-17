@@ -78,7 +78,7 @@ export namespace Expectation {
 			version: any
 		}
 		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
-		workOptions: any // {}
+		workOptions: WorkOptions.Base
 		/** Reference to another expectation.
 		 * Won't start until ALL other expectations are fullfilled
 		 */
@@ -103,7 +103,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedFileOnDisk
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Scan of a Media file. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface PackageScan extends Base {
@@ -119,7 +119,7 @@ export namespace Expectation {
 			content: null // not using content, entries are stored using this.fromPackages
 			version: null
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
 	}
 	/** Defines a Deep-Scan of a Media file. A Deep-Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface PackageDeepScan extends Base {
@@ -161,7 +161,7 @@ export namespace Expectation {
 				blackThreshold?: number
 			}
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
 	}
 	/** Defines a Thumbnail of a Media file. A Thumbnail is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFileThumbnail extends Base {
@@ -179,7 +179,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFileThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Media file. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFilePreview extends Base {
@@ -197,7 +197,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedMediaFilePreview
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 
 	/** Defines a Quantel clip. A Quantel clip is to be copied from one of the Sources, to the Target. */
@@ -233,7 +233,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedQuantelClipThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Quantel Clip. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface QuantelClipPreview extends Base {
@@ -251,7 +251,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedQuantelClipPreview
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a File Copy. A File is to be copied from one of the Sources, to the Target. */
 	export interface JsonDataCopy extends Base {
@@ -267,7 +267,7 @@ export namespace Expectation {
 			}
 			version: Version.ExpectedFileOnDisk // maybe something else?
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 
 	/** Defines a "Verify File". Doesn't really do any work, just checks that the File exists at the Target. */
@@ -319,6 +319,12 @@ export namespace Expectation {
 
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace WorkOptions {
+		export interface Base {
+			/** If set, a worker might decide to wait with this expectation until the CPU load is lower. */
+			allowWaitForCPU?: boolean
+			/** If set, specifies how many CPU cores the work is using. */
+			usesCPUCount?: number
+		}
 		export interface RemoveDelay {
 			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */
 			removeDelay?: number
