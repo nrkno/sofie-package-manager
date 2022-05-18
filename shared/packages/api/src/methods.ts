@@ -129,6 +129,7 @@ export namespace ExpectationManagerWorkerAgent {
 		cost: number
 		/** Cost "in queue" until working on the Expectation can start */
 		startCost: number
+		reason: Reason
 	}
 	export type MessageFromWorker = (managerId: string, message: MessageFromWorkerPayload.Any) => Promise<any>
 	export type MessageFromWorkerSerialized = (message: MessageFromWorkerPayload.Any) => Promise<ReplyToWorker>

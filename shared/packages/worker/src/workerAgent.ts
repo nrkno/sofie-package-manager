@@ -291,7 +291,7 @@ export class WorkerAgent {
 
 		this.setupIntervalCheck()
 	}
-	private getStartCost(exp: Expectation.Any): number {
+	private getStartCost(exp: Expectation.Any): { cost: number; jobCount: number } {
 		const workerMultiplier: number = this.config.worker.costMultiplier || 1
 
 		let systemStartCost = 0
@@ -304,10 +304,12 @@ export class WorkerAgent {
 			}
 		}
 
-		return (
-			(this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) + systemStartCost) *
-			workerMultiplier
-		)
+		return {
+			cost:
+				(this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) + systemStartCost) *
+				workerMultiplier,
+			jobCount: this.currentJobs.length,
+		}
 	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {
@@ -332,7 +334,7 @@ export class WorkerAgent {
 			getCostForExpectation: async (
 				exp: Expectation.Any
 			): Promise<ExpectationManagerWorkerAgent.ExpectationCost> => {
-				const cost = await this._worker.getCostFortExpectation(exp)
+				const costForExpectation = await this._worker.getCostFortExpectation(exp)
 
 				let workerMultiplier: number = this.config.worker.costMultiplier || 1
 
@@ -341,9 +343,15 @@ export class WorkerAgent {
 					workerMultiplier /= Math.min(1, Math.max(0.1, 1 - this.cpuTracker.cpuUsage))
 				}
 
+				const startCost = this.getStartCost(exp)
+
 				return {
-					cost: cost * workerMultiplier,
-					startCost: this.getStartCost(exp),
+					cost: costForExpectation.cost * workerMultiplier,
+					reason: {
+						user: costForExpectation.reason.user,
+						tech: `Cost: ${costForExpectation.reason.tech}, multiplier: ${workerMultiplier}, jobCount: ${startCost.jobCount}`,
+					},
+					startCost: startCost.cost,
 				}
 			},
 			isExpectationReadyToStartWorkingOn: async (
@@ -371,7 +379,7 @@ export class WorkerAgent {
 					this.logger.warn(
 						`workOnExpectation called, even though there are ${
 							this.currentJobs.length
-						} current jobs. Startcost now: ${this.getStartCost(exp)}, spcified cost=${
+						} current jobs. Startcost now: ${this.getStartCost(exp).cost}, spcified cost=${
 							cost.cost
 						}, specified startCost=${cost.startCost}`
 					)

@@ -12,7 +12,10 @@ export type ReturnTypeDoYouSupportExpectation =
 			support: false
 			reason: Reason
 	  }
-export type ReturnTypeGetCostFortExpectation = number
+export type ReturnTypeGetCostFortExpectation = {
+	cost: number
+	reason: Reason
+}
 export type ReturnTypeIsExpectationReadyToStartWorkingOn =
 	| {
 			ready: true

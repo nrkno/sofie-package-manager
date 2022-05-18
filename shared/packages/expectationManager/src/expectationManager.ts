@@ -1466,9 +1466,17 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
-		let noCostReason = `${Object.keys(trackedExp.queriedWorkers).length} queried`
+		let noCostReason: Reason = {
+			user: `${Object.keys(trackedExp.availableWorkers).length} workers are currently busy`,
+			tech: `${Object.keys(trackedExp.availableWorkers).length} busy, ${
+				Object.keys(trackedExp.queriedWorkers).length
+			} queried`,
+		}
 
 		// Send a number of requests simultaneously:
+
+		let countQueried = 0
+		let countInfinite = 0
 
 		// We're using PromisePool to query a batch of workers at a time:
 		await PromisePool.for(Object.keys(trackedExp.availableWorkers))
@@ -1484,6 +1492,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 				const workerAgent: TrackedWorkerAgent | undefined = this.workerAgents[workerId]
 				if (workerAgent) {
 					try {
+						countQueried++
 						const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
 
 						if (cost.cost < Number.POSITIVE_INFINITY) {
@@ -1493,9 +1502,15 @@ export class ExpectationManager extends HelpfulEventEmitter {
 								cost,
 								randomCost: Math.random(), // To randomize if there are several with the same best cost
 							})
+						} else {
+							noCostReason = cost.reason
+							countInfinite++
 						}
 					} catch (error) {
-						noCostReason = `${stringifyError(error, true)}`
+						noCostReason = {
+							user: 'Error: Internal Error',
+							tech: `${stringifyError(error, true)}`,
+						}
 					}
 				}
 			})
@@ -1521,12 +1536,10 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			trackedExp.noWorkerAssignedTime = null
 		} else {
 			session.noAssignedWorkerReason = {
-				user: `Waiting for a free worker (${
+				user: `Waiting for a free worker, ${noCostReason.user}`,
+				tech: `Waiting for a free worker ${noCostReason} (${
 					Object.keys(trackedExp.availableWorkers).length
-				} workers are currently busy)`,
-				tech: `Waiting for a free worker (${
-					Object.keys(trackedExp.availableWorkers).length
-				} busy) ${noCostReason}`,
+				} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
 			}
 		}
 	}

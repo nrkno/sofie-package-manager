@@ -1,6 +1,12 @@
 import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
 import { GenericWorker } from '../../../worker'
-import { AccessorOnPackage, PackageContainer, PackageContainerOnPackage, Expectation } from '@shared/api'
+import {
+	AccessorOnPackage,
+	PackageContainer,
+	PackageContainerOnPackage,
+	Expectation,
+	ReturnTypeGetCostFortExpectation,
+} from '@shared/api'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { AccessorHandlerResult } from '../../../accessorHandlers/genericHandle'
 
@@ -147,7 +153,7 @@ export function findBestAccessorOnPackageContainer(
 	return undefined
 }
 /** Return a standard cost for the various accessorHandler types */
-export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): number {
+export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): ReturnTypeGetCostFortExpectation {
 	let sourceCost: number = Number.POSITIVE_INFINITY
 	if (exp.startRequirement.sources.length > 0) {
 		const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)
@@ -160,7 +166,13 @@ export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): nu
 	const target = findBestPackageContainerWithAccessToPackage(worker, exp.endRequirement.targets)
 	const targetCost = target ? getAccessorCost(target.accessor.type) : Number.POSITIVE_INFINITY
 
-	return 30 * (sourceCost + targetCost)
+	return {
+		cost: 30 * (sourceCost + targetCost),
+		reason: {
+			user: `Source cost: ${sourceCost}, Target cost: ${targetCost}`,
+			tech: `Source cost: ${sourceCost}, Target cost: ${targetCost}`,
+		},
+	}
 }
 /**
  * Compares two networkIds/resourceIds.
