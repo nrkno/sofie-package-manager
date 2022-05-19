@@ -16,6 +16,7 @@ import {
 } from '@shared/api'
 import { GenericWorker, WorkerLocation } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
+import { FileCopyProxy } from './expectationHandlers/fileCopyProxy'
 import { PackageScan } from './expectationHandlers/packageScan'
 import { PackageDeepScan } from './expectationHandlers/packageDeepScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
@@ -96,6 +97,8 @@ export class WindowsWorker extends GenericWorker {
 		switch (exp.type) {
 			case Expectation.Type.FILE_COPY:
 				return FileCopy
+			case Expectation.Type.FILE_COPY_PROXY:
+				return FileCopyProxy
 			case Expectation.Type.FILE_VERIFY:
 				return FileVerify
 			case Expectation.Type.PACKAGE_SCAN:

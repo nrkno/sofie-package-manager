@@ -19,8 +19,11 @@ import {
 	generateQuantelClipThumbnail,
 	generateQuantelClipPreview,
 	generateJsonDataCopy,
+	generatePackageCopyFileProxy,
 } from './expectations-lib'
 import { getSmartbullExpectedPackages, shouldBeIgnored } from './smartbull'
+
+const TEMPORARY_STORAGE_ID = 'temporary-storage'
 
 /** Generate and return the appropriate Expectations based on the provided expectedPackages */
 export function getExpectations(
@@ -36,6 +39,9 @@ export function getExpectations(
 
 	// Note: All of this is a preliminary implementation!
 	// A blueprint-like plug-in architecture might be a future idea
+
+	/** If set, we should first copy media to a temporary storage and use that for side-effects  */
+	const useTemporaryStorage = packageContainers[TEMPORARY_STORAGE_ID] as PackageContainer | undefined
 
 	// Sort, so that we handle the high-prio first:
 	expectedPackages.sort((a, b) => {
@@ -65,7 +71,7 @@ export function getExpectations(
 	}
 
 	// Add side-effects from the initial expectations:
-	injectSideEffectExpectations(logger, packageContainers, settings, expectations)
+	injectSideEffectExpectations(logger, packageContainers, settings, expectations, useTemporaryStorage)
 
 	const returnExpectations: { [id: string]: Expectation.Any } = {}
 	for (const [id, exp] of Object.entries(expectations)) {
@@ -124,11 +130,44 @@ function injectSideEffectExpectations(
 	_logger: LoggerInstance,
 	packageContainers: PackageContainers,
 	settings: PackageManagerSettings,
-	expectations: ExpectationCollection
+	expectations: ExpectationCollection,
+	useTemporaryStorage: PackageContainer | undefined
 ): void {
-	for (const expectation0 of groupExpectations(expectations)) {
-		handleSideEffectOfFileExpectation(_logger, packageContainers, settings, expectations, expectation0)
-		handleSideEffectOfQuantelExpectation(_logger, packageContainers, settings, expectations, expectation0)
+	const temoraryStorageExpectations: ExpectationCollection = {}
+
+	if (!useTemporaryStorage) {
+		for (const expectation of groupExpectations(expectations)) {
+			// Get side-effects and add them to the expectations:
+			copyProps(expectations, getSideEffectOfExpectation(_logger, packageContainers, settings, expectation))
+		}
+	} else {
+		for (const expectation of groupExpectations(expectations)) {
+			// First, check if there are any side-effects at all?
+			const resultingExpectations: ExpectationCollection = getSideEffectOfExpectation(
+				_logger,
+				packageContainers,
+				settings,
+				expectation
+			)
+
+			if (Object.keys(resultingExpectations).length > 0) {
+				// We need to copy the expectation to a temporary storage,
+				// get those expectations and put them in temoraryStorageExpectations:
+				copyProps(
+					temoraryStorageExpectations,
+					getCopyToTemporaryStorage(_logger, useTemporaryStorage, settings, expectation)
+				)
+			}
+		}
+
+		// Okay, now let's generate the side-effects from the temoraryStorageExpectations instead:
+		for (const [id, expectation] of Object.entries(temoraryStorageExpectations)) {
+			// Add the CopyToTemporaryStorage expectation:
+			expectations[id] = expectation
+
+			// get side-effects:
+			copyProps(expectations, getSideEffectOfExpectation(_logger, packageContainers, settings, expectation))
+		}
 	}
 }
 
@@ -158,16 +197,20 @@ function groupExpectations(expectations: ExpectationCollection): GenerateExpecta
 	}
 	return groupedExpectations
 }
-/** Handle side-effects for file-based expectations */
-function handleSideEffectOfFileExpectation(
+/** Returns side-effects for an expectation */
+function getSideEffectOfExpectation(
 	_logger: LoggerInstance,
 	packageContainers: PackageContainers,
 	settings: PackageManagerSettings,
-	expectations: ExpectationCollection,
 	expectation0: GenerateExpectation
-) {
-	if (expectation0.type === Expectation.Type.FILE_COPY || expectation0.type === Expectation.Type.FILE_VERIFY) {
-		const expectation = expectation0 as Expectation.FileCopy
+): ExpectationCollection {
+	const expectations: ExpectationCollection = {}
+	if (
+		expectation0.type === Expectation.Type.FILE_COPY ||
+		expectation0.type === Expectation.Type.FILE_VERIFY ||
+		expectation0.type === Expectation.Type.FILE_COPY_PROXY
+	) {
+		const expectation = expectation0 as Expectation.FileCopy | Expectation.FileVerify | Expectation.FileCopyProxy
 
 		if (!expectation0.external) {
 			// All files that have been copied should also be scanned:
@@ -210,17 +253,7 @@ function handleSideEffectOfFileExpectation(
 				expectations[preview.id] = preview
 			}
 		}
-	}
-}
-/** Handle side-effects for Quantel-based expectations */
-function handleSideEffectOfQuantelExpectation(
-	_logger: LoggerInstance,
-	packageContainers: PackageContainers,
-	settings: PackageManagerSettings,
-	expectations: ExpectationCollection,
-	expectation0: GenerateExpectation
-) {
-	if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
+	} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
 		const expectation = expectation0 as Expectation.QuantelClipCopy
 
 		if (!expectation0.external) {
@@ -265,6 +298,37 @@ function handleSideEffectOfQuantelExpectation(
 			}
 		}
 	}
+	return expectations
+}
+/** Returns expectations to handle a copy to a temporary storage */
+function getCopyToTemporaryStorage(
+	_logger: LoggerInstance,
+	useTemporaryStorage: PackageContainer,
+	settings: PackageManagerSettings,
+	expectation0: GenerateExpectation
+): ExpectationCollection {
+	const expectations: ExpectationCollection = {}
+
+	if (
+		expectation0.type === Expectation.Type.FILE_COPY ||
+		expectation0.type === Expectation.Type.FILE_VERIFY ||
+		expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY
+	) {
+		const expectation = expectation0 as Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy
+		const proxy: GenerateExpectation | undefined = generatePackageCopyFileProxy(
+			expectation,
+			settings,
+			TEMPORARY_STORAGE_ID,
+			useTemporaryStorage
+		)
+		if (proxy) {
+			proxy.external = expectation0.external
+			proxy.sideEffect = expectation0.sideEffect
+			expectations[proxy.id] = proxy
+		}
+	}
+
+	return expectations
 }
 
 function addExpectation(
@@ -329,4 +393,7 @@ function getPriority(
 }
 interface ExpectationCollection {
 	[id: string]: GenerateExpectation
+}
+function copyProps<T>(org: { [key: string]: T }, add: { [key: string]: T }): void {
+	Object.entries(add).forEach(([key, value]) => (org[key] = value))
 }

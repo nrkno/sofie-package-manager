@@ -341,3 +341,13 @@ export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetad
 		'-threads 1',
 	].filter(Boolean) as string[] // remove undefined values
 }
+
+/** Returns arguments for FFMpeg to generate a proxy video file */
+export function proxyFFMpegArguments(input: string, seekableSource: boolean): string[] {
+	return [
+		'-y', // Overwrite output files without asking.
+		seekableSource ? undefined : '-seekable 0',
+		`-i "${input}"`, // Input file path
+		'-threads 1', // Number of threads to use
+	].filter(Boolean) as string[] // remove undefined values
+}
