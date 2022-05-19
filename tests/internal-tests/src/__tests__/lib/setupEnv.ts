@@ -48,6 +48,7 @@ const defaultTestConfig: SingleAppConfig = {
 		workforceURL: null,
 		watchFiles: false,
 		noCore: false,
+		chaosMonkey: false,
 	},
 	worker: {
 		workerId: 'worker',
