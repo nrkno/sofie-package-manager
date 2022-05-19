@@ -190,7 +190,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 				},
 			}
 		}
-		if (!this.accessor.baseUrl)
+		if (!this.accessor.baseUrl && this.accessor.baseUrl !== '')
 			return {
 				success: false,
 				reason: {
