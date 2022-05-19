@@ -861,7 +861,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		this.logger.verbose(`Handle other states..`)
 		handleStatesSerial.forEach((handleState) => {
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
-			this.logger.verbose(`${handleState}, ${trackedWithState.length} expectations..`)
+			this.logger.verbose(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
 		})
 		this.logger.verbose(`Worker count: ${Object.keys(this.workerAgents).length}`)
 
@@ -1797,19 +1797,27 @@ export class ExpectationManager extends HelpfulEventEmitter {
 							}
 						})
 					)
-					if (!trackedPackageContainer.currentWorker) {
-						if (Object.keys(this.workerAgents).length) {
-							notSupportReason = {
-								user: 'Found no worker that supports this packageContainer',
-								tech: 'Found no worker that supports this packageContainer',
-							}
-						} else {
-							notSupportReason = {
-								user: 'No workers available',
-								tech: 'No workers available',
+					if (Object.keys(trackedPackageContainer.packageContainer.accessors).length > 0) {
+						if (!trackedPackageContainer.currentWorker) {
+							if (Object.keys(this.workerAgents).length) {
+								notSupportReason = {
+									user: 'Found no worker that supports this packageContainer',
+									tech: 'Found no worker that supports this packageContainer',
+								}
+							} else {
+								notSupportReason = {
+									user: 'No workers available',
+									tech: 'No workers available',
+								}
 							}
 						}
+					} else {
+						notSupportReason = {
+							user: 'The PackageContainer has no accessors',
+							tech: 'The PackageContainer has no accessors',
+						}
 					}
+
 					if (notSupportReason) {
 						badStatus = true
 						this.logger.verbose(
