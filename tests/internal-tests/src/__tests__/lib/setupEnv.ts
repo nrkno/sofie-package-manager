@@ -8,7 +8,6 @@ import {
 	LogLevel,
 	ProcessConfig,
 	Reason,
-	setLogLevel,
 	setupLogger,
 	SingleAppConfig,
 	initializeLogger,
@@ -89,8 +88,8 @@ export async function setupExpectationManager(
 	callbacks: ExpectationManagerCallbacks,
 	options?: ExpectationManagerOptions
 ) {
-	const logger = setupLogger(config, '')
-	setLogLevel(debugLogging ? LogLevel.DEBUG : LogLevel.WARN)
+	const logLevel = debugLogging ? LogLevel.DEBUG : LogLevel.WARN
+	const logger = setupLogger(config, '', undefined, undefined, logLevel)
 
 	const expectationManager = new ExpectationManager(
 		logger,

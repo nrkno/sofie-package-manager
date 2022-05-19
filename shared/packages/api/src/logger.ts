@@ -58,7 +58,8 @@ export function setupLogger(
 	config: { process: ProcessConfig },
 	category: string,
 	categoryLabel?: string,
-	handleProcess = false
+	handleProcess = false,
+	initialLogLevel?: LogLevel
 ): LoggerInstance {
 	if (!loggerContainer) throw new Error('Logging has not been set up! setupLogging() must be called first.')
 
@@ -92,6 +93,7 @@ export function setupLogger(
 				}),
 			],
 		})
+		if (initialLogLevel) setLogLevel(initialLogLevel, true)
 
 		logger.info('Logging to', logPath)
 	} else {
@@ -126,6 +128,7 @@ export function setupLogger(
 				transports: [transportConsole],
 			})
 		}
+		if (initialLogLevel) setLogLevel(initialLogLevel, true)
 		logger.info('Logging to Console')
 	}
 	// Somewhat of a hack, inject the category method:
@@ -134,7 +137,9 @@ export function setupLogger(
 		return setupLogger(
 			config,
 			`${category ? `${category}.` : ''}${subCategory}`,
-			subLabel && `${categoryLabel}>${subLabel}`
+			subLabel && `${categoryLabel}>${subLabel}`,
+			undefined,
+			initialLogLevel
 		)
 	}
 	allLoggers.set(category, loggerInstance)
