@@ -25,7 +25,7 @@ import {
 	LookupPackageContainer,
 	previewFFMpegArguments,
 } from './lib'
-import { getSourceHTTPHandle } from './quantelClipThumbnail'
+import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
