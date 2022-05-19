@@ -302,12 +302,11 @@ interface PreviewMetadata {
 		width?: number
 	}
 }
-
+/** Returns arguments for FFMpeg to generate a preview video file */
 export function previewFFMpegArguments(input: string, seekableSource: boolean, metadata: PreviewMetadata): string[] {
 	return [
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
-		'-threads 1', // Number of threads to use
 		seekableSource ? undefined : '-seekable 0',
 		`-i "${input}"`, // Input file path
 		'-f webm', // format: webm
@@ -316,6 +315,9 @@ export function previewFFMpegArguments(input: string, seekableSource: boolean, m
 		`-b:v ${metadata.version.bitrate || '40k'}`,
 		'-auto-alt-ref 1',
 		`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
+
+		'-threads 1', // Number of threads to use
+		'-cpu-used 5', // Sacrifice quality for speed, used in combination with -deadline realtime
 		'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
 	].filter(Boolean) as string[] // remove undefined values
 }
@@ -326,7 +328,7 @@ interface ThumbnailMetadata {
 		width: number
 	}
 }
-
+/** Returns arguments for FFMpeg to generate a thumbnail image file */
 export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
 	return [
 		// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
