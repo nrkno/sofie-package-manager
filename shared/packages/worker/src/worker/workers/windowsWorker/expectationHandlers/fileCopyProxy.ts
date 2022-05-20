@@ -126,7 +126,7 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 
 					await targetHandle.removePackage()
 
-					const args = proxyFFMpegArguments(sourceHTTPHandle.fullUrl, false)
+					const args = proxyFFMpegArguments(sourceHTTPHandle.fullUrl, false, targetHandle)
 
 					ffMpegProcess = await spawnFFMpeg(
 						args,

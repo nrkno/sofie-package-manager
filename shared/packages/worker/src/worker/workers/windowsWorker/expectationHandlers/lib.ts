@@ -1,4 +1,9 @@
-import { getAccessorHandle } from '../../../accessorHandlers/accessor'
+import {
+	getAccessorHandle,
+	isFileShareAccessorHandle,
+	isHTTPProxyAccessorHandle,
+	isLocalFolderAccessorHandle,
+} from '../../../accessorHandlers/accessor'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
@@ -10,7 +15,11 @@ import {
 	Expectation,
 	Reason,
 	ReturnTypeDoYouSupportExpectation,
+	assertNever,
 } from '@shared/api'
+import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
+import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
+import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainersOnPackage(
@@ -343,11 +352,39 @@ export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetad
 }
 
 /** Returns arguments for FFMpeg to generate a proxy video file */
-export function proxyFFMpegArguments(input: string, seekableSource: boolean): string[] {
-	return [
+export function proxyFFMpegArguments(
+	input: string,
+	seekableSource: boolean,
+	targetHandle: LocalFolderAccessorHandle<any> | FileShareAccessorHandle<any> | HTTPProxyAccessorHandle<any>
+): string[] {
+	const args = [
 		'-y', // Overwrite output files without asking.
 		seekableSource ? undefined : '-seekable 0',
 		`-i "${input}"`, // Input file path
+
+		'-c copy', // Stream copy, no transcoding
 		'-threads 1', // Number of threads to use
-	].filter(Boolean) as string[] // remove undefined values
+	]
+
+	// Check target to see if we should tell ffmpeg which format to use:
+	let targetPath = ''
+	if (isLocalFolderAccessorHandle(targetHandle)) {
+		targetPath = targetHandle.fullPath
+	} else if (isFileShareAccessorHandle(targetHandle)) {
+		targetPath = targetHandle.fullPath
+	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
+		targetPath = ''
+	} else {
+		assertNever(targetHandle)
+		throw new Error(`Unsupported Target AccessHandler`)
+	}
+
+	const hasFileExtension = targetPath.match(/\.[a-zA-Z0-9]{1,3}$/)
+	if (!hasFileExtension) {
+		args.push(
+			'-f mp4' // Specify format. Note: There's no reason why mp4 was picked here, perhaps change this in the future?
+		)
+	}
+
+	return args.filter(Boolean) as string[] // remove undefined values
 }
