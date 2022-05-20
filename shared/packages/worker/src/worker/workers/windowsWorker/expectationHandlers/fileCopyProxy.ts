@@ -221,7 +221,7 @@ function lookupCopySources(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.startRequirement.sources,
-		exp.endRequirement.content,
+		exp.startRequirement.content,
 		exp.workOptions,
 		{
 			read: true,
