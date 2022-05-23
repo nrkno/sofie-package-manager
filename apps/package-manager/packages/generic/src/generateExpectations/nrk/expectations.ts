@@ -133,40 +133,37 @@ function injectSideEffectExpectations(
 	expectations: ExpectationCollection,
 	useTemporaryStorage: PackageContainer | undefined
 ): void {
-	const temoraryStorageExpectations: ExpectationCollection = {}
-
 	if (!useTemporaryStorage) {
 		for (const expectation of groupExpectations(expectations)) {
 			// Get side-effects and add them to the expectations:
 			copyProps(expectations, getSideEffectOfExpectation(_logger, packageContainers, settings, expectation))
 		}
 	} else {
-		for (const expectation of groupExpectations(expectations)) {
-			// First, check if there are any side-effects at all?
+		const temoraryStorageExpectations: ExpectationCollection = {}
+		for (const expectation0 of groupExpectations(expectations)) {
+			// We need to copy the expectation to a temporary storage,
+			// get those expectations and put them in temoraryStorageExpectations:
+			copyProps(
+				temoraryStorageExpectations,
+				getCopyToTemporaryStorage(_logger, useTemporaryStorage, settings, expectation0)
+			)
+		}
+
+		// Okay, now let's generate the side-effects from the temoraryStorageExpectations instead:
+		for (const [id, expectation] of Object.entries(temoraryStorageExpectations)) {
+			// get side-effects:
 			const resultingExpectations: ExpectationCollection = getSideEffectOfExpectation(
 				_logger,
 				packageContainers,
 				settings,
 				expectation
 			)
-
 			if (Object.keys(resultingExpectations).length > 0) {
-				// We need to copy the expectation to a temporary storage,
-				// get those expectations and put them in temoraryStorageExpectations:
-				copyProps(
-					temoraryStorageExpectations,
-					getCopyToTemporaryStorage(_logger, useTemporaryStorage, settings, expectation)
-				)
+				// Add the CopyToTemporaryStorage expectation:
+				expectations[id] = expectation
+
+				copyProps(expectations, resultingExpectations)
 			}
-		}
-
-		// Okay, now let's generate the side-effects from the temoraryStorageExpectations instead:
-		for (const [id, expectation] of Object.entries(temoraryStorageExpectations)) {
-			// Add the CopyToTemporaryStorage expectation:
-			expectations[id] = expectation
-
-			// get side-effects:
-			copyProps(expectations, getSideEffectOfExpectation(_logger, packageContainers, settings, expectation))
 		}
 	}
 }
@@ -214,8 +211,18 @@ function getSideEffectOfExpectation(
 
 		if (!expectation0.external) {
 			// All files that have been copied should also be scanned:
-			const scan = generatePackageScan(expectation, settings)
-			expectations[scan.id] = scan
+			if (
+				expectation.type === Expectation.Type.FILE_COPY_PROXY &&
+				expectation.originalExpectation &&
+				expectation.originalExpectation.type === Expectation.Type.QUANTEL_CLIP_COPY
+			) {
+				// For Quantel, it is the original clip that should be scanned:
+				const scan = generatePackageScan(expectation.originalExpectation, settings)
+				expectations[scan.id] = scan
+			} else {
+				const scan = generatePackageScan(expectation, settings)
+				expectations[scan.id] = scan
+			}
 
 			// All files that have been copied should also be deep-scanned:
 			const deepScan = generatePackageDeepScan(expectation, settings)

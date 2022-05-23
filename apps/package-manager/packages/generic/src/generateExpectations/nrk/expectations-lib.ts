@@ -610,5 +610,7 @@ export function generatePackageCopyFileProxy(
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
+
+		originalExpectation: expectation,
 	})
 }
