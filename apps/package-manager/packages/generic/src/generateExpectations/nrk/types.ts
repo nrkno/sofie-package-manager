@@ -56,6 +56,7 @@ export enum PriorityMagnitude {
 /** The priority values to-be-added to the different expectation types: */
 export enum PriorityAdditions {
 	COPY = 0,
+	COPY_PROXY = 90,
 	SCAN = 100,
 	THUMBNAIL = 1002,
 	PREVIEW = 1003,

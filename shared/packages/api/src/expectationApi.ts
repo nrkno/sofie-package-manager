@@ -11,6 +11,7 @@ export namespace Expectation {
 	/** Generic Expectation, used as "Any Exopectation" */
 	export type Any =
 		| FileCopy
+		| FileCopyProxy
 		| PackageScan
 		| PackageDeepScan
 		| MediaFileThumbnail
@@ -26,6 +27,7 @@ export namespace Expectation {
 	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
 		FILE_COPY = 'file_copy',
+		FILE_COPY_PROXY = 'file_copy_proxy',
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 		MEDIA_FILE_PREVIEW = 'media_file_preview',
 		FILE_VERIFY = 'file_verify',
@@ -104,6 +106,26 @@ export namespace Expectation {
 			version: Version.ExpectedFileOnDisk
 		}
 		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+	}
+	/** Defines a File Copy, but only to create a Proxy, used for side-effects such as scanning or thumbnail generation */
+	export interface FileCopyProxy extends Base {
+		type: Type.FILE_COPY_PROXY
+
+		startRequirement: {
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
+			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
+			content: {
+				filePath: string
+			}
+			version: Version.ExpectedFileOnDisk
+		}
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+
+		originalExpectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy
 	}
 	/** Defines a Scan of a Media file. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface PackageScan extends Base {

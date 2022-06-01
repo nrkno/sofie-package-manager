@@ -428,12 +428,40 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 				if (freeDriveLetter) {
 					// Try to map the remote share onto a drive:
-					await networkDrive.mount(
-						folderPath,
-						freeDriveLetter,
-						this.accessor.userName,
-						this.accessor.password
-					)
+
+					try {
+						await networkDrive.mount(
+							folderPath,
+							freeDriveLetter,
+							this.accessor.userName,
+							this.accessor.password
+						)
+					} catch (e) {
+						const errStr = `${e}`
+						if (
+							errStr.match(/invalid response/i) ||
+							errStr.match(/Ugyldig svar/i) // "Invalid response" in Norvegian
+						) {
+							// Temporary handling of the error
+
+							const mappedDrives = await this.getMountedDriveLetters()
+
+							if (mappedDrives[freeDriveLetter] === folderPath) {
+								this.worker.logger.warn(`Supressed error: ${errStr}`)
+
+								this.worker.logger.warn(`Mapped drives: ${Object.keys(mappedDrives).join(',')}`)
+								this.worker.logger.warn(
+									`${freeDriveLetter} is currently mapped to ${mappedDrives[freeDriveLetter]}`
+								)
+							} else {
+								this.worker.logger.warn(`Mapped drives: ${Object.keys(mappedDrives).join(',')}`)
+								this.worker.logger.warn(
+									`${freeDriveLetter} is currently mapped to ${mappedDrives[freeDriveLetter]}`
+								)
+								throw e
+							}
+						} else throw e
+					}
 
 					this.mappedDriveLetters[freeDriveLetter] = folderPath
 					this.actualFolderPath = `${freeDriveLetter}:\\`
@@ -468,11 +496,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		this.actualFolderPath = folderPath
 		return
 	}
-	private async getMountedDriveLetters(): Promise<{ [key: string]: string }> {
+	private async getMountedDriveLetters(): Promise<{ [driveLetter: string]: string }> {
 		let usedDriveLetters: { [key: string]: string } = {}
 
 		try {
-			usedDriveLetters = (await networkDrive.list()) as any
+			usedDriveLetters = (await networkDrive.list()) as { [driveLetter: string]: string }
 		} catch (err) {
 			if (stringifyError(err, true).match(/No Instance\(s\) Available/)) {
 				// this error comes when the list is empty

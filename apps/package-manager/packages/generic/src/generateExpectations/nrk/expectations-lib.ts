@@ -1,5 +1,5 @@
 import { ExpectedPackageWrap, PackageManagerSettings } from '../../packageManager'
-import { Accessor, ExpectedPackage, PackageContainer, Expectation, hashObj, literal } from '@shared/api'
+import { Accessor, ExpectedPackage, PackageContainer, Expectation, hashObj, literal, assertNever } from '@shared/api'
 import {
 	ExpectedPackageWrapJSONData,
 	ExpectedPackageWrapMediaFile,
@@ -163,7 +163,11 @@ export function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageW
 	return exp
 }
 export function generatePackageScan(
-	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy,
+	expectation:
+		| Expectation.FileCopy
+		| Expectation.FileCopyProxy
+		| Expectation.FileVerify
+		| Expectation.QuantelClipCopy,
 	settings: PackageManagerSettings
 ): Expectation.PackageScan {
 	let priority = expectation.priority + PriorityAdditions.SCAN
@@ -218,7 +222,11 @@ export function generatePackageScan(
 	})
 }
 export function generatePackageDeepScan(
-	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy,
+	expectation:
+		| Expectation.FileCopy
+		| Expectation.FileCopyProxy
+		| Expectation.FileVerify
+		| Expectation.QuantelClipCopy,
 	settings: PackageManagerSettings
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
@@ -264,7 +272,7 @@ export function generatePackageDeepScan(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
-			usesCPUCount: 2, // well, FFMpeg might use more
+			usesCPUCount: 1,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -273,7 +281,7 @@ export function generatePackageDeepScan(
 }
 
 export function generateMediaFileThumbnail(
-	expectation: Expectation.FileCopy | Expectation.FileVerify,
+	expectation: Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
@@ -318,7 +326,7 @@ export function generateMediaFileThumbnail(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
-			usesCPUCount: 1, // well, FFMpeg might use more
+			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -326,7 +334,7 @@ export function generateMediaFileThumbnail(
 	})
 }
 export function generateMediaFilePreview(
-	expectation: Expectation.FileCopy | Expectation.FileVerify,
+	expectation: Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
@@ -370,7 +378,7 @@ export function generateMediaFilePreview(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
-			usesCPUCount: 2, // well, FFMpeg might use more
+			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -423,7 +431,7 @@ export function generateQuantelClipThumbnail(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
-			usesCPUCount: 2, // well, FFMpeg might use more
+			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -477,7 +485,7 @@ export function generateQuantelClipPreview(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
-			usesCPUCount: 2, // well, FFMpeg might use more
+			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
 		},
 		dependsOnFullfilled: [expectation.id],
@@ -533,4 +541,76 @@ export function generateJsonDataCopy(
 	}
 	exp.id = hashObj(exp.endRequirement)
 	return exp
+}
+
+export function generatePackageCopyFileProxy(
+	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy,
+	settings: PackageManagerSettings,
+	packageContainerId: string,
+	packageContainer: PackageContainer
+): Expectation.FileCopyProxy | undefined {
+	let priority = expectation.priority + PriorityAdditions.COPY_PROXY
+
+	if ((expectation as any).__isSmartbull) {
+		// Because the smartbull is using the scan result in order to build the Sofie rundown, the scan has a high priority:
+		priority = expectation.priority + 1
+	}
+
+	let filePath: string | undefined
+
+	if (expectation.type === Expectation.Type.FILE_COPY) {
+		filePath = expectation.endRequirement.content.filePath
+	} else if (expectation.type === Expectation.Type.FILE_VERIFY) {
+		filePath = expectation.endRequirement.content.filePath
+	} else if (expectation.type === Expectation.Type.QUANTEL_CLIP_COPY) {
+		filePath = expectation.endRequirement.content.guid || expectation.endRequirement.content.title
+	} else {
+		assertNever(expectation)
+	}
+	if (!filePath) return undefined
+
+	return literal<Expectation.FileCopyProxy>({
+		id: expectation.id + '_proxy',
+		priority: priority,
+		managerId: expectation.managerId,
+		type: Expectation.Type.FILE_COPY_PROXY,
+		fromPackages: expectation.fromPackages,
+
+		statusReport: {
+			label: `Copy proxy`,
+			description: `Making a copy as a proxy, used in later steps to scan, generate thumbnail etc..`,
+			requiredForPlayout: !!(expectation as any).__isSmartbull, // For smartbull, this _is_ required for playout
+			displayRank: 9,
+			sendReport: expectation.statusReport.sendReport,
+		},
+
+		startRequirement: {
+			sources: expectation.endRequirement.targets,
+			content: expectation.endRequirement.content,
+			version: expectation.endRequirement.version,
+		},
+		endRequirement: {
+			targets: [
+				{
+					...(packageContainer as any),
+					containerId: packageContainerId,
+				},
+			],
+			content: {
+				filePath: filePath,
+			},
+			version: {
+				type: Expectation.Version.Type.FILE_ON_DISK,
+			},
+		},
+		workOptions: {
+			...expectation.workOptions,
+			allowWaitForCPU: false,
+			removeDelay: settings.delayRemovalPackageInfo,
+		},
+		dependsOnFullfilled: [expectation.id],
+		triggerByFullfilledIds: [expectation.id],
+
+		originalExpectation: expectation,
+	})
 }

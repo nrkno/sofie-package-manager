@@ -1,4 +1,9 @@
-import { getAccessorHandle } from '../../../accessorHandlers/accessor'
+import {
+	getAccessorHandle,
+	isFileShareAccessorHandle,
+	isHTTPProxyAccessorHandle,
+	isLocalFolderAccessorHandle,
+} from '../../../accessorHandlers/accessor'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
@@ -10,7 +15,11 @@ import {
 	Expectation,
 	Reason,
 	ReturnTypeDoYouSupportExpectation,
+	assertNever,
 } from '@shared/api'
+import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
+import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
+import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainersOnPackage(
@@ -302,12 +311,11 @@ interface PreviewMetadata {
 		width?: number
 	}
 }
-
+/** Returns arguments for FFMpeg to generate a preview video file */
 export function previewFFMpegArguments(input: string, seekableSource: boolean, metadata: PreviewMetadata): string[] {
 	return [
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
-		'-threads 1', // Number of threads to use
 		seekableSource ? undefined : '-seekable 0',
 		`-i "${input}"`, // Input file path
 		'-f webm', // format: webm
@@ -316,6 +324,9 @@ export function previewFFMpegArguments(input: string, seekableSource: boolean, m
 		`-b:v ${metadata.version.bitrate || '40k'}`,
 		'-auto-alt-ref 1',
 		`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
+
+		'-threads 1', // Number of threads to use
+		'-cpu-used 5', // Sacrifice quality for speed, used in combination with -deadline realtime
 		'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
 	].filter(Boolean) as string[] // remove undefined values
 }
@@ -326,7 +337,7 @@ interface ThumbnailMetadata {
 		width: number
 	}
 }
-
+/** Returns arguments for FFMpeg to generate a thumbnail image file */
 export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
 	return [
 		// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
@@ -338,4 +349,42 @@ export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetad
 		`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}`,
 		'-threads 1',
 	].filter(Boolean) as string[] // remove undefined values
+}
+
+/** Returns arguments for FFMpeg to generate a proxy video file */
+export function proxyFFMpegArguments(
+	input: string,
+	seekableSource: boolean,
+	targetHandle: LocalFolderAccessorHandle<any> | FileShareAccessorHandle<any> | HTTPProxyAccessorHandle<any>
+): string[] {
+	const args = [
+		'-y', // Overwrite output files without asking.
+		seekableSource ? undefined : '-seekable 0',
+		`-i "${input}"`, // Input file path
+
+		'-c copy', // Stream copy, no transcoding
+		'-threads 1', // Number of threads to use
+	]
+
+	// Check target to see if we should tell ffmpeg which format to use:
+	let targetPath = ''
+	if (isLocalFolderAccessorHandle(targetHandle)) {
+		targetPath = targetHandle.fullPath
+	} else if (isFileShareAccessorHandle(targetHandle)) {
+		targetPath = targetHandle.fullPath
+	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
+		targetPath = ''
+	} else {
+		assertNever(targetHandle)
+		throw new Error(`Unsupported Target AccessHandler`)
+	}
+
+	const hasFileExtension = targetPath.match(/\.[a-zA-Z0-9]{1,3}$/)
+	if (!hasFileExtension) {
+		args.push(
+			'-f mp4' // Specify format. Note: There's no reason why mp4 was picked here, perhaps change this in the future?
+		)
+	}
+
+	return args.filter(Boolean) as string[] // remove undefined values
 }

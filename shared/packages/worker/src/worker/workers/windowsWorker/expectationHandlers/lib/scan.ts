@@ -299,8 +299,8 @@ export function scanMoreInfo(
 		})
 
 		const scenes: number[] = []
-		const freezes: ScanAnomaly[] = []
-		const blacks: ScanAnomaly[] = []
+		let freezes: ScanAnomaly[] = []
+		let blacks: ScanAnomaly[] = []
 
 		// TODO current frame is not read?
 		// let currentFrame = 0
@@ -374,12 +374,14 @@ export function scanMoreInfo(
 
 					let i = 0
 					while ((res = freezeDetectDuration.exec(stringData)) !== null) {
-						freezes[i++].duration = parseFloat(res[2])
+						const freeze = freezes[i++]
+						if (freeze) freeze.duration = parseFloat(res[2])
 					}
 
 					i = 0
 					while ((res = freezeDetectEnd.exec(stringData)) !== null) {
-						freezes[i++].end = parseFloat(res[2])
+						const freeze = freezes[i++]
+						if (freeze) freeze.end = parseFloat(res[2])
 					}
 				}
 				previousStringData = stringData
@@ -393,6 +395,9 @@ export function scanMoreInfo(
 				throw err
 			}
 		})
+
+		freezes = freezes.filter((freeze) => freeze.duration > 0)
+		blacks = blacks.filter((black) => black.duration > 0)
 
 		const onError = (err: unknown, context: string | undefined) => {
 			if (ffMpegProcess) {

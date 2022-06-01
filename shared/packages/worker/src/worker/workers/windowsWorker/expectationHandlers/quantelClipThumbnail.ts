@@ -1,6 +1,5 @@
 import {
 	Accessor,
-	AccessorOnPackage,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -16,7 +15,6 @@ import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
-	getAccessorHandle,
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -24,9 +22,9 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { GenericAccessorHandle, PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
-import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'
+import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
 import { WindowsWorker } from '../windowsWorker'
+import { getSourceHTTPHandle, QuantelClipMetadata } from './lib/quantel'
 
 /**
  * Generates a thumbnail image from a source quantel clip, and stores the resulting file into the target PackageContainer
@@ -338,34 +336,8 @@ async function getThumbnailURL(
 		}
 	}
 }
-export function getSourceHTTPHandle(
-	worker: GenericWorker,
-	sourceHandle: GenericAccessorHandle<any>,
-	thumbnailURL: { baseURL: string; url: string }
-): HTTPProxyAccessorHandle<any> {
-	// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail,
-	// so we have a QUANTEL source, but we construct an HTTP source from it to use instead:
 
-	const handle = getAccessorHandle<Metadata>(
-		worker,
-		sourceHandle.accessorId + '__http',
-		literal<AccessorOnPackage.HTTPProxy>({
-			type: Accessor.AccessType.HTTP_PROXY,
-			baseUrl: thumbnailURL.baseURL,
-			// networkId?: string
-			url: thumbnailURL.url,
-		}),
-		{ filePath: thumbnailURL.url },
-		{}
-	)
-	if (!isHTTPProxyAccessorHandle(handle)) throw new Error(`getSourceHTTPHandle: got a non-HTTP handle!`)
-	return handle
-}
-
-interface Metadata {
-	sourceVersionHash: string
-	version: Expectation.Version.QuantelClipThumbnail
-}
+type Metadata = QuantelClipMetadata
 
 function lookupThumbnailSources(
 	worker: GenericWorker,
