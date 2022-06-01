@@ -1054,6 +1054,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 						}
 					} catch (error) {
 						// There was an error, clearly it's not ready to start
+						this.logger.warn(`Error in WAITING: ${stringifyError(error)}`)
 
 						this.updateTrackedExpStatus(trackedExp, {
 							state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
@@ -1126,6 +1127,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 							status: wipInfo.properties,
 						})
 					} catch (error) {
+						this.logger.warn(`Error in READY: ${stringifyError(error)}`)
 						// There was an error
 						this.updateTrackedExpStatus(trackedExp, {
 							state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
@@ -1186,6 +1188,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 								})
 							}
 						} catch (error) {
+							this.logger.warn(`Error in FULFILLED: ${stringifyError(error)}`)
 							// Do nothing, hopefully some will be available at a later iteration
 							// todo: Is this the right thing to do?
 							this.updateTrackedExpStatus(trackedExp, {
