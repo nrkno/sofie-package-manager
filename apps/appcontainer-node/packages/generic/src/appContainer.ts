@@ -21,12 +21,16 @@ import {
 	LeveledLogMethod,
 	setLogLevel,
 	isNodeRunningInDebugMode,
+	INNER_ACTION_TIMEOUT,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
+import { DataStore } from './dataStorage'
 
 /** Mimimum time between app restarts */
 const RESTART_COOLDOWN = 60 * 1000 // ms
+
+const WORKER_DATA_LOCK_TIMEOUT = INNER_ACTION_TIMEOUT
 
 export class AppContainer {
 	private workforceAPI: WorkforceAPI
@@ -59,6 +63,12 @@ export class AppContainer {
 
 	private monitorAppsTimer: NodeJS.Timer | undefined
 	private initWorkForceApiPromise?: { resolve: () => void; reject: (reason: any) => void }
+
+	/**
+	 * The WorkerStorage is a storage that the workers can use to reliably store and read data.
+	 * It is a key-value store, with support for access locks (so that only one worker can write to a key at a time).
+	 */
+	private workerStorage = new DataStore(WORKER_DATA_LOCK_TIMEOUT)
 
 	private logger: LoggerInstance
 
@@ -204,8 +214,21 @@ export class AppContainer {
 					}
 				}
 			},
+			workerStorageWriteLock: async (dataId: string): Promise<{ lockId: string; current: any | undefined }> => {
+				return this.workerStorage.getWriteLock(dataId)
+			},
+			workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
+				return this.workerStorage.releaseLock(dataId, lockId)
+			},
+			workerStorageWrite: async (dataId: string, lockId: string, data: string): Promise<void> => {
+				return this.workerStorage.write(dataId, lockId, data)
+			},
+			workerStorageRead: async (dataId: string): Promise<any> => {
+				return this.workerStorage.read(dataId)
+			},
 		}
 	}
+
 	private getAppCount(appType: string): number {
 		let count = 0
 		for (const app of Object.values(this.apps)) {
@@ -278,6 +301,7 @@ export class AppContainer {
 	terminate(): void {
 		this.workforceAPI.terminate()
 		this.websocketServer?.terminate()
+		this.workerStorage.terminate()
 
 		if (this.monitorAppsTimer) {
 			clearInterval(this.monitorAppsTimer)
