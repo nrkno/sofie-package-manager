@@ -10,11 +10,10 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
-	WorkerAgentConfig,
 	assertNever,
 	stringifyError,
 } from '@shared/api'
-import { GenericWorker, WorkerLocation } from '../../worker'
+import { GenericWorker, GenericWorkerAgentAPI } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
 import { FileCopyProxy } from './expectationHandlers/fileCopyProxy'
 import { PackageScan } from './expectationHandlers/packageScan'
@@ -45,11 +44,10 @@ export class WindowsWorker extends GenericWorker {
 
 	constructor(
 		logger: LoggerInstance,
-		public readonly config: WorkerAgentConfig,
-		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
-		location: WorkerLocation
+		agentAPI: GenericWorkerAgentAPI,
+		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
-		super(logger.category('WindowsWorker'), config, location, sendMessageToManager, WindowsWorker.type)
+		super(logger.category('WindowsWorker'), agentAPI, sendMessageToManager, WindowsWorker.type)
 		if (process.platform !== 'win32') {
 			throw new Error('The Worker is a Windows-only application')
 		}

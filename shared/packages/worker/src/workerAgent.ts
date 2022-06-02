@@ -131,7 +131,36 @@ export class WorkerAgent {
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
 			this.logger,
-			this.config.worker,
+			{
+				location: {
+					// todo: tmp:
+					localComputerId: this.config.worker.resourceId,
+					localNetworkIds: this.config.worker.networkIds,
+				},
+				config: this.config.worker,
+				workerStorageRead: async (dataId: string) => {
+					return this.appContainerAPI.workerStorageRead(dataId)
+				},
+				workerStorageWrite: async (dataId: string, cb: (current: any | undefined) => Promise<any> | any) => {
+					// First, aquire a lock to the data, so that noone else can read/write to it:
+					this.logger
+					const { lockId, current } = await this.appContainerAPI.workerStorageWriteLock(dataId)
+					try {
+						// Then, execute the callback:
+						const writeData = await Promise.resolve(cb(current))
+						// Finally, write the data:
+						await this.appContainerAPI.workerStorageWrite(dataId, lockId, writeData)
+					} catch (err) {
+						// Better release the lock, to avoid it running into a timeout:
+						this.appContainerAPI.workerStorageReleaseLock(dataId, lockId).catch((err2) => {
+							this.logger.error(`Error releasing lock: ${stringifyError(err2)}`)
+						})
+
+						throw err
+					}
+				},
+			},
+
 			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 				// Forward the message to the expectationManager:
 
@@ -139,11 +168,6 @@ export class WorkerAgent {
 				if (!manager) throw new Error(`ExpectationManager "${managerId}" not found`)
 
 				return manager.api.messageFromWorker(message)
-			},
-			{
-				// todo: tmp:
-				localComputerId: this.config.worker.resourceId,
-				localNetworkIds: this.config.worker.networkIds,
 			}
 		)
 	}

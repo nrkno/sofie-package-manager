@@ -46,7 +46,7 @@ export async function isFileReadyToStartWorkingOn(
 		}
 	}
 
-	const sourcePackageStabilityThreshold: number = worker.genericConfig.sourcePackageStabilityThreshold ?? 4000 // Defaults to 4000 ms
+	const sourcePackageStabilityThreshold: number = worker.agentAPI.config.sourcePackageStabilityThreshold ?? 4000 // Defaults to 4000 ms
 	if (sourcePackageStabilityThreshold !== 0 && !sourceIsOld) {
 		// Check that the source is stable (such as that the file size hasn't changed), to not start working on growing files.
 		// This is similar to chokidars' awaitWriteFinish.stabilityThreshold feature.

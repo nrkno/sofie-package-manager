@@ -41,10 +41,6 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 	public disableDriveMapping = false
 
-	private mappedDriveLetters: {
-		[driveLetter: string]: string
-	} = {}
-
 	private content: {
 		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
@@ -94,7 +90,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.FileShare
-		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
+		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
 	checkHandleRead(): AccessorHandlerResult {
 		if (!this.accessor.allowRead) {
@@ -384,95 +380,112 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		if (!this.originalFolderPath) throw new Error(`FileShareAccessor: accessor.folderPath not set!`)
 		const folderPath = this.originalFolderPath
 
+		let handlingDone = false
+
 		if (!this.disableDriveMapping && this.worker.type === WindowsWorker.type) {
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
 			const windowsWorker = this.worker as WindowsWorker
 
-			// First we check if the drive letter has already been assigned in our cache:
-			let foundMappedDriveLetter: string | null = null
-			for (const [driveLetter, mountedPath] of Object.entries(this.mappedDriveLetters)) {
-				if (mountedPath === folderPath) {
-					foundMappedDriveLetter = driveLetter
-				}
-			}
-
-			if (foundMappedDriveLetter && forceRemount) {
-				// Force a re-mount of the drive letter:
-				delete this.mappedDriveLetters[foundMappedDriveLetter]
-				await networkDrive.unmount(foundMappedDriveLetter)
-				foundMappedDriveLetter = null
-			}
-
-			if (foundMappedDriveLetter) {
-				// It seems a drive letter is already mapped up.
-				this.actualFolderPath = `${foundMappedDriveLetter}:\\`
-				return
-			} else {
-				// Update our cache of mounted drive letters:
-				for (const [driveLetter, mountedPath] of Object.entries(await this.getMountedDriveLetters())) {
-					this.mappedDriveLetters[driveLetter] = mountedPath
-					// If the mounted path is the one we want, we don't have to mount a new one:
-					if (mountedPath === folderPath) {
-						foundMappedDriveLetter = driveLetter
+			// Note: Use the mappedDriveLetters as a WorkerStorage, to avoid a potential issue where other workers
+			// mess with the drive letter at the same time that we do, and we all end up to be unsynced with reality.
+			await this.worker.agentAPI.workerStorageWrite<MappedDriveLetters>(
+				`fileShare_driveLetters_${this.worker.agentAPI.location.localComputerId}`,
+				async (mappedDriveLetters0): Promise<MappedDriveLetters> => {
+					const mappedDriveLetters: MappedDriveLetters = mappedDriveLetters0 ?? {}
+					// First we check if the drive letter has already been assigned in our cache:
+					let foundMappedDriveLetter: string | null = null
+					for (const [driveLetter, mountedPath] of Object.entries(mappedDriveLetters)) {
+						if (mountedPath === folderPath) {
+							foundMappedDriveLetter = driveLetter
+						}
 					}
-				}
-				if (foundMappedDriveLetter) {
-					this.actualFolderPath = `${foundMappedDriveLetter}:\\`
-					return
-				}
 
-				// Find next free drive letter:
-				const freeDriveLetter = windowsWorker.config.windowsDriveLetters?.find(
-					(driveLetter) => !this.mappedDriveLetters[driveLetter]
-				)
+					if (foundMappedDriveLetter && forceRemount) {
+						// Force a re-mount of the drive letter:
+						delete mappedDriveLetters[foundMappedDriveLetter]
+						await networkDrive.unmount(foundMappedDriveLetter)
+						foundMappedDriveLetter = null
+					}
 
-				if (freeDriveLetter) {
-					// Try to map the remote share onto a drive:
-
-					try {
-						await networkDrive.mount(
-							folderPath,
-							freeDriveLetter,
-							this.accessor.userName,
-							this.accessor.password
-						)
-					} catch (e) {
-						const errStr = `${e}`
-						if (
-							errStr.match(/invalid response/i) ||
-							errStr.match(/Ugyldig svar/i) // "Invalid response" in Norvegian
-						) {
-							// Temporary handling of the error
-
-							const mappedDrives = await this.getMountedDriveLetters()
-
-							if (mappedDrives[freeDriveLetter] === folderPath) {
-								this.worker.logger.warn(`Supressed error: ${errStr}`)
-
-								this.worker.logger.warn(`Mapped drives: ${Object.keys(mappedDrives).join(',')}`)
-								this.worker.logger.warn(
-									`${freeDriveLetter} is currently mapped to ${mappedDrives[freeDriveLetter]}`
-								)
-							} else {
-								this.worker.logger.warn(`Mapped drives: ${Object.keys(mappedDrives).join(',')}`)
-								this.worker.logger.warn(
-									`${freeDriveLetter} is currently mapped to ${mappedDrives[freeDriveLetter]}`
-								)
-								throw e
+					if (foundMappedDriveLetter) {
+						// It seems a drive letter is already mapped up.
+						this.actualFolderPath = `${foundMappedDriveLetter}:\\`
+						handlingDone = true
+					}
+					if (!handlingDone) {
+						// Update our cache of mounted drive letters:
+						for (const [driveLetter, mountedPath] of Object.entries(await this.getMountedDriveLetters())) {
+							mappedDriveLetters[driveLetter] = mountedPath
+							// If the mounted path is the one we want, we don't have to mount a new one:
+							if (mountedPath === folderPath) {
+								foundMappedDriveLetter = driveLetter
 							}
-						} else throw e
+						}
+						if (foundMappedDriveLetter) {
+							this.actualFolderPath = `${foundMappedDriveLetter}:\\`
+							handlingDone = true
+						}
 					}
 
-					this.mappedDriveLetters[freeDriveLetter] = folderPath
-					this.actualFolderPath = `${freeDriveLetter}:\\`
-					return
-				} else {
-					// Not able to find any free drive letters.
-					// Revert to direct access then
+					if (!handlingDone) {
+						// Find next free drive letter:
+						const freeDriveLetter = windowsWorker.agentAPI.config.windowsDriveLetters?.find(
+							(driveLetter) => !mappedDriveLetters[driveLetter]
+						)
+
+						if (freeDriveLetter) {
+							// Try to map the remote share onto a drive:
+
+							try {
+								await networkDrive.mount(
+									folderPath,
+									freeDriveLetter,
+									this.accessor.userName,
+									this.accessor.password
+								)
+							} catch (e) {
+								const errStr = `${e}`
+								if (
+									errStr.match(/invalid response/i) ||
+									errStr.match(/Ugyldig svar/i) // "Invalid response" in Norvegian
+								) {
+									// Temporary handling of the error
+
+									const mappedDrives = await this.getMountedDriveLetters()
+
+									if (mappedDrives[freeDriveLetter] === folderPath) {
+										this.worker.logger.warn(`Supressed error: ${errStr}`)
+
+										this.worker.logger.warn(`Mapped drives: ${Object.keys(mappedDrives).join(',')}`)
+										this.worker.logger.warn(
+											`${freeDriveLetter} is currently mapped to ${mappedDrives[freeDriveLetter]}`
+										)
+									} else {
+										this.worker.logger.warn(`Mapped drives: ${Object.keys(mappedDrives).join(',')}`)
+										this.worker.logger.warn(
+											`${freeDriveLetter} is currently mapped to ${mappedDrives[freeDriveLetter]}`
+										)
+										throw e
+									}
+								} else throw e
+							}
+
+							mappedDriveLetters[freeDriveLetter] = folderPath
+							this.actualFolderPath = `${freeDriveLetter}:\\`
+							handlingDone = true
+						} else {
+							// Not able to find any free drive letters.
+							// Revert to direct access then
+						}
+					}
+					return mappedDriveLetters
 				}
-			}
+			)
+		}
+
+		if (!handlingDone) {
 			// We're reverting to accessing through the direct path instead
-			if (this.accessor.userName) {
+			if (this.worker.type === WindowsWorker.type && this.accessor.userName) {
 				// Try to add the credentials to the share in Windows:
 				const setupCredentialsCommand = `net use "${folderPath}" /user:${this.accessor.userName} ${this.accessor.password}`
 				try {
@@ -491,10 +504,14 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 					}
 				}
 			}
+			this.actualFolderPath = folderPath
+			handlingDone = true
 		}
-
-		this.actualFolderPath = folderPath
-		return
+		if (!handlingDone) {
+			// Last resort, just use the direct path:
+			this.actualFolderPath = folderPath
+			handlingDone = true
+		}
 	}
 	private async getMountedDriveLetters(): Promise<{ [driveLetter: string]: string }> {
 		let usedDriveLetters: { [key: string]: string } = {}
@@ -528,4 +545,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		}
 		return { success: true }
 	}
+}
+interface MappedDriveLetters {
+	[driveLetter: string]: string
 }
