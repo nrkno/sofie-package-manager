@@ -1,4 +1,4 @@
-import { LoggerInstance } from '@shared/api'
+import { LoggerInstance } from './logger'
 
 /**
  * The DataStore is a simple key-value store, with support for access locks
@@ -10,6 +10,8 @@ export class DataStore {
 			/** When this is set, prevents others from reading and writing */
 			accessLock: {
 				lockId: string
+				/** created time [timestamp] */
+				created: number
 				/** time to live [timestamp] */
 				ttl: number
 				timeout?: NodeJS.Timeout
@@ -70,6 +72,7 @@ export class DataStore {
 		const timeoutDuration = customTimeout ?? this._timeoutTime
 		data.accessLock = {
 			lockId: lockId,
+			created: Date.now(),
 			ttl: Date.now() + timeoutDuration,
 			// In the case of a timeout, it'll be dealt with asap:
 			timeout: setTimeout(() => {
@@ -178,7 +181,11 @@ export class DataStore {
 								isWaitingForLock = true
 							} else {
 								// The lock has expired
-								this.logger.warn(`AccessLock timed out "${data.accessLock.lockId}"`)
+								this.logger.warn(
+									`AccessLock timed out after ${Date.now() - data.accessLock.created} ms "${
+										data.accessLock.lockId
+									}"`
+								)
 								isWaitingForLock = false
 							}
 						} else {

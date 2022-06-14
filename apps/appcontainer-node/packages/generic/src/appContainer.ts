@@ -22,10 +22,12 @@ import {
 	setLogLevel,
 	isNodeRunningInDebugMode,
 	INNER_ACTION_TIMEOUT,
+	DataStore,
+	literal,
+	WorkForceAppContainer,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
-import { DataStore } from './dataStorage'
 
 /** Mimimum time between app restarts */
 const RESTART_COOLDOWN = 60 * 1000 // ms
@@ -186,7 +188,20 @@ export class AppContainer {
 			this.logger.info(`Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
 
-		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		await this.workforceAPI.init(
+			this.id,
+			this.workForceConnectionOptions,
+			literal<WorkForceAppContainer.AppContainer>({
+				setLogLevel: this.setLogLevel.bind(this),
+				_debugKill: this._debugKill.bind(this),
+				_debugSendKillConnections: this._debugSendKillConnections.bind(this),
+				requestAppTypeForExpectation: this.requestAppTypeForExpectation.bind(this),
+				requestAppTypeForPackageContainer: this.requestAppTypeForPackageContainer.bind(this),
+				spinUp: this.spinUp.bind(this),
+				spinDown: this.spinDown.bind(this),
+				getRunningApps: this.getRunningApps.bind(this),
+			})
+		)
 		if (!this.workforceAPI.connected) throw new Error('Workforce not connected')
 
 		this.monitorAppsTimer = setInterval(() => {
