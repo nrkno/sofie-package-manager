@@ -18,8 +18,11 @@ export class AppContainerAPI
 	async requestSpinDown(): Promise<void> {
 		return this._sendMessage('requestSpinDown')
 	}
-	async workerStorageWriteLock(dataId: string): Promise<{ lockId: string; current: any | undefined }> {
-		return this._sendMessage('workerStorageWriteLock', dataId)
+	async workerStorageWriteLock(
+		dataId: string,
+		customTimeout?: number
+	): Promise<{ lockId: string; current: any | undefined }> {
+		return this._sendMessage('workerStorageWriteLock', dataId, customTimeout)
 	}
 	async workerStorageReleaseLock(dataId: string, lockId: string): Promise<void> {
 		return this._sendMessage('workerStorageReleaseLock', dataId, lockId)

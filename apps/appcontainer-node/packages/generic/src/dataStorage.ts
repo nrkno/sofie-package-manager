@@ -47,7 +47,7 @@ export class DataStore {
 	}
 
 	/** Request to aquire a write lock */
-	async getWriteLock(dataId: string): Promise<{ lockId: string; current: any | undefined }> {
+	async getWriteLock(dataId: string, customTimeout?: number): Promise<{ lockId: string; current: any | undefined }> {
 		// Wait for getting access to the data:
 		await this._waitForAccess(dataId)
 		// Set a write lock:
@@ -62,13 +62,14 @@ export class DataStore {
 
 		if (this.lockI >= Number.MAX_SAFE_INTEGER) this.lockI = 0
 		const lockId = `write_${this.lockI++}`
+		const timeoutDuration = customTimeout ?? this._timeoutTime
 		data.accessLock = {
 			lockId: lockId,
-			ttl: Date.now() + this._timeoutTime,
+			ttl: Date.now() + timeoutDuration,
 			// In the case of a timeout, it'll be dealt with asap:
 			timeout: setTimeout(() => {
 				this._triggerHandleClaims(true)
-			}, this._timeoutTime + 10),
+			}, timeoutDuration + 10),
 		}
 
 		return { lockId, current: data.data }

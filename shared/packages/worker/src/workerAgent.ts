@@ -141,10 +141,13 @@ export class WorkerAgent {
 				workerStorageRead: async (dataId: string) => {
 					return this.appContainerAPI.workerStorageRead(dataId)
 				},
-				workerStorageWrite: async (dataId: string, cb: (current: any | undefined) => Promise<any> | any) => {
+				workerStorageWrite: async (
+					dataId: string,
+					customTimeout: number | undefined,
+					cb: (current: any | undefined) => Promise<any> | any
+				) => {
 					// First, aquire a lock to the data, so that noone else can read/write to it:
-					this.logger
-					const { lockId, current } = await this.appContainerAPI.workerStorageWriteLock(dataId)
+					const { lockId, current } = await this.appContainerAPI.workerStorageWriteLock(dataId, customTimeout)
 					try {
 						// Then, execute the callback:
 						const writeData = await Promise.resolve(cb(current))

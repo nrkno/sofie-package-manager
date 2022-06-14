@@ -33,6 +33,8 @@ const fsRename = promisify(fs.rename)
 const fsUnlink = promisify(fs.unlink)
 const pExec = promisify(exec)
 
+const PREPARE_FILE_ACCESS_TIMEOUT = 1000
+
 /** Accessor handle for accessing files on a network share */
 export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
 	static readonly type = FileShareAccessorHandleType
@@ -390,6 +392,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// mess with the drive letter at the same time that we do, and we all end up to be unsynced with reality.
 			await this.worker.agentAPI.workerStorageWrite<MappedDriveLetters>(
 				`fileShare_driveLetters_${this.worker.agentAPI.location.localComputerId}`,
+				PREPARE_FILE_ACCESS_TIMEOUT,
 				async (mappedDriveLetters0): Promise<MappedDriveLetters> => {
 					const mappedDriveLetters: MappedDriveLetters = mappedDriveLetters0 ?? {}
 					// First we check if the drive letter has already been assigned in our cache:

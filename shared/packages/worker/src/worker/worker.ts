@@ -22,7 +22,11 @@ export interface GenericWorkerAgentAPI {
 	 * Aquire a read/write lock to a data point, then write the result of the callback to it.
 	 * This is used to prevent multiple workers from working on the same data point at the same time.
 	 */
-	workerStorageWrite: <T>(dataId: string, cb: (current: T | undefined) => Promise<T> | T) => Promise<void>
+	workerStorageWrite: <T>(
+		dataId: string,
+		customTimeout: number | undefined,
+		cb: (current: T | undefined) => Promise<T> | T
+	) => Promise<void>
 	workerStorageRead: (dataId: string) => Promise<any>
 }
 

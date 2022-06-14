@@ -214,8 +214,11 @@ export class AppContainer {
 					}
 				}
 			},
-			workerStorageWriteLock: async (dataId: string): Promise<{ lockId: string; current: any | undefined }> => {
-				return this.workerStorage.getWriteLock(dataId)
+			workerStorageWriteLock: async (
+				dataId: string,
+				customTimeout?: number
+			): Promise<{ lockId: string; current: any | undefined }> => {
+				return this.workerStorage.getWriteLock(dataId, customTimeout)
 			},
 			workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
 				return this.workerStorage.releaseLock(dataId, lockId)
