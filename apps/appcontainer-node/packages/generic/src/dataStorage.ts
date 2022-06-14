@@ -1,3 +1,5 @@
+import { LoggerInstance } from '@shared/api'
+
 /**
  * The DataStore is a simple key-value store, with support for access locks
  */
@@ -16,7 +18,7 @@ export class DataStore {
 			data: any
 		}
 	>()
-	/**  */
+	/** An Access Claim is basically a read-queue for accessing/reading a data-point. */
 	private accessClaims = new Map<
 		string,
 		{
@@ -29,7 +31,10 @@ export class DataStore {
 	private _handleClaimsTimeout: NodeJS.Timeout | null = null
 
 	private terminated = false
-	constructor(private _timeoutTime = 1000) {}
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, private _timeoutTime = 1000) {
+		this.logger = logger.category('DataStore')
+	}
 	terminate() {
 		this.terminated = true
 
@@ -161,23 +166,30 @@ export class DataStore {
 
 					runAgain = true
 				} else {
-					let waitingForLock: boolean
+					//
 					const data = this.storage.get(dataId)
-
+					let isWaitingForLock: boolean
 					if (data) {
 						// Check if there is an active lock?
-						if (data.accessLock && data.accessLock.ttl >= Date.now()) {
+						if (data.accessLock) {
 							// There is a lock
-							waitingForLock = true
+
+							if (data.accessLock.ttl >= Date.now()) {
+								isWaitingForLock = true
+							} else {
+								// The lock has expired
+								this.logger.warn(`AccessLock timed out "${data.accessLock.lockId}"`)
+								isWaitingForLock = false
+							}
 						} else {
-							waitingForLock = false
+							isWaitingForLock = false
 						}
 					} else {
 						// data not found, ie there is no lock:
-						waitingForLock = false
+						isWaitingForLock = false
 					}
 
-					if (waitingForLock) {
+					if (isWaitingForLock) {
 						// do nothing, we'll check again later
 					} else {
 						firstClaim.resolve()

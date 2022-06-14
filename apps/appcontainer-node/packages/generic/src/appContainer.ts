@@ -68,12 +68,15 @@ export class AppContainer {
 	 * The WorkerStorage is a storage that the workers can use to reliably store and read data.
 	 * It is a key-value store, with support for access locks (so that only one worker can write to a key at a time).
 	 */
-	private workerStorage = new DataStore(WORKER_DATA_LOCK_TIMEOUT)
+	private workerStorage: DataStore
 
 	private logger: LoggerInstance
 
 	constructor(logger: LoggerInstance, private config: AppContainerProcessConfig) {
 		this.logger = logger.category('AppContainer')
+
+		this.workerStorage = new DataStore(this.logger, WORKER_DATA_LOCK_TIMEOUT)
+
 		if (config.appContainer.port !== null) {
 			this.websocketServer = new WebsocketServer(
 				config.appContainer.port,

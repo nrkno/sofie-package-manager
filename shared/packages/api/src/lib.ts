@@ -49,10 +49,17 @@ export function waitTime(duration: number): Promise<void> {
 		setTimeout(resolve, duration)
 	})
 }
-export function promiseTimeout<T>(p: Promise<T>, timeoutTime: number, timeoutMessage?: string): Promise<T> {
+export function promiseTimeout<T>(
+	p: Promise<T>,
+	timeoutTime: number,
+	timeoutMessage?: string | ((timeoutDuration: number) => string)
+): Promise<T> {
+	const startTime = Date.now()
 	return new Promise<T>((resolve, reject) => {
 		const timeout = setTimeout(() => {
-			reject(timeoutMessage || 'Timeout')
+			const duration = Date.now() - startTime
+			const msg = typeof timeoutMessage === 'function' ? timeoutMessage(duration) : timeoutMessage
+			reject(msg || 'Timeout')
 		}, timeoutTime)
 
 		Promise.resolve(p)
