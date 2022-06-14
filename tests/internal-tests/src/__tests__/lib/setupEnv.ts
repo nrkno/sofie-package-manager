@@ -11,6 +11,10 @@ import {
 	setupLogger,
 	SingleAppConfig,
 	initializeLogger,
+	AppContainerWorkerAgent,
+	Hook,
+	DataStore,
+	LoggerInstance,
 } from '@shared/api'
 import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
@@ -110,6 +114,8 @@ export async function setupExpectationManager(
 	const workforce = new Workforce.Workforce(logger, defaultTestConfig)
 	await workforce.init()
 
+	const mockAppContainer = new MockAppContainer(logger)
+
 	// Initializing Expectation Manager:
 	expectationManager.hookToWorkforce(workforce.getExpectationManagerHook())
 	await expectationManager.init()
@@ -128,6 +134,7 @@ export async function setupExpectationManager(
 		})
 		workerAgents.push(workerAgent)
 
+		workerAgent.hookToAppContainer(mockAppContainer.getWorkerAgentHook())
 		workerAgent.hookToWorkforce(workforce.getWorkerAgentHook())
 		workerAgent.hookToExpectationManager(expectationManager.managerId, expectationManager.getWorkerAgentHook())
 		await workerAgent.init()
@@ -317,6 +324,51 @@ export interface ContainerStatuses {
 			[packageId: string]: {
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			}
+		}
+	}
+}
+
+/** This is a mock of the AppContainer, used in unit tests */
+class MockAppContainer {
+	private logger: LoggerInstance
+	private workerStorage: DataStore
+	constructor(logger: LoggerInstance) {
+		this.logger = logger.category('AppContainer')
+
+		const WORKER_DATA_LOCK_TIMEOUT = 1000
+		this.workerStorage = new DataStore(this.logger, WORKER_DATA_LOCK_TIMEOUT)
+	}
+
+	getWorkerAgentHook(): Hook<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent> {
+		return (_clientId: string, _clientMethods: AppContainerWorkerAgent.WorkerAgent) => {
+			// On connection from a workerAgent
+
+			const workerAgentMethods: AppContainerWorkerAgent.AppContainer = {
+				ping: async () => {
+					// do nothing
+				},
+				requestSpinDown: async () => {
+					// do nothing
+				},
+
+				workerStorageWriteLock: async (
+					dataId: string,
+					customTimeout?: number
+				): Promise<{ lockId: string; current: any | undefined }> => {
+					return this.workerStorage.getWriteLock(dataId, customTimeout)
+				},
+				workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
+					return this.workerStorage.releaseLock(dataId, lockId)
+				},
+				workerStorageWrite: async (dataId: string, lockId: string, data: string): Promise<void> => {
+					return this.workerStorage.write(dataId, lockId, data)
+				},
+				workerStorageRead: async (dataId: string): Promise<any> => {
+					return this.workerStorage.read(dataId)
+				},
+			}
+
+			return workerAgentMethods
 		}
 	}
 }

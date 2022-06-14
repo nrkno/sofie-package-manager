@@ -24,6 +24,7 @@ import {
 	stringifyError,
 	WorkerStatusReport,
 	setLogLevel,
+	AppContainerWorkerAgent,
 } from '@shared/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -48,7 +49,7 @@ export class WorkerAgent {
 	private currentJobs: CurrentJob[] = []
 	public readonly id: string
 	private workForceConnectionOptions: ClientConnectionOptions
-	private appContainerConnectionOptions: ClientConnectionOptions | null
+	private appContainerConnectionOptions: ClientConnectionOptions
 
 	private expectationManagers: {
 		[id: string]: {
@@ -127,7 +128,9 @@ export class WorkerAgent {
 					type: 'websocket',
 					url: this.config.worker.appContainerURL,
 			  }
-			: null
+			: {
+					type: 'internal',
+			  }
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
 			this.logger,
@@ -179,27 +182,27 @@ export class WorkerAgent {
 
 		await this._worker.init()
 
+		// Connect to AppContainer
+		if (this.appContainerConnectionOptions.type === 'websocket') {
+			this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
+		}
+		const pAppContainer = new Promise<void>((resolve, reject) => {
+			this.initAppContainerAPIPromise = { resolve, reject }
+		})
+		await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
+		// Wait for this.appContainerAPI to be ready before continuing:
+		await pAppContainer
+
 		// Connect to WorkForce:
 		if (this.workForceConnectionOptions.type === 'websocket') {
 			this.logger.info(`Worker: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
-		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
-		// Wait for this.workforceAPI to be ready before continuing:
-		await new Promise<void>((resolve, reject) => {
+		const pWorkForce = new Promise<void>((resolve, reject) => {
 			this.initWorkForceAPIPromise = { resolve, reject }
 		})
-
-		// Connect to AppContainer (if applicable)
-		if (this.appContainerConnectionOptions) {
-			if (this.appContainerConnectionOptions.type === 'websocket') {
-				this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
-			}
-			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
-			// Wait for this.appContainerAPI to be ready before continuing:
-			await new Promise<void>((resolve, reject) => {
-				this.initAppContainerAPIPromise = { resolve, reject }
-			})
-		}
+		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		// Wait for this.workforceAPI to be ready before continuing:
+		await pWorkForce
 
 		this.IDidSomeWork()
 	}
@@ -223,7 +226,7 @@ export class WorkerAgent {
 		this.cpuTracker.terminate()
 		this._worker.terminate()
 	}
-	/** Called when running in the same-process-mode, it */
+	/** Called when running in the same-process-mode */
 	hookToWorkforce(hook: Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>): void {
 		this.workforceAPI.hook(hook)
 	}
@@ -232,6 +235,9 @@ export class WorkerAgent {
 		hook: Hook<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
 	): void {
 		this.expectationManagerHooks[managerId] = hook
+	}
+	hookToAppContainer(hook: Hook<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent>): void {
+		this.appContainerAPI.hook(hook)
 	}
 
 	/** Keep track of the promise retorned by fcn and when it's resolved, to determine how busy we are */
