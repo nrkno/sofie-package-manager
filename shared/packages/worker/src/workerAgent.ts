@@ -25,6 +25,9 @@ import {
 	WorkerStatusReport,
 	setLogLevel,
 	AppContainerWorkerAgent,
+	deferGets,
+	promiseTimeout,
+	INNER_ACTION_TIMEOUT,
 } from '@shared/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -72,6 +75,10 @@ export class WorkerAgent {
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private cpuTracker = new CPUTracker()
 	private logger: LoggerInstance
+
+	private workerStorageDeferRead = deferGets(async (dataId: string) => {
+		return this.appContainerAPI.workerStorageRead(dataId)
+	})
 
 	constructor(logger: LoggerInstance, private config: WorkerConfig) {
 		this.logger = logger.category('WorkerAgent')
@@ -141,8 +148,10 @@ export class WorkerAgent {
 					localNetworkIds: this.config.worker.networkIds,
 				},
 				config: this.config.worker,
-				workerStorageRead: async (dataId: string) => {
-					return this.appContainerAPI.workerStorageRead(dataId)
+				workerStorageRead: (dataId: string) => {
+					// return this.appContainerAPI.workerStorageRead(dataId)
+
+					return this.workerStorageDeferRead(dataId, dataId)
 				},
 				workerStorageWrite: async (
 					dataId: string,
@@ -153,7 +162,14 @@ export class WorkerAgent {
 					const { lockId, current } = await this.appContainerAPI.workerStorageWriteLock(dataId, customTimeout)
 					try {
 						// Then, execute the callback:
-						const writeData = await Promise.resolve(cb(current))
+						// const writeData = await Promise.resolve(cb(current))
+						const writeData = await promiseTimeout(
+							Promise.resolve(cb(current)),
+							(customTimeout ?? INNER_ACTION_TIMEOUT) - 10,
+							(timeoutDuration: number) => {
+								return `workerStorageWrite function "${dataId}" didn't resolve in time (after ${timeoutDuration} ms)`
+							}
+						)
 						// Finally, write the data:
 						await this.appContainerAPI.workerStorageWrite(dataId, lockId, writeData)
 					} catch (err) {

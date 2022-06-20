@@ -105,6 +105,8 @@ export class AppContainer {
 								client.once('close', () => {
 									this.logger.warn(`Connection to Worker "${client.clientId}" closed`)
 									app.workerAgentApi = null
+
+									this.workerStorage.releaseLockForTag(client.clientId)
 								})
 								this.logger.info(`Connection to Worker "${client.clientId}" established`)
 								app.workerAgentApi = api
@@ -236,7 +238,7 @@ export class AppContainer {
 				dataId: string,
 				customTimeout?: number
 			): Promise<{ lockId: string; current: any | undefined }> => {
-				return this.workerStorage.getWriteLock(dataId, customTimeout)
+				return this.workerStorage.getWriteLock(dataId, customTimeout, clientId)
 			},
 			workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
 				return this.workerStorage.releaseLock(dataId, lockId)

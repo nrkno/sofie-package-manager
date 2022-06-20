@@ -16,6 +16,7 @@ export class DataStore {
 				ttl: number
 				timeout?: NodeJS.Timeout
 			} | null
+			tag: string | undefined
 			/** The data */
 			data: any
 		}
@@ -54,7 +55,11 @@ export class DataStore {
 	}
 
 	/** Request to aquire a write lock */
-	async getWriteLock(dataId: string, customTimeout?: number): Promise<{ lockId: string; current: any | undefined }> {
+	async getWriteLock(
+		dataId: string,
+		customTimeout?: number,
+		tag?: string
+	): Promise<{ lockId: string; current: any | undefined }> {
 		// Wait for getting access to the data:
 		await this._waitForAccess(dataId)
 		// Set a write lock:
@@ -62,6 +67,7 @@ export class DataStore {
 			this.storage.set(dataId, {
 				accessLock: null,
 				data: undefined,
+				tag: tag,
 			})
 		}
 		const data = this.storage.get(dataId)
@@ -92,6 +98,14 @@ export class DataStore {
 
 			this._triggerHandleClaims(true)
 		}
+	}
+	/** Release all locks for a certain tag */
+	releaseLockForTag(tag: string): void {
+		this.storage.forEach((value, dataId) => {
+			if (value.accessLock && value.tag === tag) {
+				this.releaseLock(dataId, value.accessLock.lockId)
+			}
+		})
 	}
 	write(dataId: string, lockId: string, writeData: string): void {
 		const data = this.storage.get(dataId)
@@ -184,7 +198,7 @@ export class DataStore {
 								this.logger.warn(
 									`AccessLock timed out after ${Date.now() - data.accessLock.created} ms "${
 										data.accessLock.lockId
-									}"`
+									}", claim count: ${claims.length}`
 								)
 								isWaitingForLock = false
 							}

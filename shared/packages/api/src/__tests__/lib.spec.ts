@@ -1,4 +1,4 @@
-import { diff, promiseTimeout, stringifyError, waitTime } from '../lib'
+import { deferGets, diff, promiseTimeout, stringifyError, waitTime } from '../lib'
 
 describe('lib', () => {
 	test('diff', () => {
@@ -135,6 +135,47 @@ describe('lib', () => {
 		expect(stringifyError(emptyObject)).toEqual('{}')
 
 		expect(stringifyError(errWithContext, true)).toEqual('Error: errr, Context: a context')
+	})
+	test('deferGets', async () => {
+		let i = 0
+		const deferred = deferGets(async (val: string) => {
+			await waitTime(10)
+			return `${val}_${i++}`
+		})
+
+		const values = await Promise.all([
+			deferred('a', 'a1'), // will be executed
+			deferred('b', 'b2'), // will be executed
+			deferred('a', 'a3'), // will not be executed
+			deferred('a', 'a4'), // will not be executed
+			deferred('c', 'c5'), // will be executed
+			deferred('a', 'a6'), // will not be executed
+			deferred('b', 'b7'), // will not be executed
+		])
+
+		const values2 = await Promise.all([
+			deferred('a', 'a8'), // will be executed
+			deferred('a', 'a9'), // will not be executed
+			deferred('b', 'b10'), // will be executed
+			deferred('a', 'a11'), // will not be executed
+		])
+
+		expect(values).toEqual([
+			'a1_0', // was executed
+			'b2_1', // was executed
+			'a1_0', // was not executed
+			'a1_0', // was not executed
+			'c5_2', // was executed
+			'a1_0', // was not executed
+			'b2_1', // was not executed
+		])
+		expect(values2).toEqual([
+			'a8_3', // was executed
+			'a8_3', // was not executed
+			'b10_4', // was executed
+			'a8_3', // was not executed
+		])
+		expect(i).toBe(5)
 	})
 })
 export {}

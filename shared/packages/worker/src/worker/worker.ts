@@ -27,7 +27,7 @@ export interface GenericWorkerAgentAPI {
 		customTimeout: number | undefined,
 		cb: (current: T | undefined) => Promise<T> | T
 	) => Promise<void>
-	workerStorageRead: (dataId: string) => Promise<any>
+	workerStorageRead: <T>(dataId: string) => Promise<T | undefined>
 }
 
 /**
