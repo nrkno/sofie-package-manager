@@ -14,6 +14,7 @@ import {
 	assertNever,
 	Reason,
 	stringifyError,
+	promiseTimeout,
 } from '@shared/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
@@ -34,6 +35,7 @@ const fsUnlink = promisify(fs.unlink)
 const pExec = promisify(exec)
 
 const PREPARE_FILE_ACCESS_TIMEOUT = 1000
+const PREPARE_FILE_ACCESS_TIMEOUT_INNER = PREPARE_FILE_ACCESS_TIMEOUT * 0.8
 
 /** Accessor handle for accessing files on a network share */
 export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
@@ -431,7 +433,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 						if (foundMappedDriveLetter && forceRemount) {
 							// Force a re-mount of the drive letter:
 							delete mappedDriveLetters[foundMappedDriveLetter]
-							await networkDrive.unmount(foundMappedDriveLetter)
+							await promiseTimeout(
+								networkDrive.unmount(foundMappedDriveLetter),
+								PREPARE_FILE_ACCESS_TIMEOUT_INNER,
+								(timeoutDuration) => `networkDrive.unmount: Timeout after ${timeoutDuration}ms`
+							)
+
 							foundMappedDriveLetter = null
 						}
 
@@ -467,11 +474,15 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 								// Try to map the remote share onto a drive:
 
 								try {
-									await networkDrive.mount(
-										folderPath,
-										freeDriveLetter,
-										this.accessor.userName,
-										this.accessor.password
+									await promiseTimeout(
+										networkDrive.mount(
+											folderPath,
+											freeDriveLetter,
+											this.accessor.userName,
+											this.accessor.password
+										),
+										PREPARE_FILE_ACCESS_TIMEOUT_INNER,
+										(timeoutDuration) => `networkDrive.mount: Timeout after ${timeoutDuration}ms`
 									)
 								} catch (e) {
 									const errStr = `${e}`
@@ -553,7 +564,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		try {
 			// usedDriveLetters = (await networkDrive.list()) as { [driveLetter: string]: string }
-			usedDriveLetters = await listNetworkDrives()
+			usedDriveLetters = await promiseTimeout(
+				listNetworkDrives(),
+				PREPARE_FILE_ACCESS_TIMEOUT_INNER,
+				(timeoutDuration) => `networkDrive.listNetworkDrives: Timeout after ${timeoutDuration}ms`
+			)
 		} catch (err) {
 			if (stringifyError(err, true).match(/No Instance\(s\) Available/)) {
 				// this error comes when the list is empty
