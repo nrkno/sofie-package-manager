@@ -756,7 +756,7 @@ export class WorkerAgent {
 
 				// Don's spin down if a monitor is active
 				if (!Object.keys(this.activeMonitors).length) {
-					this.logger.info(`Worker: is idle, requesting spinning down`)
+					this.logger.debug(`Worker: is idle, requesting spinning down`)
 
 					if (this.appContainerAPI.connected) {
 						this.appContainerAPI.requestSpinDown().catch((err) => {

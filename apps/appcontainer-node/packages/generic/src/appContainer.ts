@@ -494,7 +494,7 @@ export class AppContainer {
 		const app = this.apps[appId]
 		if (!app) throw new Error(`App "${appId}" not found`)
 
-		this.logger.debug(`Spinning down app "${appId}" due to: ${reason}`)
+		this.logger.verbose(`Spinning down app "${appId}" due to: ${reason}`)
 
 		app.toBeKilled = true
 		const success = app.process.kill()
