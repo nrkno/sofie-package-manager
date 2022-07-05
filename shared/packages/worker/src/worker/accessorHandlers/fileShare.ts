@@ -436,7 +436,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 							await promiseTimeout(
 								networkDrive.unmount(foundMappedDriveLetter),
 								PREPARE_FILE_ACCESS_TIMEOUT_INNER,
-								(timeoutDuration) => `networkDrive.unmount: Timeout after ${timeoutDuration}ms`
+								(timeoutDuration) =>
+									`networkDrive.unmount: Timeout after ${timeoutDuration}ms (trying to unmount "${foundMappedDriveLetter}", new network path: "${folderPath}")`
 							)
 
 							foundMappedDriveLetter = null
@@ -450,7 +451,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 						if (!handlingDone) {
 							// Update our cache of mounted drive letters:
 							for (const [driveLetter, mountedPath] of Object.entries(
-								await this.getMountedDriveLetters()
+								await this.getMountedDriveLetters(`new network path: "${folderPath}")`)
 							)) {
 								mappedDriveLetters[driveLetter] = mountedPath
 								// If the mounted path is the one we want, we don't have to mount a new one:
@@ -482,7 +483,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 											this.accessor.password
 										),
 										PREPARE_FILE_ACCESS_TIMEOUT_INNER,
-										(timeoutDuration) => `networkDrive.mount: Timeout after ${timeoutDuration}ms`
+										(timeoutDuration) =>
+											`networkDrive.mount: Timeout after ${timeoutDuration}ms (trying to mount "${folderPath}" onto drive "${freeDriveLetter}")`
+									)
+									this.worker.logger.info(
+										`networkDrive.mount: Mounted "${folderPath}" onto drive "${freeDriveLetter}"`
 									)
 								} catch (e) {
 									const errStr = `${e}`
@@ -492,7 +497,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 									) {
 										// Temporary handling of the error
 
-										const mappedDrives = await this.getMountedDriveLetters()
+										const mappedDrives = await this.getMountedDriveLetters(
+											`Handle error "${errStr}" when trying to mount "${folderPath}", new network path: "${folderPath}")`
+										)
 
 										if (mappedDrives[freeDriveLetter] === folderPath) {
 											this.worker.logger.warn(`Supressed error: ${errStr}`)
@@ -559,15 +566,16 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			handlingDone = true
 		}
 	}
-	private async getMountedDriveLetters(): Promise<{ [driveLetter: string]: string }> {
-		let usedDriveLetters: { [key: string]: string } = {}
+	private async getMountedDriveLetters(reason: string): Promise<{ [driveLetter: string]: string }> {
+		let usedDriveLetters: { [driveLetter: string]: string } = {}
 
 		try {
 			// usedDriveLetters = (await networkDrive.list()) as { [driveLetter: string]: string }
 			usedDriveLetters = await promiseTimeout(
 				listNetworkDrives(),
 				PREPARE_FILE_ACCESS_TIMEOUT_INNER,
-				(timeoutDuration) => `networkDrive.listNetworkDrives: Timeout after ${timeoutDuration}ms`
+				(timeoutDuration) =>
+					`networkDrive.listNetworkDrives: Timeout after ${timeoutDuration}ms, reason: ${reason}`
 			)
 		} catch (err) {
 			if (stringifyError(err, true).match(/No Instance\(s\) Available/)) {
