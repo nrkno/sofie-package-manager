@@ -14,7 +14,7 @@
         "lint-staged": "^7.2.0",
         "nexe": "^3.3.7",
         "tv-automation-quantel-gateway-client": "^2.0.2",
-        "windows-network-drive": "^3.0.1"
+        "windows-network-drive": "^4.0.0"
     },
     "dependencies": {
         "@http-server/generic": "1.39.0-in-development.1",
