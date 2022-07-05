@@ -30,7 +30,7 @@
 		"node-fetch": "^2.6.1",
 		"tmp": "~0.2.1",
 		"tv-automation-quantel-gateway-client": "2.0.5-nightly-latest-20220330-103600-2521239.0",
-		"windows-network-drive": "^4.0.0",
+		"windows-network-drive": "^3.0.1",
 		"xml-js": "^1.6.11"
 	},
 	"peerDependencies": {

@@ -11139,10 +11139,10 @@ windows-drive-letters@^4.0.0:
   dependencies:
     array-differ "^3.0.0"
 
-windows-network-drive@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/windows-network-drive/-/windows-network-drive-4.0.0.tgz#fcf052d8ee7a84302ee78daad8e1b78e77be34e0"
-  integrity sha512-AtXDMA0k1ThgXqFZM/kXsgQ0rESFUaYsAbGaq7r19qKnTRhJNbRojCYumdbyIXE/qntRRp6ksZSvGGFHXHOPcQ==
+windows-network-drive@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/windows-network-drive/-/windows-network-drive-3.0.1.tgz#e2fc04fef3fd00fc49f2e66e7b38b273b9febac1"
+  integrity sha512-n5+G/R/dcwoWGaAYnB9HxOoJJXcaYZEVi9SJ9p3uwBJrVb31O1VT3A4qb5pQRkDfYd2yXDx149ng1/cnpN7KBw==
   dependencies:
     windows-drive-letters "^4.0.0"
 
