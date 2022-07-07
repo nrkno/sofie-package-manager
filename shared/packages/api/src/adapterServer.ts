@@ -27,10 +27,8 @@ export abstract class AdapterServer<ME, OTHER> {
 					// Note: It is better if the receiver times out the method call than the other party.
 					// This way we can differ between the called method timing out and a websocket timeout.
 
-					return promiseTimeout(
-						fcn.call(serverMethods, ...message.args),
-						ACTION_TIMEOUT,
-						this.timeoutMessage(message.type, message.args)
+					return promiseTimeout(fcn.call(serverMethods, ...message.args), ACTION_TIMEOUT, (timeoutDuration) =>
+						this.timeoutMessage(timeoutDuration, message.type, message.args)
 					)
 				} else {
 					throw new Error(`Unknown method "${message.type}"`)
@@ -42,7 +40,9 @@ export abstract class AdapterServer<ME, OTHER> {
 				const fcn = (clientHook[type] as unknown) as (...args: any[]) => any
 				if (fcn) {
 					try {
-						return await promiseTimeout(fcn(...args), ACTION_TIMEOUT, this.timeoutMessage(type, args))
+						return await promiseTimeout(fcn(...args), ACTION_TIMEOUT, (timeoutDuration) =>
+							this.timeoutMessage(timeoutDuration, type, args)
+						)
 					} catch (err) {
 						throw new Error(`Error when executing method "${type}": ${stringifyError(err)}`)
 					}
@@ -52,11 +52,11 @@ export abstract class AdapterServer<ME, OTHER> {
 			}
 		}
 	}
-	private timeoutMessage(type: any, args: any[]): string {
+	private timeoutMessage(timeoutDuration: number, type: any, args: any[]): string {
 		const explainArgs = JSON.stringify(args).slice(0, 100) // limit the arguments to 100 chars
 		const receivedTime = new Date().toLocaleTimeString()
 
-		return `Timeout of function "${type}": ${explainArgs} (received: ${receivedTime})`
+		return `Timeout of function "${type}" after ${timeoutDuration} ms: ${explainArgs} (received: ${receivedTime})`
 	}
 }
 /** Options for the AdapterServer */

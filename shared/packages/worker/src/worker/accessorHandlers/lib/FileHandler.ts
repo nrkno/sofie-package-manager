@@ -181,7 +181,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 		const watcher = chokidar.watch(this.folderPath, chokidarOptions)
 
-		const monitorId = `${this.worker.genericConfig.workerId}_${this.worker.uniqueId}_${Date.now()}`
+		const monitorId = `${this.worker.agentAPI.config.workerId}_${this.worker.uniqueId}_${Date.now()}`
 		const seenFiles = new Map<string, Expectation.Version.FileOnDisk | null>()
 
 		let triggerSendUpdateTimeout: NodeJS.Timeout | null = null

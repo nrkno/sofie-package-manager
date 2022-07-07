@@ -11,10 +11,9 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
-	WorkerAgentConfig,
 } from '@shared/api'
 
-import { GenericWorker, WorkerLocation } from '../../worker'
+import { GenericWorker, GenericWorkerAgentAPI } from '../../worker'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 
 /** This is a type of worker that runs on a linux machine */
@@ -22,11 +21,10 @@ export class LinuxWorker extends GenericWorker {
 	static readonly type = 'linuxWorker'
 	constructor(
 		logger: LoggerInstance,
-		public readonly config: WorkerAgentConfig,
-		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
-		location: WorkerLocation
+		agentAPI: GenericWorkerAgentAPI,
+		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
-		super(logger.category('LinuxWorker'), config, location, sendMessageToManager, LinuxWorker.type)
+		super(logger.category('LinuxWorker'), agentAPI, sendMessageToManager, LinuxWorker.type)
 	}
 	async doYouSupportExpectation(_exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return {

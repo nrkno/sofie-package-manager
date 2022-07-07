@@ -49,10 +49,18 @@ export function waitTime(duration: number): Promise<void> {
 		setTimeout(resolve, duration)
 	})
 }
-export function promiseTimeout<T>(p: Promise<T>, timeoutTime: number, timeoutMessage?: string): Promise<T> {
+/** Intercepts a promise and rejects if the promise doesn't resolve in time. */
+export function promiseTimeout<T>(
+	p: Promise<T>,
+	timeoutTime: number,
+	timeoutMessage?: string | ((timeoutDuration: number) => string)
+): Promise<T> {
+	const startTime = Date.now()
 	return new Promise<T>((resolve, reject) => {
 		const timeout = setTimeout(() => {
-			reject(timeoutMessage || 'Timeout')
+			const duration = Date.now() - startTime
+			const msg = typeof timeoutMessage === 'function' ? timeoutMessage(duration) : timeoutMessage
+			reject(msg || 'Timeout')
 		}, timeoutTime)
 
 		Promise.resolve(p)
@@ -206,4 +214,48 @@ export function isNodeRunningInDebugMode(): boolean {
 		// @ts-expect-error v8debug is a NodeJS global
 		typeof v8debug === 'object' || /--debug|--inspect/.test(process.execArgv.join(' ') + process.env.NODE_OPTIONS)
 	)
+}
+
+/**
+ * Wraps a function, so that multiple calls to it will be grouped together,
+ * if the calls are close enough in time so that the resulting promise havent resolved yet.
+ * The subsequent calls will resolve with the same result as the first call.
+ */
+export function deferGets<Args extends any[], Result>(
+	fcn: (...args: Args) => Promise<Result>
+): (groupId: string, ...args: Args) => Promise<Result> {
+	const defers = new Map<
+		string,
+		{
+			resolve: (value: Result) => void
+			reject: (err: any) => void
+		}[]
+	>()
+
+	return (groupId: string, ...args: Args) => {
+		return new Promise<Result>((resolve, reject) => {
+			// Check if there already is a call waiting:
+			const waiting = defers.get(groupId)
+			if (waiting) {
+				waiting.push({ resolve, reject })
+			} else {
+				const newWaiting = [{ resolve, reject }]
+				defers.set(groupId, newWaiting)
+
+				fcn(...args)
+					.then((result) => {
+						defers.delete(groupId)
+						for (const w of newWaiting) {
+							w.resolve(result)
+						}
+					})
+					.catch((err) => {
+						defers.delete(groupId)
+						for (const w of newWaiting) {
+							w.reject(err)
+						}
+					})
+			}
+		})
+	}
 }

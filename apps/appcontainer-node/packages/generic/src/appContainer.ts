@@ -21,12 +21,18 @@ import {
 	LeveledLogMethod,
 	setLogLevel,
 	isNodeRunningInDebugMode,
+	INNER_ACTION_TIMEOUT,
+	DataStore,
+	literal,
+	WorkForceAppContainer,
 } from '@shared/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 
 /** Mimimum time between app restarts */
 const RESTART_COOLDOWN = 60 * 1000 // ms
+
+const WORKER_DATA_LOCK_TIMEOUT = INNER_ACTION_TIMEOUT
 
 export class AppContainer {
 	private workforceAPI: WorkforceAPI
@@ -60,10 +66,19 @@ export class AppContainer {
 	private monitorAppsTimer: NodeJS.Timer | undefined
 	private initWorkForceApiPromise?: { resolve: () => void; reject: (reason: any) => void }
 
+	/**
+	 * The WorkerStorage is a storage that the workers can use to reliably store and read data.
+	 * It is a key-value store, with support for access locks (so that only one worker can write to a key at a time).
+	 */
+	private workerStorage: DataStore
+
 	private logger: LoggerInstance
 
 	constructor(logger: LoggerInstance, private config: AppContainerProcessConfig) {
 		this.logger = logger.category('AppContainer')
+
+		this.workerStorage = new DataStore(this.logger, WORKER_DATA_LOCK_TIMEOUT)
+
 		if (config.appContainer.port !== null) {
 			this.websocketServer = new WebsocketServer(
 				config.appContainer.port,
@@ -90,6 +105,8 @@ export class AppContainer {
 								client.once('close', () => {
 									this.logger.warn(`Connection to Worker "${client.clientId}" closed`)
 									app.workerAgentApi = null
+
+									this.workerStorage.releaseLockForTag(client.clientId)
 								})
 								this.logger.info(`Connection to Worker "${client.clientId}" established`)
 								app.workerAgentApi = api
@@ -173,7 +190,20 @@ export class AppContainer {
 			this.logger.info(`Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
 
-		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		await this.workforceAPI.init(
+			this.id,
+			this.workForceConnectionOptions,
+			literal<WorkForceAppContainer.AppContainer>({
+				setLogLevel: this.setLogLevel.bind(this),
+				_debugKill: this._debugKill.bind(this),
+				_debugSendKillConnections: this._debugSendKillConnections.bind(this),
+				requestAppTypeForExpectation: this.requestAppTypeForExpectation.bind(this),
+				requestAppTypeForPackageContainer: this.requestAppTypeForPackageContainer.bind(this),
+				spinUp: this.spinUp.bind(this),
+				spinDown: this.spinDown.bind(this),
+				getRunningApps: this.getRunningApps.bind(this),
+			})
+		)
 		if (!this.workforceAPI.connected) throw new Error('Workforce not connected')
 
 		this.monitorAppsTimer = setInterval(() => {
@@ -204,8 +234,24 @@ export class AppContainer {
 					}
 				}
 			},
+			workerStorageWriteLock: async (
+				dataId: string,
+				customTimeout?: number
+			): Promise<{ lockId: string; current: any | undefined }> => {
+				return this.workerStorage.getWriteLock(dataId, customTimeout, clientId)
+			},
+			workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
+				return this.workerStorage.releaseLock(dataId, lockId)
+			},
+			workerStorageWrite: async (dataId: string, lockId: string, data: string): Promise<void> => {
+				return this.workerStorage.write(dataId, lockId, data)
+			},
+			workerStorageRead: async (dataId: string): Promise<any> => {
+				return this.workerStorage.read(dataId)
+			},
 		}
 	}
+
 	private getAppCount(appType: string): number {
 		let count = 0
 		for (const app of Object.values(this.apps)) {
@@ -278,6 +324,7 @@ export class AppContainer {
 	terminate(): void {
 		this.workforceAPI.terminate()
 		this.websocketServer?.terminate()
+		this.workerStorage.terminate()
 
 		if (this.monitorAppsTimer) {
 			clearInterval(this.monitorAppsTimer)
@@ -447,7 +494,7 @@ export class AppContainer {
 		const app = this.apps[appId]
 		if (!app) throw new Error(`App "${appId}" not found`)
 
-		this.logger.debug(`Spinning down app "${appId}" due to: ${reason}`)
+		this.logger.verbose(`Spinning down app "${appId}" due to: ${reason}`)
 
 		app.toBeKilled = true
 		const success = app.process.kill()

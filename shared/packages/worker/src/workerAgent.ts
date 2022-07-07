@@ -24,6 +24,10 @@ import {
 	stringifyError,
 	WorkerStatusReport,
 	setLogLevel,
+	AppContainerWorkerAgent,
+	deferGets,
+	promiseTimeout,
+	INNER_ACTION_TIMEOUT,
 } from '@shared/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -48,7 +52,7 @@ export class WorkerAgent {
 	private currentJobs: CurrentJob[] = []
 	public readonly id: string
 	private workForceConnectionOptions: ClientConnectionOptions
-	private appContainerConnectionOptions: ClientConnectionOptions | null
+	private appContainerConnectionOptions: ClientConnectionOptions
 
 	private expectationManagers: {
 		[id: string]: {
@@ -71,6 +75,10 @@ export class WorkerAgent {
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private cpuTracker = new CPUTracker()
 	private logger: LoggerInstance
+
+	private workerStorageDeferRead = deferGets(async (dataId: string) => {
+		return this.appContainerAPI.workerStorageRead(dataId)
+	})
 
 	constructor(logger: LoggerInstance, private config: WorkerConfig) {
 		this.logger = logger.category('WorkerAgent')
@@ -127,11 +135,54 @@ export class WorkerAgent {
 					type: 'websocket',
 					url: this.config.worker.appContainerURL,
 			  }
-			: null
+			: {
+					type: 'internal',
+			  }
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
 			this.logger,
-			this.config.worker,
+			{
+				location: {
+					// todo: tmp:
+					localComputerId: this.config.worker.resourceId,
+					localNetworkIds: this.config.worker.networkIds,
+				},
+				config: this.config.worker,
+				workerStorageRead: (dataId: string) => {
+					// return this.appContainerAPI.workerStorageRead(dataId)
+
+					return this.workerStorageDeferRead(dataId, dataId)
+				},
+				workerStorageWrite: async (
+					dataId: string,
+					customTimeout: number | undefined,
+					cb: (current: any | undefined) => Promise<any> | any
+				) => {
+					// First, aquire a lock to the data, so that noone else can read/write to it:
+					const { lockId, current } = await this.appContainerAPI.workerStorageWriteLock(dataId, customTimeout)
+					try {
+						// Then, execute the callback:
+						// const writeData = await Promise.resolve(cb(current))
+						const writeData = await promiseTimeout(
+							Promise.resolve(cb(current)),
+							(customTimeout ?? INNER_ACTION_TIMEOUT) - 10,
+							(timeoutDuration: number) => {
+								return `workerStorageWrite function "${dataId}" didn't resolve in time (after ${timeoutDuration} ms)`
+							}
+						)
+						// Finally, write the data:
+						await this.appContainerAPI.workerStorageWrite(dataId, lockId, writeData)
+					} catch (err) {
+						// Better release the lock, to avoid it running into a timeout:
+						this.appContainerAPI.workerStorageReleaseLock(dataId, lockId).catch((err2) => {
+							this.logger.error(`Error releasing lock: ${stringifyError(err2)}`)
+						})
+
+						throw err
+					}
+				},
+			},
+
 			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 				// Forward the message to the expectationManager:
 
@@ -139,11 +190,6 @@ export class WorkerAgent {
 				if (!manager) throw new Error(`ExpectationManager "${managerId}" not found`)
 
 				return manager.api.messageFromWorker(message)
-			},
-			{
-				// todo: tmp:
-				localComputerId: this.config.worker.resourceId,
-				localNetworkIds: this.config.worker.networkIds,
 			}
 		)
 	}
@@ -152,27 +198,27 @@ export class WorkerAgent {
 
 		await this._worker.init()
 
+		// Connect to AppContainer
+		if (this.appContainerConnectionOptions.type === 'websocket') {
+			this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
+		}
+		const pAppContainer = new Promise<void>((resolve, reject) => {
+			this.initAppContainerAPIPromise = { resolve, reject }
+		})
+		await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
+		// Wait for this.appContainerAPI to be ready before continuing:
+		await pAppContainer
+
 		// Connect to WorkForce:
 		if (this.workForceConnectionOptions.type === 'websocket') {
 			this.logger.info(`Worker: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
-		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
-		// Wait for this.workforceAPI to be ready before continuing:
-		await new Promise<void>((resolve, reject) => {
+		const pWorkForce = new Promise<void>((resolve, reject) => {
 			this.initWorkForceAPIPromise = { resolve, reject }
 		})
-
-		// Connect to AppContainer (if applicable)
-		if (this.appContainerConnectionOptions) {
-			if (this.appContainerConnectionOptions.type === 'websocket') {
-				this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
-			}
-			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
-			// Wait for this.appContainerAPI to be ready before continuing:
-			await new Promise<void>((resolve, reject) => {
-				this.initAppContainerAPIPromise = { resolve, reject }
-			})
-		}
+		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		// Wait for this.workforceAPI to be ready before continuing:
+		await pWorkForce
 
 		this.IDidSomeWork()
 	}
@@ -196,7 +242,7 @@ export class WorkerAgent {
 		this.cpuTracker.terminate()
 		this._worker.terminate()
 	}
-	/** Called when running in the same-process-mode, it */
+	/** Called when running in the same-process-mode */
 	hookToWorkforce(hook: Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>): void {
 		this.workforceAPI.hook(hook)
 	}
@@ -205,6 +251,9 @@ export class WorkerAgent {
 		hook: Hook<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
 	): void {
 		this.expectationManagerHooks[managerId] = hook
+	}
+	hookToAppContainer(hook: Hook<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent>): void {
+		this.appContainerAPI.hook(hook)
 	}
 
 	/** Keep track of the promise retorned by fcn and when it's resolved, to determine how busy we are */
@@ -707,7 +756,7 @@ export class WorkerAgent {
 
 				// Don's spin down if a monitor is active
 				if (!Object.keys(this.activeMonitors).length) {
-					this.logger.info(`Worker: is idle, requesting spinning down`)
+					this.logger.debug(`Worker: is idle, requesting spinning down`)
 
 					if (this.appContainerAPI.connected) {
 						this.appContainerAPI.requestSpinDown().catch((err) => {

@@ -226,5 +226,10 @@ export namespace AppContainerWorkerAgent {
 	export interface AppContainer {
 		ping: () => Promise<void>
 		requestSpinDown: () => Promise<void>
+		/** Aquire a write lock, the returned id is then used in workerStorageWrite to write */
+		workerStorageWriteLock: (dataId: string, customTimeout?: number) => Promise<{ lockId: string; current: any }>
+		workerStorageReleaseLock: (dataId: string, lockId: string) => Promise<void>
+		workerStorageWrite: (dataId: string, lockId: string, data: string) => Promise<void>
+		workerStorageRead: (dataId: string) => Promise<any>
 	}
 }

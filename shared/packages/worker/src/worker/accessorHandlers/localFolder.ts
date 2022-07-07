@@ -64,7 +64,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.LocalFolder
-		return compareResourceIds(accessor.resourceId, worker.location.localComputerId)
+		return compareResourceIds(accessor.resourceId, worker.agentAPI.location.localComputerId)
 	}
 	/** Full path to the package */
 	get fullPath(): string {

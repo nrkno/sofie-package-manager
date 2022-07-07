@@ -45,7 +45,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.AtemMediaStore
-		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
+		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
 	private async getAtem(): Promise<Atem> {
 		if (!this.worker.accessorCache['atem']) {
