@@ -14,7 +14,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	Reason,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,

@@ -1,4 +1,4 @@
-import { Expectation } from '@shared/api'
+import { Expectation } from '@sofie-package-manager/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { ExpectationManagerConstants } from './constants'
 import { TrackedExpectation } from './types'

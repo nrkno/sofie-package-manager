@@ -8,7 +8,7 @@ import {
 	Expectation,
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import {
 	isATEMAccessorHandle,
 	isFileShareAccessorHandle,

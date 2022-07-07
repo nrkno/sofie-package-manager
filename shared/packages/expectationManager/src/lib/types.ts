@@ -1,4 +1,4 @@
-import { Expectation, ExpectationManagerWorkerAgent, Reason } from '@shared/api'
+import { Expectation, ExpectationManagerWorkerAgent, Reason } from '@sofie-package-manager/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkerAgentAPI } from '../workerAgentApi'
 

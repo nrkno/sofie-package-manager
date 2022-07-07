@@ -9,7 +9,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'

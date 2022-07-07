@@ -5,7 +5,7 @@ import {
 	initializeLogger,
 	stringifyError,
 	setupLogger,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 export { QuantelHTTPTransformerProxy }
 export async function startProcess(): Promise<void> {

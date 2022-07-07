@@ -15,7 +15,7 @@ import {
 	Reason,
 	stringifyError,
 	promiseTimeout,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
 import networkDrive from 'windows-network-drive'

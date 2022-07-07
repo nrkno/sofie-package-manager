@@ -7,7 +7,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	Reason,
 	assertNever,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../worker'

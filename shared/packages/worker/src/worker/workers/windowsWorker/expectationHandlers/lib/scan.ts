@@ -1,5 +1,5 @@
 import { execFile, ChildProcess, spawn } from 'child_process'
-import { Expectation, assertNever } from '@shared/api'
+import { Expectation, assertNever } from '@sofie-package-manager/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,

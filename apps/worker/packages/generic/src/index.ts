@@ -1,5 +1,5 @@
-import { getWorkerConfig, ProcessHandler, setupLogger, initializeLogger } from '@shared/api'
-import { WorkerAgent } from '@shared/worker'
+import { getWorkerConfig, ProcessHandler, setupLogger, initializeLogger } from '@sofie-package-manager/api'
+import { WorkerAgent } from '@sofie-package-manager/worker'
 
 export async function startProcess(): Promise<void> {
 	const config = getWorkerConfig()

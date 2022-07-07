@@ -6,7 +6,14 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Accessor, AccessorOnPackage, Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
+import {
+	Accessor,
+	AccessorOnPackage,
+	Expectation,
+	PackageContainerExpectation,
+	assertNever,
+	Reason,
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'

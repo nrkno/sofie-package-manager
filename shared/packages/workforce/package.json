@@ -1,5 +1,5 @@
 {
-    "name": "@shared/workforce",
+    "name": "@sofie-package-manager/workforce",
     "version": "1.39.0-in-development.1",
     "main": "dist/index",
     "types": "dist/index",
@@ -20,7 +20,7 @@
         "lint-staged": "^7.2.0"
     },
     "dependencies": {
-        "@shared/api": "1.39.0-in-development.1"
+        "@sofie-package-manager/api": "1.39.0-in-development.1"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

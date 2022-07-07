@@ -11,7 +11,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
 	WorkerAgentConfig,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { SetupPackageContainerMonitorsResult } from './accessorHandlers/genericHandle'
 import { IWorkInProgress } from './lib/workInProgress'
 

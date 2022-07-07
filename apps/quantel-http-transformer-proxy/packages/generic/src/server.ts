@@ -4,7 +4,7 @@ import cors from '@koa/cors'
 import range from 'koa-range'
 import ratelimit from 'koa-ratelimit'
 import got from 'got'
-import { QuantelHTTPTransformerProxyConfig, LoggerInstance, stringifyError } from '@shared/api'
+import { QuantelHTTPTransformerProxyConfig, LoggerInstance, stringifyError } from '@sofie-package-manager/api'
 import { parseStringPromise as xmlParser } from 'xml2js'
 
 export class QuantelHTTPTransformerProxy {

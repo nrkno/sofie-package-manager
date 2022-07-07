@@ -15,9 +15,9 @@
         "@sofie-automation/server-core-integration": "*"
     },
     "dependencies": {
-        "@shared/api": "1.39.0-in-development.1",
-        "@shared/expectation-manager": "1.39.0-in-development.1",
-        "@shared/worker": "1.39.0-in-development.1",
+        "@sofie-package-manager/api": "1.39.0-in-development.1",
+        "@sofie-package-manager/expectation-manager": "1.39.0-in-development.1",
+        "@sofie-package-manager/worker": "1.39.0-in-development.1",
         "chokidar": "^3.5.1",
         "deep-extend": "^0.6.0",
         "fast-clone": "^1.5.13",

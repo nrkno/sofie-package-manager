@@ -1,5 +1,5 @@
 import { ExpectedPackageWrap } from '../../packageManager'
-import { ExpectedPackage, LoggerInstance } from '@shared/api'
+import { ExpectedPackage, LoggerInstance } from '@sofie-package-manager/api'
 import { ExpectedPackageWrapMediaFile, PriorityMagnitude } from './types'
 
 export function shouldBeIgnored(packageWrap: ExpectedPackageWrap): boolean {

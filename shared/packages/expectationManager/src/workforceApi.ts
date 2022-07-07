@@ -6,7 +6,7 @@ import {
 	WorkforceStatusReport,
 	Expectation,
 	PackageContainerExpectation,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the ExpectationManager

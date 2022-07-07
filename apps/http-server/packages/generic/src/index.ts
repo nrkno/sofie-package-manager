@@ -1,5 +1,11 @@
 import { PackageProxyServer } from './server'
-import { getHTTPServerConfig, ProcessHandler, setupLogger, initializeLogger, stringifyError } from '@shared/api'
+import {
+	getHTTPServerConfig,
+	ProcessHandler,
+	setupLogger,
+	initializeLogger,
+	stringifyError,
+} from '@sofie-package-manager/api'
 
 export { PackageProxyServer }
 export async function startProcess(): Promise<void> {

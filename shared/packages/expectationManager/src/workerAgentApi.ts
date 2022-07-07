@@ -12,7 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 	ReturnTypeDisposePackageContainerMonitors,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a WorkerAgent, to be called from the ExpectationManager

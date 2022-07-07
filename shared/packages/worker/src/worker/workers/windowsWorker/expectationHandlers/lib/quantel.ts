@@ -1,5 +1,5 @@
 import { AccessorOnPackage, Accessor } from '@sofie-automation/blueprints-integration'
-import { Expectation, literal } from '@shared/api'
+import { Expectation, literal } from '@sofie-package-manager/api'
 import { getAccessorHandle, isHTTPProxyAccessorHandle } from '../../../../accessorHandlers/accessor'
 import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'

@@ -1,7 +1,7 @@
 // import * as HTTPServer from '@http-server/generic'
 // import * as PackageManager from '@package-manager/generic'
-import * as Workforce from '@shared/workforce'
-import * as Worker from '@shared/worker'
+import * as Workforce from '@sofie-package-manager/workforce'
+import * as Worker from '@sofie-package-manager/worker'
 import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
@@ -15,8 +15,12 @@ import {
 	Hook,
 	DataStore,
 	LoggerInstance,
-} from '@shared/api'
-import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
+} from '@sofie-package-manager/api'
+import {
+	ExpectationManager,
+	ExpectationManagerCallbacks,
+	ExpectationManagerOptions,
+} from '@sofie-package-manager/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 

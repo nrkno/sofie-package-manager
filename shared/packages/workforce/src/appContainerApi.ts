@@ -6,7 +6,7 @@ import {
 	Expectation,
 	PackageContainerExpectation,
 	Reason,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a AppContainer, to be called from the Workforce

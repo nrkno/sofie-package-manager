@@ -13,7 +13,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	Reason,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { IWorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'

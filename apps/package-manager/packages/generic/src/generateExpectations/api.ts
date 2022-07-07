@@ -5,7 +5,7 @@ import {
 	PackageContainers,
 	PackageManagerSettings,
 } from '../packageManager'
-import { Expectation, LoggerInstance, PackageContainerExpectation } from '@shared/api'
+import { Expectation, LoggerInstance, PackageContainerExpectation } from '@sofie-package-manager/api'
 
 export interface GenerateExpectationApi {
 	getExpectations: (

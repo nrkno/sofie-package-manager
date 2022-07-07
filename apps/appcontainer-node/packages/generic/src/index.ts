@@ -1,4 +1,4 @@
-import { getAppContainerConfig, ProcessHandler, setupLogger, stringifyError, initializeLogger } from '@shared/api'
+import { getAppContainerConfig, ProcessHandler, setupLogger, stringifyError, initializeLogger } from '@sofie-package-manager/api'
 import { AppContainer } from './appContainer'
 
 export { AppContainer } from './appContainer'

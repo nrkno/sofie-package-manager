@@ -13,7 +13,7 @@ import {
 	assertNever,
 	Reason,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
 

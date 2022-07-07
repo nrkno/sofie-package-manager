@@ -4,8 +4,8 @@ import {
 	PackageManagerConfig,
 	ProcessHandler,
 	stringifyError,
-} from '@shared/api'
-import { ExpectationManager, ExpectationManagerServerOptions } from '@shared/expectation-manager'
+} from '@sofie-package-manager/api'
+import { ExpectationManager, ExpectationManagerServerOptions } from '@sofie-package-manager/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageManagerHandler } from './packageManager'
 import chokidar from 'chokidar'

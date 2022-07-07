@@ -15,7 +15,7 @@ import {
 	assertNever,
 	Reason,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'

@@ -1,4 +1,4 @@
-import { StatusCode, MonitorProperties, Reason, stringifyError, HelpfulEventEmitter } from '@shared/api'
+import { StatusCode, MonitorProperties, Reason, stringifyError, HelpfulEventEmitter } from '@sofie-package-manager/api'
 
 export interface MonitorInProgressEvents {
 	status: (status: StatusCode, reason: Reason) => void

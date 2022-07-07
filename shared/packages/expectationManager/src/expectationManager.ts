@@ -22,7 +22,7 @@ import {
 	Statuses,
 	hashObj,
 	setLogLevel,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'

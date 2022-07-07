@@ -1,4 +1,10 @@
-import { WorkForceWorkerAgent, AdapterServer, AdapterServerOptions, LogLevel, WorkerStatusReport } from '@shared/api'
+import {
+	WorkForceWorkerAgent,
+	AdapterServer,
+	AdapterServerOptions,
+	LogLevel,
+	WorkerStatusReport,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a WorkerAgent, to be called from the Workforce

@@ -1,4 +1,4 @@
-import { Expectation, LoggerInstance, PackageContainerExpectation } from '@shared/api'
+import { Expectation, LoggerInstance, PackageContainerExpectation } from '@sofie-package-manager/api'
 import { Workforce } from './workforce'
 
 /** The WorkerHandler is in charge of spinning up/down Workers */

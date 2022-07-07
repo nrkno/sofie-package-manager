@@ -5,7 +5,7 @@ import {
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { IWorkInProgress } from './workInProgress'
 

@@ -6,7 +6,7 @@ import {
 	PackageContainerOnPackage,
 	Expectation,
 	ReturnTypeGetCostFortExpectation,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { AccessorHandlerResult } from '../../../accessorHandlers/genericHandle'
 

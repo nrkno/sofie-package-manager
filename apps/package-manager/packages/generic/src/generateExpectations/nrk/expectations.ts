@@ -5,7 +5,7 @@ import {
 	PackageContainers,
 	PackageManagerSettings,
 } from '../../packageManager'
-import { ExpectedPackage, PackageContainer, Expectation, hashObj, LoggerInstance } from '@shared/api'
+import { ExpectedPackage, PackageContainer, Expectation, hashObj, LoggerInstance } from '@sofie-package-manager/api'
 import { GenerateExpectation, PriorityMagnitude } from './types'
 
 import {

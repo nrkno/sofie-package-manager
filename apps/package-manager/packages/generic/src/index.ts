@@ -6,7 +6,7 @@ import {
 	setupLogger,
 	initializeLogger,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 export { Connector, Config }
 export function startProcess(startInInternalMode?: boolean): { logger: LoggerInstance; connector: Connector } {

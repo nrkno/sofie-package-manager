@@ -6,7 +6,7 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, Accessor, AccessorOnPackage } from '@shared/api'
+import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'

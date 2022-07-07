@@ -17,7 +17,7 @@ import {
 	Statuses,
 	StatusCode,
 	setLogLevel,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { WorkerAgentAPI } from './workerAgentApi'

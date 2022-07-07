@@ -1,4 +1,4 @@
-import { AdapterClient, LoggerInstance, WorkForceAppContainer } from '@shared/api'
+import { AdapterClient, LoggerInstance, WorkForceAppContainer } from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the AppContainer

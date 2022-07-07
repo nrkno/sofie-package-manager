@@ -28,7 +28,7 @@ import {
 	deferGets,
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 import { AppContainerAPI } from './appContainerApi'
 import { CPUTracker } from './cpuTracker'

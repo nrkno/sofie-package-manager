@@ -5,7 +5,7 @@ import {
 	INNER_ACTION_TIMEOUT,
 	promiseTimeout,
 	HelpfulEventEmitter,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 export interface WorkInProgressEvents {
 	/** Progress 0-100 */

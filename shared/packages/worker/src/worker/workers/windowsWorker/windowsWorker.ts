@@ -12,7 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	assertNever,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { GenericWorker, GenericWorkerAgentAPI } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
 import { FileCopyProxy } from './expectationHandlers/fileCopyProxy'

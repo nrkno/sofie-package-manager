@@ -1,4 +1,10 @@
-import { WorkForceExpectationManager, AdapterServer, AdapterServerOptions, LogLevel, Statuses } from '@shared/api'
+import {
+	WorkForceExpectationManager,
+	AdapterServer,
+	AdapterServerOptions,
+	LogLevel,
+	Statuses,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the Workforce

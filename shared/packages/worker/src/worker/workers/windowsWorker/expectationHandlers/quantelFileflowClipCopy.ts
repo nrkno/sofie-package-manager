@@ -14,7 +14,7 @@
 // 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 // 	ReturnTypeRemoveExpectation,
 // 	Reason,
-// } from '@shared/api'
+// } from '@sofie-package-manager/api'
 // import { isFileShareAccessorHandle, isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 // import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 // import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'

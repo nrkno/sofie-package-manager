@@ -1,5 +1,5 @@
 import { ActivePlaylist, PackageContainers } from '../../packageManager'
-import { PackageContainerExpectation } from '@shared/api'
+import { PackageContainerExpectation } from '@sofie-package-manager/api'
 
 export function getPackageContainerExpectations(
 	managerId: string,

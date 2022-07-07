@@ -25,7 +25,7 @@ import {
 	DataStore,
 	literal,
 	WorkForceAppContainer,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 

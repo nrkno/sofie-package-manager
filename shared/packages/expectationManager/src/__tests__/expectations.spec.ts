@@ -1,4 +1,4 @@
-import { Expectation } from '@shared/api'
+import { Expectation } from '@sofie-package-manager/api'
 import { getDefaultConstants } from '../lib/constants'
 import { getDefaultTrackedExpectation, sortTrackedExpectations } from '../lib/expectations'
 import { TrackedExpectation } from '../lib/types'

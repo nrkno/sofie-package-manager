@@ -12,7 +12,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,

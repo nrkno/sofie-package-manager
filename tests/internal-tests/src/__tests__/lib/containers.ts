@@ -1,4 +1,4 @@
-import { Accessor, AccessorOnPackage, Expectation, literal } from '@shared/api'
+import { Accessor, AccessorOnPackage, Expectation, literal } from '@sofie-package-manager/api'
 
 export function getLocalSource(
 	containerId: string,

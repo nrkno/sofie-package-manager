@@ -1,6 +1,6 @@
 import path from 'path'
 import xml from 'xml-js'
-import { stringifyError } from '@shared/api'
+import { stringifyError } from '@sofie-package-manager/api'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { fetchWithTimeout } from '../../../accessorHandlers/lib/fetch'
 

@@ -21,7 +21,7 @@ import {
 	hashObj,
 	setLogLevel,
 	getLogLevel,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 

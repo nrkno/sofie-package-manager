@@ -16,7 +16,7 @@ import {
 	Reason,
 	ReturnTypeDoYouSupportExpectation,
 	assertNever,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'

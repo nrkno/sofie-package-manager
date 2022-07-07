@@ -8,7 +8,7 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Accessor, AccessorOnPackage, Expectation, literal, Reason } from '@shared/api'
+import { Accessor, AccessorOnPackage, Expectation, literal, Reason } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { joinUrls } from './lib/pathJoin'

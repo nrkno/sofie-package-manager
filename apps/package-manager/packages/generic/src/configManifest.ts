@@ -1,5 +1,5 @@
 import { DeviceConfigManifest, ConfigManifestEntryType } from '@sofie-automation/server-core-integration'
-import { LogLevel } from '@shared/api'
+import { LogLevel } from '@sofie-package-manager/api'
 
 export const PACKAGE_MANAGER_DEVICE_CONFIG: DeviceConfigManifest = {
 	deviceConfig: [

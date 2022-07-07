@@ -6,7 +6,7 @@ import {
 	ExpectationManager,
 	ExpectationManagerCallbacks,
 	ExpectationManagerServerOptions,
-} from '@shared/expectation-manager'
+} from '@sofie-package-manager/expectation-manager'
 import {
 	ExpectedPackage,
 	PackageContainer,
@@ -25,7 +25,7 @@ import {
 	Accessor,
 	AccessorOnPackage,
 	Statuses,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
 import {

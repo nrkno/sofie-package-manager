@@ -1,12 +1,12 @@
 import fsOrg from 'fs'
 import { promisify } from 'util'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
-import { Expectation, literal } from '@shared/api'
+import { Expectation, literal } from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
 import { waitTime } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
-import { WorkerAgent } from '@shared/worker'
+import { WorkerAgent } from '@sofie-package-manager/worker'
 jest.mock('fs')
 jest.mock('child_process')
 jest.mock('windows-network-drive')

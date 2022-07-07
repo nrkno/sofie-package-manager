@@ -1,4 +1,4 @@
-import { AdapterClient, LoggerInstance, AppContainerWorkerAgent } from '@shared/api'
+import { AdapterClient, LoggerInstance, AppContainerWorkerAgent } from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the WorkerAgent

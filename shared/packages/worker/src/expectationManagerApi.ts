@@ -1,4 +1,10 @@
-import { StatusCode, ExpectationManagerWorkerAgent, AdapterClient, LoggerInstance, Reason } from '@shared/api'
+import {
+	StatusCode,
+	ExpectationManagerWorkerAgent,
+	AdapterClient,
+	LoggerInstance,
+	Reason,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the WorkerAgent

@@ -1,4 +1,4 @@
-import { ExpectedPackage } from '@shared/api'
+import { ExpectedPackage } from '@sofie-package-manager/api'
 
 export class CoreMockAPI {
 	packageInfos: {
