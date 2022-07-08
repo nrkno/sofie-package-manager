@@ -1,0 +1,7 @@
+.github
+.vscode
+.git
+.gitignore
+Dockerfile*
+docker-compose*
+README.md

@@ -1,0 +1,8 @@
+dist
+node_modules
+jest.config.js
+CHANGELOG
+README
+Dockerfile*
+
+fileStorage
