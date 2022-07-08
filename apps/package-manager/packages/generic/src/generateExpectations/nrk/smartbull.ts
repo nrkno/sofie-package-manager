@@ -25,7 +25,10 @@ export function expectedPackageIsSmartbullSource(packageWrap: ExpectedPackageWra
 	return false
 }
 
-export function getSmartbullExpectedPackages(logger: LoggerInstance, expectedPackages: ExpectedPackageWrap[]) {
+export function getSmartbullExpectedPackages(
+	logger: LoggerInstance,
+	expectedPackages: ExpectedPackageWrap[]
+): ExpectedPackageWrapMediaFile[] {
 	let orgSmartbullExpectedPackage: ExpectedPackageWrap | undefined = undefined
 
 	// Find the smartbull package:

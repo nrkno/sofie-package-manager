@@ -16,7 +16,8 @@ export abstract class AdapterServer<ME, OTHER> {
 		this.type = options.type
 
 		if (options.type === 'websocket') {
-			this._sendMessage = ((type: string, ...args: any[]) => options.clientConnection.send(type, ...args)) as any
+			this._sendMessage = (async (type: string, ...args: any[]) =>
+				options.clientConnection.send(type, ...args)) as any
 
 			options.clientConnection.onMessage(async (message: MessageBase) => {
 				// Handle message from the WorkerAgent:
@@ -37,17 +38,17 @@ export abstract class AdapterServer<ME, OTHER> {
 		} else {
 			const clientHook: OTHER = options.hookMethods
 			this._sendMessage = async (type: keyof OTHER, ...args: any[]) => {
-				const fcn = (clientHook[type] as unknown) as (...args: any[]) => any
+				const fcn = clientHook[type] as unknown as (...args: any[]) => any
 				if (fcn) {
 					try {
 						return await promiseTimeout(fcn(...args), ACTION_TIMEOUT, (timeoutDuration) =>
 							this.timeoutMessage(timeoutDuration, type, args)
 						)
 					} catch (err) {
-						throw new Error(`Error when executing method "${type}": ${stringifyError(err)}`)
+						throw new Error(`Error when executing method "${String(type)}": ${stringifyError(err)}`)
 					}
 				} else {
-					throw new Error(`Unknown method "${type}"`)
+					throw new Error(`Unknown method "${String(type)}"`)
 				}
 			}
 		}

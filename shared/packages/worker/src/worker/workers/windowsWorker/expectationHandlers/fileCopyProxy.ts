@@ -214,7 +214,7 @@ function isFileCopyProxy(exp: Expectation.Any): exp is Expectation.FileCopyProxy
 	return exp.type === Expectation.Type.FILE_COPY_PROXY
 }
 
-function lookupCopySources(
+async function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.FileCopyProxy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
@@ -231,7 +231,7 @@ function lookupCopySources(
 		}
 	)
 }
-function lookupCopyTargets(
+async function lookupCopyTargets(
 	worker: GenericWorker,
 	exp: Expectation.FileCopyProxy
 ): Promise<LookupPackageContainer<UniversalVersion>> {

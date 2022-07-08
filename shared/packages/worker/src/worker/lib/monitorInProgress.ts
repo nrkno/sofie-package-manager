@@ -15,7 +15,7 @@ export class MonitorInProgress extends HelpfulEventEmitter implements IMonitorIn
 	constructor(public properties: MonitorProperties, private _onStop: () => Promise<void>) {
 		super()
 	}
-	stop(): Promise<void> {
+	async stop(): Promise<void> {
 		return this._onStop()
 	}
 

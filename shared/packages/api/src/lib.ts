@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { compact } from 'underscore'
 
 /** Helper function to force the input to be of a certain type. */
 export function literal<T>(o: T): T {
@@ -44,13 +45,13 @@ export function hash(str: string): string {
 export function assertNever(_value: never): void {
 	// does nothing
 }
-export function waitTime(duration: number): Promise<void> {
+export async function waitTime(duration: number): Promise<void> {
 	return new Promise((resolve) => {
 		setTimeout(resolve, duration)
 	})
 }
 /** Intercepts a promise and rejects if the promise doesn't resolve in time. */
-export function promiseTimeout<T>(
+export async function promiseTimeout<T>(
 	p: Promise<T>,
 	timeoutTime: number,
 	timeoutMessage?: string | ((timeoutDuration: number) => string)
@@ -232,7 +233,7 @@ export function deferGets<Args extends any[], Result>(
 		}[]
 	>()
 
-	return (groupId: string, ...args: Args) => {
+	return async (groupId: string, ...args: Args) => {
 		return new Promise<Result>((resolve, reject) => {
 			// Check if there already is a call waiting:
 			const waiting = defers.get(groupId)
@@ -258,4 +259,10 @@ export function deferGets<Args extends any[], Result>(
 			}
 		})
 	}
+}
+export function ensureArray<T>(v: T | (T | undefined)[]): T[] {
+	return compact(Array.isArray(v) ? v : [v])
+}
+export function first<T>(v: T | (T | undefined)[]): T | undefined {
+	return ensureArray(v)[0]
 }

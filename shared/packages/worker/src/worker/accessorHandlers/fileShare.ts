@@ -618,7 +618,9 @@ async function listNetworkDrives(): Promise<{ [driveLetter: string]: string }> {
 	}
 	return drives
 }
-export function parseNetUse(str: string) {
+export function parseNetUse(
+	str: string
+): { status: string; statusOK: boolean; local: string; remote: string; network: string }[] {
 	// "net use" returns:
 	/*
 	Nye tilkoblinger vil bli lagret.

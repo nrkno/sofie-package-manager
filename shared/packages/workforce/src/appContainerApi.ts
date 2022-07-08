@@ -15,7 +15,8 @@ import {
  */
 export class AppContainerAPI
 	extends AdapterServer<WorkForceAppContainer.WorkForce, WorkForceAppContainer.AppContainer>
-	implements WorkForceAppContainer.AppContainer {
+	implements WorkForceAppContainer.AppContainer
+{
 	constructor(
 		methods: WorkForceAppContainer.WorkForce,
 		options: AdapterServerOptions<WorkForceAppContainer.AppContainer>

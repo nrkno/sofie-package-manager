@@ -13,7 +13,8 @@ import {
  */
 export class ExpectationManagerAPI
 	extends AdapterServer<WorkForceExpectationManager.WorkForce, WorkForceExpectationManager.ExpectationManager>
-	implements WorkForceExpectationManager.ExpectationManager {
+	implements WorkForceExpectationManager.ExpectationManager
+{
 	constructor(
 		methods: WorkForceExpectationManager.WorkForce,
 		options: AdapterServerOptions<WorkForceExpectationManager.ExpectationManager>

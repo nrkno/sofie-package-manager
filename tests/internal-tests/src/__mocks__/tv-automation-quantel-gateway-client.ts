@@ -4,7 +4,7 @@ import { Q, ClipSearchQuery } from 'tv-automation-quantel-gateway-client' // not
 
 /* eslint-disable no-console */
 
-const client = jest.createMockFromModule('tv-automation-quantel-gateway-client') as any
+const client: any = jest.createMockFromModule('tv-automation-quantel-gateway-client')
 const DEBUG_LOG = false
 
 export const mock: QuantelMock = {

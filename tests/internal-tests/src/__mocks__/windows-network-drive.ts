@@ -1,4 +1,4 @@
-const wnd = jest.createMockFromModule('windows-network-drive') as any
+const wnd: any = jest.createMockFromModule('windows-network-drive')
 
 /* eslint-disable no-console */
 

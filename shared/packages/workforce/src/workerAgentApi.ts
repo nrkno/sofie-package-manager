@@ -13,7 +13,8 @@ import {
  */
 export class WorkerAgentAPI
 	extends AdapterServer<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>
-	implements WorkForceWorkerAgent.WorkerAgent {
+	implements WorkForceWorkerAgent.WorkerAgent
+{
 	constructor(
 		methods: WorkForceWorkerAgent.WorkForce,
 		options: AdapterServerOptions<WorkForceWorkerAgent.WorkerAgent>

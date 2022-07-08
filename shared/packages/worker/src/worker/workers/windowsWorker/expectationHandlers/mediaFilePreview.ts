@@ -308,7 +308,7 @@ interface Metadata {
 	version: Expectation.Version.MediaFilePreview
 }
 
-function lookupPreviewSources(
+async function lookupPreviewSources(
 	worker: GenericWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -324,7 +324,7 @@ function lookupPreviewSources(
 		}
 	)
 }
-function lookupPreviewTargets(
+async function lookupPreviewTargets(
 	worker: GenericWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {

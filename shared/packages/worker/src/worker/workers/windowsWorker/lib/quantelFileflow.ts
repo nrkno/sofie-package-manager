@@ -8,7 +8,7 @@ const DEFAULT_XML_JS_OPTIONS = {
 	compact: true,
 }
 
-function sleep(ms: number): Promise<void> {
+async function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => {
 		setTimeout(resolve, ms)
 	})

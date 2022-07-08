@@ -303,7 +303,7 @@ interface Metadata {
 	version: Expectation.Version.MediaFileThumbnail
 }
 
-function lookupThumbnailSources(
+async function lookupThumbnailSources(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -319,7 +319,7 @@ function lookupThumbnailSources(
 		}
 	)
 }
-function lookupThumbnailTargets(
+async function lookupThumbnailTargets(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {

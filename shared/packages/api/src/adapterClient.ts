@@ -71,7 +71,7 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 			conn.on('error', (err) => {
 				this.logger.error(`AdapterClient: Error event: ${stringifyError(err)}`)
 			})
-			this._sendMessage = ((type: string, ...args: any[]) => conn.send(type, ...args)) as any
+			this._sendMessage = (async (type: string, ...args: any[]) => conn.send(type, ...args)) as any
 
 			await conn.connect()
 		} else {
@@ -89,10 +89,10 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 							this.timeoutMessage(timeoutDuration, type, args)
 						)
 					} catch (err) {
-						throw new Error(`Error when executing method "${type}": ${stringifyError(err)}`)
+						throw new Error(`Error when executing method "${String(type)}": ${stringifyError(err)}`)
 					}
 				} else {
-					throw new Error(`Unknown method "${type}"`)
+					throw new Error(`Unknown method "${String(type)}"`)
 				}
 			}
 			setTimeout(() => {

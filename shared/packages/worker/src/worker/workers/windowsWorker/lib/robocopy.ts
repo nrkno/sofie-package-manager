@@ -76,7 +76,7 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 
 		onCancel(() => {
 			if (rbcpy !== undefined) {
-				cp.spawn('taskkill', ['/pid', rbcpy.pid.toString(), '/f', '/t'])
+				if (rbcpy.pid !== undefined) cp.spawn('taskkill', ['/pid', rbcpy.pid.toString(), '/f', '/t'])
 				rbcpy = undefined
 			}
 		})

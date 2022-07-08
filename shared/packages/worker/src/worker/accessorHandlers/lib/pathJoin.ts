@@ -1,4 +1,4 @@
-export function removeBasePath(basePath: string, addPath: string) {
+export function removeBasePath(basePath: string, addPath: string): string {
 	addPath = addPath.replace(/\\/g, '/')
 	basePath = basePath.replace(/\\/g, '/')
 

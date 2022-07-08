@@ -114,7 +114,7 @@ function isFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {
 	return exp.type === Expectation.Type.FILE_COPY
 }
 
-function lookupCopySources(
+async function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
@@ -131,7 +131,7 @@ function lookupCopySources(
 		}
 	)
 }
-function lookupCopyTargets(
+async function lookupCopyTargets(
 	worker: GenericWorker,
 	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {

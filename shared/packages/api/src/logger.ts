@@ -43,7 +43,7 @@ export function getLogLevel(): LogLevel {
 	if (!loggerContainer) throw new Error('Logging has not been set up! setupLogging() must be called first.')
 	return logLevel
 }
-export function setLogLevel(level: LogLevel, startup = false) {
+export function setLogLevel(level: LogLevel, startup = false): void {
 	if (!loggerContainer) throw new Error('Logging has not been set up! setupLogging() must be called first.')
 	if (logLevel !== level || startup) {
 		logLevel = level

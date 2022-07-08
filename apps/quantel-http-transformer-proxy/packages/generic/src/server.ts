@@ -62,7 +62,7 @@ export class QuantelHTTPTransformerProxy {
 		)
 	}
 
-	init(): Promise<void> {
+	async init(): Promise<void> {
 		this.router.get('/hello', async (ctx, next) => {
 			ctx.body = { msg: 'Hello World', params: ctx.params }
 			await next()

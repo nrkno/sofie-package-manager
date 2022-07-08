@@ -339,7 +339,7 @@ async function getThumbnailURL(
 
 type Metadata = QuantelClipMetadata
 
-function lookupThumbnailSources(
+async function lookupThumbnailSources(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -355,7 +355,7 @@ function lookupThumbnailSources(
 		}
 	)
 }
-function lookupThumbnailTargets(
+async function lookupThumbnailTargets(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {

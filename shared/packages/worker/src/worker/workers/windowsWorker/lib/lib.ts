@@ -18,8 +18,8 @@ export function compareActualExpectVersions(
 	const actualProperties = makeUniversalVersion(actualVersion)
 
 	for (const key of Object.keys(expectProperties)) {
-		const expect = expectProperties[key] as VersionProperty
-		const actual = actualProperties[key] as VersionProperty
+		const expect = expectProperties[key]
+		const actual = actualProperties[key]
 
 		if (expect.value !== undefined && actual.value && expect.value !== actual.value) {
 			return {
@@ -39,8 +39,8 @@ export function compareUniversalVersions(
 	targetVersion: UniversalVersion
 ): AccessorHandlerResult {
 	for (const key of Object.keys(sourceVersion)) {
-		const source = sourceVersion[key] as VersionProperty
-		const target = targetVersion[key] as VersionProperty
+		const source = sourceVersion[key]
+		const target = targetVersion[key]
 
 		if (source.omit || target.omit) continue // skip that comparison
 

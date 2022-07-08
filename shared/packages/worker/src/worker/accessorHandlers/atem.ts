@@ -366,12 +366,12 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
-		return (({
+		return {
 			fileSize: { name: 'fileSize', value: undefined, omit: true },
 			modified: { name: 'modified', value: undefined, omit: true },
 			etags: { name: 'etags', value: undefined, omit: true },
 			contentType: { name: 'contentType', value: undefined, omit: true },
-		} as UniversalVersion) as any) as Metadata
+		} as UniversalVersion as any as Metadata
 	}
 	async updateMetadata(_metadata: Metadata): Promise<void> {
 		// Not supported
@@ -440,7 +440,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 }
 
-function stream2Disk(sourceStream: NodeJS.ReadableStream, outputFile: string): Promise<void> {
+async function stream2Disk(sourceStream: NodeJS.ReadableStream, outputFile: string): Promise<void> {
 	let handled = false
 	return new Promise((resolve, reject) => {
 		const writeStream = fs.createWriteStream(outputFile)
@@ -472,7 +472,7 @@ function stream2Disk(sourceStream: NodeJS.ReadableStream, outputFile: string): P
 	})
 }
 
-function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
+async function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '_%04d.tga')
 	const args = [`-i "${inputFile}"`]
 	if (opts) {
@@ -483,13 +483,13 @@ function createTGASequence(inputFile: string, opts?: { width: number; height: nu
 	return ffmpeg(args)
 }
 
-function convertFrameToRGBA(inputFile: string): Promise<string> {
+async function convertFrameToRGBA(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.rgba')
 	const args = [`-i "${inputFile}"`, '-pix_fmt rgba', '-f rawvideo', `"${outputFile}"`]
 	return ffmpeg(args)
 }
 
-function convertAudio(inputFile: string): Promise<string> {
+async function convertAudio(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.wav')
 	const args = [
 		`-i "${inputFile}"`,
@@ -503,7 +503,7 @@ function convertAudio(inputFile: string): Promise<string> {
 	return ffmpeg(args)
 }
 
-function countFrames(inputFile: string): Promise<number> {
+async function countFrames(inputFile: string): Promise<number> {
 	return new Promise((resolve, reject) => {
 		const args = [
 			`-i "${inputFile}"`,
@@ -524,7 +524,7 @@ function countFrames(inputFile: string): Promise<number> {
 	})
 }
 
-function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
+async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
 	return new Promise((resolve, reject) => {
 		const args = [
 			`-i "${inputFile}"`,
@@ -546,7 +546,7 @@ function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<
 	})
 }
 
-function ffprobe(args: string[]): Promise<string> {
+async function ffprobe(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
 		execFile(
@@ -567,7 +567,7 @@ function ffprobe(args: string[]): Promise<string> {
 	})
 }
 
-function ffmpeg(args: string[]): Promise<string> {
+async function ffmpeg(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
 		execFile(

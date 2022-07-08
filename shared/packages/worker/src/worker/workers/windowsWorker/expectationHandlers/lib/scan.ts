@@ -321,7 +321,8 @@ export function scanMoreInfo(
 				const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
 				const durationRegex = /Duration:\s?(\d+):(\d+):([\d.]+)/
 				const sceneRegex = /Parsed_showinfo_(.*)pts_time:([\d.]+)\s+/g
-				const blackDetectRegex = /(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
+				const blackDetectRegex =
+					/(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
 				const freezeDetectStart = /(lavfi\.freezedetect\.freeze_start: )(\d+(.\d+)?)/g
 				const freezeDetectDuration = /(lavfi\.freezedetect\.freeze_duration: )(\d+(.\d+)?)/g
 				const freezeDetectEnd = /(lavfi\.freezedetect\.freeze_end: )(\d+(.\d+)?)/g

@@ -76,19 +76,24 @@ export class WindowsWorker extends GenericWorker {
 		this.testFFMpeg = await testFFMpeg()
 		this.testFFProbe = await testFFProbe()
 	}
-	getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
+	async getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		return this.getExpectationHandler(exp).getCostForExpectation(exp, this, this)
 	}
-	isExpectationReadyToStartWorkingOn(exp: Expectation.Any): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
+	async isExpectationReadyToStartWorkingOn(
+		exp: Expectation.Any
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
 	}
-	isExpectationFullfilled(exp: Expectation.Any, wasFullfilled: boolean): Promise<ReturnTypeIsExpectationFullfilled> {
+	async isExpectationFullfilled(
+		exp: Expectation.Any,
+		wasFullfilled: boolean
+	): Promise<ReturnTypeIsExpectationFullfilled> {
 		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, wasFullfilled, this, this)
 	}
-	workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
+	async workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
 		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this)
 	}
-	removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
+	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		return this.getExpectationHandler(exp).removeExpectation(exp, this, this)
 	}
 	private getExpectationHandler(exp: Expectation.Any): ExpectationHandler {
@@ -122,17 +127,17 @@ export class WindowsWorker extends GenericWorker {
 		}
 	}
 
-	doYouSupportPackageContainer(
+	async doYouSupportPackageContainer(
 		packageContainer: PackageContainerExpectation
 	): Promise<ReturnTypeDoYouSupportPackageContainer> {
 		return PackageContainerExpHandler.doYouSupportPackageContainer(packageContainer, this)
 	}
-	runPackageContainerCronJob(
+	async runPackageContainerCronJob(
 		packageContainer: PackageContainerExpectation
 	): Promise<ReturnTypeRunPackageContainerCronJob> {
 		return PackageContainerExpHandler.runPackageContainerCronJob(packageContainer, this)
 	}
-	setupPackageContainerMonitors(
+	async setupPackageContainerMonitors(
 		packageContainer: PackageContainerExpectation
 	): Promise<SetupPackageContainerMonitorsResult> {
 		return PackageContainerExpHandler.setupPackageContainerMonitors(packageContainer, this)

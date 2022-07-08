@@ -328,7 +328,7 @@ export class Workforce {
 	public async getStatusReport(): Promise<WorkforceStatusReport> {
 		return {
 			workerAgents: await Promise.all(
-				Object.values(this.workerAgents).map((workerAgent) => workerAgent.api.getStatusReport())
+				Object.values(this.workerAgents).map(async (workerAgent) => workerAgent.api.getStatusReport())
 			),
 			expectationManagers: Object.entries(this.expectationManagers).map(([id, expMan]) => {
 				return {

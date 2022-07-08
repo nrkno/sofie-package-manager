@@ -13,7 +13,8 @@ import {
  */
 export class ExpectationManagerAPI
 	extends AdapterClient<ExpectationManagerWorkerAgent.WorkerAgent, ExpectationManagerWorkerAgent.ExpectationManager>
-	implements ExpectationManagerWorkerAgent.ExpectationManager {
+	implements ExpectationManagerWorkerAgent.ExpectationManager
+{
 	constructor(logger: LoggerInstance) {
 		super(logger.category('ExpectationManagerAPI'), 'workerAgent')
 	}

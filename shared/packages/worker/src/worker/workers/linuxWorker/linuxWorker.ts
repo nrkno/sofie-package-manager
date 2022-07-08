@@ -38,22 +38,24 @@ export class LinuxWorker extends GenericWorker {
 	terminate(): void {
 		throw new Error(`Not implemented yet`)
 	}
-	getCostFortExpectation(_exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
+	async getCostFortExpectation(_exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		throw new Error(`Not implemented yet`)
 	}
-	isExpectationReadyToStartWorkingOn(_exp: Expectation.Any): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
+	async isExpectationReadyToStartWorkingOn(
+		_exp: Expectation.Any
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		throw new Error(`Not implemented yet`)
 	}
-	isExpectationFullfilled(
+	async isExpectationFullfilled(
 		_exp: Expectation.Any,
 		_wasFullfilled: boolean
 	): Promise<ReturnTypeIsExpectationFullfilled> {
 		throw new Error(`Not implemented yet`)
 	}
-	workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {
+	async workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {
 		throw new Error(`Not implemented yet`)
 	}
-	removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
+	async removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		throw new Error(`Not implemented yet`)
 	}
 

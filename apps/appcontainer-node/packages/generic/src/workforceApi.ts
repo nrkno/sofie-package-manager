@@ -7,7 +7,8 @@ import { AdapterClient, LoggerInstance, WorkForceAppContainer } from '@sofie-pac
  */
 export class WorkforceAPI
 	extends AdapterClient<WorkForceAppContainer.AppContainer, WorkForceAppContainer.WorkForce>
-	implements WorkForceAppContainer.WorkForce {
+	implements WorkForceAppContainer.WorkForce
+{
 	constructor(logger: LoggerInstance) {
 		super(logger.category('WorkforceAPI'), 'appContainer')
 	}

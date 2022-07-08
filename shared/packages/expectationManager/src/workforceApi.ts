@@ -15,7 +15,8 @@ import {
  */
 export class WorkforceAPI
 	extends AdapterClient<WorkForceExpectationManager.ExpectationManager, WorkForceExpectationManager.WorkForce>
-	implements WorkForceExpectationManager.WorkForce {
+	implements WorkForceExpectationManager.WorkForce
+{
 	constructor(logger: LoggerInstance) {
 		super(logger.category('WorkforceAPI'), 'expectationManager')
 	}

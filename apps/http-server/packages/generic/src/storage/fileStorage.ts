@@ -5,7 +5,7 @@ import mime from 'mime-types'
 import mkdirp from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
 import { CTX, CTXPost } from '../lib'
-import { HTTPServerConfig } from '@shared/api'
+import { HTTPServerConfig } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
@@ -67,9 +67,7 @@ export class FileStorage extends Storage {
 
 		return true
 	}
-	private async getFileInfo(
-		paramPath: string
-	): Promise<
+	private async getFileInfo(paramPath: string): Promise<
 		| {
 				found: false
 		  }
@@ -150,7 +148,7 @@ export class FileStorage extends Storage {
 			ctx.response.status = 201
 			return true
 		} else if (ctx.request.files?.length) {
-			const file = ctx.request.files[0] as any
+			const file = (ctx.request.files as any)[0]
 			const stream = file.stream as fs.ReadStream
 
 			stream.pipe(fs.createWriteStream(fullPath))

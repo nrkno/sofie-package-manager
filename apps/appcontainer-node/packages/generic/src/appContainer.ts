@@ -150,7 +150,7 @@ export class AppContainer {
 			this.workforceAPI
 				.registerAvailableApps(
 					Object.entries(this.availableApps).map((o) => {
-						const appType = o[0] as string
+						const appType: string = o[0]
 						return {
 							appType: appType,
 						}

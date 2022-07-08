@@ -239,7 +239,7 @@ function isJsonDataCopy(exp: Expectation.Any): exp is Expectation.JsonDataCopy {
 	return exp.type === Expectation.Type.JSON_DATA_COPY
 }
 
-function lookupCopySources(
+async function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.JsonDataCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
@@ -255,7 +255,7 @@ function lookupCopySources(
 		}
 	)
 }
-function lookupCopyTargets(
+async function lookupCopyTargets(
 	worker: GenericWorker,
 	exp: Expectation.JsonDataCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {

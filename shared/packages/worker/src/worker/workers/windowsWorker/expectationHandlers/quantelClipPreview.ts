@@ -290,7 +290,7 @@ interface Metadata {
 	version: Expectation.Version.QuantelClipPreview
 }
 
-function lookupPreviewSources(
+async function lookupPreviewSources(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipPreview
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -306,7 +306,7 @@ function lookupPreviewSources(
 		}
 	)
 }
-function lookupPreviewTargets(
+async function lookupPreviewTargets(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipPreview
 ): Promise<LookupPackageContainer<Metadata>> {

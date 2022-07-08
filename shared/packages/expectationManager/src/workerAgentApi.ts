@@ -21,7 +21,8 @@ import {
  */
 export class WorkerAgentAPI
 	extends AdapterServer<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
-	implements ExpectationManagerWorkerAgent.WorkerAgent {
+	implements ExpectationManagerWorkerAgent.WorkerAgent
+{
 	constructor(
 		methods: ExpectationManagerWorkerAgent.ExpectationManager,
 		options: AdapterServerOptions<ExpectationManagerWorkerAgent.WorkerAgent>

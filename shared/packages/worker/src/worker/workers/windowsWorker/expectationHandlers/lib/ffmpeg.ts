@@ -9,21 +9,21 @@ import {
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
-import { assertNever, stringifyError } from '@shared/api'
+import { assertNever, stringifyError } from '@sofie-package-manager/api'
 
 export interface FFMpegProcess {
 	pid: number
 	cancel: () => void
 }
 /** Check if FFMpeg is available, returns null if no error found */
-export function testFFMpeg(): Promise<string | null> {
+export async function testFFMpeg(): Promise<string | null> {
 	return testFFExecutable(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
 }
 /** Check if FFProbe is available */
-export function testFFProbe(): Promise<string | null> {
+export async function testFFProbe(): Promise<string | null> {
 	return testFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
 }
-export function testFFExecutable(ffExecutable: string): Promise<string | null> {
+export async function testFFExecutable(ffExecutable: string): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {
 		const ffMpegProcess = spawn(ffExecutable, ['-version'])
 		let output = ''
@@ -209,9 +209,12 @@ export async function spawnFFMpeg<Metadata>(
 	ffMpegProcess.on('exit', (code) => {
 		onClose(code)
 	})
+	ffMpegProcess.on('error', (err) => {
+		log?.(`spawnFFMpeg error: ${stringifyError(err)}`)
+	})
 
 	return {
-		pid: ffMpegProcess.pid,
+		pid: ffMpegProcess.pid ?? 0,
 		cancel: () => {
 			killFFMpeg()
 			onFail(`Cancelled`).catch((err) => log?.(`spawnFFMpeg onFail callback failed: ${stringifyError(err)}`))

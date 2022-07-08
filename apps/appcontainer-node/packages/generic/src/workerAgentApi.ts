@@ -15,7 +15,8 @@ import {
  */
 export class WorkerAgentAPI
 	extends AdapterServer<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent>
-	implements AppContainerWorkerAgent.WorkerAgent {
+	implements AppContainerWorkerAgent.WorkerAgent
+{
 	constructor(
 		methods: AppContainerWorkerAgent.AppContainer,
 		options: AdapterServerOptions<AppContainerWorkerAgent.WorkerAgent>

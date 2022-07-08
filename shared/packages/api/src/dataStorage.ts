@@ -38,7 +38,7 @@ export class DataStore {
 	constructor(logger: LoggerInstance, private _timeoutTime = 1000) {
 		this.logger = logger.category('DataStore')
 	}
-	terminate() {
+	terminate(): void {
 		this.terminated = true
 
 		if (this._handleClaimsTimeout) {
@@ -131,7 +131,7 @@ export class DataStore {
 		return data.data
 	}
 
-	private _waitForAccess(dataId: string): Promise<void> {
+	private async _waitForAccess(dataId: string): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			if (!this.accessClaims.has(dataId)) {
 				this.accessClaims.set(dataId, [])

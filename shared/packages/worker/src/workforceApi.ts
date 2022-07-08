@@ -7,7 +7,8 @@ import { AdapterClient, LoggerInstance, WorkForceWorkerAgent } from '@sofie-pack
  */
 export class WorkforceAPI
 	extends AdapterClient<WorkForceWorkerAgent.WorkerAgent, WorkForceWorkerAgent.WorkForce>
-	implements WorkForceWorkerAgent.WorkForce {
+	implements WorkForceWorkerAgent.WorkForce
+{
 	constructor(logger: LoggerInstance) {
 		super(logger.category('WorkforceAPI'), 'workerAgent')
 	}

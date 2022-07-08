@@ -26,7 +26,7 @@ export class CPUTracker {
 			this._update()
 		}, measureInterval)
 	}
-	public terminate() {
+	public terminate(): void {
 		clearInterval(this._interval)
 	}
 

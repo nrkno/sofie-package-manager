@@ -151,7 +151,7 @@ function isFileVerify(exp: Expectation.Any): exp is Expectation.FileVerify {
 	return exp.type === Expectation.Type.FILE_VERIFY
 }
 
-function lookupTargets(
+async function lookupTargets(
 	worker: GenericWorker,
 	exp: Expectation.FileVerify
 ): Promise<LookupPackageContainer<UniversalVersion>> {

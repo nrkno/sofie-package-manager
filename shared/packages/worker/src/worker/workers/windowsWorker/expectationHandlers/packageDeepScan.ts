@@ -271,7 +271,7 @@ function isPackageDeepScan(exp: Expectation.Any): exp is Expectation.PackageDeep
 }
 type Metadata = any // not used
 
-function lookupDeepScanSources(
+async function lookupDeepScanSources(
 	worker: GenericWorker,
 	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -287,7 +287,7 @@ function lookupDeepScanSources(
 		}
 	)
 }
-function lookupDeepScanTargets(
+async function lookupDeepScanTargets(
 	worker: GenericWorker,
 	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {

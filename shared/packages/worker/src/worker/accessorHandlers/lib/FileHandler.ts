@@ -251,12 +251,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								expPackage.sources[0].accessors = {}
 							}
 							if (this._type === LocalFolderAccessorHandleType) {
-								expPackage.sources[0].accessors[
-									this.accessorId
-								] = literal<AccessorOnPackage.LocalFolder>({
-									type: Accessor.AccessType.LOCAL_FOLDER,
-									filePath: filePath,
-								})
+								expPackage.sources[0].accessors[this.accessorId] =
+									literal<AccessorOnPackage.LocalFolder>({
+										type: Accessor.AccessType.LOCAL_FOLDER,
+										filePath: filePath,
+									})
 							} else if (this._type === FileShareAccessorHandleType) {
 								expPackage.sources[0].accessors[this.accessorId] = literal<AccessorOnPackage.FileShare>(
 									{

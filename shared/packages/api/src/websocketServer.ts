@@ -35,7 +35,7 @@ export class WebsocketServer extends HelpfulEventEmitter {
 		this.wss.on('connection', (ws) => {
 			// A new client has connected
 
-			const client = new ClientConnection(ws, this.logger, () => Promise.reject('Not setup yet'))
+			const client = new ClientConnection(ws, this.logger, async () => Promise.reject('Not setup yet'))
 			this.clients.push(client)
 
 			client.once('close', () => {
@@ -119,7 +119,7 @@ export class ClientConnection extends WebsocketConnection {
 			const message = JSON.parse(messageStr)
 
 			if (message.internalType === 'identify_client') {
-				const ident = (message as unknown) as MessageIdentifyClient
+				const ident = message as unknown as MessageIdentifyClient
 				this.clientType = ident.clientType
 				this.clientId = ident.id
 

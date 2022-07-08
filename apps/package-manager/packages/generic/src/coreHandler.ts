@@ -130,7 +130,7 @@ export class CoreHandler {
 			return
 		}
 	}
-	setNoCore() {
+	setNoCore(): void {
 		// This is used when PackageManager is used as a standalone app
 		this.notUsingCore = true
 	}
@@ -321,7 +321,7 @@ export class CoreHandler {
 		if (!this.core) throw new Error('Core not initialized!')
 		return this.core.getCollection(collectionName)
 	}
-	callMethod(methodName: string, attrs?: any[]): Promise<any> {
+	async callMethod(methodName: string, attrs?: any[]): Promise<any> {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
 		if (!this.core) throw new Error('Core not initialized!')
 		return this.core.callMethod(methodName, attrs)

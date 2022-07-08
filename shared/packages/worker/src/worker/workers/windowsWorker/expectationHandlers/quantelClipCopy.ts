@@ -289,7 +289,7 @@ function isQuantelClipCopy(exp: Expectation.Any): exp is Expectation.QuantelClip
 	return exp.type === Expectation.Type.QUANTEL_CLIP_COPY
 }
 
-function lookupCopySources(
+async function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {
@@ -305,7 +305,7 @@ function lookupCopySources(
 		}
 	)
 }
-function lookupCopyTargets(
+async function lookupCopyTargets(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {

@@ -7,7 +7,8 @@ import { AdapterClient, LoggerInstance, AppContainerWorkerAgent } from '@sofie-p
  */
 export class AppContainerAPI
 	extends AdapterClient<AppContainerWorkerAgent.WorkerAgent, AppContainerWorkerAgent.AppContainer>
-	implements AppContainerWorkerAgent.AppContainer {
+	implements AppContainerWorkerAgent.AppContainer
+{
 	constructor(logger: LoggerInstance) {
 		super(logger.category('AppContainerAPI'), 'workerAgent')
 	}

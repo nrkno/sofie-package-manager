@@ -38,7 +38,7 @@ export type FetchWithControllerOptions = Omit<RequestInit, 'signal'> & {
  * Fetches a url using node-fetch and times out prudently
  * Note that this function does not support using an AbortController (use fetchWithController for that)
  */
-export function fetchWithTimeout(url: string, options?: Omit<RequestInit, 'signal'>): Promise<Response> {
+export async function fetchWithTimeout(url: string, options?: Omit<RequestInit, 'signal'>): Promise<Response> {
 	const o = fetchWithController(url, options)
 	return o.response
 }
@@ -86,7 +86,7 @@ export function fetchWithController(
 				})
 			}
 
-			const doTheFetch = () =>
+			const doTheFetch = async () =>
 				fetch(url, { ...options, signal: controller.signal, agent: selectAgent }).then((response) => {
 					// At this point, the headers have been received.
 

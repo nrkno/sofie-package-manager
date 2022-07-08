@@ -148,7 +148,7 @@ export class WorkerAgent {
 					localNetworkIds: this.config.worker.networkIds,
 				},
 				config: this.config.worker,
-				workerStorageRead: (dataId: string) => {
+				workerStorageRead: async (dataId: string) => {
 					// return this.appContainerAPI.workerStorageRead(dataId)
 
 					return this.workerStorageDeferRead(dataId, dataId)
@@ -574,13 +574,13 @@ export class WorkerAgent {
 				this.IDidSomeWork()
 				return this.cancelJob(wipId)
 			},
-			doYouSupportPackageContainer: (
+			doYouSupportPackageContainer: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeDoYouSupportPackageContainer> => {
 				this.IDidSomeWork()
 				return this._worker.doYouSupportPackageContainer(packageContainer)
 			},
-			runPackageContainerCronJob: (
+			runPackageContainerCronJob: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeRunPackageContainerCronJob> => {
 				this.IDidSomeWork()
