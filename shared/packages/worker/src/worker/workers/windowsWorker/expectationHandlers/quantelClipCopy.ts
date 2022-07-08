@@ -1,8 +1,8 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
 import { compareUniversalVersions, getStandardCost, makeUniversalVersion } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -11,7 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
@@ -289,7 +289,7 @@ function isQuantelClipCopy(exp: Expectation.Any): exp is Expectation.QuantelClip
 	return exp.type === Expectation.Type.QUANTEL_CLIP_COPY
 }
 
-function lookupCopySources(
+async function lookupCopySources(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {
@@ -305,7 +305,7 @@ function lookupCopySources(
 		}
 	)
 }
-function lookupCopyTargets(
+async function lookupCopyTargets(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {

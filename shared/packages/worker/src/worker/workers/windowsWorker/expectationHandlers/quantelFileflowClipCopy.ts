@@ -1,8 +1,10 @@
-// import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
 // import { GenericWorker } from '../../../worker'
 // import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getStandardCost } from '../lib/lib'
 // import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 // import {
+// Accessor,
+// AccessorOnPackage,
+// PackageContainerOnPackage,
 // 	hashObj,
 // 	waitTime,
 // 	Expectation,
@@ -12,7 +14,7 @@
 // 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 // 	ReturnTypeRemoveExpectation,
 // 	Reason,
-// } from '@shared/api'
+// } from '@sofie-package-manager/api'
 // import { isFileShareAccessorHandle, isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 // import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 // import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'

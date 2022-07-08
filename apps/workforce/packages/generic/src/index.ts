@@ -1,10 +1,11 @@
-import { Workforce } from '@shared/workforce'
-import { getWorkforceConfig, setupLogging } from '@shared/api'
+import { Workforce } from '@sofie-package-manager/workforce'
+import { getWorkforceConfig, setupLogger, initializeLogger } from '@sofie-package-manager/api'
 
 export async function startProcess(): Promise<void> {
 	const config = getWorkforceConfig()
 
-	const logger = setupLogging(config)
+	initializeLogger(config)
+	const logger = setupLogger(config, '')
 
 	logger.info('------------------------------------------------------------------')
 	logger.info('Starting Workforce')

@@ -1,10 +1,9 @@
-import { Expectation, literal } from '@shared/api'
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
+import { Accessor, AccessorOnPackage, Expectation, literal } from '@sofie-package-manager/api'
 
 export function getLocalSource(
 	containerId: string,
 	filePath: string
-): Expectation.SpecificPackageContainerOnPackage.File {
+): Expectation.SpecificPackageContainerOnPackage.FileSource {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -21,7 +20,7 @@ export function getLocalSource(
 export function getLocalTarget(
 	containerId: string,
 	filePath: string
-): Expectation.SpecificPackageContainerOnPackage.File {
+): Expectation.SpecificPackageContainerOnPackage.FileTarget {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -40,7 +39,7 @@ export function getLocalTarget(
 export function getFileShareSource(
 	containerId: string,
 	filePath: string
-): Expectation.SpecificPackageContainerOnPackage.File {
+): Expectation.SpecificPackageContainerOnPackage.FileSource {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -57,7 +56,7 @@ export function getFileShareSource(
 export function getFileShareTarget(
 	containerId: string,
 	filePath: string
-): Expectation.SpecificPackageContainerOnPackage.File {
+): Expectation.SpecificPackageContainerOnPackage.FileTarget {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,

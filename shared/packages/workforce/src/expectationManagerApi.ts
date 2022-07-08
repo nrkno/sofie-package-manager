@@ -1,4 +1,10 @@
-import { WorkForceExpectationManager, AdapterServer, AdapterServerOptions, LogLevel } from '@shared/api'
+import {
+	WorkForceExpectationManager,
+	AdapterServer,
+	AdapterServerOptions,
+	LogLevel,
+	Statuses,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the Workforce
@@ -7,7 +13,8 @@ import { WorkForceExpectationManager, AdapterServer, AdapterServerOptions, LogLe
  */
 export class ExpectationManagerAPI
 	extends AdapterServer<WorkForceExpectationManager.WorkForce, WorkForceExpectationManager.ExpectationManager>
-	implements WorkForceExpectationManager.ExpectationManager {
+	implements WorkForceExpectationManager.ExpectationManager
+{
 	constructor(
 		methods: WorkForceExpectationManager.WorkForce,
 		options: AdapterServerOptions<WorkForceExpectationManager.ExpectationManager>
@@ -20,5 +27,11 @@ export class ExpectationManagerAPI
 	}
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
+	}
+	async _debugSendKillConnections(): Promise<void> {
+		return this._sendMessage('_debugSendKillConnections')
+	}
+	async onWorkForceStatus(statuses: Statuses): Promise<void> {
+		return this._sendMessage('onWorkForceStatus', statuses)
 	}
 }

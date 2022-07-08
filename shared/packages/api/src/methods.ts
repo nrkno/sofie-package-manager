@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { ExpectedPackage, ExpectedPackageStatusAPI, StatusCode } from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -12,8 +12,10 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 } from './worker'
-import { WorkforceStatus } from './status'
+import { WorkerStatusReport, WorkforceStatusReport } from './statusReport'
 import { LogLevel } from './logger'
+import { ExpectedPackage, StatusCode } from './inputApi'
+import { Statuses } from './status'
 
 /** Contains textual descriptions for statuses. */
 export type Reason = ExpectedPackageStatusAPI.Reason
@@ -28,7 +30,8 @@ export namespace WorkForceExpectationManager {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		setLogLevelOfApp: (appId: string, logLevel: LogLevel) => Promise<void>
 		_debugKillApp(appId: string): Promise<void>
-		getStatus: () => Promise<WorkforceStatus>
+		_debugSendKillConnections(): Promise<void>
+		getStatusReport: () => Promise<WorkforceStatusReport>
 
 		requestResourcesForExpectation: (exp: Expectation.Any) => Promise<boolean>
 		requestResourcesForPackageContainer: (packageContainer: PackageContainerExpectation) => Promise<boolean>
@@ -40,6 +43,9 @@ export namespace WorkForceExpectationManager {
 	export interface ExpectationManager {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+		_debugSendKillConnections: () => Promise<void>
+
+		onWorkForceStatus: (statuses: Statuses) => Promise<void>
 	}
 }
 
@@ -49,6 +55,8 @@ export namespace WorkForceWorkerAgent {
 	export interface WorkerAgent {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+		_debugSendKillConnections: () => Promise<void>
+		getStatusReport: () => Promise<WorkerStatusReport>
 
 		expectationManagerAvailable: (id: string, url: string) => Promise<void>
 		expectationManagerGone: (id: string) => Promise<void>
@@ -121,6 +129,7 @@ export namespace ExpectationManagerWorkerAgent {
 		cost: number
 		/** Cost "in queue" until working on the Expectation can start */
 		startCost: number
+		reason: Reason
 	}
 	export type MessageFromWorker = (managerId: string, message: MessageFromWorkerPayload.Any) => Promise<any>
 	export type MessageFromWorkerSerialized = (message: MessageFromWorkerPayload.Any) => Promise<ReplyToWorker>
@@ -179,6 +188,7 @@ export namespace WorkForceAppContainer {
 	export interface AppContainer {
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
+		_debugSendKillConnections: () => Promise<void>
 
 		requestAppTypeForExpectation: (
 			exp: Expectation.Any
@@ -216,5 +226,10 @@ export namespace AppContainerWorkerAgent {
 	export interface AppContainer {
 		ping: () => Promise<void>
 		requestSpinDown: () => Promise<void>
+		/** Aquire a write lock, the returned id is then used in workerStorageWrite to write */
+		workerStorageWriteLock: (dataId: string, customTimeout?: number) => Promise<{ lockId: string; current: any }>
+		workerStorageReleaseLock: (dataId: string, lockId: string) => Promise<void>
+		workerStorageWrite: (dataId: string, lockId: string, data: string) => Promise<void>
+		workerStorageRead: (dataId: string) => Promise<any>
 	}
 }

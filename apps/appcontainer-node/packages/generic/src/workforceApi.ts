@@ -1,4 +1,4 @@
-import { AdapterClient, LoggerInstance, WorkForceAppContainer } from '@shared/api'
+import { AdapterClient, LoggerInstance, WorkForceAppContainer } from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the AppContainer
@@ -7,9 +7,10 @@ import { AdapterClient, LoggerInstance, WorkForceAppContainer } from '@shared/ap
  */
 export class WorkforceAPI
 	extends AdapterClient<WorkForceAppContainer.AppContainer, WorkForceAppContainer.WorkForce>
-	implements WorkForceAppContainer.WorkForce {
+	implements WorkForceAppContainer.WorkForce
+{
 	constructor(logger: LoggerInstance) {
-		super(logger, 'appContainer')
+		super(logger.category('WorkforceAPI'), 'appContainer')
 	}
 	async registerAvailableApps(availableApps: { appType: string }[]): Promise<void> {
 		return this._sendMessage('registerAvailableApps', availableApps)

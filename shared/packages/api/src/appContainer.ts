@@ -4,6 +4,7 @@ import { WorkerAgentConfig } from './worker'
 
 /** How often the appContainer expect to be pinged by its child apps */
 export const APPCONTAINER_PING_TIME = 5000 // ms
+export const APPCONTAINER_MAX_KEEPALIVE = 6 * 3600 * 1000 // ms (6 hours)
 
 export interface AppContainerConfig {
 	workforceURL: string | null
@@ -18,6 +19,7 @@ export interface AppContainerConfig {
 		networkIds: string[]
 		windowsDriveLetters: WorkerAgentConfig['windowsDriveLetters']
 		costMultiplier: number
+		considerCPULoad: number | null
 	}
 }
 

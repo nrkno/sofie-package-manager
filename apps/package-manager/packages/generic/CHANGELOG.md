@@ -3,6 +3,63 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.39.0-in-development.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0-in-development.0...v1.39.0-in-development.1) (2022-02-15)
+
+
+### Bug Fixes
+
+* add expectationManager data (trackedExpectations) to troubleshoot-data ([7c867ad](https://github.com/nrkno/tv-automation-package-manager/commit/7c867ad24e6a9c40a022da98ea383ccca7479cc9))
+* report status of Package Manager to Core ([4679e08](https://github.com/nrkno/tv-automation-package-manager/commit/4679e08b70fd917ae4e059e22f4b82a48e2491b5))
+
+
+
+
+
+# [1.39.0-in-development.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.37.0-alpha.1...v1.39.0-in-development.0) (2022-01-27)
+
+
+### Bug Fixes
+
+* A pretty large rehaul of connection logic. ([4b20139](https://github.com/nrkno/tv-automation-package-manager/commit/4b201394c3074b5601ae6c4452129dde2d7318eb))
+* bug fix: race condition in messages to Core, that could result in messages being lost ([5a92f26](https://github.com/nrkno/tv-automation-package-manager/commit/5a92f268350b8074b3863c015bb74151e83a4d6c))
+* ignore "ExpectedPackages [...] not found"-errors from core. ([3dc51da](https://github.com/nrkno/tv-automation-package-manager/commit/3dc51daad8b2f957bdd8c83f23e54b5f081be742))
+* only allow Quantel-GUIDs on a certain form, to filter out any invalid ones ([27f0cad](https://github.com/nrkno/tv-automation-package-manager/commit/27f0cad9a6244d704a8fb292d97f5225684aad15))
+* replace terrible hack with a slightly less terrible hack ([65349cc](https://github.com/nrkno/tv-automation-package-manager/commit/65349ccf0c24d92e6b7401d2fe8c8930e924a13e))
+* report various execution-times in getStatus ([c03059f](https://github.com/nrkno/tv-automation-package-manager/commit/c03059fdfebe66ce86ab13be99d3f68bbc85f3cc))
+* smartbull scan expectation should have high prio ([7a4fbfe](https://github.com/nrkno/tv-automation-package-manager/commit/7a4fbfebc85f63d656f3bccb7aef9eccad2ff814))
+
+
+### Features
+
+* add CLI argument "--noCore=true" to be used when running without Sofie Core ([1e4b920](https://github.com/nrkno/tv-automation-package-manager/commit/1e4b9203c2df24599c05c07a2566b0bfe207bf14))
+* Add the expectationHandler "fileVerify", used to just verify that a file exists, ([adbaf25](https://github.com/nrkno/tv-automation-package-manager/commit/adbaf25177ab6ac7df47199c6be3d1f6de8122ca))
+
+
+
+
+
+# [1.38.0-in-testing.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.37.0...v1.38.0-in-testing.0) (2021-12-17)
+
+
+### Bug Fixes
+
+* ignore "ExpectedPackages [...] not found"-errors from core. ([3dc51da](https://github.com/nrkno/tv-automation-package-manager/commit/3dc51daad8b2f957bdd8c83f23e54b5f081be742))
+
+
+
+
+
+# [1.38.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.37.0...v1.38.0-alpha.0) (2021-12-17)
+
+
+### Bug Fixes
+
+* ignore "ExpectedPackages [...] not found"-errors from core. ([3dc51da](https://github.com/nrkno/tv-automation-package-manager/commit/3dc51daad8b2f957bdd8c83f23e54b5f081be742))
+
+
+
+
+
 # [1.37.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.37.0-alpha.1...v1.37.0) (2021-12-17)
 
 

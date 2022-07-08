@@ -1,8 +1,8 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
 import { getStandardCost } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -12,7 +12,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
@@ -20,8 +20,13 @@ import {
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import {
+	checkWorkerHasAccessToPackageContainersOnPackage,
+	lookupAccessorHandles,
+	LookupPackageContainer,
+	previewFFMpegArguments,
+} from './lib'
+import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -216,27 +221,15 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					throw new Error(`Unsupported Target AccessHandler`)
 				}
 
-				const args = [
-					'-hide_banner',
-					'-y', // Overwrite output files without asking.
-					'-threads 1', // Number of threads to use
-					`-i "${inputPath}"`, // Input file path
-					'-f webm', // format: webm
-					'-an', // blocks all audio streams
-					'-c:v libvpx', // encoder for video
-					`-b:v ${metadata.version.bitrate || '40k'}`,
-					'-auto-alt-ref 0',
-					`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
-					'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
-				]
+				const args = previewFFMpegArguments(inputPath, true, metadata)
 
-				ffMpegProcess = await runffMpeg(
-					workInProgress,
+				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
-					actualSourceVersionHash,
+					// actualSourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
+						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
 						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
@@ -250,9 +243,20 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 							},
 							undefined
 						)
+					},
+					async (err) => {
+						worker.logger.debug(
+							`FFMpeg failed [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}: ${stringifyError(err)}`
+						)
+						ffMpegProcess = undefined
+						workInProgress._reportError(err)
+					},
+					async (progress: number) => {
+						workInProgress._reportProgress(actualSourceVersionHash, progress)
 					}
-					// worker.logger.info
+					//,worker.logger.debug
 				)
+				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
 			})
 
 			return workInProgress
@@ -304,7 +308,7 @@ interface Metadata {
 	version: Expectation.Version.MediaFilePreview
 }
 
-function lookupPreviewSources(
+async function lookupPreviewSources(
 	worker: GenericWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -320,7 +324,7 @@ function lookupPreviewSources(
 		}
 	)
 }
-function lookupPreviewTargets(
+async function lookupPreviewTargets(
 	worker: GenericWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {

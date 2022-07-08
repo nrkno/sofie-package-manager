@@ -1,11 +1,12 @@
+import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
+import { GenericWorker } from '../../../worker'
 import {
 	AccessorOnPackage,
 	PackageContainer,
 	PackageContainerOnPackage,
-} from '@sofie-automation/blueprints-integration'
-import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
-import { GenericWorker } from '../../../worker'
-import { Expectation } from '@shared/api'
+	Expectation,
+	ReturnTypeGetCostFortExpectation,
+} from '@sofie-package-manager/api'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { AccessorHandlerResult } from '../../../accessorHandlers/genericHandle'
 
@@ -17,8 +18,8 @@ export function compareActualExpectVersions(
 	const actualProperties = makeUniversalVersion(actualVersion)
 
 	for (const key of Object.keys(expectProperties)) {
-		const expect = expectProperties[key] as VersionProperty
-		const actual = actualProperties[key] as VersionProperty
+		const expect = expectProperties[key]
+		const actual = actualProperties[key]
 
 		if (expect.value !== undefined && actual.value && expect.value !== actual.value) {
 			return {
@@ -38,8 +39,10 @@ export function compareUniversalVersions(
 	targetVersion: UniversalVersion
 ): AccessorHandlerResult {
 	for (const key of Object.keys(sourceVersion)) {
-		const source = sourceVersion[key] as VersionProperty
-		const target = targetVersion[key] as VersionProperty
+		const source = sourceVersion[key]
+		const target = targetVersion[key]
+
+		if (source.omit || target.omit) continue // skip that comparison
 
 		if (source.value !== target.value) {
 			return {
@@ -113,7 +116,7 @@ export interface UniversalVersion {
 	contentType: VersionProperty
 	[key: string]: VersionProperty
 }
-export type VersionProperty = { name: string; value: string | number | undefined }
+export type VersionProperty = { name: string; value: string | number | undefined; omit?: boolean }
 
 /** Looks through the packageContainers and return the first one we support access to. */
 export function findBestPackageContainerWithAccessToPackage(
@@ -150,14 +153,26 @@ export function findBestAccessorOnPackageContainer(
 	return undefined
 }
 /** Return a standard cost for the various accessorHandler types */
-export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): number {
-	const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)
-	const target = findBestPackageContainerWithAccessToPackage(worker, exp.endRequirement.targets)
+export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): ReturnTypeGetCostFortExpectation {
+	let sourceCost: number = Number.POSITIVE_INFINITY
+	if (exp.startRequirement.sources.length > 0) {
+		const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)
+		sourceCost = source ? getAccessorCost(source.accessor.type) : Number.POSITIVE_INFINITY
+	} else {
+		// If there are no sources defined, there is no cost for the source
+		sourceCost = 0
+	}
 
-	const sourceCost = source ? getAccessorCost(source.accessor.type) : Number.POSITIVE_INFINITY
+	const target = findBestPackageContainerWithAccessToPackage(worker, exp.endRequirement.targets)
 	const targetCost = target ? getAccessorCost(target.accessor.type) : Number.POSITIVE_INFINITY
 
-	return 30 * (sourceCost + targetCost)
+	return {
+		cost: 30 * (sourceCost + targetCost),
+		reason: {
+			user: `Source cost: ${sourceCost}, Target cost: ${targetCost}`,
+			tech: `Source cost: ${sourceCost}, Target cost: ${targetCost}`,
+		},
+	}
 }
 /**
  * Compares two networkIds/resourceIds.

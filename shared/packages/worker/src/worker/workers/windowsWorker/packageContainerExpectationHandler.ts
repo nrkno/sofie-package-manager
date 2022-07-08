@@ -1,11 +1,14 @@
 import {
+	Accessor,
+	PackageContainer,
+	PackageContainerOnPackage,
 	PackageContainerExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeRunPackageContainerCronJob,
 	Reason,
 	assertNever,
-} from '@shared/api'
-import { Accessor, PackageContainer, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
+} from '@sofie-package-manager/api'
+
 import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../worker'
 import { lookupAccessorHandles, LookupChecks } from './expectationHandlers/lib'

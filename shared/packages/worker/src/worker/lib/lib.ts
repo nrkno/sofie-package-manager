@@ -1,5 +1,4 @@
-import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-automation/blueprints-integration'
-import { assertNever } from '@shared/api'
+import { Accessor, AccessorOnPackage, PackageContainerOnPackage, assertNever } from '@sofie-package-manager/api'
 
 // TODO: This should be changed at some point,
 // as the "cost" isn't really for a source or a target, but rather for the combination of the two as a pair.
@@ -23,6 +22,8 @@ function getAccessorTypePriority(accessor: AccessorOnPackage.Any): number {
 		const isLocal = !!`${accessor.baseUrl}`.match(/localhost|127\.0\.0\.1/)
 		return 4 + (isLocal ? -0.1 : 0)
 	} else if (accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
+		return 99999
+	} else if (accessor.type === Accessor.AccessType.ATEM_MEDIA_STORE) {
 		return 99999
 	} else {
 		assertNever(accessor.type)
@@ -68,3 +69,10 @@ export interface AccessorWithPackageContainer<T extends PackageContainerOnPackag
 	accessorId: string
 	prio: number
 }
+
+/**
+ * Maximum buffer when running child_process.execFile. Large spikes of data being sent over STDIO streams can overload
+ * this buffer which will result in the child_process' termination. A large buffer (10M) allows us sufficient time to
+ * process the incoming data.
+ */
+export const MAX_EXEC_BUFFER = 10_486_750

@@ -1,4 +1,4 @@
-import * as ChildProcess from 'child_process'
+import * as cp from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import _ from 'underscore'
@@ -14,27 +14,39 @@ import {
 	Expectation,
 	waitTime,
 	APPCONTAINER_PING_TIME,
+	APPCONTAINER_MAX_KEEPALIVE,
 	PackageContainerExpectation,
 	Reason,
 	stringifyError,
 	LeveledLogMethod,
-} from '@shared/api'
+	setLogLevel,
+	isNodeRunningInDebugMode,
+	INNER_ACTION_TIMEOUT,
+	DataStore,
+	literal,
+	WorkForceAppContainer,
+} from '@sofie-package-manager/api'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 
 /** Mimimum time between app restarts */
 const RESTART_COOLDOWN = 60 * 1000 // ms
 
+const WORKER_DATA_LOCK_TIMEOUT = INNER_ACTION_TIMEOUT
+
 export class AppContainer {
 	private workforceAPI: WorkforceAPI
 	private id: string
 	private workForceConnectionOptions: ClientConnectionOptions
 	private appId = 0
+	private usedInspectPorts = new Set<number>()
+	private busyPorts = new Set<number>()
 
 	private apps: {
 		[appId: string]: {
-			process: ChildProcess.ChildProcess
+			process: cp.ChildProcess
 			appType: string
+			/** Set to true when the process is about to be killed */
 			toBeKilled: boolean
 			restarts: number
 			lastRestart: number
@@ -43,6 +55,7 @@ export class AppContainer {
 			workerAgentApi: WorkerAgentAPI | null
 			monitorPing: boolean
 			lastPing: number
+			start: number
 		}
 	} = {}
 	private availableApps: {
@@ -53,73 +66,91 @@ export class AppContainer {
 	private monitorAppsTimer: NodeJS.Timer | undefined
 	private initWorkForceApiPromise?: { resolve: () => void; reject: (reason: any) => void }
 
-	constructor(private logger: LoggerInstance, private config: AppContainerProcessConfig) {
+	/**
+	 * The WorkerStorage is a storage that the workers can use to reliably store and read data.
+	 * It is a key-value store, with support for access locks (so that only one worker can write to a key at a time).
+	 */
+	private workerStorage: DataStore
+
+	private logger: LoggerInstance
+
+	constructor(logger: LoggerInstance, private config: AppContainerProcessConfig) {
+		this.logger = logger.category('AppContainer')
+
+		this.workerStorage = new DataStore(this.logger, WORKER_DATA_LOCK_TIMEOUT)
+
 		if (config.appContainer.port !== null) {
 			this.websocketServer = new WebsocketServer(
 				config.appContainer.port,
 				this.logger,
 				(client: ClientConnection) => {
-					// A new client has connected
+					try {
+						// A new client has connected
 
-					this.logger.debug(
-						`AppContainer: New client "${client.clientType}" connected, id "${client.clientId}"`
-					)
+						this.logger.debug(`New client "${client.clientType}" connected, id "${client.clientId}"`)
 
-					switch (client.clientType) {
-						case 'workerAgent': {
-							const workForceMethods = this.getWorkerAgentAPI(client.clientId)
-							const api = new WorkerAgentAPI(workForceMethods, {
-								type: 'websocket',
-								clientConnection: client,
-							})
-							const app = this.apps[client.clientId]
-							if (!app) {
-								throw new Error(`Unknown app "${client.clientId}" just connected to the appContainer`)
+						switch (client.clientType) {
+							case 'workerAgent': {
+								const workForceMethods = this.getWorkerAgentAPI(client.clientId)
+								const api = new WorkerAgentAPI(workForceMethods, {
+									type: 'websocket',
+									clientConnection: client,
+								})
+								const app = this.apps[client.clientId]
+								if (!app) {
+									throw new Error(
+										`Unknown app "${client.clientId}" just connected to the appContainer`
+									)
+								}
+								client.once('close', () => {
+									this.logger.warn(`Connection to Worker "${client.clientId}" closed`)
+									app.workerAgentApi = null
+
+									this.workerStorage.releaseLockForTag(client.clientId)
+								})
+								this.logger.info(`Connection to Worker "${client.clientId}" established`)
+								app.workerAgentApi = api
+
+								// Set upp the app for pinging and automatic spin-down:
+								app.monitorPing = true
+								app.lastPing = Date.now()
+								api.setSpinDownTime(app.spinDownTime).catch((err) => {
+									this.logger.error(`Error in spinDownTime: ${stringifyError(err)}`)
+								})
+								break
 							}
-							client.once('close', () => {
-								this.logger.warn(`Appcontainer: Connection to Worker "${client.clientId}" closed`)
-								app.workerAgentApi = null
-							})
-							this.logger.info(`Appcontainer: Connection to Worker "${client.clientId}" established`)
-							app.workerAgentApi = api
-
-							// Set upp the app for pinging and automatic spin-down:
-							app.monitorPing = true
-							app.lastPing = Date.now()
-							api.setSpinDownTime(app.spinDownTime).catch((err) => {
-								this.logger.error(`AppContainer: Error in spinDownTime: ${stringifyError(err)}`)
-							})
-							break
+							case 'expectationManager':
+							case 'appContainer':
+							case 'N/A':
+								throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
+							default:
+								assertNever(client.clientType)
+								throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
 						}
-						case 'expectationManager':
-						case 'appContainer':
-						case 'N/A':
-							throw new Error(`ExpectationManager: Unsupported clientType "${client.clientType}"`)
-						default:
-							assertNever(client.clientType)
-							throw new Error(`Workforce: Unknown clientType "${client.clientType}"`)
+					} catch (error) {
+						this.logger.error(stringifyError(error))
 					}
 				}
 			)
 			this.websocketServer.on('error', (err: unknown) => {
-				this.logger.error(`AppContainer: WebsocketServer error: ${stringifyError(err)}`)
+				this.logger.error(`WebsocketServer error: ${stringifyError(err)}`)
 			})
 			this.websocketServer.on('close', () => {
-				this.logger.error(`AppContainer: WebsocketServer closed`)
+				this.logger.error(`WebsocketServer closed`)
 			})
 		}
 
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.workforceAPI.on('disconnected', () => {
-			this.logger.warn('AppContainer: Workforce disconnected')
+			this.logger.warn('Workforce disconnected')
 		})
 		this.workforceAPI.on('connected', () => {
-			this.logger.info('AppContainer: Workforce connected')
+			this.logger.info('Workforce connected')
 
 			this.workforceAPI
 				.registerAvailableApps(
 					Object.entries(this.availableApps).map((o) => {
-						const appType = o[0] as string
+						const appType: string = o[0]
 						return {
 							appType: appType,
 						}
@@ -129,12 +160,12 @@ export class AppContainer {
 					this.initWorkForceApiPromise?.resolve() // To finish the init() function
 				})
 				.catch((err) => {
-					this.logger.error(`AppContainer: Error in registerAvailableApps: ${stringifyError(err)}`)
+					this.logger.error(`Error in registerAvailableApps: ${stringifyError(err)}`)
 					this.initWorkForceApiPromise?.reject(err)
 				})
 		})
 		this.workforceAPI.on('error', (err) => {
-			this.logger.error(`AppContainer: WorkforceAPI error event: ${stringifyError(err)}`)
+			this.logger.error(`WorkforceAPI error event: ${stringifyError(err)}`)
 		})
 
 		this.id = config.appContainer.appContainerId
@@ -146,16 +177,34 @@ export class AppContainer {
 			: {
 					type: 'internal',
 			  }
+
+		process.on('exit', (code) => {
+			this.logger.info(`Closing with exitCode ${code}`)
+			this.killAllApps()
+		})
 	}
 	async init(): Promise<void> {
 		await this.setupAvailableApps()
 
 		if (this.workForceConnectionOptions.type === 'websocket') {
-			this.logger.info(`AppContainer: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
+			this.logger.info(`Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
 
-		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
-		if (!this.workforceAPI.connected) throw new Error('AppContainer: Workforce not connected')
+		await this.workforceAPI.init(
+			this.id,
+			this.workForceConnectionOptions,
+			literal<WorkForceAppContainer.AppContainer>({
+				setLogLevel: this.setLogLevel.bind(this),
+				_debugKill: this._debugKill.bind(this),
+				_debugSendKillConnections: this._debugSendKillConnections.bind(this),
+				requestAppTypeForExpectation: this.requestAppTypeForExpectation.bind(this),
+				requestAppTypeForPackageContainer: this.requestAppTypeForPackageContainer.bind(this),
+				spinUp: this.spinUp.bind(this),
+				spinDown: this.spinDown.bind(this),
+				getRunningApps: this.getRunningApps.bind(this),
+			})
+		)
+		if (!this.workforceAPI.connected) throw new Error('Workforce not connected')
 
 		this.monitorAppsTimer = setInterval(() => {
 			this.monitorApps()
@@ -167,7 +216,7 @@ export class AppContainer {
 			this.initWorkForceApiPromise = { resolve, reject }
 		})
 
-		this.logger.info(`AppContainer: Initialized"`)
+		this.logger.info(`Initialized"`)
 	}
 	/** Return the API-methods that the AppContainer exposes to the WorkerAgent */
 	private getWorkerAgentAPI(clientId: string): AppContainerWorkerAgent.AppContainer {
@@ -180,15 +229,29 @@ export class AppContainer {
 				if (app) {
 					if (this.getAppCount(app.appType) > this.config.appContainer.minRunningApps) {
 						this.spinDown(clientId, `Requested by app`).catch((error) => {
-							this.logger.error(
-								`AppContainer: Error when spinning down app "${clientId}": ${stringifyError(error)}`
-							)
+							this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
 						})
 					}
 				}
 			},
+			workerStorageWriteLock: async (
+				dataId: string,
+				customTimeout?: number
+			): Promise<{ lockId: string; current: any | undefined }> => {
+				return this.workerStorage.getWriteLock(dataId, customTimeout, clientId)
+			},
+			workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
+				return this.workerStorage.releaseLock(dataId, lockId)
+			},
+			workerStorageWrite: async (dataId: string, lockId: string, data: string): Promise<void> => {
+				return this.workerStorage.write(dataId, lockId, data)
+			},
+			workerStorageRead: async (dataId: string): Promise<any> => {
+				return this.workerStorage.read(dataId)
+			},
 		}
 	}
+
 	private getAppCount(appType: string): number {
 		let count = 0
 		for (const app of Object.values(this.apps)) {
@@ -213,6 +276,9 @@ export class AppContainer {
 					: '',
 				this.config.appContainer.worker.costMultiplier
 					? `--costMultiplier=${this.config.appContainer.worker.costMultiplier}`
+					: '',
+				this.config.appContainer.worker.considerCPULoad
+					? `--costMultiplier=${this.config.appContainer.worker.considerCPULoad}`
 					: '',
 				this.config.appContainer.worker.resourceId
 					? `--resourceId=${this.config.appContainer.worker.resourceId}`
@@ -250,7 +316,7 @@ export class AppContainer {
 				}
 			})
 		}
-		this.logger.info(`AppContainer: Available apps`)
+		this.logger.info(`Available apps`)
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			this.logger.info(`${appType}: ${availableApp.file}`)
 		}
@@ -258,6 +324,7 @@ export class AppContainer {
 	terminate(): void {
 		this.workforceAPI.terminate()
 		this.websocketServer?.terminate()
+		this.workerStorage.terminate()
 
 		if (this.monitorAppsTimer) {
 			clearInterval(this.monitorAppsTimer)
@@ -267,7 +334,7 @@ export class AppContainer {
 		// kill child processes
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.level = logLevel
+		setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {
 		// This is for testing purposes only
@@ -276,13 +343,17 @@ export class AppContainer {
 			process.exit(42)
 		}, 1)
 	}
+	/** FOR DEBUGGING ONLY. Cut websocket connections, in order to ensure that they are restarted */
+	async _debugSendKillConnections(): Promise<void> {
+		this.workforceAPI.debugCutConnection()
+	}
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any
 	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
-		this.logger.debug(`AppContainer: Got request for resources, for exp "${exp.id}"`)
+		this.logger.debug(`Got request for resources, for exp "${exp.id}"`)
 		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
-			this.logger.debug(`AppContainer: Is already at our limit, no more resources available`)
+			this.logger.debug(`Is already at our limit, no more resources available`)
 			// If we're at our limit, we can't possibly run anything else
 			return {
 				success: false,
@@ -313,7 +384,7 @@ export class AppContainer {
 					return false
 				}, 10)
 				runningApp = this.apps[newAppId]
-				if (!runningApp) throw new Error(`AppContainer: Worker "${newAppId}" didn't connect in time`)
+				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
 			}
 			if (runningApp?.workerAgentApi) {
 				const result = await runningApp.workerAgentApi.doYouSupportExpectation(exp)
@@ -325,7 +396,7 @@ export class AppContainer {
 					}
 				}
 			} else {
-				this.logger.warn(`AppContainer: appType "${appType}" not available`)
+				this.logger.warn(`appType "${appType}" not available`)
 			}
 		}
 		return {
@@ -340,9 +411,9 @@ export class AppContainer {
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
 	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
-		this.logger.debug(`AppContainer: Got request for resources, for packageContainer "${packageContainer.id}"`)
+		this.logger.debug(`Got request for resources, for packageContainer "${packageContainer.id}"`)
 		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
-			this.logger.debug(`AppContainer: Is already at our limit, no more resources available`)
+			this.logger.debug(`Is already at our limit, no more resources available`)
 			// If we're at our limit, we can't possibly run anything else
 			return {
 				success: false,
@@ -352,6 +423,8 @@ export class AppContainer {
 				},
 			}
 		}
+
+		this.logger.debug(`Available apps: ${Object.keys(this.availableApps).join(', ')}`)
 
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			// Do we already have any instance of the appType running?
@@ -371,7 +444,7 @@ export class AppContainer {
 					return false
 				}, 10)
 				runningApp = this.apps[newAppId]
-				if (!runningApp) throw new Error(`AppContainer: Worker "${newAppId}" didn't connect in time`)
+				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
 			}
 			if (runningApp?.workerAgentApi) {
 				const result = await runningApp.workerAgentApi.doYouSupportPackageContainer(packageContainer)
@@ -383,7 +456,7 @@ export class AppContainer {
 					}
 				}
 			} else {
-				this.logger.warn(`AppContainer: appType "${appType}" not available`)
+				this.logger.warn(`appType "${appType}" not available`)
 			}
 		}
 		return {
@@ -400,7 +473,7 @@ export class AppContainer {
 
 		const appId = `${this.id}_${this.appId++}`
 
-		this.logger.debug(`AppContainer: Spinning up app "${appId}" of type "${appType}"`)
+		this.logger.debug(`Spinning up app "${appId}" of type "${appType}"`)
 
 		const child = this.setupChildProcess(appType, appId, availableApp)
 		this.apps[appId] = {
@@ -413,6 +486,7 @@ export class AppContainer {
 			lastPing: Date.now(),
 			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
 			workerAgentApi: null,
+			start: Date.now(),
 		}
 		return appId
 	}
@@ -420,15 +494,30 @@ export class AppContainer {
 		const app = this.apps[appId]
 		if (!app) throw new Error(`App "${appId}" not found`)
 
-		this.logger.debug(`AppContainer: Spinning down app "${appId}" due to: ${reason}`)
+		this.logger.verbose(`Spinning down app "${appId}" due to: ${reason}`)
 
 		app.toBeKilled = true
 		const success = app.process.kill()
-		if (!success) throw new Error(`Internal error: Killing of process "${app.process.pid}" failed`)
+		if (!success) {
+			this.logger.error(`Internal error: Killing of process "${app.process.pid}" failed`)
+		}
 
 		app.workerAgentApi = null
 		app.process.removeAllListeners()
 		delete this.apps[appId]
+	}
+	/** This is used to kill all ChildProcesses when terminating */
+	private killAllApps() {
+		Object.entries(this.apps).forEach(([appId, app]) => {
+			app.toBeKilled = true
+			const success = app.process.kill()
+			if (!success)
+				this.logger.error(`Internal error: App "${appId}" (PID: ${app.process.pid}) could not be killed`)
+
+			app.workerAgentApi = null
+			app.process.removeAllListeners()
+		})
+		this.apps = {}
 	}
 	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
 		return Object.entries(this.apps).map((o) => {
@@ -440,47 +529,81 @@ export class AppContainer {
 			}
 		})
 	}
-	private setupChildProcess(
-		appType: string,
-		appId: string,
-		availableApp: AvailableAppInfo
-	): ChildProcess.ChildProcess {
-		this.logger.debug(`AppContainer: Starting process "${appId}" (${appType}): "${availableApp.file}"`)
+	private setupChildProcess(appType: string, appId: string, availableApp: AvailableAppInfo): cp.ChildProcess {
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
 
-		const child = ChildProcess.execFile(availableApp.file, availableApp.args(appId), {
+		let inspectPort: number | undefined = undefined
+		if (isNodeRunningInDebugMode()) {
+			// Also start child processes in debug mode:
+			for (let i = 9100; i < 10000; i++) {
+				if (!this.usedInspectPorts.has(i) && !this.busyPorts.has(i)) {
+					inspectPort = i
+					break
+				}
+			}
+		}
+		if (inspectPort) {
+			this.logger.debug(`Child process will be started in debug mode with port ${inspectPort}`)
+			this.usedInspectPorts.add(inspectPort)
+		}
+
+		const child = cp.spawn(availableApp.file, availableApp.args(appId), {
 			cwd: cwd,
+			env: {
+				...process.env,
+				NODE_OPTIONS: inspectPort ? `--inspect=127.0.0.1:${inspectPort}` : undefined,
+			},
 		})
 
-		child.stdout?.on('data', (message) => {
+		this.logger.info(`Starting process "${appId}" (${appType}), pid=${child.pid}: "${availableApp.file}"`)
+
+		child.stdout.on('data', (message) => {
 			this.logFromApp(appId, appType, message, this.logger.debug)
 		})
-		child.stderr?.on('data', (message) => {
+		child.stderr.on('data', (message) => {
 			this.logFromApp(appId, appType, message, this.logger.error)
 			// this.logger.debug(`${appId} stderr: ${message}`)
 		})
-		child.once('close', (code) => {
+		child.on('error', (err) => {
+			this.logger.error(`PID=${child.pid} Error: ${stringifyError(err)}`)
+			// TODO: handle errors better?
+
+			try {
+				// Try to kill the child process, if it isn't already dead:
+				if (child.killed) child.kill()
+			} catch (err) {
+				this.logger.error(`Error when killing ${child.pid}: ${stringifyError(err)}`)
+			}
+		})
+		child.once('exit', (code) => {
+			if (inspectPort) this.usedInspectPorts.delete(inspectPort)
 			const app = this.apps[appId]
-			if (app && !app.toBeKilled) {
-				// Try to restart the application
+			if (app) {
+				if (!app.toBeKilled) {
+					// Try to restart the application
 
-				const timeUntilRestart = Math.max(0, app.lastRestart - Date.now() + RESTART_COOLDOWN)
-				this.logger.warn(
-					`App ${app.process.pid} (${appType}) closed with code (${code}), trying to restart in ${timeUntilRestart} ms (restarts: ${app.restarts})`
-				)
+					const timeUntilRestart = Math.max(0, app.lastRestart - Date.now() + RESTART_COOLDOWN)
+					this.logger.warn(
+						`App ${child.pid} (${appType}) closed with code (${code}), trying to restart in ${timeUntilRestart} ms (restarts: ${app.restarts})`
+					)
 
-				setTimeout(() => {
-					app.lastRestart = Date.now()
-					app.restarts++
+					setTimeout(() => {
+						app.lastRestart = Date.now()
+						app.restarts++
 
-					app.process.removeAllListeners()
+						app.process.removeAllListeners()
 
-					const newChild = this.setupChildProcess(appType, appId, availableApp)
+						const newChild = this.setupChildProcess(appType, appId, availableApp)
 
-					app.process = newChild
-				}, timeUntilRestart)
+						app.process = newChild
+					}, timeUntilRestart)
+				} else {
+					this.logger.debug(`App ${app.process.pid} (${appType}) closed with code (${code})`)
+				}
+			} else {
+				this.logger.warn(`Unexpected App ${child.pid} (${appType}) closed with code (${code})`)
 			}
 		})
 
@@ -492,15 +615,22 @@ export class AppContainer {
 				if (Date.now() - app.lastPing > APPCONTAINER_PING_TIME * 2.5) {
 					// The app seems to have crashed.
 					this.spinDown(appId, `Ping timeout`).catch((error) => {
-						this.logger.error(
-							`AppContainer: Error when spinning down app "${appId}": ${stringifyError(error)}`
-						)
+						this.logger.error(`Error when spinning down app "${appId}": ${stringifyError(error)}`)
 					})
 				}
 			}
+			// try to avoid shutting down all workers at the same time
+			const randomizeOffset = 2.5 * APPCONTAINER_PING_TIME * Math.random()
+			if (Date.now() - app.start > APPCONTAINER_MAX_KEEPALIVE + randomizeOffset) {
+				this.spinDown(appId, `Lifetime exceeded Max KeepAlive for apps: ${APPCONTAINER_MAX_KEEPALIVE}ms`).catch(
+					(error) => {
+						this.logger.error(`Error when spinning down app "${appId}": ${stringifyError(error)}`)
+					}
+				)
+			}
 		}
 		this.spinUpMinimumApps().catch((error) => {
-			this.logger.error(`AppContainer: Error in spinUpMinimumApps: ${stringifyError(error)}`)
+			this.logger.error(`Error in spinUpMinimumApps: ${stringifyError(error)}`)
 		})
 	}
 	private async spinUpMinimumApps(): Promise<void> {
@@ -522,6 +652,13 @@ export class AppContainer {
 					continue
 				}
 
+				// Handle an issue with busy ports:
+				const m = `${message}`.match(/Starting inspector on 127.0.0.1:(\d+) failed/i)
+				if (m) {
+					const busyPort = parseInt(m[1])
+					this.busyPorts.add(busyPort)
+				}
+
 				const json = JSON.parse(`${message}`)
 
 				if (typeof json === 'object') {
@@ -537,7 +674,7 @@ export class AppContainer {
 					const messageData = _.omit(json, ['message', 'localTimestamp', 'level'])
 
 					logFcn(
-						`AppContainer: App "${appId}" (${appType}): ${json.message}`,
+						`App "${appId}" (${appType}): ${json.message}`,
 						_.isEmpty(messageData) ? undefined : messageData
 					)
 				}

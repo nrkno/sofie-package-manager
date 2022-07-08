@@ -54,6 +54,13 @@ const basePath = process.cwd()
 		await rimraf(folder)
 	}
 
+	// Finally, remove root node_modules
+	for (const folder of resultingFolders) {
+		log(`Removing ${folder}`)
+		await rimraf(folder)
+	}
+
+
 	log(`...done!`)
 })().catch(log)
 

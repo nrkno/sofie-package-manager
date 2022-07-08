@@ -2,8 +2,9 @@ import Koa from 'koa'
 import Router from 'koa-router'
 import cors from '@koa/cors'
 import range from 'koa-range'
-import { default as got } from 'got'
-import { QuantelHTTPTransformerProxyConfig, LoggerInstance, stringifyError } from '@shared/api'
+import ratelimit from 'koa-ratelimit'
+import got from 'got'
+import { QuantelHTTPTransformerProxyConfig, LoggerInstance, stringifyError } from '@sofie-package-manager/api'
 import { parseStringPromise as xmlParser } from 'xml2js'
 
 export class QuantelHTTPTransformerProxy {
@@ -12,7 +13,9 @@ export class QuantelHTTPTransformerProxy {
 	private transformerURL: string | undefined = undefined
 	private smoothStream = false
 
-	constructor(private logger: LoggerInstance, private config: QuantelHTTPTransformerProxyConfig) {
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, private config: QuantelHTTPTransformerProxyConfig) {
+		this.logger = logger.category('QuantelHTTPTransformerProxy')
 		if (this.config.quantelHTTPTransformerProxy.transformerURL) {
 			this.transformerURL = this.config.quantelHTTPTransformerProxy.transformerURL
 		}
@@ -30,9 +33,36 @@ export class QuantelHTTPTransformerProxy {
 				origin: '*',
 			})
 		)
+
+		// Apply a rate limit, to avoid overloading the http-transformer server.
+		const RATE_LIMIT_DURATION = config.quantelHTTPTransformerProxy.rateLimitDuration ?? 10 * 1000 // ms
+		const RATE_LIMIT_MAX = config.quantelHTTPTransformerProxy.rateLimitMax ?? 10
+		const db = new Map()
+		this.app.use(
+			ratelimit({
+				driver: 'memory',
+				db: db,
+				duration: RATE_LIMIT_DURATION,
+				max: RATE_LIMIT_MAX,
+				errorMessage: 'Rate limit exceeded',
+				id: (ctx) => ctx.ip,
+				headers: {
+					remaining: 'Rate-Limit-Remaining',
+					reset: 'Rate-Limit-Reset',
+					total: 'Rate-Limit-Total',
+				},
+				disableHeader: false,
+				// whitelist: (ctx) => {
+				// 	// some logic that returns a boolean
+				// },
+				// blacklist: (ctx) => {
+				// 	// some logic that returns a boolean
+				// },
+			})
+		)
 	}
 
-	init(): Promise<void> {
+	async init(): Promise<void> {
 		this.router.get('/hello', async (ctx, next) => {
 			ctx.body = { msg: 'Hello World', params: ctx.params }
 			await next()
@@ -83,7 +113,10 @@ export class QuantelHTTPTransformerProxy {
 						}
 					}
 				} else {
-					throw err
+					ctx.status = 502
+					ctx.body = 'Bad Gateway'
+					this.logger.error(JSON.stringify(err))
+					return
 				}
 			}
 		})
@@ -108,7 +141,10 @@ export class QuantelHTTPTransformerProxy {
 						}
 					}
 				} else {
-					throw err
+					ctx.status = 502
+					ctx.body = 'Bad Gateway'
+					this.logger.error(JSON.stringify(err))
+					return
 				}
 			}
 		})

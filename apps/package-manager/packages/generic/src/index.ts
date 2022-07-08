@@ -1,11 +1,19 @@
 import { Connector, Config } from './connector'
-import { getPackageManagerConfig, LoggerInstance, ProcessHandler, setupLogging, stringifyError } from '@shared/api'
+import {
+	getPackageManagerConfig,
+	LoggerInstance,
+	ProcessHandler,
+	setupLogger,
+	initializeLogger,
+	stringifyError,
+} from '@sofie-package-manager/api'
 
 export { Connector, Config }
 export function startProcess(startInInternalMode?: boolean): { logger: LoggerInstance; connector: Connector } {
 	const config = getPackageManagerConfig()
 
-	const logger = setupLogging(config)
+	initializeLogger(config)
+	const logger = setupLogger(config, '')
 
 	logger.info('------------------------------------------------------------------')
 	logger.info('Starting Package Manager')

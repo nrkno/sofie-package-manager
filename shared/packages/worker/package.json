@@ -1,44 +1,48 @@
 {
-    "name": "@shared/worker",
-    "version": "1.37.0",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "license": "MIT",
-    "scripts": {
-        "build": "rimraf dist && yarn build:main",
-        "build:main": "tsc -p tsconfig.json",
-        "__test": "jest",
-        "precommit": "lint-staged"
-    },
-    "engines": {
-        "node": ">=12.20.0"
-    },
-    "devDependencies": {
-        "@types/deep-diff": "^1.0.0",
-        "@types/node-fetch": "^2.5.8",
-        "lint-staged": "^7.2.0"
-    },
-    "dependencies": {
-        "@shared/api": "1.37.0",
-        "abort-controller": "^3.0.0",
-        "chokidar": "^3.5.1",
-        "deep-diff": "^1.0.2",
-        "form-data": "^4.0.0",
-        "node-fetch": "^2.6.1",
-        "tv-automation-quantel-gateway-client": "^2.0.2",
-        "windows-network-drive": "^3.0.1",
-        "xml-js": "^1.6.11"
-    },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-    "lint-staged": {
-        "*.{js,css,json,md,scss}": [
-            "prettier"
-        ],
-        "*.{ts,tsx}": [
-            "eslint"
-        ]
-    }
+	"name": "@sofie-package-manager/worker",
+	"version": "1.39.0-in-development.1",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"license": "MIT",
+	"scripts": {
+		"build": "rimraf dist && yarn build:main",
+		"build:main": "tsc -p tsconfig.json",
+		"__test": "jest",
+		"precommit": "lint-staged"
+	},
+	"engines": {
+		"node": ">=14.18.0"
+	},
+	"devDependencies": {
+		"@types/deep-diff": "^1.0.0",
+		"@types/node-fetch": "^2.5.8",
+		"@types/tmp": "~0.2.2",
+		"lint-staged": "^7.2.0"
+	},
+	"dependencies": {
+		"@sofie-package-manager/api": "1.39.0-in-development.1",
+		"abort-controller": "^3.0.0",
+		"atem-connection": "3.0.0-nightly-latest-20211125-222857-2b30eea.0",
+		"chokidar": "^3.5.1",
+		"deep-diff": "^1.0.2",
+		"form-data": "^4.0.0",
+		"mkdirp": "^1.0.4",
+		"node-fetch": "^2.6.1",
+		"tmp": "~0.2.1",
+		"tv-automation-quantel-gateway-client": "2.0.5-nightly-latest-20220330-103600-2521239.0",
+		"windows-network-drive": "^3.0.1",
+		"xml-js": "^1.6.11"
+	},
+	"peerDependencies": {
+		"@sofie-automation/blueprints-integration": "*"
+	},
+	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+	"lint-staged": {
+		"*.{js,css,json,md,scss}": [
+			"prettier"
+		],
+		"*.{ts,tsx}": [
+			"eslint"
+		]
+	}
 }

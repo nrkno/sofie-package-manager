@@ -1,8 +1,5 @@
-import {
-	ExpectedPackageStatusAPI,
-	AccessorOnPackage,
-	PackageContainerOnPackage,
-} from '@sofie-automation/blueprints-integration'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+import { AccessorOnPackage, PackageContainerOnPackage } from './inputApi'
 
 /*
  * This file contains definitions for Expectations, the internal datastructure upon which the Package Manager operates.
@@ -14,6 +11,7 @@ export namespace Expectation {
 	/** Generic Expectation, used as "Any Exopectation" */
 	export type Any =
 		| FileCopy
+		| FileCopyProxy
 		| PackageScan
 		| PackageDeepScan
 		| MediaFileThumbnail
@@ -24,12 +22,15 @@ export namespace Expectation {
 		| QuantelClipThumbnail
 		| QuantelClipPreview
 		| JsonDataCopy
+		| FileVerify
 
 	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
 		FILE_COPY = 'file_copy',
+		FILE_COPY_PROXY = 'file_copy_proxy',
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 		MEDIA_FILE_PREVIEW = 'media_file_preview',
+		FILE_VERIFY = 'file_verify',
 
 		PACKAGE_SCAN = 'package_scan',
 		PACKAGE_DEEP_SCAN = 'package_deep_scan',
@@ -79,7 +80,7 @@ export namespace Expectation {
 			version: any
 		}
 		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
-		workOptions: any // {}
+		workOptions: WorkOptions.Base
 		/** Reference to another expectation.
 		 * Won't start until ALL other expectations are fullfilled
 		 */
@@ -95,44 +96,64 @@ export namespace Expectation {
 		type: Type.FILE_COPY
 
 		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.FileCopySource[]
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.File]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
 			version: Version.ExpectedFileOnDisk
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+	}
+	/** Defines a File Copy, but only to create a Proxy, used for side-effects such as scanning or thumbnail generation */
+	export interface FileCopyProxy extends Base {
+		type: Type.FILE_COPY_PROXY
+
+		startRequirement: {
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
+			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
+			content: {
+				filePath: string
+			}
+			version: Version.ExpectedFileOnDisk
+		}
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+
+		originalExpectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy
 	}
 	/** Defines a Scan of a Media file. A Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface PackageScan extends Base {
 		type: Type.PACKAGE_SCAN
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets'] | QuantelClipCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
 			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.CorePackage]
+			targets: SpecificPackageContainerOnPackage.CorePackage[]
 			content: null // not using content, entries are stored using this.fromPackages
 			version: null
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
 	}
 	/** Defines a Deep-Scan of a Media file. A Deep-Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
 	export interface PackageDeepScan extends Base {
 		type: Type.PACKAGE_DEEP_SCAN
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets'] | QuantelClipCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
 			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.CorePackage]
+			targets: SpecificPackageContainerOnPackage.CorePackage[]
 			content: null // not using content, entries are stored using this.fromPackages
 			version: {
 				/** Enable field order detection. An expensive chcek that decodes the start of the video */
@@ -162,43 +183,43 @@ export namespace Expectation {
 				blackThreshold?: number
 			}
 		}
-		workOptions: WorkOptions.RemoveDelay
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
 	}
 	/** Defines a Thumbnail of a Media file. A Thumbnail is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFileThumbnail extends Base {
 		type: Type.MEDIA_FILE_THUMBNAIL
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 			content: FileCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
 			version: Version.ExpectedMediaFileThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Media file. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface MediaFilePreview extends Base {
 		type: Type.MEDIA_FILE_PREVIEW
 
 		startRequirement: {
-			sources: FileCopy['endRequirement']['targets']
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 			content: FileCopy['endRequirement']['content']
 			version: FileCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
 			version: Version.ExpectedMediaFilePreview
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 
 	/** Defines a Quantel clip. A Quantel clip is to be copied from one of the Sources, to the Target. */
@@ -209,7 +230,7 @@ export namespace Expectation {
 			sources: SpecificPackageContainerOnPackage.QuantelClip[]
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.QuantelClip]
+			targets: SpecificPackageContainerOnPackage.QuantelClip[]
 			content: {
 				guid?: string
 				title?: string
@@ -228,13 +249,13 @@ export namespace Expectation {
 			version: QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
 			version: Version.ExpectedQuantelClipThumbnail
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a Preview of a Quantel Clip. A Preview is to be created from one of the the sources and the resulting file is to be stored on the target. */
 	export interface QuantelClipPreview extends Base {
@@ -246,41 +267,61 @@ export namespace Expectation {
 			version: QuantelClipCopy['endRequirement']['version']
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.File[]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				filePath: string
 			}
 			version: Version.ExpectedQuantelClipPreview
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
 	/** Defines a File Copy. A File is to be copied from one of the Sources, to the Target. */
 	export interface JsonDataCopy extends Base {
 		type: Type.JSON_DATA_COPY
 
 		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.File[]
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 		}
 		endRequirement: {
-			targets: [SpecificPackageContainerOnPackage.File]
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
 				path: string
 			}
 			version: Version.ExpectedFileOnDisk // maybe something else?
 		}
-		workOptions: WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
+	}
+
+	/** Defines a "Verify File". Doesn't really do any work, just checks that the File exists at the Target. */
+	export interface FileVerify extends Base {
+		type: Type.FILE_VERIFY
+
+		startRequirement: {
+			sources: []
+		}
+		endRequirement: FileCopy['endRequirement']
 	}
 
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace SpecificPackageContainerOnPackage {
-		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support files. */
-		export interface File extends PackageContainerOnPackage {
+		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support reading files. */
+		export interface FileSource extends PackageContainerOnPackage {
 			accessors: {
 				[accessorId: string]:
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
+					| AccessorOnPackage.Quantel
+			}
+		}
+		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support writing files. */
+		export interface FileTarget extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTPProxy
 			}
 		}
@@ -296,21 +337,16 @@ export namespace Expectation {
 				[accessorId: string]: AccessorOnPackage.Quantel
 			}
 		}
-		/** Defines any PackageContainer that a FileCopy can use as a source  */
-		export interface FileCopySource extends PackageContainerOnPackage {
-			accessors: {
-				[accessorId: string]:
-					| AccessorOnPackage.LocalFolder
-					| AccessorOnPackage.FileShare
-					| AccessorOnPackage.HTTP
-					| AccessorOnPackage.HTTPProxy
-					| AccessorOnPackage.Quantel
-			}
-		}
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	export namespace WorkOptions {
+		export interface Base {
+			/** If set, a worker might decide to wait with this expectation until the CPU load is lower. */
+			allowWaitForCPU?: boolean
+			/** If set, specifies how many CPU cores the work is using. */
+			usesCPUCount?: number
+		}
 		export interface RemoveDelay {
 			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */
 			removeDelay?: number
@@ -330,7 +366,8 @@ export namespace Expectation {
 			| ExpectedCorePackageInfo
 			| ExpectedHTTPFile
 			| ExpectedQuantelClip
-		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip
+			| ExpectedATEMFile
+		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip | ATEMFile
 		export interface Base {
 			type: Type
 		}
@@ -343,6 +380,7 @@ export namespace Expectation {
 			QUANTEL_CLIP = 'quantel_clip',
 			QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
 			QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
+			ATEM_FILE = 'atem_file',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
 
@@ -419,5 +457,13 @@ export namespace Expectation {
 			height: number
 		}
 		export type ExpectedQuantelClipPreview = ExpectedType<QuantelClipPreview>
+
+		export interface ATEMFile extends Base {
+			type: Type.ATEM_FILE
+			frameCount: number
+			name: string
+			hash: string
+		}
+		export type ExpectedATEMFile = ExpectedType<ATEMFile>
 	}
 }

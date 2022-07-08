@@ -1,8 +1,8 @@
-const promisify = require("util").promisify
-const glob = promisify(require("glob"))
-const fse = require('fs-extra');
-const mkdirp = require('mkdirp');
-const path = require('path');
+const promisify = require('util').promisify
+const glob = promisify(require('glob'))
+const fse = require('fs-extra')
+const mkdirp = require('mkdirp')
+const path = require('path')
 // const rimraf = promisify(require('rimraf'))
 
 const fseCopy = promisify(fse.copy)
@@ -17,13 +17,17 @@ into a single folder, for convenience
 const targetFolder = 'deploy/'
 
 ;(async function () {
-
 	// await rimraf(targetFolder)
 	await mkdirp(targetFolder)
 	// clear folder:
 	const files = await fseReaddir(targetFolder)
 	for (const file of files) {
-		if (!file.match(/ffmpeg|ffprobe/)) {
+		if (
+			// Only match executables:
+			file.match(/.*\.exe/) &&
+			// Leave the ffmpeg / ffprobe files:
+			!file.match(/ffmpeg|ffprobe/)
+		) {
 			await fseUnlink(path.join(targetFolder, file))
 		}
 	}
@@ -31,7 +35,6 @@ const targetFolder = 'deploy/'
 	const deployfolders = await glob(`apps/*/app/deploy`)
 
 	for (const deployfolder of deployfolders) {
-
 		if (deployfolder.match(/boilerplate/)) continue
 
 		console.log(`Copying: ${deployfolder}`)
@@ -39,5 +42,4 @@ const targetFolder = 'deploy/'
 	}
 
 	console.log(`All files have been copied to: ${targetFolder}`)
-
 })().catch(console.error)

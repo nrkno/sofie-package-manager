@@ -1,8 +1,8 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
 import { GenericWorker } from '../../../worker'
 import { getStandardCost } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -11,7 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
@@ -19,9 +19,14 @@ import {
 	isQuantelClipAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
-import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { getSourceHTTPHandle } from './quantelClipThumbnail'
-import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import {
+	checkWorkerHasAccessToPackageContainersOnPackage,
+	lookupAccessorHandles,
+	LookupPackageContainer,
+	previewFFMpegArguments,
+} from './lib'
+import { getSourceHTTPHandle } from './lib/quantel'
+import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
 export const QuantelClipPreview: ExpectationWindowsHandler = {
@@ -202,28 +207,14 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 
 				await targetHandle.removePackage()
 
-				const args = [
-					'-hide_banner',
-					'-y', // Overwrite output files without asking.
-					'-threads 1', // Number of threads to use
-					'-seekable 0',
-					`-i "${sourceHTTPHandle.fullUrl}"`, // Input file path
-					'-f webm', // format: webm
-					'-an', // blocks all audio streams
-					'-c:v libvpx', // encoder for video
-					`-b:v ${metadata.version.bitrate || '40k'}`,
-					'-auto-alt-ref 0',
-					`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
-					'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
-				]
+				const args = previewFFMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
 
-				ffMpegProcess = await runffMpeg(
-					workInProgress,
+				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
-					actualSourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
+						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
 						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
@@ -237,9 +228,20 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 							},
 							undefined
 						)
+					},
+					async (err) => {
+						worker.logger.debug(
+							`FFMpeg failed [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}: ${stringifyError(err)}`
+						)
+						ffMpegProcess = undefined
+						workInProgress._reportError(err)
+					},
+					async (progress: number) => {
+						workInProgress._reportProgress(actualSourceVersionHash, progress)
 					}
-					// worker.logger.info
+					// ,worker.logger.debug
 				)
+				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
 			})
 
 			return workInProgress
@@ -288,7 +290,7 @@ interface Metadata {
 	version: Expectation.Version.QuantelClipPreview
 }
 
-function lookupPreviewSources(
+async function lookupPreviewSources(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipPreview
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -304,7 +306,7 @@ function lookupPreviewSources(
 		}
 	)
 }
-function lookupPreviewTargets(
+async function lookupPreviewTargets(
 	worker: GenericWorker,
 	exp: Expectation.QuantelClipPreview
 ): Promise<LookupPackageContainer<Metadata>> {

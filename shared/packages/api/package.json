@@ -1,6 +1,6 @@
 {
-    "name": "@shared/api",
-    "version": "1.37.0",
+    "name": "@sofie-package-manager/api",
+    "version": "1.39.0-in-development.1",
     "main": "dist/index",
     "types": "dist/index",
     "files": [
@@ -23,13 +23,13 @@
     },
     "dependencies": {
         "underscore": "^1.12.0",
-        "winston": "^2.4.2",
+        "winston": "^3.5.1",
         "ws": "^7.4.3",
         "yargs": "^16.2.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
-        "node": ">=12.20.0"
+        "node": ">=14.18.0"
     },
     "lint-staged": {
         "*.{js,css,json,md,scss}": [

@@ -12,7 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 	ReturnTypeDisposePackageContainerMonitors,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a WorkerAgent, to be called from the ExpectationManager
@@ -21,7 +21,8 @@ import {
  */
 export class WorkerAgentAPI
 	extends AdapterServer<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
-	implements ExpectationManagerWorkerAgent.WorkerAgent {
+	implements ExpectationManagerWorkerAgent.WorkerAgent
+{
 	constructor(
 		methods: ExpectationManagerWorkerAgent.ExpectationManager,
 		options: AdapterServerOptions<ExpectationManagerWorkerAgent.WorkerAgent>

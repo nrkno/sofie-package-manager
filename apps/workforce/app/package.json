@@ -1,6 +1,6 @@
 {
     "name": "@workforce/app",
-    "version": "1.37.0",
+    "version": "1.39.0-in-development.1",
     "description": "Boilerplace",
     "private": true,
     "scripts": {
@@ -16,14 +16,14 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@workforce/generic": "1.37.0"
+        "@workforce/generic": "1.39.0-in-development.1"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
-        "node": ">=12.20.0"
+        "node": ">=14.18.0"
     },
     "lint-staged": {
         "*.{js,css,json,md,scss}": [

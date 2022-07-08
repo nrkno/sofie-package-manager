@@ -1,9 +1,9 @@
-import { LoggerInstance } from 'winston'
 import WebSocket from 'ws'
 import { stringifyError } from './lib'
 
 import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 import { HelpfulEventEmitter } from './HelpfulEventEmitter'
+import { LoggerInstance } from './logger'
 
 export type OnMessageHandler = (message: MessageBase) => Promise<any>
 
@@ -11,12 +11,10 @@ export class WebsocketServer extends HelpfulEventEmitter {
 	private wss: WebSocket.Server
 	private clients: ClientConnection[] = []
 
-	constructor(
-		port: number,
-		private logger: LoggerInstance,
-		private onConnection: (client: ClientConnection) => void
-	) {
+	private logger: LoggerInstance
+	constructor(port: number, logger: LoggerInstance, private onConnection: (client: ClientConnection) => void) {
 		super()
+		this.logger = logger.category('WebsocketServer')
 
 		this.wss = new WebSocket.Server({ port: port })
 
@@ -37,7 +35,7 @@ export class WebsocketServer extends HelpfulEventEmitter {
 		this.wss.on('connection', (ws) => {
 			// A new client has connected
 
-			const client = new ClientConnection(ws, this.logger, () => Promise.reject('Not setup yet'))
+			const client = new ClientConnection(ws, this.logger, async () => Promise.reject('Not setup yet'))
 			this.clients.push(client)
 
 			client.once('close', () => {
@@ -77,10 +75,11 @@ export class ClientConnection extends WebsocketConnection {
 	public clientType: ClientType = 'N/A'
 	public clientId = 'N/A'
 	private isClosed = false
+	private logger: LoggerInstance
 
-	constructor(ws: WebSocket, private logger: LoggerInstance, onMessage: (message: MessageBase) => Promise<any>) {
+	constructor(ws: WebSocket, logger: LoggerInstance, onMessage: (message: MessageBase) => Promise<any>) {
 		super(onMessage)
-
+		this.logger = logger.category('ClientConnection')
 		this.ws = ws
 
 		// Continuously ping the client:
@@ -120,7 +119,7 @@ export class ClientConnection extends WebsocketConnection {
 			const message = JSON.parse(messageStr)
 
 			if (message.internalType === 'identify_client') {
-				const ident = (message as unknown) as MessageIdentifyClient
+				const ident = message as unknown as MessageIdentifyClient
 				this.clientType = ident.clientType
 				this.clientId = ident.id
 

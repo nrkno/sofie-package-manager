@@ -1,12 +1,12 @@
-import { Expectation, LoggerInstance, PackageContainerExpectation } from '@shared/api'
+import { Expectation, LoggerInstance, PackageContainerExpectation } from '@sofie-package-manager/api'
 import { Workforce } from './workforce'
 
 /** The WorkerHandler is in charge of spinning up/down Workers */
 export class WorkerHandler {
 	private logger: LoggerInstance
 
-	constructor(private workForce: Workforce) {
-		this.logger = workForce.logger
+	constructor(logger: LoggerInstance, private workForce: Workforce) {
+		this.logger = logger.category('WorkerHandler')
 	}
 	public terminate(): void {
 		// nothing?

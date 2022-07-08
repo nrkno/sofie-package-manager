@@ -1,4 +1,3 @@
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import {
 	GenericAccessorHandle,
 	PackageReadInfo,
@@ -7,12 +6,19 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever, Reason } from '@shared/api'
+import {
+	Accessor,
+	AccessorOnPackage,
+	Expectation,
+	PackageContainerExpectation,
+	assertNever,
+	Reason,
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
-import fetch from 'node-fetch'
 import FormData from 'form-data'
-import AbortController from 'abort-controller'
 import { MonitorInProgress } from '../lib/monitorInProgress'
+import { fetchWithController, fetchWithTimeout } from './lib/fetch'
+import { joinUrls } from './lib/pathJoin'
 
 /** Accessor handle for accessing files in HTTP- */
 export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -44,7 +50,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.HTTP
-		return !accessor.networkId || worker.location.localNetworkIds.includes(accessor.networkId)
+		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
 	checkHandleRead(): AccessorHandlerResult {
 		if (!this.accessor.allowRead) {
@@ -106,13 +112,13 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 	}
 	async getPackageReadStream(): Promise<PackageReadStream> {
-		const controller = new AbortController()
-		const res = await fetch(this.fullUrl, { signal: controller.signal })
+		const fetch = fetchWithController(this.fullUrl)
+		const res = await fetch.response
 
 		return {
 			readStream: res.body,
 			cancel: () => {
-				controller.abort()
+				fetch.controller.abort()
 			},
 		}
 	}
@@ -122,17 +128,16 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		const formData = new FormData()
 		formData.append('file', sourceStream)
 
-		const controller = new AbortController()
-
-		const streamHandler: PutPackageHandler = new PutPackageHandler(() => {
-			controller.abort()
-		})
-
-		fetch(this.fullUrl, {
+		const fetch = fetchWithController(this.fullUrl, {
 			method: 'POST',
-			body: formData, // sourceStream.readStream,
-			signal: controller.signal,
+			body: formData,
+			refreshStream: sourceStream, // pass in the source stream to avoid the featch-timeout to fire
 		})
+		const streamHandler: PutPackageHandler = new PutPackageHandler(() => {
+			fetch.controller.abort()
+		})
+
+		fetch.response
 			.then((result) => {
 				if (result.status >= 400) {
 					throw new Error(
@@ -206,10 +211,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
-		return [
-			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-			this.filePath.replace(/^\//, ''), // trim leading slash
-		].join('/')
+		return joinUrls(this.baseUrl, this.filePath)
 	}
 
 	private checkAccessor(): AccessorHandlerResult {
@@ -263,8 +265,10 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 	}
 	private async fetchHeader() {
-		const controller = new AbortController()
-		const res = await fetch(this.fullUrl, { signal: controller.signal })
+		const fetch = fetchWithController(this.fullUrl, {
+			method: 'HEAD',
+		})
+		const res = await fetch.response
 
 		res.body.on('error', () => {
 			// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
@@ -276,8 +280,6 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			lastModified: res.headers.get('last-modified'),
 			etags: res.headers.get('etag'),
 		}
-		// We've got the headers, abort the call so we don't have to download the whole file:
-		controller.abort()
 
 		return {
 			status: res.status,
@@ -339,10 +341,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove the package:
-				const fullUrl: string = [
-					this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-					entry.filePath,
-				].join('/')
+				const fullUrl: string = joinUrls(this.baseUrl, entry.filePath)
 
 				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)
@@ -368,7 +367,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return null
 	}
 	private async deletePackageIfExists(url: string): Promise<void> {
-		const result = await fetch(url, {
+		const result = await fetchWithTimeout(url, {
 			method: 'DELETE',
 		})
 		if (result.status === 404) return undefined // that's ok
@@ -381,10 +380,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 	/** Full path to the file containing deferred removals */
 	private get deferRemovePackagesPath(): string {
-		return [
-			this.baseUrl.replace(/\/$/, ''), // trim trailing slash
-			'__removePackages.json',
-		].join('/')
+		return joinUrls(this.baseUrl, '__removePackages.json')
 	}
 	/** */
 	private async getPackagesToRemove(): Promise<DelayPackageRemovalEntry[]> {
@@ -394,7 +390,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		await this.storeJSON(this.deferRemovePackagesPath, packagesToRemove)
 	}
 	private async fetchJSON(url: string): Promise<any | undefined> {
-		const result = await fetch(url)
+		const result = await fetchWithTimeout(url)
 		if (result.status === 404) return undefined
 		if (result.status >= 400) {
 			const text = await result.text()
@@ -407,7 +403,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	private async storeJSON(url: string, data: any): Promise<void> {
 		const formData = new FormData()
 		formData.append('text', JSON.stringify(data))
-		const result = await fetch(url, {
+		const result = await fetchWithTimeout(url, {
 			method: 'POST',
 			body: formData,
 		})

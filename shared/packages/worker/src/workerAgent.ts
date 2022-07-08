@@ -1,4 +1,5 @@
 import {
+	StatusCode,
 	ClientConnectionOptions,
 	Expectation,
 	ExpectationManagerWorkerAgent,
@@ -21,9 +22,16 @@ import {
 	MonitorProperties,
 	Reason,
 	stringifyError,
-} from '@shared/api'
-import { StatusCode } from '@sofie-automation/blueprints-integration'
+	WorkerStatusReport,
+	setLogLevel,
+	AppContainerWorkerAgent,
+	deferGets,
+	promiseTimeout,
+	INNER_ACTION_TIMEOUT,
+} from '@sofie-package-manager/api'
+
 import { AppContainerAPI } from './appContainerApi'
+import { CPUTracker } from './cpuTracker'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { MonitorInProgress } from './worker/lib/monitorInProgress'
 import { IWorkInProgress } from './worker/lib/workInProgress'
@@ -44,7 +52,7 @@ export class WorkerAgent {
 	private currentJobs: CurrentJob[] = []
 	public readonly id: string
 	private workForceConnectionOptions: ClientConnectionOptions
-	private appContainerConnectionOptions: ClientConnectionOptions | null
+	private appContainerConnectionOptions: ClientConnectionOptions
 
 	private expectationManagers: {
 		[id: string]: {
@@ -65,8 +73,15 @@ export class WorkerAgent {
 	private activeMonitors: { [containerId: string]: { [monitorId: string]: MonitorInProgress } } = {}
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
+	private cpuTracker = new CPUTracker()
+	private logger: LoggerInstance
 
-	constructor(private logger: LoggerInstance, private config: WorkerConfig) {
+	private workerStorageDeferRead = deferGets(async (dataId: string) => {
+		return this.appContainerAPI.workerStorageRead(dataId)
+	})
+
+	constructor(logger: LoggerInstance, private config: WorkerConfig) {
+		this.logger = logger.category('WorkerAgent')
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('Worker: Workforce disconnected')
@@ -120,11 +135,54 @@ export class WorkerAgent {
 					type: 'websocket',
 					url: this.config.worker.appContainerURL,
 			  }
-			: null
+			: {
+					type: 'internal',
+			  }
 		// Todo: Different types of workers:
 		this._worker = new WindowsWorker(
 			this.logger,
-			this.config.worker,
+			{
+				location: {
+					// todo: tmp:
+					localComputerId: this.config.worker.resourceId,
+					localNetworkIds: this.config.worker.networkIds,
+				},
+				config: this.config.worker,
+				workerStorageRead: async (dataId: string) => {
+					// return this.appContainerAPI.workerStorageRead(dataId)
+
+					return this.workerStorageDeferRead(dataId, dataId)
+				},
+				workerStorageWrite: async (
+					dataId: string,
+					customTimeout: number | undefined,
+					cb: (current: any | undefined) => Promise<any> | any
+				) => {
+					// First, aquire a lock to the data, so that noone else can read/write to it:
+					const { lockId, current } = await this.appContainerAPI.workerStorageWriteLock(dataId, customTimeout)
+					try {
+						// Then, execute the callback:
+						// const writeData = await Promise.resolve(cb(current))
+						const writeData = await promiseTimeout(
+							Promise.resolve(cb(current)),
+							(customTimeout ?? INNER_ACTION_TIMEOUT) - 10,
+							(timeoutDuration: number) => {
+								return `workerStorageWrite function "${dataId}" didn't resolve in time (after ${timeoutDuration} ms)`
+							}
+						)
+						// Finally, write the data:
+						await this.appContainerAPI.workerStorageWrite(dataId, lockId, writeData)
+					} catch (err) {
+						// Better release the lock, to avoid it running into a timeout:
+						this.appContainerAPI.workerStorageReleaseLock(dataId, lockId).catch((err2) => {
+							this.logger.error(`Error releasing lock: ${stringifyError(err2)}`)
+						})
+
+						throw err
+					}
+				},
+			},
+
 			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 				// Forward the message to the expectationManager:
 
@@ -132,42 +190,41 @@ export class WorkerAgent {
 				if (!manager) throw new Error(`ExpectationManager "${managerId}" not found`)
 
 				return manager.api.messageFromWorker(message)
-			},
-			{
-				// todo: tmp:
-				localComputerId: this.config.worker.resourceId,
-				localNetworkIds: this.config.worker.networkIds,
 			}
 		)
 	}
 	async init(): Promise<void> {
+		this.logger.info(`WorkerAgent.init: Initializing...`)
+
 		await this._worker.init()
+
+		// Connect to AppContainer
+		if (this.appContainerConnectionOptions.type === 'websocket') {
+			this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
+		}
+		const pAppContainer = new Promise<void>((resolve, reject) => {
+			this.initAppContainerAPIPromise = { resolve, reject }
+		})
+		await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
+		// Wait for this.appContainerAPI to be ready before continuing:
+		await pAppContainer
 
 		// Connect to WorkForce:
 		if (this.workForceConnectionOptions.type === 'websocket') {
 			this.logger.info(`Worker: Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
 		}
-		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
-		// Wait for this.workforceAPI to be ready before continuing:
-		await new Promise<void>((resolve, reject) => {
+		const pWorkForce = new Promise<void>((resolve, reject) => {
 			this.initWorkForceAPIPromise = { resolve, reject }
 		})
-
-		// Connect to AppContainer (if applicable)
-		if (this.appContainerConnectionOptions) {
-			if (this.appContainerConnectionOptions.type === 'websocket') {
-				this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
-			}
-			await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
-			// Wait for this.appContainerAPI to be ready before continuing:
-			await new Promise<void>((resolve, reject) => {
-				this.initAppContainerAPIPromise = { resolve, reject }
-			})
-		}
+		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		// Wait for this.workforceAPI to be ready before continuing:
+		await pWorkForce
 
 		this.IDidSomeWork()
 	}
 	terminate(): void {
+		this.logger.info(`WorkerAgent.terminate: Terminating...`)
+
 		this.terminated = true
 		this.workforceAPI.terminate()
 
@@ -176,15 +233,16 @@ export class WorkerAgent {
 		}
 		for (const currentJob of this.currentJobs) {
 			if (currentJob.wipId) {
-				this.cancelJob(currentJob.wipId).catch((error) => {
+				this.cancelJob(currentJob).catch((error) => {
 					this.logger.error(`WorkerAgent.terminate: Error in cancelJob: ${stringifyError(error)}`)
 				})
 			}
 		}
 		if (this.intervalCheckTimer) clearInterval(this.intervalCheckTimer)
+		this.cpuTracker.terminate()
 		this._worker.terminate()
 	}
-	/** Called when running in the same-process-mode, it */
+	/** Called when running in the same-process-mode */
 	hookToWorkforce(hook: Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>): void {
 		this.workforceAPI.hook(hook)
 	}
@@ -193,6 +251,9 @@ export class WorkerAgent {
 		hook: Hook<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
 	): void {
 		this.expectationManagerHooks[managerId] = hook
+	}
+	hookToAppContainer(hook: Hook<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent>): void {
+		this.appContainerAPI.hook(hook)
 	}
 
 	/** Keep track of the promise retorned by fcn and when it's resolved, to determine how busy we are */
@@ -232,7 +293,7 @@ export class WorkerAgent {
 		delete this.expectationManagers[id]
 	}
 	public async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.level = logLevel
+		setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {
 		this.terminate()
@@ -242,11 +303,62 @@ export class WorkerAgent {
 			process.exit(42)
 		}, 1)
 	}
+	/** FOR DEBUGGING ONLY. Cut websocket connections, in order to ensure that they are restarted */
+	async _debugSendKillConnections(): Promise<void> {
+		this.workforceAPI.debugCutConnection()
+		this.appContainerAPI.debugCutConnection()
+	}
+	async getStatusReport(): Promise<WorkerStatusReport> {
+		const activeMonitors: WorkerStatusReport['activeMonitors'] = []
+
+		for (const [containerId, monitors] of Object.entries(this.activeMonitors)) {
+			for (const [monitorId, monitor] of Object.entries(monitors)) {
+				activeMonitors.push({
+					containerId,
+					monitorId,
+					label: monitor.properties.label,
+				})
+			}
+		}
+
+		return {
+			id: this.id,
+			activeMonitors,
+			currentJobs: this.currentJobs.map((job) => ({
+				cost: job.cost.cost,
+				startCost: job.cost.startCost,
+				cancelled: job.cancelled,
+				wipId: job.wipId,
+				progress: Math.floor(job.progress * 1000) / 1000,
+				lastUpdated: job.lastUpdated,
+			})),
+		}
+	}
 	public async setSpinDownTime(spinDownTime: number): Promise<void> {
 		this.spinDownTime = spinDownTime
 		this.IDidSomeWork()
 
 		this.setupIntervalCheck()
+	}
+	private getStartCost(exp: Expectation.Any): { cost: number; jobCount: number } {
+		const workerMultiplier: number = this.config.worker.costMultiplier || 1
+
+		let systemStartCost = 0
+		if (this.config.worker.considerCPULoad !== null) {
+			if (exp.workOptions.allowWaitForCPU) {
+				if (exp.workOptions.usesCPUCount && exp.workOptions.usesCPUCount > this.cpuTracker.idleCPUCount) {
+					// If we don't have the cpu's available right now, we should wait until they are:
+					systemStartCost += 60 * 1000 // arbitrary cost
+				}
+			}
+		}
+
+		return {
+			cost:
+				(this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) + systemStartCost) *
+				workerMultiplier,
+			jobCount: this.currentJobs.length,
+		}
 	}
 
 	private async connectToExpectationManager(id: string, url: string): Promise<void> {
@@ -271,15 +383,24 @@ export class WorkerAgent {
 			getCostForExpectation: async (
 				exp: Expectation.Any
 			): Promise<ExpectationManagerWorkerAgent.ExpectationCost> => {
-				const cost = await this._worker.getCostFortExpectation(exp)
+				const costForExpectation = await this._worker.getCostFortExpectation(exp)
 
-				const workerMultiplier: number = this.config.worker.costMultiplier || 1
+				let workerMultiplier: number = this.config.worker.costMultiplier || 1
+
+				if (this.config.worker.considerCPULoad !== null) {
+					// adjust the workerMultiplier based on the current cpu usage, so that workers that are on systems with low CPU usage will be prioritized:
+					workerMultiplier /= Math.min(1, Math.max(0.1, 1 - this.cpuTracker.cpuUsage))
+				}
+
+				const startCost = this.getStartCost(exp)
 
 				return {
-					cost: cost * workerMultiplier,
-					startCost:
-						this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) *
-						workerMultiplier,
+					cost: costForExpectation.cost * workerMultiplier,
+					reason: {
+						user: costForExpectation.reason.user,
+						tech: `Cost: ${costForExpectation.reason.tech}, multiplier: ${workerMultiplier}, jobCount: ${startCost.jobCount}`,
+					},
+					startCost: startCost.cost,
 				}
 			},
 			isExpectationReadyToStartWorkingOn: async (
@@ -301,6 +422,18 @@ export class WorkerAgent {
 				timeout: number
 			): Promise<ExpectationManagerWorkerAgent.WorkInProgressInfo> => {
 				this.IDidSomeWork()
+
+				// Tmp: we're only allowing one work per worker
+				if (this.currentJobs.length > 0) {
+					this.logger.warn(
+						`workOnExpectation called, even though there are ${
+							this.currentJobs.length
+						} current jobs. Startcost now: ${this.getStartCost(exp).cost}, spcified cost=${
+							cost.cost
+						}, specified startCost=${cost.startCost}`
+					)
+				}
+
 				const currentJob: CurrentJob = {
 					cost: cost,
 					cancelled: false,
@@ -331,7 +464,7 @@ export class WorkerAgent {
 							this.removeJob(currentJob)
 
 							Promise.race([
-								this.cancelJob(currentJob.wipId),
+								this.cancelJob(currentJob),
 								new Promise((_, reject) => {
 									setTimeout(
 										() =>
@@ -381,7 +514,9 @@ export class WorkerAgent {
 						currentJob.lastUpdated = Date.now()
 						this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
 						this.logger.warn(
-							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to error. (${this.currentJobs.length})`
+							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to error: (${
+								this.currentJobs.length
+							}): ${stringifyError(error)}`
 						)
 
 						expectedManager.api
@@ -439,13 +574,13 @@ export class WorkerAgent {
 				this.IDidSomeWork()
 				return this.cancelJob(wipId)
 			},
-			doYouSupportPackageContainer: (
+			doYouSupportPackageContainer: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeDoYouSupportPackageContainer> => {
 				this.IDidSomeWork()
 				return this._worker.doYouSupportPackageContainer(packageContainer)
 			},
-			runPackageContainerCronJob: (
+			runPackageContainerCronJob: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeRunPackageContainerCronJob> => {
 				this.IDidSomeWork()
@@ -467,12 +602,35 @@ export class WorkerAgent {
 						this.activeMonitors[packageContainer.id][monitorId] = monitorInProgress
 						returnMonitors[monitorId] = monitorInProgress.properties
 
+						monitorInProgress.on('error', (internalError: unknown) => {
+							this.logger.error(
+								`WorkerAgent.methods.setupPackageContainerMonitors: ${JSON.stringify(internalError)}`
+							)
+							expectedManager.api
+								.monitorStatus(packageContainer.id, monitorId, StatusCode.FATAL, {
+									user: 'Internal Error',
+									tech: stringifyError(internalError),
+								})
+								.catch((err) => {
+									if (!this.terminated) {
+										this.logger.error(
+											`WorkerAgent.methods.setupPackageContainerMonitors: monitorInProgress error event: expectedManager.api.monitorStatus Error when setting status: ${stringifyError(
+												err
+											)}`
+										)
+									}
+								})
+						})
 						monitorInProgress.on('status', (status: StatusCode, reason: Reason) => {
 							expectedManager.api
 								.monitorStatus(packageContainer.id, monitorId, status, reason)
 								.catch((err) => {
 									if (!this.terminated) {
-										this.logger.error(`Error in monitorStatus: ${stringifyError(err)}`)
+										this.logger.error(
+											`WorkerAgent.methods.setupPackageContainerMonitors: monitorInProgress status event: expectedManager.api.monitorStatus Error when setting status: ${stringifyError(
+												err
+											)}`
+										)
 									}
 								})
 						})
@@ -560,8 +718,16 @@ export class WorkerAgent {
 			}
 		}
 	}
-	private async cancelJob(wipId: number): Promise<void> {
-		const currentJob = this.currentJobs.find((job) => job.wipId === wipId)
+	private async cancelJob(currentJobOrId: CurrentJob | number): Promise<void> {
+		let wipId: number
+		let currentJob: CurrentJob | undefined
+		if (typeof currentJobOrId === 'number') {
+			wipId = currentJobOrId
+			currentJob = this.currentJobs.find((job) => job.wipId === wipId)
+		} else {
+			currentJob = currentJobOrId
+			wipId = currentJob.wipId
+		}
 
 		if (currentJob) {
 			if (currentJob.workInProgress) {
@@ -590,7 +756,7 @@ export class WorkerAgent {
 
 				// Don's spin down if a monitor is active
 				if (!Object.keys(this.activeMonitors).length) {
-					this.logger.info(`Worker: is idle, requesting spinning down`)
+					this.logger.debug(`Worker: is idle, requesting spinning down`)
 
 					if (this.appContainerAPI.connected) {
 						this.appContainerAPI.requestSpinDown().catch((err) => {

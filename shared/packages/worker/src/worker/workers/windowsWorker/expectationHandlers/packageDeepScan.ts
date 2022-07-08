@@ -1,8 +1,8 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -11,7 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import {
 	isCorePackageInfoAccessorHandle,
 	isFileShareAccessorHandle,
@@ -22,9 +22,9 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { DeepScanResult } from './lib/coreApi'
+import { DeepScanResult, FieldOrder, ScanAnomaly } from './lib/coreApi'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
-import { scanFieldOrder, scanMoreInfo, scanWithFFProbe } from './lib/scan'
+import { FFProbeScanResult, scanFieldOrder, scanMoreInfo, scanWithFFProbe } from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -172,23 +172,36 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 
 				// Scan with FFProbe:
 				currentProcess = scanWithFFProbe(sourceHandle)
-				const ffProbeScan = await currentProcess
+				const ffProbeScan: FFProbeScanResult = await currentProcess
+				const hasVideoStream =
+					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
 				workInProgress._reportProgress(sourceVersionHash, 0.1)
 				currentProcess = undefined
 
 				// Scan field order:
-				currentProcess = scanFieldOrder(sourceHandle, exp.endRequirement.version)
-				const resultFieldOrder = await currentProcess
+				let resultFieldOrder = FieldOrder.Unknown
+				if (hasVideoStream) {
+					currentProcess = scanFieldOrder(sourceHandle, exp.endRequirement.version)
+					resultFieldOrder = await currentProcess
+					currentProcess = undefined
+				}
 				workInProgress._reportProgress(sourceVersionHash, 0.2)
-				currentProcess = undefined
 
 				// Scan more info:
-				currentProcess = scanMoreInfo(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
-					workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
-				})
-				const { blacks: resultBlacks, freezes: resultFreezes, scenes: resultScenes } = await currentProcess
+				let resultBlacks: ScanAnomaly[] = []
+				let resultFreezes: ScanAnomaly[] = []
+				let resultScenes: number[] = []
+				if (hasVideoStream) {
+					currentProcess = scanMoreInfo(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
+						workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+					})
+					const result = await currentProcess
+					resultBlacks = result.blacks
+					resultFreezes = result.freezes
+					resultScenes = result.scenes
+					currentProcess = undefined
+				}
 				workInProgress._reportProgress(sourceVersionHash, 0.99)
-				currentProcess = undefined
 
 				const deepScan: DeepScanResult = {
 					field_order: resultFieldOrder,
@@ -258,7 +271,7 @@ function isPackageDeepScan(exp: Expectation.Any): exp is Expectation.PackageDeep
 }
 type Metadata = any // not used
 
-function lookupDeepScanSources(
+async function lookupDeepScanSources(
 	worker: GenericWorker,
 	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -274,7 +287,7 @@ function lookupDeepScanSources(
 		}
 	)
 }
-function lookupDeepScanTargets(
+async function lookupDeepScanTargets(
 	worker: GenericWorker,
 	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {

@@ -1,22 +1,17 @@
 import _ from 'underscore'
 import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
-import {
-	Accessor,
-	AccessorOnPackage,
-	ExpectedPackage,
-	ExpectedPackageStatusAPI,
-	PackageContainer,
-	PackageContainerOnPackage,
-	StatusCode,
-} from '@sofie-automation/blueprints-integration'
-import { generateExpectations, generatePackageContainerExpectations } from './expectationGenerator'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import {
 	ExpectationManager,
 	ExpectationManagerCallbacks,
 	ExpectationManagerServerOptions,
-} from '@shared/expectation-manager'
+} from '@sofie-package-manager/expectation-manager'
 import {
+	ExpectedPackage,
+	PackageContainer,
+	PackageContainerOnPackage,
+	StatusCode,
 	ClientConnectionOptions,
 	Expectation,
 	ExpectationManagerWorkerAgent,
@@ -27,7 +22,10 @@ import {
 	Reason,
 	deepEqual,
 	stringifyError,
-} from '@shared/api'
+	Accessor,
+	AccessorOnPackage,
+	Statuses,
+} from '@sofie-package-manager/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
 import {
@@ -35,6 +33,9 @@ import {
 	UpdatePackageContainerPackageStatusesChanges,
 	UpdatePackageContainerStatusesChanges,
 } from './api'
+import { GenerateExpectationApi } from './generateExpectations/api'
+
+import * as NRK from './generateExpectations/nrk'
 
 export class PackageManagerHandler {
 	public coreHandler!: CoreHandler
@@ -75,14 +76,19 @@ export class PackageManagerHandler {
 		packageContainerExpectations: {},
 	}
 
+	private expectationGeneratorApi: GenerateExpectationApi
+
+	private logger: LoggerInstance
 	constructor(
-		public logger: LoggerInstance,
+		logger: LoggerInstance,
 		private managerId: string,
 		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
-		private workForceConnectionOptions: ClientConnectionOptions
+		private workForceConnectionOptions: ClientConnectionOptions,
+		chaosMonkey: boolean
 	) {
-		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this)
+		this.logger = logger.category('PackageManager')
+		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this.logger, this)
 
 		this.expectationManager = new ExpectationManager(
 			this.logger,
@@ -90,8 +96,17 @@ export class PackageManagerHandler {
 			this.serverOptions,
 			this.serverAccessUrl,
 			this.workForceConnectionOptions,
-			this.callbacksHandler
+			this.callbacksHandler,
+			{
+				chaosMonkey: chaosMonkey,
+			}
 		)
+		this.expectationManager.on('error', (e) => `Caught error from ExpectationManager: ${stringifyError(e)}`)
+		this.expectationManager.on('status', (statuses: Statuses) => {
+			this.callbacksHandler.updateExpectationManagerStatuses(statuses)
+		})
+
+		this.expectationGeneratorApi = NRK.api
 	}
 
 	async init(_config: PackageManagerConfig, coreHandler: CoreHandler): Promise<void> {
@@ -100,9 +115,6 @@ export class PackageManagerHandler {
 		this.coreHandler.setPackageManagerHandler(this)
 
 		this.logger.info('PackageManagerHandler init')
-
-		// const peripheralDevice = await coreHandler.core.getPeripheralDevice()
-		// const settings: TSRSettings = peripheralDevice.settings || {}
 
 		coreHandler.onConnected(() => {
 			this.setupObservers()
@@ -155,9 +167,10 @@ export class PackageManagerHandler {
 			})
 			this._observers = []
 		}
+		if (this.coreHandler.notUsingCore) return // Abort if we are not using core
 		this.logger.debug('Renewing observers')
 
-		const expectedPackagesObserver = this.coreHandler.core.observe('deviceExpectedPackages')
+		const expectedPackagesObserver = this.coreHandler.observe('deviceExpectedPackages')
 		expectedPackagesObserver.added = () => {
 			this.triggerUpdatedExpectedPackages()
 		}
@@ -181,16 +194,12 @@ export class PackageManagerHandler {
 			const expectedPackages: ExpectedPackageWrap[] = []
 			const packageContainers: PackageContainers = {}
 
-			const objs = this.coreHandler.core.getCollection('deviceExpectedPackages').find(() => true)
-
-			const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
-			if (!activePlaylistObj) {
-				this.logger.warn(`Collection objects active_playlist not found`)
-				this.logger.info(`objs in deviceExpectedPackages:`, objs)
-				return
+			let activePlaylist: ActivePlaylist = {
+				_id: '',
+				active: false,
+				rehearsal: false,
 			}
-			const activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
-			const activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
+			let activeRundowns: ActiveRundown[] = []
 
 			// Add from external data:
 			{
@@ -200,29 +209,42 @@ export class PackageManagerHandler {
 				Object.assign(packageContainers, this.externalData.packageContainers)
 			}
 
-			// Add from Core collections:
-			{
-				const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
+			if (!this.coreHandler.notUsingCore) {
+				const objs = this.coreHandler.getCollection('deviceExpectedPackages').find(() => true)
 
-				if (!expectedPackageObjs.length) {
-					this.logger.warn(`Collection objects expected_packages not found`)
+				const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
+				if (!activePlaylistObj) {
+					this.logger.warn(`Collection objects active_playlist not found`)
 					this.logger.info(`objs in deviceExpectedPackages:`, objs)
 					return
 				}
-				for (const expectedPackageObj of expectedPackageObjs) {
-					for (const expectedPackage of expectedPackageObj.expectedPackages) {
-						// Note: There might be duplicates of packages here, to be deduplicated later
-						expectedPackages.push(expectedPackage)
+				activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
+				activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
+
+				// Add from Core collections:
+				{
+					const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
+
+					if (!expectedPackageObjs.length) {
+						this.logger.warn(`Collection objects expected_packages not found`)
+						this.logger.info(`objs in deviceExpectedPackages:`, objs)
+						return
 					}
-				}
+					for (const expectedPackageObj of expectedPackageObjs) {
+						for (const expectedPackage of expectedPackageObj.expectedPackages) {
+							// Note: There might be duplicates of packages here, to be deduplicated later
+							expectedPackages.push(expectedPackage)
+						}
+					}
 
-				const packageContainerObj = objs.find((o) => o.type === 'package_containers')
-				if (!packageContainerObj) {
-					this.logger.warn(`Collection objects package_containers not found`)
-					this.logger.info(`objs in deviceExpectedPackages:`, objs)
-					return
+					const packageContainerObj = objs.find((o) => o.type === 'package_containers')
+					if (!packageContainerObj) {
+						this.logger.warn(`Collection objects package_containers not found`)
+						this.logger.info(`objs in deviceExpectedPackages:`, objs)
+						return
+					}
+					Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
 				}
-				Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
 			}
 
 			// Add from Monitors:
@@ -267,7 +289,7 @@ export class PackageManagerHandler {
 		this.dataSnapshot.packageContainers = this.packageContainersCache
 
 		// Step 1: Generate expectations:
-		const expectations = generateExpectations(
+		const expectations = this.expectationGeneratorApi.getExpectations(
 			this.logger,
 			this.expectationManager.managerId,
 			this.packageContainersCache,
@@ -277,10 +299,10 @@ export class PackageManagerHandler {
 			this.settings
 		)
 		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
-		// console.log(JSON.stringify(expectations, null, 2))
+		// this.logger.debug(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
-		const packageContainerExpectations = generatePackageContainerExpectations(
+		const packageContainerExpectations = this.expectationGeneratorApi.getPackageContainerExpectations(
 			this.expectationManager.managerId,
 			this.packageContainersCache,
 			activePlaylist
@@ -321,11 +343,12 @@ export class PackageManagerHandler {
 				reportedPackageStatuses: this.callbacksHandler.reportedPackageStatuses,
 				reportedPackageContainerStatuses: this.callbacksHandler.reportedPackageContainerStatuses,
 			},
+			expectationManager: this.expectationManager.getTroubleshootData(),
 		}
 	}
 	public async getExpetationManagerStatus(): Promise<any> {
 		return {
-			...(await this.expectationManager.getStatus()),
+			...(await this.expectationManager.getStatusReport()),
 			packageManager: {
 				workforceURL:
 					this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,
@@ -411,9 +434,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		ExpectedPackageStatusAPI.PackageContainerStatus,
 		undefined
 	> = {}
+	private expectationManagerStatuses: Statuses = {}
 
-	constructor(private packageManager: PackageManagerHandler) {
-		this.logger = this.packageManager.logger
+	constructor(logger: LoggerInstance, private packageManager: PackageManagerHandler) {
+		this.logger = logger.category('ExpectationManagerCallbacksHandler')
 	}
 
 	public reportExpectationStatus(
@@ -558,21 +582,27 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {
-			case 'fetchPackageInfoMetadata':
-				return this.packageManager.coreHandler.core.callMethod(
+			case 'fetchPackageInfoMetadata': {
+				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
 					message.arguments
 				)
-			case 'updatePackageInfo':
-				return this.packageManager.coreHandler.core.callMethod(
+			}
+			case 'updatePackageInfo': {
+				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPI.methods.updatePackageInfo,
 					message.arguments
 				)
-			case 'removePackageInfo':
-				return this.packageManager.coreHandler.core.callMethod(
+			}
+			case 'removePackageInfo': {
+				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPI.methods.removePackageInfo,
 					message.arguments
 				)
+			}
 			case 'reportFromMonitorPackages':
 				this.reportMonitoredPackages(...message.arguments)
 				break
@@ -584,25 +614,32 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 	public async cleanReportedStatuses() {
 		// Clean out all reported statuses, this is an easy way to sync a clean state with core
+
+		if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+
 		this.reportedExpectationStatuses = {}
-		await this.packageManager.coreHandler.core.callMethod(
+		await this.packageManager.coreHandler.callMethod(
 			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
 			[]
 		)
 
 		this.reportedPackageContainerStatuses = {}
-		await this.packageManager.coreHandler.core.callMethod(
+		await this.packageManager.coreHandler.callMethod(
 			PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
 			[]
 		)
 
 		this.reportedPackageStatuses = {}
-		await this.packageManager.coreHandler.core.callMethod(
+		await this.packageManager.coreHandler.callMethod(
 			PeripheralDeviceAPI.methods.removeAllPackageContainerStatusesOfDevice,
 			[]
 		)
 	}
 	public onCoreConnected() {
+		this.triggerReportUpdatedStatuses()
+	}
+	public updateExpectationManagerStatuses(statuses: Statuses) {
+		this.expectationManagerStatuses = statuses
 		this.triggerReportUpdatedStatuses()
 	}
 	private updateExpectationStatus(expectationId: string, workStatus: ExpectedPackageStatusAPI.WorkStatus | null) {
@@ -654,13 +691,15 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				Promise.resolve()
 					.then(async () => {
 						// Don't send any statuses if not connected:
-						if (!this.packageManager.coreHandler.core.connected) return
+						if (!this.packageManager.coreHandler.coreConnected) return
 
 						this.logger.debug('triggerReportUpdatedStatuses: sending statuses')
 
 						await this.reportUpdateExpectationStatus()
 						await this.reportUpdatePackageContainerPackageStatus()
 						await this.reportUpdatePackageContainerStatus()
+
+						await this.checkAndReportPackageManagerStatus()
 					})
 					.catch((err) => {
 						this.logger.error(`Error in triggerReportUpdatedStatuses: ${stringifyError(err)}`)
@@ -725,17 +764,27 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					}
 				}
 
-				await this.packageManager.coreHandler.core.callMethod(
-					PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses,
-					[sendToCore]
-				)
+				try {
+					await this.packageManager.coreHandler.callMethod(
+						PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses,
+						[sendToCore]
+					)
+				} catch (err) {
+					// Ignore some errors:
+					if (`${err}`.match(/ExpectedPackages ".*" not found/)) {
+						// ignore these, we probably just have an old status on our side
+						this.logger.warn(`reportUpdateExpectationStatus: Ignored error: ${stringifyError(err)}`)
+					} else {
+						throw err
+					}
+				}
 			}
 		)
 	}
 	private async reportUpdatePackageContainerPackageStatus(): Promise<void> {
 		await this.reportStatus(this.toReportPackageStatus, this.reportedPackageStatuses, async (changesToSend) => {
 			// Send the changes to Core:
-			await this.packageManager.coreHandler.core.callMethod(
+			await this.packageManager.coreHandler.callMethod(
 				PeripheralDeviceAPI.methods.updatePackageContainerPackageStatuses,
 				[
 					literal<UpdatePackageContainerPackageStatusesChanges>(
@@ -768,7 +817,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			async (changesToSend) => {
 				// Send the changes to Core:
 				literal<UpdatePackageContainerStatusesChanges>(
-					await this.packageManager.coreHandler.core.callMethod(
+					await this.packageManager.coreHandler.callMethod(
 						PeripheralDeviceAPI.methods.updatePackageContainerStatuses,
 						[
 							changesToSend.map((change) => {
@@ -793,7 +842,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		)
 	}
 
-	private async reportStatus<Status, Ids>(
+	private async reportStatus<Status extends { [key: string]: any } | null, Ids>(
 		toReportStatus: ReportStatuses<Status | null, Ids>,
 		reportedStatuses: ReportStatuses<Status, Ids>,
 		sendChanges: (changesToSend: ChangesTosend<Status, Ids>) => Promise<void>
@@ -801,7 +850,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		const changesTosend: ChangesTosend<Status, Ids> = []
 
 		for (const [key, o] of Object.entries(toReportStatus)) {
-			if (o.hash) {
+			if (o.hash !== null) {
 				if (!o.status) {
 					// Removed
 					if (reportedStatuses[key]) {
@@ -845,9 +894,18 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					}
 
 					// Now, check if the toReportStatus hash is still the same:
-					if (toReportStatus[change.key].hash === change.hash) {
+					const orgToReportStaus = toReportStatus[change.key] as ReportStatus<Status, Ids> | undefined
+					if (orgToReportStaus && orgToReportStaus.hash === change.hash) {
 						// Ok, this means that we have sent the latest update to Core.
-						toReportStatus[change.key].hash = null
+
+						if (orgToReportStaus.status === null) {
+							// The original data was deleted, so we can delete it, to prevent mamory leaks:
+							delete toReportStatus[change.key]
+							delete reportedStatuses[change.key]
+						} else {
+							// Set the hash to null
+							orgToReportStaus.hash = null
+						}
 					}
 				}
 			} catch (err) {
@@ -856,6 +914,32 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				throw err
 			}
 		}
+	}
+	private async checkAndReportPackageManagerStatus() {
+		// If PM is not initialized properly (connected to workforce, workers etc)
+		// If PM has an issue with a PackageContainer (like "can't access a folder"
+		// If the work-queue is long (>10 items) and nothing has progressed for the past 10 minutes.
+
+		const statuses: Statuses = {}
+
+		for (const [containerId, container] of [
+			...Object.entries(this.reportedPackageContainerStatuses),
+			...Object.entries(this.toReportPackageContainerStatus),
+		]) {
+			statuses[`container-${containerId}`] = container.status
+				? {
+						statusCode: container.status?.status,
+						message: container.status?.statusReason.user,
+				  }
+				: null
+		}
+
+		for (const [id, status] of Object.entries(this.expectationManagerStatuses)) {
+			statuses[`expectationManager-${id}`] = status
+		}
+		this.packageManager.coreHandler
+			.setStatus(statuses)
+			.catch((e) => this.logger.error(`Error in updateCoreStatus : ${stringifyError(e)}`))
 	}
 
 	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
@@ -877,6 +961,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		this.packageManager.triggerUpdatedExpectedPackages()
 	}
 	private getIncrement(): number {
+		if (this.increment >= Number.MAX_SAFE_INTEGER) this.increment = 0
 		return this.increment++
 	}
 }
@@ -1006,12 +1091,13 @@ export interface PackageManagerSettings {
 }
 
 type ReportStatuses<Status, Ids> = {
-	[key: string]: {
-		status: Status
-		ids: Ids
-		/** A unique value updated whenever the value is updated */
-		hash: number | null
-	}
+	[key: string]: ReportStatus<Status, Ids>
+}
+type ReportStatus<Status, Ids> = {
+	status: Status
+	ids: Ids
+	/** A unique value updated whenever the status is updated, or set to null if the status has already been reported. */
+	hash: number | null
 }
 type ChangesTosend<Status, Ids> = (
 	| {

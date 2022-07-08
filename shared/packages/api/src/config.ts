@@ -100,6 +100,16 @@ const packageManagerArguments = defineArguments({
 		default: process.env.WATCH_FILES === '1',
 		describe: 'If true, will watch the file "expectedPackages.json" as an additional source of expected packages.',
 	},
+	noCore: {
+		type: 'boolean',
+		default: process.env.NO_CORE === '1',
+		describe: 'If true, Package Manager wont try to connect to Sofie Core',
+	},
+	chaosMonkey: {
+		type: 'boolean',
+		default: process.env.CHAOS_MONKEY === '1',
+		describe: 'If true, enables the "chaos monkey"-feature, which will randomly kill processes every few seconds',
+	},
 })
 /** CLI-argument-definitions for the Worker process */
 const workerArguments = defineArguments({
@@ -133,6 +143,12 @@ const workerArguments = defineArguments({
 		type: 'number',
 		default: process.env.WORKER_COST_MULTIPLIER || 1,
 		describe: 'Multiply the cost of the worker with this',
+	},
+	considerCPULoad: {
+		type: 'number',
+		default: process.env.WORKER_CONSIDER_CPU_LOAD || '',
+		describe:
+			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
 	},
 })
 /** CLI-argument-definitions for the AppContainer process */
@@ -189,9 +205,20 @@ const appContainerArguments = defineArguments({
 		default: process.env.WORKER_COST_MULTIPLIER || 1,
 		describe: 'Multiply the cost of the worker with this',
 	},
+	considerCPULoad: {
+		type: 'number',
+		default: process.env.WORKER_CONSIDER_CPU_LOAD || '',
+		describe:
+			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
+	},
 })
 /** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
+	noHTTPServers: {
+		type: 'boolean',
+		default: process.env.NO_HTTP_SERVERS === '1',
+		describe: 'If set, the app will not start the HTTP servers',
+	},
 	workerCount: {
 		type: 'number',
 		default: parseInt(process.env.WORKER_COUNT || '', 10) || 1,
@@ -215,6 +242,17 @@ const quantelHTTPTransformerProxyConfigArguments = defineArguments({
 		type: 'string',
 		default: process.env.QUANTEL_HTTP_TRANSFORMER_URL || undefined,
 		describe: 'URL to the Quantel-HTTP-Transformer',
+	},
+
+	quantelTransformerRateLimitDuration: {
+		type: 'number',
+		default: parseInt(process.env.QUANTEL_HTTP_TRANSFORMER_RATE_LIMIT_DURATION || '', 10) || undefined,
+		describe: 'Rate Limit Duration for the Quantel-HTTP-Transformer [ms]',
+	},
+	quantelTransformerRateLimitMax: {
+		type: 'number',
+		default: parseInt(process.env.QUANTEL_HTTP_TRANSFORMER_RATE_LIMIT_MAX || '', 10) || undefined,
+		describe: 'Rate Limit Max for the Quantel-HTTP-Transformer',
 	},
 })
 
@@ -299,6 +337,8 @@ export interface PackageManagerConfig {
 		workforceURL: string | null
 
 		watchFiles: boolean
+		noCore: boolean
+		chaosMonkey: boolean
 	}
 }
 export function getPackageManagerConfig(): PackageManagerConfig {
@@ -321,6 +361,8 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 			workforceURL: argv.workforceURL,
 
 			watchFiles: argv.watchFiles,
+			noCore: argv.noCore,
+			chaosMonkey: argv.chaosMonkey,
 		},
 	}
 }
@@ -328,11 +370,13 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 export interface WorkerConfig {
 	process: ProcessConfig
 	worker: {
+		// Note: when changing these values, remember to also update appContainer.ts
 		workforceURL: string | null
 		appContainerURL: string | null
 		resourceId: string
 		networkIds: string[]
 		costMultiplier: number
+		considerCPULoad: number | null
 	} & WorkerAgentConfig
 }
 export function getWorkerConfig(): WorkerConfig {
@@ -353,6 +397,7 @@ export function getWorkerConfig(): WorkerConfig {
 			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
 			costMultiplier:
 				(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) || 1,
+			considerCPULoad: parseFloat(argv.considerCPULoad) || null,
 		},
 	}
 }
@@ -384,6 +429,7 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 				costMultiplier:
 					(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) ||
 					1,
+				considerCPULoad: parseFloat(argv.considerCPULoad) || null,
 			},
 		},
 	}
@@ -398,6 +444,7 @@ export interface SingleAppConfig
 		AppContainerProcessConfig,
 		QuantelHTTPTransformerProxyConfig {
 	singleApp: {
+		noHTTPServers: boolean
 		workerCount: number
 		workforcePort: number
 	}
@@ -434,6 +481,7 @@ export function getSingleAppConfig(): SingleAppConfig {
 		packageManager: getPackageManagerConfig().packageManager,
 		worker: getWorkerConfig().worker,
 		singleApp: {
+			noHTTPServers: argv.noHTTPServers ?? false,
 			workerCount: argv.workerCount || 1,
 			workforcePort: argv.workforcePort,
 		},
@@ -448,6 +496,9 @@ export interface QuantelHTTPTransformerProxyConfig {
 		port: number
 
 		transformerURL?: string
+
+		rateLimitDuration?: number
+		rateLimitMax?: number
 	}
 }
 export function getQuantelHTTPTransformerProxyConfig(): QuantelHTTPTransformerProxyConfig {
@@ -461,6 +512,8 @@ export function getQuantelHTTPTransformerProxyConfig(): QuantelHTTPTransformerPr
 		quantelHTTPTransformerProxy: {
 			port: argv.quantelProxyPort,
 			transformerURL: argv.quantelTransformerURL,
+			rateLimitDuration: argv.quantelTransformerRateLimitDuration,
+			rateLimitMax: argv.quantelTransformerRateLimitMax,
 		},
 	}
 }

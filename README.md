@@ -44,22 +44,40 @@ Be sure to read the [FOR DEVELOPERS](/FOR_DEVELOPERS.md) documentation.
 
 Note: This mono-repo uses [Yarn](https://yarnpkg.com) and [Lerna](https://github.com/lerna/lerna), so most commands can be run on the root folder (no need to cd into each package).
 
-Examples:
+Initialize repo:
 
 ```bash
+# install lerna globally
+yarn global add lerna
+
+# set up mono-repo
+yarn setup
+
 # Install all dependencies
 yarn
 
 # Build all packages
 yarn build
 
+```
+
+Now you should be good to go.
+
+Whenever you do a change, run `yarn build` (or `yarn build:changed` to only build the changed ones) to compile.
+
+Before any code is committed, run these:
+
+```bash
 # Lint all packages
 yarn lint
 
 # Run all tests
 yarn test
+```
 
+Other useful commands:
 
+```bash
 # Start the single-app (contains all apps)
 yarn start:single-app
 
@@ -67,7 +85,7 @@ yarn start:single-app
 yarn do:build-win32
 
 # To run a command for a single package, use the --scope option
-yarn build --scope @shared/api
+yarn build --scope @sofie-package-manager/api
 
 # CLI arguments can be passed like so: (note the double -- --)
 yarn start:workforce -- -- --port=8080

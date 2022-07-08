@@ -1,14 +1,21 @@
 import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import {
 	PackageReadInfo,
 	PutPackageHandler,
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Expectation, PackageContainerExpectation, assertNever, Reason, stringifyError } from '@shared/api'
+import {
+	Accessor,
+	AccessorOnPackage,
+	Expectation,
+	PackageContainerExpectation,
+	assertNever,
+	Reason,
+	stringifyError,
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
@@ -57,7 +64,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.LocalFolder
-		return compareResourceIds(accessor.resourceId, worker.location.localComputerId)
+		return compareResourceIds(accessor.resourceId, worker.agentAPI.location.localComputerId)
 	}
 	/** Full path to the package */
 	get fullPath(): string {
@@ -113,7 +120,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	async tryPackageRead(): Promise<AccessorHandlerResult> {
 		try {
 			// Check if we can open the file for reading:
-			const fd = await fsOpen(this.fullPath, 'r+')
+			const fd = await fsOpen(this.fullPath, 'r')
 
 			// If that worked, we seem to have read access.
 			await fsClose(fd)
@@ -296,6 +303,9 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	get folderPath(): string {
 		if (!this.accessor.folderPath) throw new Error(`LocalFolderAccessor: accessor.folderPath not set!`)
 		return this.accessor.folderPath
+	}
+	get orgFolderPath(): string {
+		return this.folderPath
 	}
 	/** Local path to the Package, ie the File */
 	get filePath(): string {

@@ -1,11 +1,26 @@
 // import * as HTTPServer from '@http-server/generic'
 // import * as PackageManager from '@package-manager/generic'
-import * as Workforce from '@shared/workforce'
-import * as Worker from '@shared/worker'
-import * as Winston from 'winston'
-import { Expectation, ExpectationManagerWorkerAgent, LoggerInstance, Reason, SingleAppConfig } from '@shared/api'
-// import deepExtend from 'deep-extend'
-import { ExpectationManager, ExpectationManagerCallbacks, ExpectationManagerOptions } from '@shared/expectation-manager'
+import * as Workforce from '@sofie-package-manager/workforce'
+import * as Worker from '@sofie-package-manager/worker'
+import {
+	Expectation,
+	ExpectationManagerWorkerAgent,
+	LogLevel,
+	ProcessConfig,
+	Reason,
+	setupLogger,
+	SingleAppConfig,
+	initializeLogger,
+	AppContainerWorkerAgent,
+	Hook,
+	DataStore,
+	LoggerInstance,
+} from '@sofie-package-manager/api'
+import {
+	ExpectationManager,
+	ExpectationManagerCallbacks,
+	ExpectationManagerOptions,
+} from '@sofie-package-manager/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 
@@ -13,6 +28,7 @@ const defaultTestConfig: SingleAppConfig = {
 	singleApp: {
 		workerCount: 1,
 		workforcePort: 0,
+		noHTTPServers: false,
 	},
 	process: {
 		logPath: '',
@@ -38,6 +54,8 @@ const defaultTestConfig: SingleAppConfig = {
 		accessUrl: null,
 		workforceURL: null,
 		watchFiles: false,
+		noCore: false,
+		chaosMonkey: false,
 	},
 	worker: {
 		workerId: 'worker',
@@ -48,6 +66,7 @@ const defaultTestConfig: SingleAppConfig = {
 		windowsDriveLetters: ['X', 'Y', 'Z'],
 		sourcePackageStabilityThreshold: 0, // Disabling this to speed up the tests
 		costMultiplier: 1,
+		considerCPULoad: null,
 	},
 	quantelHTTPTransformerProxy: {
 		port: 0,
@@ -65,20 +84,20 @@ const defaultTestConfig: SingleAppConfig = {
 			networkIds: [],
 			windowsDriveLetters: ['X', 'Y', 'Z'],
 			costMultiplier: 1,
+			considerCPULoad: null,
 		},
 	},
 }
 
 export async function setupExpectationManager(
+	config: { process: ProcessConfig },
 	debugLogging: boolean,
 	workerCount: number = 1,
 	callbacks: ExpectationManagerCallbacks,
 	options?: ExpectationManagerOptions
 ) {
-	const logger = new Winston.Logger({}) as LoggerInstance
-	logger.add(Winston.transports.Console, {
-		level: debugLogging ? 'debug' : 'warn',
-	})
+	const logLevel = debugLogging ? LogLevel.DEBUG : LogLevel.WARN
+	const logger = setupLogger(config, '', undefined, undefined, logLevel)
 
 	const expectationManager = new ExpectationManager(
 		logger,
@@ -89,6 +108,7 @@ export async function setupExpectationManager(
 		callbacks,
 		options
 	)
+	expectationManager.on('error', console.error)
 
 	// Initializing HTTP proxy Server:
 	// const httpServer = new HTTPServer.PackageProxyServer(logger, config)
@@ -97,6 +117,8 @@ export async function setupExpectationManager(
 	// Initializing Workforce:
 	const workforce = new Workforce.Workforce(logger, defaultTestConfig)
 	await workforce.init()
+
+	const mockAppContainer = new MockAppContainer(logger)
 
 	// Initializing Expectation Manager:
 	expectationManager.hookToWorkforce(workforce.getExpectationManagerHook())
@@ -116,6 +138,7 @@ export async function setupExpectationManager(
 		})
 		workerAgents.push(workerAgent)
 
+		workerAgent.hookToAppContainer(mockAppContainer.getWorkerAgentHook())
 		workerAgent.hookToWorkforce(workforce.getWorkerAgentHook())
 		workerAgent.hookToExpectationManager(expectationManager.managerId, expectationManager.getWorkerAgentHook())
 		await workerAgent.init()
@@ -158,7 +181,17 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	const WORK_TIMEOUT_TIME = 900 // ms
 	const ERROR_WAIT_TIME = 500
 
+	const config: { process: ProcessConfig } = {
+		process: {
+			certificates: [],
+			logPath: undefined,
+			unsafeSSL: false,
+		},
+	}
+	initializeLogger(config)
+
 	const em = await setupExpectationManager(
+		config,
 		debugLogging,
 		1,
 		{
@@ -295,6 +328,51 @@ export interface ContainerStatuses {
 			[packageId: string]: {
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			}
+		}
+	}
+}
+
+/** This is a mock of the AppContainer, used in unit tests */
+class MockAppContainer {
+	private logger: LoggerInstance
+	private workerStorage: DataStore
+	constructor(logger: LoggerInstance) {
+		this.logger = logger.category('AppContainer')
+
+		const WORKER_DATA_LOCK_TIMEOUT = 1000
+		this.workerStorage = new DataStore(this.logger, WORKER_DATA_LOCK_TIMEOUT)
+	}
+
+	getWorkerAgentHook(): Hook<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent> {
+		return (_clientId: string, _clientMethods: AppContainerWorkerAgent.WorkerAgent) => {
+			// On connection from a workerAgent
+
+			const workerAgentMethods: AppContainerWorkerAgent.AppContainer = {
+				ping: async () => {
+					// do nothing
+				},
+				requestSpinDown: async () => {
+					// do nothing
+				},
+
+				workerStorageWriteLock: async (
+					dataId: string,
+					customTimeout?: number
+				): Promise<{ lockId: string; current: any | undefined }> => {
+					return this.workerStorage.getWriteLock(dataId, customTimeout)
+				},
+				workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
+					return this.workerStorage.releaseLock(dataId, lockId)
+				},
+				workerStorageWrite: async (dataId: string, lockId: string, data: string): Promise<void> => {
+					return this.workerStorage.write(dataId, lockId, data)
+				},
+				workerStorageRead: async (dataId: string): Promise<any> => {
+					return this.workerStorage.read(dataId)
+				},
+			}
+
+			return workerAgentMethods
 		}
 	}
 }

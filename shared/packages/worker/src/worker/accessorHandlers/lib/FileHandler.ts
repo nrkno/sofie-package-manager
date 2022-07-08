@@ -2,6 +2,10 @@ import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
 import {
+	ExpectedPackage,
+	StatusCode,
+	Accessor,
+	AccessorOnPackage,
 	Expectation,
 	hashObj,
 	literal,
@@ -9,12 +13,13 @@ import {
 	assertNever,
 	Reason,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
-import { Accessor, AccessorOnPackage, ExpectedPackage, StatusCode } from '@sofie-automation/blueprints-integration'
+
 import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
+import { removeBasePath } from './pathJoin'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -40,6 +45,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 	}
 	/** Path to the PackageContainer, ie the folder */
 	protected abstract get folderPath(): string
+	protected abstract get orgFolderPath(): string
 
 	/** Schedule the package for later removal */
 	async delayPackageRemoval(filePath: string, ttl: number): Promise<void> {
@@ -131,6 +137,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		if (exists) await fsUnlink(filePath)
 	}
 	getFullPath(filePath: string): string {
+		filePath = removeBasePath(this.orgFolderPath, filePath)
+
 		return path.join(this.folderPath, filePath)
 	}
 	getMetadataPath(filePath: string): string {
@@ -173,7 +181,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 		const watcher = chokidar.watch(this.folderPath, chokidarOptions)
 
-		const monitorId = `${this.worker.genericConfig.workerId}_${this.worker.uniqueId}_${Date.now()}`
+		const monitorId = `${this.worker.agentAPI.config.workerId}_${this.worker.uniqueId}_${Date.now()}`
 		const seenFiles = new Map<string, Expectation.Version.FileOnDisk | null>()
 
 		let triggerSendUpdateTimeout: NodeJS.Timeout | null = null
@@ -205,7 +213,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								seenFiles.set(filePath, version)
 							} catch (err) {
 								version = null
-								this.worker.logger.error(`${stringifyError(err)}`)
+								this.worker.logger.error(
+									`GenericFileAccessorHandle.setupPackagesMonitor: Unexpected Exception cautght: ${stringifyError(
+										err
+									)}`
+								)
 
 								monitorInProgress._reportStatus(StatusCode.BAD, {
 									user: 'Error when accessing watched file',
@@ -239,12 +251,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								expPackage.sources[0].accessors = {}
 							}
 							if (this._type === LocalFolderAccessorHandleType) {
-								expPackage.sources[0].accessors[
-									this.accessorId
-								] = literal<AccessorOnPackage.LocalFolder>({
-									type: Accessor.AccessType.LOCAL_FOLDER,
-									filePath: filePath,
-								})
+								expPackage.sources[0].accessors[this.accessorId] =
+									literal<AccessorOnPackage.LocalFolder>({
+										type: Accessor.AccessType.LOCAL_FOLDER,
+										filePath: filePath,
+									})
 							} else if (this._type === FileShareAccessorHandleType) {
 								expPackage.sources[0].accessors[this.accessorId] = literal<AccessorOnPackage.FileShare>(
 									{
@@ -311,7 +322,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					})
 			})
 			.on('error', (err) => {
-				this.worker.logger.error(`${stringifyError(err)}`)
+				this.worker.logger.error(
+					`GenericFileAccessorHandle.setupPackagesMonitor: watcher.error: Unexpected error event: ${stringifyError(
+						err
+					)}`
+				)
 				monitorInProgress._reportStatus(StatusCode.BAD, {
 					user: 'Error in file watcher',
 					tech: `chokidar error: ${stringifyError(err)}`,

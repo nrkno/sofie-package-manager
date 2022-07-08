@@ -51,7 +51,7 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 			errors.push(data.toString().trim())
 		})
 
-		rbcpy.on('close', (code) => {
+		rbcpy.on('exit', (code) => {
 			rbcpy = undefined
 			if (
 				code === 0 || // No errors occurred, and no copying was done.
@@ -76,7 +76,7 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 
 		onCancel(() => {
 			if (rbcpy !== undefined) {
-				cp.spawn('taskkill', ['/pid', rbcpy.pid.toString(), '/f', '/t'])
+				if (rbcpy.pid !== undefined) cp.spawn('taskkill', ['/pid', rbcpy.pid.toString(), '/f', '/t'])
 				rbcpy = undefined
 			}
 		})

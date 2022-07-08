@@ -6,7 +6,7 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	PackageContainerExpectation,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a WorkerAgent, to be called from the AppContainer
@@ -15,7 +15,8 @@ import {
  */
 export class WorkerAgentAPI
 	extends AdapterServer<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent>
-	implements AppContainerWorkerAgent.WorkerAgent {
+	implements AppContainerWorkerAgent.WorkerAgent
+{
 	constructor(
 		methods: AppContainerWorkerAgent.AppContainer,
 		options: AdapterServerOptions<AppContainerWorkerAgent.WorkerAgent>

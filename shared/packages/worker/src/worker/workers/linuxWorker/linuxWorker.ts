@@ -11,10 +11,9 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
-	WorkerAgentConfig,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
-import { GenericWorker, WorkerLocation } from '../../worker'
+import { GenericWorker, GenericWorkerAgentAPI } from '../../worker'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 
 /** This is a type of worker that runs on a linux machine */
@@ -22,11 +21,10 @@ export class LinuxWorker extends GenericWorker {
 	static readonly type = 'linuxWorker'
 	constructor(
 		logger: LoggerInstance,
-		public readonly config: WorkerAgentConfig,
-		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
-		location: WorkerLocation
+		agentAPI: GenericWorkerAgentAPI,
+		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
-		super(logger, config, location, sendMessageToManager, LinuxWorker.type)
+		super(logger.category('LinuxWorker'), agentAPI, sendMessageToManager, LinuxWorker.type)
 	}
 	async doYouSupportExpectation(_exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
 		return {
@@ -40,22 +38,24 @@ export class LinuxWorker extends GenericWorker {
 	terminate(): void {
 		throw new Error(`Not implemented yet`)
 	}
-	getCostFortExpectation(_exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
+	async getCostFortExpectation(_exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		throw new Error(`Not implemented yet`)
 	}
-	isExpectationReadyToStartWorkingOn(_exp: Expectation.Any): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
+	async isExpectationReadyToStartWorkingOn(
+		_exp: Expectation.Any
+	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		throw new Error(`Not implemented yet`)
 	}
-	isExpectationFullfilled(
+	async isExpectationFullfilled(
 		_exp: Expectation.Any,
 		_wasFullfilled: boolean
 	): Promise<ReturnTypeIsExpectationFullfilled> {
 		throw new Error(`Not implemented yet`)
 	}
-	workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {
+	async workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {
 		throw new Error(`Not implemented yet`)
 	}
-	removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
+	async removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		throw new Error(`Not implemented yet`)
 	}
 

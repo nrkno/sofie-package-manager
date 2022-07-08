@@ -45,8 +45,10 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 						return promiseTimeout(
 							fcn.call(clientMethods, ...message.args),
 							ACTION_TIMEOUT,
-							this.timeoutMessage(message.type, message.args)
+							(timeoutDuration) => this.timeoutMessage(timeoutDuration, message.type, message.args)
 						)
+					} else {
+						throw new Error(`Unknown method "${message.type}"`)
 					}
 				}
 			)
@@ -69,7 +71,7 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 			conn.on('error', (err) => {
 				this.logger.error(`AdapterClient: Error event: ${stringifyError(err)}`)
 			})
-			this._sendMessage = ((type: string, ...args: any[]) => conn.send(type, ...args)) as any
+			this._sendMessage = (async (type: string, ...args: any[]) => conn.send(type, ...args)) as any
 
 			await conn.connect()
 		} else {
@@ -83,12 +85,14 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 				const fcn = serverHook[type] as any
 				if (fcn) {
 					try {
-						return await promiseTimeout(fcn(...args), ACTION_TIMEOUT, this.timeoutMessage(type, args))
+						return await promiseTimeout(fcn(...args), ACTION_TIMEOUT, (timeoutDuration) =>
+							this.timeoutMessage(timeoutDuration, type, args)
+						)
 					} catch (err) {
-						throw new Error(`Error when executing method "${type}": ${stringifyError(err)}`)
+						throw new Error(`Error when executing method "${String(type)}": ${stringifyError(err)}`)
 					}
 				} else {
-					throw new Error(`Unknown method "${type}"`)
+					throw new Error(`Unknown method "${String(type)}"`)
 				}
 			}
 			setTimeout(() => {
@@ -106,14 +110,21 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 		this.conn?.close()
 		delete this.serverHook
 	}
+	/** FOR DEBUGGING ONLY. Cut the connection in order to ensure that they are restarted */
+	debugCutConnection(): void {
+		// Delay the cut, to ensure that the message has time to propagate:
+		setTimeout(() => {
+			this.conn?._debugCutConnection()
+		}, 1000)
+	}
 	get connected(): boolean {
 		return this._connected
 	}
-	private timeoutMessage(type: any, args: any[]): string {
+	private timeoutMessage(timeoutDuration: number, type: any, args: any[]): string {
 		const explainArgs = JSON.stringify(args).slice(0, 100) // limit the arguments to 100 chars
 		const receivedTime = new Date().toLocaleTimeString()
 
-		return `Timeout of function "${type}": ${explainArgs} (received: ${receivedTime})`
+		return `Timeout of function "${type}" after ${timeoutDuration} ms: ${explainArgs} (received: ${receivedTime})`
 	}
 }
 /** Options for an AdepterClient */

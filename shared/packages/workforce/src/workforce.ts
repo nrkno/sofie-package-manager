@@ -8,12 +8,16 @@ import {
 	WorkforceConfig,
 	assertNever,
 	WorkForceAppContainer,
-	WorkforceStatus,
+	WorkforceStatusReport,
 	LogLevel,
 	Expectation,
 	PackageContainerExpectation,
 	stringifyError,
-} from '@shared/api'
+	hashObj,
+	Statuses,
+	StatusCode,
+	setLogLevel,
+} from '@sofie-package-manager/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { WorkerAgentAPI } from './workerAgentApi'
@@ -52,8 +56,14 @@ export class Workforce {
 	private websocketServer?: WebsocketServer
 
 	private workerHandler: WorkerHandler
+	private _reportedStatuses: {
+		[expectationManagerId: string]: string // hash of status
+	} = {}
+	private evaluateStatusTimeout: NodeJS.Timeout | null = null
 
-	constructor(public logger: LoggerInstance, config: WorkforceConfig) {
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, config: WorkforceConfig) {
+		this.logger = logger.category('Workforce')
 		if (config.workforce.port !== null) {
 			this.websocketServer = new WebsocketServer(
 				config.workforce.port,
@@ -74,8 +84,10 @@ export class Workforce {
 							client.once('close', () => {
 								this.logger.warn(`Workforce: Connection to Worker "${client.clientId}" closed`)
 								delete this.workerAgents[client.clientId]
+								this.triggerEvaluateStatus()
 							})
 							this.logger.info(`Workforce: Connection to Worker "${client.clientId}" established`)
+							this.triggerEvaluateStatus()
 							break
 						}
 						case 'expectationManager': {
@@ -89,11 +101,13 @@ export class Workforce {
 								this.logger.warn(
 									`Workforce: Connection to ExpectationManager "${client.clientId}" closed`
 								)
+								this.triggerEvaluateStatus()
 								delete this.expectationManagers[client.clientId]
 							})
 							this.logger.info(
 								`Workforce: Connection to ExpectationManager "${client.clientId}" established`
 							)
+							this.triggerEvaluateStatus()
 							break
 						}
 						case 'appContainer': {
@@ -111,8 +125,10 @@ export class Workforce {
 							client.once('close', () => {
 								this.logger.warn(`Workforce: Connection to AppContainer "${client.clientId}" closed`)
 								delete this.appContainers[client.clientId]
+								this.triggerEvaluateStatus()
 							})
 							this.logger.info(`Workforce: Connection to AppContainer "${client.clientId}" established`)
+							this.triggerEvaluateStatus()
 							break
 						}
 
@@ -132,7 +148,7 @@ export class Workforce {
 				this.logger.error(`Workforce: WebsocketServer closed`)
 			})
 		}
-		this.workerHandler = new WorkerHandler(this)
+		this.workerHandler = new WorkerHandler(this.logger, this)
 	}
 
 	async init(): Promise<void> {
@@ -176,6 +192,52 @@ export class Workforce {
 	getPort(): number | undefined {
 		return this.websocketServer?.port
 	}
+	triggerEvaluateStatus(): void {
+		if (!this.evaluateStatusTimeout) {
+			this.evaluateStatusTimeout = setTimeout(() => {
+				this.evaluateStatusTimeout = null
+				this.evaluateStatus()
+			}, 500)
+		}
+	}
+	evaluateStatus(): void {
+		const statuses: Statuses = {}
+
+		statuses['any-workers'] =
+			Object.keys(this.workerAgents).length === 0
+				? {
+						statusCode: StatusCode.BAD,
+						message: 'No workers connected to workforce',
+				  }
+				: {
+						statusCode: StatusCode.GOOD,
+						message: '',
+				  }
+
+		statuses['any-appContainers'] =
+			Object.keys(this.appContainers).length === 0
+				? {
+						statusCode: StatusCode.BAD,
+						message: 'No appContainers connected to workforce',
+				  }
+				: {
+						statusCode: StatusCode.GOOD,
+						message: '',
+				  }
+
+		const statusHash = hashObj(statuses)
+
+		// Report our status to each connected expectationManager:
+		for (const [id, expectationManager] of Object.entries(this.expectationManagers)) {
+			if (this._reportedStatuses[id] !== statusHash) {
+				this._reportedStatuses[id] = statusHash
+
+				expectationManager.api
+					.onWorkForceStatus(statuses)
+					.catch((e) => this.logger.error(`Error in onWorkForceStatus: ${stringifyError(e)}`))
+			}
+		}
+	}
 
 	/** Return the API-methods that the Workforce exposes to the WorkerAgent */
 	private getWorkerAgentAPI(): WorkForceWorkerAgent.WorkForce {
@@ -216,11 +278,14 @@ export class Workforce {
 				return this.requestResourcesForPackageContainer(packageContainer)
 			},
 
-			getStatus: async (): Promise<WorkforceStatus> => {
-				return this.getStatus()
+			getStatusReport: async (): Promise<WorkforceStatusReport> => {
+				return this.getStatusReport()
 			},
 			_debugKillApp: async (appId: string): Promise<void> => {
 				return this._debugKillApp(appId)
+			},
+			_debugSendKillConnections: async (): Promise<void> => {
+				return this._debugSendKillConnections()
 			},
 		}
 	}
@@ -260,13 +325,11 @@ export class Workforce {
 	public async requestResourcesForPackageContainer(packageContainer: PackageContainerExpectation): Promise<boolean> {
 		return this.workerHandler.requestResourcesForPackageContainer(packageContainer)
 	}
-	public async getStatus(): Promise<WorkforceStatus> {
+	public async getStatusReport(): Promise<WorkforceStatusReport> {
 		return {
-			workerAgents: Object.entries(this.workerAgents).map(([workerId, _workerAgent]) => {
-				return {
-					id: workerId,
-				}
-			}),
+			workerAgents: await Promise.all(
+				Object.values(this.workerAgents).map(async (workerAgent) => workerAgent.api.getStatusReport())
+			),
 			expectationManagers: Object.entries(this.expectationManagers).map(([id, expMan]) => {
 				return {
 					id: id,
@@ -288,7 +351,7 @@ export class Workforce {
 	}
 
 	public setLogLevel(logLevel: LogLevel): void {
-		this.logger.level = logLevel
+		setLogLevel(logLevel)
 	}
 	public async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
 		const workerAgent = this.workerAgents[appId]
@@ -315,6 +378,19 @@ export class Workforce {
 
 		if (appId === 'workforce') return this._debugKill()
 		throw new Error(`App with id "${appId}" not found`)
+	}
+	public async _debugSendKillConnections(): Promise<void> {
+		for (const workerAgent of Object.values(this.workerAgents)) {
+			await workerAgent.api._debugSendKillConnections()
+		}
+
+		for (const appContainer of Object.values(this.appContainers)) {
+			await appContainer.api._debugSendKillConnections()
+		}
+
+		for (const expectationManager of Object.values(this.expectationManagers)) {
+			await expectationManager.api._debugSendKillConnections()
+		}
 	}
 
 	public async removeExpectationManager(managerId: string): Promise<void> {

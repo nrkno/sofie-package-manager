@@ -1,4 +1,10 @@
-import { WorkForceWorkerAgent, AdapterServer, AdapterServerOptions, LogLevel } from '@shared/api'
+import {
+	WorkForceWorkerAgent,
+	AdapterServer,
+	AdapterServerOptions,
+	LogLevel,
+	WorkerStatusReport,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a WorkerAgent, to be called from the Workforce
@@ -7,7 +13,8 @@ import { WorkForceWorkerAgent, AdapterServer, AdapterServerOptions, LogLevel } f
  */
 export class WorkerAgentAPI
 	extends AdapterServer<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent>
-	implements WorkForceWorkerAgent.WorkerAgent {
+	implements WorkForceWorkerAgent.WorkerAgent
+{
 	constructor(
 		methods: WorkForceWorkerAgent.WorkForce,
 		options: AdapterServerOptions<WorkForceWorkerAgent.WorkerAgent>
@@ -20,6 +27,12 @@ export class WorkerAgentAPI
 	}
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
+	}
+	async _debugSendKillConnections(): Promise<void> {
+		return this._sendMessage('_debugSendKillConnections')
+	}
+	async getStatusReport(): Promise<WorkerStatusReport> {
+		return this._sendMessage('getStatusReport')
 	}
 
 	async expectationManagerAvailable(id: string, url: string): Promise<void> {

@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { compact } from 'underscore'
 
 /** Helper function to force the input to be of a certain type. */
 export function literal<T>(o: T): T {
@@ -44,15 +45,23 @@ export function hash(str: string): string {
 export function assertNever(_value: never): void {
 	// does nothing
 }
-export function waitTime(duration: number): Promise<void> {
+export async function waitTime(duration: number): Promise<void> {
 	return new Promise((resolve) => {
 		setTimeout(resolve, duration)
 	})
 }
-export function promiseTimeout<T>(p: Promise<T>, timeoutTime: number, timeoutMessage?: string): Promise<T> {
+/** Intercepts a promise and rejects if the promise doesn't resolve in time. */
+export async function promiseTimeout<T>(
+	p: Promise<T>,
+	timeoutTime: number,
+	timeoutMessage?: string | ((timeoutDuration: number) => string)
+): Promise<T> {
+	const startTime = Date.now()
 	return new Promise<T>((resolve, reject) => {
 		const timeout = setTimeout(() => {
-			reject(timeoutMessage || 'Timeout')
+			const duration = Date.now() - startTime
+			const msg = typeof timeoutMessage === 'function' ? timeoutMessage(duration) : timeoutMessage
+			reject(msg || 'Timeout')
 		}, timeoutTime)
 
 		Promise.resolve(p)
@@ -120,6 +129,36 @@ export function stringifyError(error: unknown, noStack = false): string {
 	}
 	return str
 }
+/**
+ * Results in a _true_ type if the provided types are identical.
+ * https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
+ */
+export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
+
+/**
+ * Results in a _true_ type if the Enum A extends enum B
+ * Usage: EnumExtends<typeof A, typeof B>
+ */
+export type EnumExtends<A, B> = keyof B extends keyof A ? true : false
+
+/** Assert that the values in enum a is present in enum b */
+export function assertEnumValuesExtends(
+	checkedEnum: { [key: string]: any },
+	extendedEnum: { [key: string]: any }
+): void {
+	for (const key in extendedEnum) {
+		if (checkedEnum[key] !== extendedEnum[key]) {
+			throw new Error(`${key} is not equal`)
+		}
+	}
+}
+
+/** (Type-check) Assert that the type provided is true. */
+// @ts-expect-error T is never used
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function assertTrue<T extends true>(): void {
+	// Nothing, this is a type guard only
+}
 
 /** Returns a string describing the first thing found that makes the two values different.
  * Returns null if no differences are found.
@@ -170,4 +209,60 @@ function diffInner(a: unknown, b: unknown): [string, string[]] | null {
 		return null
 	}
 	return [`${a} !== ${b}`, []]
+}
+export function isNodeRunningInDebugMode(): boolean {
+	return (
+		// @ts-expect-error v8debug is a NodeJS global
+		typeof v8debug === 'object' || /--debug|--inspect/.test(process.execArgv.join(' ') + process.env.NODE_OPTIONS)
+	)
+}
+
+/**
+ * Wraps a function, so that multiple calls to it will be grouped together,
+ * if the calls are close enough in time so that the resulting promise havent resolved yet.
+ * The subsequent calls will resolve with the same result as the first call.
+ */
+export function deferGets<Args extends any[], Result>(
+	fcn: (...args: Args) => Promise<Result>
+): (groupId: string, ...args: Args) => Promise<Result> {
+	const defers = new Map<
+		string,
+		{
+			resolve: (value: Result) => void
+			reject: (err: any) => void
+		}[]
+	>()
+
+	return async (groupId: string, ...args: Args) => {
+		return new Promise<Result>((resolve, reject) => {
+			// Check if there already is a call waiting:
+			const waiting = defers.get(groupId)
+			if (waiting) {
+				waiting.push({ resolve, reject })
+			} else {
+				const newWaiting = [{ resolve, reject }]
+				defers.set(groupId, newWaiting)
+
+				fcn(...args)
+					.then((result) => {
+						defers.delete(groupId)
+						for (const w of newWaiting) {
+							w.resolve(result)
+						}
+					})
+					.catch((err) => {
+						defers.delete(groupId)
+						for (const w of newWaiting) {
+							w.reject(err)
+						}
+					})
+			}
+		})
+	}
+}
+export function ensureArray<T>(v: T | (T | undefined)[]): T[] {
+	return compact(Array.isArray(v) ? v : [v])
+}
+export function first<T>(v: T | (T | undefined)[]): T | undefined {
+	return ensureArray(v)[0]
 }

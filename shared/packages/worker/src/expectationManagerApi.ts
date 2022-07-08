@@ -1,5 +1,10 @@
-import { ExpectationManagerWorkerAgent, AdapterClient, LoggerInstance, Reason } from '@shared/api'
-import { StatusCode } from '@sofie-automation/blueprints-integration'
+import {
+	StatusCode,
+	ExpectationManagerWorkerAgent,
+	AdapterClient,
+	LoggerInstance,
+	Reason,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a ExpectationManager, to be called from the WorkerAgent
@@ -8,9 +13,10 @@ import { StatusCode } from '@sofie-automation/blueprints-integration'
  */
 export class ExpectationManagerAPI
 	extends AdapterClient<ExpectationManagerWorkerAgent.WorkerAgent, ExpectationManagerWorkerAgent.ExpectationManager>
-	implements ExpectationManagerWorkerAgent.ExpectationManager {
+	implements ExpectationManagerWorkerAgent.ExpectationManager
+{
 	constructor(logger: LoggerInstance) {
-		super(logger, 'workerAgent')
+		super(logger.category('ExpectationManagerAPI'), 'workerAgent')
 	}
 
 	async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {

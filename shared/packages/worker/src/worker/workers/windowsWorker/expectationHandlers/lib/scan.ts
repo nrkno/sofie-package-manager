@@ -1,5 +1,5 @@
-import { exec, ChildProcess, spawn } from 'child_process'
-import { Expectation, assertNever } from '@shared/api'
+import { execFile, ChildProcess, spawn } from 'child_process'
+import { Expectation, assertNever } from '@sofie-package-manager/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -15,9 +15,16 @@ import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
+import { MAX_EXEC_BUFFER } from '../../../../lib/lib'
 
-interface FFProbeScanResult {
+export interface FFProbeScanResultStream {
+	index: number
+	codec_type: string
+}
+
+export interface FFProbeScanResult {
 	// to be defined...
+	streams?: FFProbeScanResultStream[]
 	format?: {
 		duration: number
 	}
@@ -56,36 +63,39 @@ export function scanWithFFProbe(
 				assertNever(sourceHandle)
 				throw new Error('Unknown handle')
 			}
+			const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
 			// Use FFProbe to scan the file:
-			const args = [
-				process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe',
-				'-hide_banner',
-				`-i "${inputPath}"`,
-				'-show_streams',
-				'-show_format',
-				'-print_format',
-				'json',
-			]
+			const args = ['-hide_banner', `-i "${inputPath}"`, '-show_streams', '-show_format', '-print_format', 'json']
 			let ffProbeProcess: ChildProcess | undefined = undefined
 			onCancel(() => {
+				ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
 				ffProbeProcess?.kill()
+				reject('Cancelled')
 			})
 
-			ffProbeProcess = exec(args.join(' '), (err, stdout, _stderr) => {
-				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-				ffProbeProcess = undefined
-				if (err) {
-					reject(err)
-					return
+			ffProbeProcess = execFile(
+				file,
+				args,
+				{
+					maxBuffer: MAX_EXEC_BUFFER,
+					windowsVerbatimArguments: true, // To fix an issue with ffprobe.exe on Windows
+				},
+				(err, stdout, _stderr) => {
+					// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+					ffProbeProcess = undefined
+					if (err) {
+						reject(err)
+						return
+					}
+					const json: any = JSON.parse(stdout)
+					if (!json.streams || !json.streams[0]) {
+						reject(new Error(`File doesn't seem to be a media file`))
+						return
+					}
+					json.filePath = filePath
+					resolve(json)
 				}
-				const json: any = JSON.parse(stdout)
-				if (!json.streams || !json.streams[0]) {
-					reject(new Error(`File doesn't seem to be a media file`))
-					return
-				}
-				json.filePath = filePath
-				resolve(json)
-			})
+			)
 		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 			// Because we have no good way of using ffprobe to generate the into we want,
 			// we resort to faking it:
@@ -120,8 +130,8 @@ export function scanFieldOrder(
 			return
 		}
 
+		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
 		const args = [
-			process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
 			'-hide_banner',
 			'-filter:v idet',
 			`-frames:v ${targetVersion.fieldOrderScanDuration || 200}`,
@@ -152,34 +162,42 @@ export function scanFieldOrder(
 			assertNever(sourceHandle)
 		}
 
-		let ffProbeProcess: ChildProcess | undefined = undefined
+		let ffmpegProcess: ChildProcess | undefined = undefined
 		onCancel(() => {
-			ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
-			ffProbeProcess?.kill()
+			ffmpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffmpegProcess?.kill()
 			reject('Cancelled')
 		})
 
-		ffProbeProcess = exec(args.join(' '), (err, _stdout, stderr) => {
-			// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
-			ffProbeProcess = undefined
-			if (err) {
-				reject(err)
-				return
-			}
+		ffmpegProcess = execFile(
+			file,
+			args,
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+			},
+			(err, _stdout, stderr) => {
+				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+				ffmpegProcess = undefined
+				if (err) {
+					reject(err)
+					return
+				}
 
-			const FieldRegex = /Multi frame detection: TFF:\s+(\d+)\s+BFF:\s+(\d+)\s+Progressive:\s+(\d+)/
+				const FieldRegex = /Multi frame detection: TFF:\s+(\d+)\s+BFF:\s+(\d+)\s+Progressive:\s+(\d+)/
 
-			const res = FieldRegex.exec(stderr)
-			if (res === null) {
-				resolve(FieldOrder.Unknown)
-			} else {
-				const tff = parseInt(res[1])
-				const bff = parseInt(res[2])
-				const fieldOrder =
-					tff <= 10 && bff <= 10 ? FieldOrder.Progressive : tff > bff ? FieldOrder.TFF : FieldOrder.BFF
-				resolve(fieldOrder)
+				const res = FieldRegex.exec(stderr)
+				if (res === null) {
+					resolve(FieldOrder.Unknown)
+				} else {
+					const tff = parseInt(res[1])
+					const bff = parseInt(res[2])
+					const fieldOrder =
+						tff <= 10 && bff <= 10 ? FieldOrder.Progressive : tff > bff ? FieldOrder.TFF : FieldOrder.BFF
+					resolve(fieldOrder)
+				}
 			}
-		})
+		)
 	})
 }
 
@@ -263,18 +281,26 @@ export function scanMoreInfo(
 		let ffMpegProcess: ChildProcess | undefined = undefined
 
 		const killFFMpeg = () => {
-			ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
-			ffMpegProcess?.kill()
+			// ensure this function doesn't throw, since it is called from various error event handlers
+			try {
+				ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+				ffMpegProcess?.kill()
+			} catch (e) {
+				// This is probably OK, errors likely means that the process is already dead
+			}
 		}
 		onCancel(() => {
 			killFFMpeg()
+			reject('Cancelled')
 		})
 
-		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, { shell: true })
+		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
+			windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+		})
 
 		const scenes: number[] = []
-		const freezes: ScanAnomaly[] = []
-		const blacks: ScanAnomaly[] = []
+		let freezes: ScanAnomaly[] = []
+		let blacks: ScanAnomaly[] = []
 
 		// TODO current frame is not read?
 		// let currentFrame = 0
@@ -283,7 +309,7 @@ export function scanMoreInfo(
 		if (!ffMpegProcess.stderr) {
 			throw new Error('spawned ffprobe-process stdin is null!')
 		}
-		let lastString = ''
+		let previousStringData = ''
 		let fileDuration: number | undefined = undefined
 		ffMpegProcess.stderr.on('data', (data: any) => {
 			const stringData = data.toString()
@@ -291,13 +317,12 @@ export function scanMoreInfo(
 			if (typeof stringData !== 'string') return
 
 			try {
-				lastString = stringData
-
 				const frameRegex = /^frame= +\d+/g
 				const timeRegex = /time=\s?(\d+):(\d+):([\d.]+)/
 				const durationRegex = /Duration:\s?(\d+):(\d+):([\d.]+)/
 				const sceneRegex = /Parsed_showinfo_(.*)pts_time:([\d.]+)\s+/g
-				const blackDetectRegex = /(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
+				const blackDetectRegex =
+					/(black_start:)(\d+(.\d+)?)( black_end:)(\d+(.\d+)?)( black_duration:)(\d+(.\d+))?/g
 				const freezeDetectStart = /(lavfi\.freezedetect\.freeze_start: )(\d+(.\d+)?)/g
 				const freezeDetectDuration = /(lavfi\.freezedetect\.freeze_duration: )(\d+(.\d+)?)/g
 				const freezeDetectEnd = /(lavfi\.freezedetect\.freeze_end: )(\d+(.\d+)?)/g
@@ -350,24 +375,30 @@ export function scanMoreInfo(
 
 					let i = 0
 					while ((res = freezeDetectDuration.exec(stringData)) !== null) {
-						freezes[i++].duration = parseFloat(res[2])
+						const freeze = freezes[i++]
+						if (freeze) freeze.duration = parseFloat(res[2])
 					}
 
 					i = 0
 					while ((res = freezeDetectEnd.exec(stringData)) !== null) {
-						freezes[i++].end = parseFloat(res[2])
+						const freeze = freezes[i++]
+						if (freeze) freeze.end = parseFloat(res[2])
 					}
 				}
+				previousStringData = stringData
 			} catch (err) {
 				if (err && typeof err === 'object') {
 					// If there was an error parsing the output, we should also provide the string we tried to parse:
-					onError(err, stringData)
+					onError(err, previousStringData + '\r\n' + stringData)
 				} else {
 					onError(err, undefined)
 				}
 				throw err
 			}
 		})
+
+		freezes = freezes.filter((freeze) => freeze.duration > 0)
+		blacks = blacks.filter((black) => black.duration > 0)
 
 		const onError = (err: unknown, context: string | undefined) => {
 			if (ffMpegProcess) {
@@ -400,7 +431,7 @@ export function scanMoreInfo(
 						blacks,
 					})
 				} else {
-					reject(`FFProbe exited with code ${code} (${lastString})`)
+					reject(`FFProbe exited with code ${code} (${previousStringData})`)
 				}
 			}
 		}

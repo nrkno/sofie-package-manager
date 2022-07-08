@@ -5,12 +5,11 @@ import { LoggerInstance } from './logger'
 // export function setupProcess(config: ProcessConfig): void {}
 
 export class ProcessHandler {
-	logger: LoggerInstance
-
 	public certificates: Buffer[] = []
+	private logger: LoggerInstance
 
 	constructor(logger: LoggerInstance) {
-		this.logger = logger
+		this.logger = logger.category('ProcessHandler')
 	}
 	init(processConfig: ProcessConfig): void {
 		if (processConfig.unsafeSSL) {

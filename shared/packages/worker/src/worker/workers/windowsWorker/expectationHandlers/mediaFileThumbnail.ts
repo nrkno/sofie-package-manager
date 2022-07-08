@@ -1,5 +1,5 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
 import {
+	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -9,7 +9,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
@@ -25,8 +25,9 @@ import {
 	formatTimeCode,
 	lookupAccessorHandles,
 	LookupPackageContainer,
+	thumbnailFFMpegArguments,
 } from './lib'
-import { FFMpegProcess, runffMpeg } from './lib/ffmpeg'
+import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -221,25 +222,14 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				}
 
 				// Use FFMpeg to generate the thumbnail:
-				const args: string[] = [
-					// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
-					'-hide_banner',
-					seekTimeCode ? `-ss ${seekTimeCode}` : '',
-					`-i "${inputPath}"`,
-					`-f image2`,
-					'-frames:v 1',
-					`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:` +
-						`${metadata.version.height}`,
-					'-threads 1',
-				]
+				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode)
 
-				ffMpegProcess = await runffMpeg(
-					workInProgress,
+				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
-					sourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
+						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
 						await targetHandle.finalizePackage()
 						await targetHandle.updateMetadata(metadata)
@@ -253,9 +243,20 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 							},
 							undefined
 						)
+					},
+					async (err) => {
+						worker.logger.debug(
+							`FFMpeg failed [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}: ${stringifyError(err)}`
+						)
+						ffMpegProcess = undefined
+						workInProgress._reportError(err)
+					},
+					async (progress: number) => {
+						workInProgress._reportProgress(sourceVersionHash, progress)
 					}
-					// worker.logger.info
+					// ,worker.logger.debug
 				)
+				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
 			} else {
 				throw new Error(
 					`MediaFileThumbnail.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
@@ -302,7 +303,7 @@ interface Metadata {
 	version: Expectation.Version.MediaFileThumbnail
 }
 
-function lookupThumbnailSources(
+async function lookupThumbnailSources(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -318,7 +319,7 @@ function lookupThumbnailSources(
 		}
 	)
 }
-function lookupThumbnailTargets(
+async function lookupThumbnailTargets(
 	worker: GenericWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {

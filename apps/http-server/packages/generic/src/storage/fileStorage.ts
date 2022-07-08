@@ -5,7 +5,7 @@ import mime from 'mime-types'
 import mkdirp from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
 import { CTX, CTXPost } from '../lib'
-import { HTTPServerConfig } from '@shared/api'
+import { HTTPServerConfig } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
@@ -22,7 +22,7 @@ export class FileStorage extends Storage {
 	}
 
 	async init(): Promise<void> {
-		await mkdirp(path.dirname(this.config.httpServer.basePath))
+		await mkdirp(this.config.httpServer.basePath)
 	}
 
 	async listPackages(ctx: CTX): Promise<true | BadResponse> {
@@ -67,11 +67,22 @@ export class FileStorage extends Storage {
 
 		return true
 	}
-	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+	private async getFileInfo(paramPath: string): Promise<
+		| {
+				found: false
+		  }
+		| {
+				found: true
+				fullPath: string
+				mimeType: string
+				length: number
+				lastModified: Date
+		  }
+	> {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
-			return { code: 404, reason: 'Not found' }
+			return { found: false }
 		}
 		let mimeType = mime.lookup(fullPath)
 		if (!mimeType) {
@@ -82,11 +93,42 @@ export class FileStorage extends Storage {
 
 		const stat = await fsStat(fullPath)
 
-		ctx.type = mimeType // or use mime.contentType(fullPath) ?
-		const readStream = fs.createReadStream(fullPath)
-		ctx.body = readStream
+		return {
+			found: true,
+			fullPath,
+			mimeType,
+			length: stat.size,
+			lastModified: stat.mtime,
+		}
+	}
+	async headPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+		const fileInfo = await this.getFileInfo(paramPath)
 
-		ctx.length = stat.size
+		if (!fileInfo.found) {
+			return { code: 404, reason: 'Package not found' }
+		}
+
+		ctx.type = fileInfo.mimeType
+		ctx.length = fileInfo.length
+		ctx.lastModified = fileInfo.lastModified
+
+		ctx.response.status = 204
+
+		ctx.body = undefined
+
+		return true
+	}
+	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+		const fileInfo = await this.getFileInfo(paramPath)
+		if (!fileInfo.found) {
+			return { code: 404, reason: 'Package not found' }
+		}
+
+		ctx.type = fileInfo.mimeType // or use mime.contentType(fullPath) ?
+		ctx.length = fileInfo.length
+		ctx.lastModified = fileInfo.lastModified
+		const readStream = fs.createReadStream(fileInfo.fullPath)
+		ctx.body = readStream
 
 		return true
 	}
@@ -102,15 +144,17 @@ export class FileStorage extends Storage {
 			// store plain text into file
 			await fsWriteFile(fullPath, ctx.request.body.text)
 
-			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.response.status = 201
 			return true
 		} else if (ctx.request.files?.length) {
-			const file = ctx.request.files[0] as any
+			const file = (ctx.request.files as any)[0]
 			const stream = file.stream as fs.ReadStream
 
 			stream.pipe(fs.createWriteStream(fullPath))
 
-			ctx.body = { message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
+			ctx.response.status = 201
 			return true
 		} else {
 			return { code: 400, reason: 'No files provided' }
@@ -120,7 +164,7 @@ export class FileStorage extends Storage {
 		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
-			return { code: 404, reason: 'Not found' }
+			return { code: 404, reason: 'Package not found' }
 		}
 
 		await fsUnlink(fullPath)

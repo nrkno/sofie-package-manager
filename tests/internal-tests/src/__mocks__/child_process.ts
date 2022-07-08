@@ -10,13 +10,34 @@ const fsMkdir = promisify(fs.mkdir)
 
 const child_process: any = jest.createMockFromModule('child_process')
 
-function exec(commandString: string) {
+const mappedDriveLetters: {
+	[driveLetter: string]: string // path
+} = {}
+
+async function pExec(commandString: string, _options: any): Promise<{ stdout: string; stderr: string }> {
+	const NOOP = { stdout: '', stderr: '' }
 	if (commandString.match(/^wmic /)) {
 		// Change priority of the process
 		// Do nothing
+		return NOOP
+	} else if (commandString.match(/^net use/)) {
+		return netUse(commandString)
 	} else {
 		throw new Error(`Mock child_process.exec: command not implemented: "${commandString}"`)
 	}
+}
+function exec(
+	commandString: string,
+	options?: any,
+	cb?: (error: any | null, result: { stdout: string; stderr: string } | null) => void
+): void {
+	if (typeof options === 'function' && cb === undefined) {
+		cb = options
+		options = {}
+	}
+	pExec(commandString, options)
+		.then((result) => cb?.(null, result))
+		.catch((err) => cb?.(err, null))
 }
 child_process.exec = exec
 function spawn(command: string, args: string[] = []) {
@@ -25,6 +46,7 @@ function spawn(command: string, args: string[] = []) {
 		setImmediate(() => {
 			robocopy(spawned, args).catch((err) => {
 				console.log(err)
+				spawned.emit('exit', 9999)
 				spawned.emit('close', 9999)
 			})
 		})
@@ -32,6 +54,7 @@ function spawn(command: string, args: string[] = []) {
 		setImmediate(() => {
 			ffmpeg(spawned, args).catch((err) => {
 				console.log(err)
+				spawned.emit('exit', 9999)
 				spawned.emit('close', 9999)
 			})
 		})
@@ -39,6 +62,7 @@ function spawn(command: string, args: string[] = []) {
 		setImmediate(() => {
 			ffprobe(spawned, args).catch((err) => {
 				console.log(err)
+				spawned.emit('exit', 9999)
 				spawned.emit('close', 9999)
 			})
 		})
@@ -133,27 +157,97 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 
 			await fsCopyFile(source, destination)
 		}
+		spawned.emit('exit', 1) // OK
 		spawned.emit('close', 1) // OK
 	} catch (err) {
 		// console.log(err)
+		spawned.emit('exit', 16) // Serious error. Robocopy did not copy any files.
 		spawned.emit('close', 16) // Serious error. Robocopy did not copy any files.
 	}
 }
 async function ffmpeg(spawned: SpawnedProcess, args: string[]) {
 	if (args[0] === '-version') {
-		spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
-		spawned.emit('close', 0) // OK
+		setImmediate(() => {
+			spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
+			spawned.emit('exit', 0) // OK
+			spawned.emit('close', 0) // note: close allways fires after exit
+		})
 	} else {
 		throw new Error(`Mock child_process.spawn: Unsupported arguments: "${args}"`)
 	}
 }
 async function ffprobe(spawned: SpawnedProcess, args: string[]) {
 	if (args[0] === '-version') {
-		spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
-		spawned.emit('close', 0) // OK
+		setImmediate(() => {
+			spawned.stderr.emit('data', 'version N-102494-g2899fb61d2')
+			spawned.emit('exit', 0) // OK
+			spawned.emit('close', 0) // note: close allways fires after exit
+		})
 	} else {
 		throw new Error(`Mock child_process.spawn: Unsupported arguments: "${args}"`)
 	}
 }
 
+async function netUse(commandString: string): Promise<{ stdout: string; stderr: string }> {
+	let stdout = ''
+	const stderr = ''
+
+	if (commandString.match(/^net use$/)) {
+		stdout += `New connections will be remembered.\r\n`
+		stdout += `\r\n`
+		stdout += `Status       Local     Remote                    Network\r\n`
+		stdout += `-------------------------------------------------------------------------------\r\n`
+
+		for (const [driveLetter, path] of Object.entries(mappedDriveLetters)) {
+			stdout += `OK    ${driveLetter}:     ${path} Microsoft Windows Network \r\n`
+		}
+		stdout += `The command completed successfully.\r\n`
+
+		return { stdout, stderr }
+	}
+	{
+		const m = commandString.match(/^net use (\w): "([^"]+)"(.+)$/) // net use Z: "\\localhost\media" /P:Yes
+		if (m) {
+			const driveLetter = m[1]
+			const path = m[2]
+			// const rest = m[3]
+
+			if (mappedDriveLetters[driveLetter]) {
+				stdout += 'System error 85 has occurred.\r\n'
+				stdout += '\r\n'
+				stdout += 'The local device name is already in use.\r\n'
+			} else {
+				mappedDriveLetters[driveLetter] = path
+				stdout += 'The command completed successfully.\r\n'
+			}
+
+			return { stdout, stderr }
+		}
+	}
+	{
+		const m = commandString.match(/^net use (\w): \/Delete$/) // net use Z: /Delete
+		if (m) {
+			const driveLetter = m[1]
+
+			if (mappedDriveLetters[driveLetter]) {
+				delete mappedDriveLetters[driveLetter]
+				stdout += `${driveLetter}: was deleted successfully.\r\n`
+			} else {
+				stdout += 'The network connection could not be found.\r\n'
+				stdout += '\r\n'
+				stdout += 'More help is available by typing NET HELPMSG 2250.\r\n'
+			}
+
+			return { stdout, stderr }
+		}
+	}
+	// else:
+	{
+		stdout += 'System error 67 has occurred.\r\n'
+		stdout += '\r\n'
+		stdout += 'The network name cannot be found.\r\n'
+
+		return { stdout, stderr }
+	}
+}
 module.exports = child_process

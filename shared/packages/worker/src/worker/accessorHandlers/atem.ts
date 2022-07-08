@@ -1,0 +1,606 @@
+import {
+	GenericAccessorHandle,
+	PackageReadInfo,
+	PackageReadStream,
+	PutPackageHandler,
+	AccessorHandlerResult,
+	SetupPackageContainerMonitorsResult,
+} from './genericHandle'
+import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
+import { GenericWorker } from '../worker'
+import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
+import { ClipBank } from 'atem-connection/dist/state/media'
+import * as crypto from 'crypto'
+import { execFile } from 'child_process'
+import tmp from 'tmp'
+import * as fs from 'fs'
+import * as path from 'path'
+import { promisify } from 'util'
+import { UniversalVersion } from '../workers/windowsWorker/lib/lib'
+import { MAX_EXEC_BUFFER } from '../lib/lib'
+
+const fsReadFile = promisify(fs.readFile)
+
+/** Accessor handle for accessing files on an ATEM */
+export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	static readonly type = 'atem'
+	private content: {
+		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
+		onlyContainerAccess?: boolean
+		filePath?: string
+	}
+	constructor(
+		worker: GenericWorker,
+		public readonly accessorId: string,
+		private accessor: AccessorOnPackage.AtemMediaStore,
+		content: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
+	) {
+		super(worker, accessorId, accessor, content, ATEMAccessorHandle.type)
+
+		// Verify content data:
+		if (!content.onlyContainerAccess) {
+			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+		}
+		this.content = content
+	}
+	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+		const accessor = accessor0 as AccessorOnPackage.AtemMediaStore
+		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
+	}
+	private async getAtem(): Promise<Atem> {
+		if (!this.worker.accessorCache['atem']) {
+			const atem = new Atem()
+			this.worker.accessorCache['atem'] = atem
+
+			if (!this.accessor.atemHost) {
+				throw new Error('Bad input data: accessor.atemHost not set!')
+			}
+
+			await atem.connect(this.accessor.atemHost)
+		}
+		return this.worker.accessorCache['atem'] as Atem
+	}
+	checkHandleRead(): AccessorHandlerResult {
+		if (!this.accessor.allowRead) {
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to read`,
+					tech: `Not allowed to read`,
+				},
+			}
+		}
+		return this.checkAccessor()
+	}
+	checkHandleWrite(): AccessorHandlerResult {
+		if (!this.accessor.allowWrite) {
+			return {
+				success: false,
+				reason: {
+					user: `Not allowed to write`,
+					tech: `Not allowed to write`,
+				},
+			}
+		}
+		return this.checkAccessor()
+	}
+	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+		// Check if the package exists:
+		const atem = await this.getAtem()
+		if (!atem.state) {
+			throw new Error('ATEM state not available')
+		}
+
+		const mediaType = this.accessor.mediaType
+		if (!mediaType) {
+			throw new Error('mediaType is undefined')
+		}
+
+		const bankIndex = this.accessor.bankIndex
+		if (typeof bankIndex !== 'number') {
+			throw new Error('bankIndex is undefined')
+		}
+
+		if (mediaType === 'clip') {
+			if (atem.state.media.clipPool[bankIndex]?.name === this.getAtemClipName()) {
+				return {
+					success: true,
+				}
+			}
+		}
+
+		// Reading actually not supprted, but oh well..
+		return {
+			success: false,
+			reason: {
+				user: 'Clip not found',
+				tech: `Clip "${this.getAtemClipName()}" not found`,
+			},
+		}
+	}
+	async tryPackageRead(): Promise<AccessorHandlerResult> {
+		const atem = await this.getAtem()
+		if (!atem.state?.media.clipPool || !atem.state?.media.stillPool) {
+			return {
+				success: false,
+				reason: {
+					user: `ATEM media pools are inaccessible`,
+					tech: `ATEM media pools are inaccessible`,
+				},
+			}
+		}
+
+		return { success: true }
+	}
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+		const atem = await this.getAtem()
+		if (atem.status === AtemConnectionStatus.CONNECTED && atem.state) {
+			return { success: true }
+		}
+
+		return new Promise((resolve) => {
+			const successHandler = () => {
+				resolve({ success: true })
+				removeListeners()
+			}
+
+			const errorHandler = (error: string) => {
+				resolve({
+					success: false,
+					reason: {
+						user: `Error connecting to ATEM`,
+						tech: error,
+					},
+				})
+				removeListeners()
+			}
+
+			const removeListeners = () => {
+				atem.off('stateChanged', successHandler)
+				atem.off('error', errorHandler)
+			}
+
+			atem.once('stateChanged', successHandler)
+
+			atem.once('error', errorHandler)
+		})
+	}
+	async getPackageActualVersion(): Promise<Expectation.Version.ATEMFile> {
+		const atem = await this.getAtem()
+		if (!atem.state) {
+			throw new Error('ATEM state not available')
+		}
+
+		const mediaType = this.accessor.mediaType
+		if (!mediaType) {
+			throw new Error('mediaType is undefined')
+		}
+
+		const bankIndex = this.accessor.bankIndex
+		if (typeof bankIndex !== 'number') {
+			throw new Error('bankIndex is undefined')
+		}
+
+		if (mediaType === 'clip') {
+			const clip = atem.state.media.clipPool[bankIndex]
+			if (!clip) {
+				throw new Error('ATEM clip not available')
+			}
+
+			return {
+				type: Expectation.Version.Type.ATEM_FILE,
+				frameCount: clip.frameCount,
+				name: clip.name,
+				hash: this.getClipHash(clip),
+			}
+		} else {
+			const still = atem.state.media.stillPool[bankIndex]
+			if (!still) {
+				throw new Error('ATEM still not available')
+			}
+
+			return {
+				type: Expectation.Version.Type.ATEM_FILE,
+				frameCount: 1,
+				name: still.fileName,
+				hash: still.hash,
+			}
+		}
+	}
+	async removePackage(): Promise<void> {
+		const atem = await this.getAtem()
+		if (this.accessor.mediaType && typeof this.accessor.bankIndex === 'number') {
+			if (this.accessor.mediaType === 'clip') {
+				await atem.clearMediaPoolClip(this.accessor.bankIndex)
+			} else {
+				await atem.clearMediaPoolStill(this.accessor.bankIndex)
+			}
+		} else {
+			throw new Error('mediaType or bankIndex were undefined')
+		}
+	}
+	async getPackageReadStream(): Promise<PackageReadStream> {
+		throw new Error('ATEM.getPackageReadStream: Not supported')
+	}
+	async putPackageStream(sourceStream: NodeJS.ReadableStream): Promise<PutPackageHandler> {
+		const bankIndex = this.accessor.bankIndex
+		if (typeof bankIndex !== 'number') {
+			throw new Error('bankIndex is undefined')
+		}
+
+		const streamWrapper: PutPackageHandler = new PutPackageHandler(() => {
+			// can't really abort the write stream
+		})
+		streamWrapper.usingCustomProgressEvent = true
+
+		setImmediate(() => {
+			Promise.resolve()
+				.then(async () => {
+					const atem = await this.getAtem()
+					if (!atem.state || !atem.state.settings.mediaPool) {
+						throw new Error('atem-connection not ready')
+					}
+
+					streamWrapper.emit('progress', 0.1)
+
+					const tmpobj = tmp.dirSync({ unsafeCleanup: true })
+					try {
+						const inputFile = path.join(tmpobj.name, 'input')
+						const info = AtemUtil.getVideoModeInfo(atem.state.settings.videoMode)
+						if (!info) {
+							throw new Error('ATEM is running at an unknown video mode')
+						}
+						const { width, height } = info
+						await stream2Disk(sourceStream, inputFile)
+						streamWrapper.emit('progress', 0.2)
+
+						if (this.accessor.mediaType === 'still') {
+							await createTGASequence(inputFile, { width, height })
+							streamWrapper.emit('progress', 0.5)
+
+							const allTGAs = fs
+								.readdirSync(tmpobj.name)
+								.filter((filename) => {
+									return filename.endsWith('.tga')
+								})
+								.map((tga) => {
+									return path.join(tmpobj.name, tga)
+								})
+
+							if (allTGAs.length > 1) {
+								throw new Error('found more TGA files in temp dir than expected')
+							}
+
+							const tgaPath = allTGAs[0]
+							await convertFrameToRGBA(tgaPath)
+							streamWrapper.emit('progress', 0.7)
+
+							const rgbaPath = tgaPath.replace('.tga', '.rgba')
+							const rgbaBuffer = await fsReadFile(rgbaPath)
+							await atem.uploadStill(
+								bankIndex,
+								rgbaBuffer,
+								this.getAtemClipName(),
+								'Uploaded by package-manager'
+							)
+							streamWrapper.emit('progress', 1)
+						} else {
+							const duration = await countFrames(inputFile)
+							const maxDuration = atem.state.settings.mediaPool.maxFrames[bankIndex]
+							if (duration > maxDuration) {
+								throw new Error(`File is too long in duration (${duration} frames, max ${maxDuration})`)
+							}
+
+							streamWrapper.emit('progress', 0.3)
+							await createTGASequence(inputFile, { width, height })
+							streamWrapper.emit('progress', 0.4)
+
+							const allTGAs = fs
+								.readdirSync(tmpobj.name)
+								.filter((filename) => {
+									return filename.endsWith('.tga')
+								})
+								.map((tga) => {
+									return path.join(tmpobj.name, tga)
+								})
+
+							streamWrapper.emit('progress', 0.5)
+							for (let index = 0; index < allTGAs.length; index++) {
+								const tga = allTGAs[index]
+								streamWrapper.emit('progress', 0.5 + 0.1 * (index / allTGAs.length))
+								await convertFrameToRGBA(tga)
+							}
+							streamWrapper.emit('progress', 0.6)
+
+							const allRGBAs = allTGAs.map((filename) => {
+								return filename.replace('.tga', '.rgba')
+							})
+							const provideFrame = async function* (): AsyncGenerator<Buffer> {
+								for (let i = 0; i < allRGBAs.length; i++) {
+									yield await fsReadFile(allRGBAs[i])
+									streamWrapper.emit('progress', 0.6 + 0.3 * (i / allRGBAs.length))
+								}
+							}
+
+							await atem.uploadClip(bankIndex, provideFrame(), this.getAtemClipName())
+
+							const audioStreamIndicies = await getStreamIndicies(inputFile, 'audio')
+							if (audioStreamIndicies.length > 0) {
+								await convertAudio(inputFile)
+								await sleep(1000) // Helps avoid a lock-related "Code 5" error from the ATEM.
+								const audioBuffer = await fsReadFile(replaceFileExtension(inputFile, '.wav'))
+								await atem.uploadAudio(bankIndex, audioBuffer, `audio${this.accessor.bankIndex}`)
+							}
+
+							streamWrapper.emit('progress', 1)
+						}
+					} catch (err) {
+						streamWrapper.emit('error', err)
+					} finally {
+						tmpobj.removeCallback()
+					}
+
+					streamWrapper.emit('close')
+				})
+				.catch((err) => {
+					streamWrapper.emit('error', err)
+				})
+		})
+
+		return streamWrapper
+	}
+	private getAtemClipName(): string {
+		const filePath = this.accessor.filePath || this.content.filePath
+
+		if (!filePath) throw new Error('Atem: filePath not set!')
+		return filePath
+	}
+	async getPackageReadInfo(): Promise<{ readInfo: PackageReadInfo; cancel: () => void }> {
+		throw new Error('ATEM.getPackageReadInfo: Not supported')
+	}
+	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
+		throw new Error('ATEM.putPackageInfo: Not supported')
+	}
+	async finalizePackage(): Promise<void> {
+		// do nothing
+	}
+
+	async fetchMetadata(): Promise<Metadata | undefined> {
+		return {
+			fileSize: { name: 'fileSize', value: undefined, omit: true },
+			modified: { name: 'modified', value: undefined, omit: true },
+			etags: { name: 'etags', value: undefined, omit: true },
+			contentType: { name: 'contentType', value: undefined, omit: true },
+		} as UniversalVersion as any as Metadata
+	}
+	async updateMetadata(_metadata: Metadata): Promise<void> {
+		// Not supported
+	}
+	async removeMetadata(): Promise<void> {
+		// Not supported
+	}
+	async runCronJob(): Promise<AccessorHandlerResult> {
+		return {
+			success: true,
+		} // not applicable
+	}
+	async setupPackageContainerMonitors(): Promise<SetupPackageContainerMonitorsResult> {
+		return {
+			success: false,
+			reason: {
+				user: `There is an internal issue in Package Manager`,
+				tech: 'setupPackageContainerMonitors, not supported',
+			},
+		} // not applicable
+	}
+
+	private checkAccessor(): AccessorHandlerResult {
+		if (this.accessor.type !== Accessor.AccessType.ATEM_MEDIA_STORE) {
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `ATEM Accessor type is not ATEM ("${this.accessor.type}")!`,
+				},
+			}
+		}
+		if (!this.accessor.mediaType) {
+			return {
+				success: false,
+				reason: {
+					user: `Accessor mediaType not set`,
+					tech: `Accessor mediaType not set`,
+				},
+			}
+		}
+		if (typeof this.accessor.bankIndex !== 'number') {
+			return {
+				success: false,
+				reason: {
+					user: `Accessor bankIndex not set`,
+					tech: `Accessor bankIndex not set`,
+				},
+			}
+		}
+		return { success: true }
+	}
+	/** Computes an ATEM clip hash by concatenating the hashes for all the individual frames
+	 * then hashing that.
+	 */
+	private getClipHash(clip: ClipBank): string {
+		const concatenatedHash = clip.frames.reduce((previousValue, frame) => {
+			if (!frame) {
+				return previousValue
+			}
+
+			return previousValue + frame.hash
+		}, '')
+
+		return crypto.createHash('md5').update(concatenatedHash).digest('base64')
+	}
+}
+
+async function stream2Disk(sourceStream: NodeJS.ReadableStream, outputFile: string): Promise<void> {
+	let handled = false
+	return new Promise((resolve, reject) => {
+		const writeStream = fs.createWriteStream(outputFile)
+		sourceStream.pipe(writeStream)
+		sourceStream.on('error', (error) => {
+			if (handled) {
+				return
+			}
+			handled = true
+			writeStream.end()
+			reject(error)
+		})
+		writeStream.on('error', (error) => {
+			if (handled) {
+				return
+			}
+			handled = true
+			writeStream.end()
+			reject(error)
+		})
+		writeStream.on('finish', () => {
+			if (handled) {
+				return
+			}
+			handled = true
+			writeStream.end()
+			resolve()
+		})
+	})
+}
+
+async function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
+	const outputFile = replaceFileExtension(inputFile, '_%04d.tga')
+	const args = [`-i "${inputFile}"`]
+	if (opts) {
+		args.push(`-vf scale=${opts.width}:${opts.height}`)
+	}
+	args.push(`"${outputFile}"`)
+
+	return ffmpeg(args)
+}
+
+async function convertFrameToRGBA(inputFile: string): Promise<string> {
+	const outputFile = replaceFileExtension(inputFile, '.rgba')
+	const args = [`-i "${inputFile}"`, '-pix_fmt rgba', '-f rawvideo', `"${outputFile}"`]
+	return ffmpeg(args)
+}
+
+async function convertAudio(inputFile: string): Promise<string> {
+	const outputFile = replaceFileExtension(inputFile, '.wav')
+	const args = [
+		`-i "${inputFile}"`,
+		'-vn', // no video
+		'-ar 48000', // 48kHz sample rate
+		'-ac 2', // stereo audio
+		'-c:a pcm_s24le',
+		`"${outputFile}"`,
+	]
+
+	return ffmpeg(args)
+}
+
+async function countFrames(inputFile: string): Promise<number> {
+	return new Promise((resolve, reject) => {
+		const args = [
+			`-i "${inputFile}"`,
+			'-v error',
+			'-select_streams v:0',
+			'-count_frames',
+			'-show_entries stream=nb_read_frames',
+			'-print_format csv',
+		]
+
+		ffprobe(args)
+			.then((result) => {
+				const resultParts = result.split(',')
+				const durationFrames = parseInt(resultParts[1], 10)
+				resolve(durationFrames)
+			})
+			.catch((error) => reject(error))
+	})
+}
+
+async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
+	return new Promise((resolve, reject) => {
+		const args = [
+			`-i "${inputFile}"`,
+			'-v error',
+			`-select_streams ${type === 'video' ? 'v' : 'a'}`,
+			'-show_entries stream=index',
+			'-of csv=p=0',
+		]
+
+		ffprobe(args)
+			.then((result) => {
+				const resultParts = result
+					.split('\n')
+					.map((str) => parseInt(str, 10))
+					.filter((num) => !isNaN(num))
+				resolve(resultParts)
+			})
+			.catch((error) => reject(error))
+	})
+}
+
+async function ffprobe(args: string[]): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
+		execFile(
+			file,
+			args,
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+			},
+			(error, stdout) => {
+				if (error) {
+					reject(error)
+				} else {
+					resolve(stdout)
+				}
+			}
+		)
+	})
+}
+
+async function ffmpeg(args: string[]): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		execFile(
+			file,
+			['-v error', ...args],
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+			},
+			(error, stdout) => {
+				if (error) {
+					reject(error)
+				} else {
+					resolve(stdout)
+				}
+			}
+		)
+	})
+}
+
+function replaceFileExtension(inputFile: string, newExt: string): string {
+	let outputFile = inputFile.replace(/\..+$/i, newExt)
+
+	// Handle files with no extension
+	if (!outputFile.endsWith(newExt)) {
+		outputFile = outputFile + newExt
+	}
+
+	return outputFile
+}
+
+async function sleep(duration: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(() => resolve(), duration)
+	})
+}

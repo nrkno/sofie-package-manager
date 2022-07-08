@@ -6,7 +6,7 @@ import {
 	Expectation,
 	PackageContainerExpectation,
 	Reason,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a AppContainer, to be called from the Workforce
@@ -15,7 +15,8 @@ import {
  */
 export class AppContainerAPI
 	extends AdapterServer<WorkForceAppContainer.WorkForce, WorkForceAppContainer.AppContainer>
-	implements WorkForceAppContainer.AppContainer {
+	implements WorkForceAppContainer.AppContainer
+{
 	constructor(
 		methods: WorkForceAppContainer.WorkForce,
 		options: AdapterServerOptions<WorkForceAppContainer.AppContainer>
@@ -28,6 +29,9 @@ export class AppContainerAPI
 	}
 	async _debugKill(): Promise<void> {
 		return this._sendMessage('_debugKill')
+	}
+	async _debugSendKillConnections(): Promise<void> {
+		return this._sendMessage('_debugSendKillConnections')
 	}
 
 	async requestAppTypeForExpectation(

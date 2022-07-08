@@ -7,7 +7,7 @@ import cors from '@koa/cors'
 import multer from '@koa/multer'
 import bodyParser from 'koa-bodyparser'
 
-import { HTTPServerConfig, LoggerInstance, stringifyError } from '@shared/api'
+import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
 import { CTX } from './lib'
@@ -20,8 +20,10 @@ export class PackageProxyServer {
 	private upload = multer({ limits: { fileSize: 300 * 1024 * 1024 } })
 
 	private storage: Storage
+	private logger: LoggerInstance
 
-	constructor(private logger: LoggerInstance, private config: HTTPServerConfig) {
+	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
+		this.logger = logger.category('PackageProxyServer')
 		this.app.on('error', (err) => {
 			const errString = stringifyError(err)
 
@@ -29,7 +31,7 @@ export class PackageProxyServer {
 			if (errString.match(/ECONNRESET|ECONNABORTED|ECANCELED/)) {
 				// ignore these
 			} else {
-				this.logger.warn(`PackageProxyServer Error: ${errString}`)
+				this.logger.error(`PackageProxyServer Error: ${errString}`)
 			}
 		})
 
@@ -53,7 +55,7 @@ export class PackageProxyServer {
 
 		await this._setUpRoutes()
 	}
-	private _setUpRoutes(): Promise<void> {
+	private async _setUpRoutes(): Promise<void> {
 		this.router.all('*', async (ctx, next) => {
 			// Intercept and authenticate:
 
@@ -76,25 +78,32 @@ export class PackageProxyServer {
 				}
 			}
 
+			this.logger.warn(`[403] ${ctx.request.URL}`)
+
 			ctx.response.status = 403
 			ctx.body = 'Api key "?apiKey=API_KEY" missing or is invalid.'
 		})
 
 		this.router.get('/packages', async (ctx) => {
-			await this.handleStorage(ctx, () => this.storage.listPackages(ctx))
+			await this.handleStorage(ctx, async () => this.storage.listPackages(ctx))
 		})
 		this.router.get('/package/:path+', async (ctx) => {
-			await this.handleStorage(ctx, () => this.storage.getPackage(ctx.params.path, ctx))
+			await this.handleStorage(ctx, async () => this.storage.getPackage(ctx.params.path, ctx))
+		})
+		this.router.head('/package/:path+', async (ctx) => {
+			await this.handleStorage(ctx, async () => this.storage.headPackage(ctx.params.path, ctx))
 		})
 		this.router.post('/package/:path+', async (ctx) => {
-			await this.handleStorage(ctx, () => this.storage.postPackage(ctx.params.path, ctx))
+			this.logger.debug(`POST ${ctx.request.URL}`)
+			await this.handleStorage(ctx, async () => this.storage.postPackage(ctx.params.path, ctx))
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
-			await this.handleStorage(ctx, () => this.storage.deletePackage(ctx.params.path, ctx))
+			this.logger.debug(`DELETE ${ctx.request.URL}`)
+			await this.handleStorage(ctx, async () => this.storage.deletePackage(ctx.params.path, ctx))
 		})
 
 		// Convenient pages:
-		this.router.get('/', async (ctx, next) => {
+		this.router.get('/', async (ctx) => {
 			let packageJson = { version: '0.0.0' }
 			try {
 				packageJson = JSON.parse(
@@ -106,17 +115,21 @@ export class PackageProxyServer {
 				// ignore
 			}
 			ctx.body = { name: 'Package proxy server', version: packageJson.version }
-			await next()
 		})
 		this.router.get('/uploadForm/:path+', async (ctx) => {
 			// ctx.response.status = result.code
 			ctx.type = 'text/html'
 			ctx.body = (await fsReadFile('./static/uploadForm.html', 'utf-8'))
 				.replace('$path', `/package/${ctx.params.path}`)
-				.replace('$apiKey', ctx.request.query.apiKey)
+				.replace('$apiKey', first(ctx.request.query.apiKey) ?? '')
 		})
 
 		this.app.use(this.router.routes()).use(this.router.allowedMethods())
+
+		this.app.use((ctx) => {
+			ctx.body = 'Page not found'
+			ctx.response.status = 404
+		})
 
 		return new Promise<void>((resolve, reject) => {
 			if (this.config.httpServer.port) {

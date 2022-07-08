@@ -11,9 +11,24 @@ import {
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
 	WorkerAgentConfig,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import { SetupPackageContainerMonitorsResult } from './accessorHandlers/genericHandle'
 import { IWorkInProgress } from './lib/workInProgress'
+
+export interface GenericWorkerAgentAPI {
+	config: WorkerAgentConfig
+	location: WorkerLocation
+	/**
+	 * Aquire a read/write lock to a data point, then write the result of the callback to it.
+	 * This is used to prevent multiple workers from working on the same data point at the same time.
+	 */
+	workerStorageWrite: <T>(
+		dataId: string,
+		customTimeout: number | undefined,
+		cb: (current: T | undefined) => Promise<T> | T
+	) => Promise<void>
+	workerStorageRead: <T>(dataId: string) => Promise<T | undefined>
+}
 
 /**
  * A Worker runs static stateless/lambda functions.
@@ -25,8 +40,7 @@ export abstract class GenericWorker {
 
 	constructor(
 		public logger: LoggerInstance,
-		public readonly genericConfig: WorkerAgentConfig,
-		public readonly location: WorkerLocation,
+		public readonly agentAPI: GenericWorkerAgentAPI,
 		public sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker,
 		public type: string
 	) {}

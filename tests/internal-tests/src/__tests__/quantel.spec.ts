@@ -1,6 +1,6 @@
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import * as QGatewayClientOrg from 'tv-automation-quantel-gateway-client'
-import { Expectation, literal } from '@shared/api'
+import { Expectation, literal } from '@sofie-package-manager/api'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
 import { waitTime } from './lib/lib'

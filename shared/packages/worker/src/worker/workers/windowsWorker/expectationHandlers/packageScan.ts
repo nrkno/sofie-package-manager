@@ -1,8 +1,8 @@
-import { Accessor } from '@sofie-automation/blueprints-integration'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -11,7 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
-} from '@shared/api'
+} from '@sofie-package-manager/api'
 import {
 	isCorePackageInfoAccessorHandle,
 	isFileShareAccessorHandle,
@@ -234,7 +234,7 @@ function isPackageScan(exp: Expectation.Any): exp is Expectation.PackageScan {
 }
 type Metadata = any // not used
 
-function lookupScanSources(
+async function lookupScanSources(
 	worker: GenericWorker,
 	exp: Expectation.PackageScan
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -250,7 +250,7 @@ function lookupScanSources(
 		}
 	)
 }
-function lookupScanTargets(
+async function lookupScanTargets(
 	worker: GenericWorker,
 	exp: Expectation.PackageScan
 ): Promise<LookupPackageContainer<Metadata>> {

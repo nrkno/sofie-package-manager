@@ -4,12 +4,24 @@ import {
 	PeripheralDeviceAPI as P,
 	DDPConnectorOptions,
 	CollectionObj,
+	Observer,
+	Collection,
 } from '@sofie-automation/server-core-integration'
 
 import { DeviceConfig } from './connector'
 
 import fs from 'fs'
-import { LoggerInstance, PackageManagerConfig, ProcessHandler, stringifyError } from '@shared/api'
+import {
+	LoggerInstance,
+	PackageManagerConfig,
+	ProcessHandler,
+	StatusCode,
+	Statuses,
+	stringifyError,
+	hashObj,
+	setLogLevel,
+	getLogLevel,
+} from '@sofie-package-manager/api'
 import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
@@ -36,14 +48,16 @@ export interface PeripheralDeviceCommand {
  * Represents a connection between the Gateway and Core
  */
 export class CoreHandler {
-	core!: CoreConnection
-	logger: LoggerInstance
+	private logger: LoggerInstance
 	public _observers: Array<any> = []
 	public deviceSettings: { [key: string]: any } = {}
 
 	public delayRemoval = 0
 	public delayRemovalPackageInfo = 0
 	public useTemporaryFilePath = false
+	public notUsingCore = false
+
+	private core!: CoreConnection
 
 	private _deviceOptions: DeviceConfig
 	private _onConnected?: () => any
@@ -54,9 +68,11 @@ export class CoreHandler {
 
 	private _statusInitialized = false
 	private _statusDestroyed = false
+	private statuses: Statuses = {}
+	private reportedStatusHash = ''
 
 	constructor(logger: LoggerInstance, deviceOptions: DeviceConfig) {
-		this.logger = logger
+		this.logger = logger.category('CoreHandler')
 		this._deviceOptions = deviceOptions
 	}
 
@@ -113,6 +129,10 @@ export class CoreHandler {
 			process.exit(1) // eslint-disable-line no-process-exit
 			return
 		}
+	}
+	setNoCore(): void {
+		// This is used when PackageManager is used as a standalone app
+		this.notUsingCore = true
 	}
 	setPackageManagerHandler(handler: PackageManagerHandler): void {
 		this._packageManagerHandler = handler
@@ -211,19 +231,21 @@ export class CoreHandler {
 				this.deviceSettings = {}
 			}
 
-			const logLevel = this.deviceSettings['debugLogging'] ? 'debug' : 'info'
-			if (logLevel !== this.logger.level) {
-				this.logger.level = logLevel
+			const logLevel = this.deviceSettings['logLevel'] ?? 'info'
+			if (logLevel !== getLogLevel()) {
+				setLogLevel(logLevel)
 
-				this.logger.info('Loglevel: ' + this.logger.level)
+				this.logger.info('Loglevel: ' + getLogLevel())
 
 				// this.logger.debug('Test debug logging')
-				// // @ts-ignore
+				// this.logger.verbose('Test verbose')
+				// this.logger.info('Test info')
+				// this.logger.warn('Test warn')
+				// this.logger.error('Test error')
 				// this.logger.debug({ msg: 'test msg' })
-				// // @ts-ignore
 				// this.logger.debug({ message: 'test message' })
-				// // @ts-ignore
 				// this.logger.debug({ command: 'test command', context: 'test context' })
+				// this.logger.error('Testing error', new Error('This is the error'))
 
 				// this.logger.debug('End test debug logging')
 			}
@@ -242,9 +264,6 @@ export class CoreHandler {
 				this._packageManagerHandler.onSettingsChanged()
 			}
 		}
-	}
-	get logDebug(): boolean {
-		return !!this.deviceSettings['debugLogging']
 	}
 
 	executeFunction(cmd: PeripheralDeviceCommand): void {
@@ -291,6 +310,24 @@ export class CoreHandler {
 	}
 	retireExecuteFunction(cmdId: string): void {
 		delete this._executedFunctions[cmdId]
+	}
+	observe(collectionName: string): Observer {
+		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
+		if (!this.core) throw new Error('Core not initialized!')
+		return this.core.observe(collectionName)
+	}
+	getCollection(collectionName: string): Collection {
+		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
+		if (!this.core) throw new Error('Core not initialized!')
+		return this.core.getCollection(collectionName)
+	}
+	async callMethod(methodName: string, attrs?: any[]): Promise<any> {
+		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
+		if (!this.core) throw new Error('Core not initialized!')
+		return this.core.callMethod(methodName, attrs)
+	}
+	get coreConnected(): boolean {
+		return this.core?.connected || false
 	}
 	setupObserverForPeripheralDeviceCommands(): void {
 		const observer = this.core.observe('peripheralDeviceCommands')
@@ -349,21 +386,12 @@ export class CoreHandler {
 		this.logger.info('getDevicesInfo')
 
 		return []
-		// const devices: any[] = []
-		// if (this._tsrHandler) {
-		// 	for (const device of this._tsrHandler.tsr.getDevices()) {
-		// 		devices.push({
-		// 			instanceId: device.instanceId,
-		// 			deviceId: device.deviceId,
-		// 			deviceName: device.deviceName,
-		// 			startTime: device.startTime,
-		// 			upTime: Date.now() - device.startTime,
-		// 		})
-		// 	}
-		// }
-		// return devices
 	}
-	updateCoreStatus(): Promise<any> {
+	async setStatus(statuses: Statuses): Promise<any> {
+		this.statuses = statuses
+		await this.updateCoreStatus()
+	}
+	private async updateCoreStatus(): Promise<any> {
 		let statusCode = P.StatusCode.GOOD
 		const messages: Array<string> = []
 
@@ -376,10 +404,24 @@ export class CoreHandler {
 			messages.push('Shut down')
 		}
 
-		return this.core.setStatus({
-			statusCode: statusCode,
-			messages: messages,
-		})
+		if (statusCode === P.StatusCode.GOOD) {
+			for (const status of Object.values(this.statuses)) {
+				if (status && status.statusCode !== StatusCode.GOOD) {
+					statusCode = Math.max(statusCode, status.statusCode)
+					messages.push(status.message)
+				}
+			}
+		}
+
+		const statusHash = hashObj({ statusCode, messages })
+		if (this.reportedStatusHash !== statusHash) {
+			this.reportedStatusHash = statusHash
+
+			await this.core.setStatus({
+				statusCode: statusCode,
+				messages: messages,
+			})
+		}
 	}
 	private _getVersions() {
 		const versions: { [packageName: string]: string } = {}

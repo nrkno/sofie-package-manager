@@ -1,4 +1,3 @@
-import { Accessor, AccessorOnPackage } from '@sofie-automation/blueprints-integration'
 import {
 	GenericAccessorHandle,
 	PackageReadInfo,
@@ -6,7 +5,7 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { hashObj, Expectation, Reason } from '@shared/api'
+import { Accessor, AccessorOnPackage, hashObj, Expectation, Reason } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 
 /** Accessor handle for accessing data store in Core */
@@ -213,7 +212,11 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'removePackageInfo',
-					arguments: [infoType, fromPackage.id, exp.workOptions.removeDelay],
+					arguments: [
+						infoType,
+						fromPackage.id,
+						(exp.workOptions as Expectation.WorkOptions.RemoveDelay).removeDelay,
+					],
 				})
 			)
 		}
