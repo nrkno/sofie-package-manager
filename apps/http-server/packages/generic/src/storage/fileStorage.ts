@@ -17,12 +17,18 @@ const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
 
 export class FileStorage extends Storage {
-	constructor(private config: HTTPServerConfig) {
+	private _basePath: string
+	constructor(config: HTTPServerConfig) {
 		super()
+		this._basePath = path.resolve(config.httpServer.basePath)
+	}
+
+	getInfo(): string {
+		return this._basePath
 	}
 
 	async init(): Promise<void> {
-		await mkdirp(this.config.httpServer.basePath)
+		await mkdirp(this._basePath)
 	}
 
 	async listPackages(ctx: CTX): Promise<true | BadResponse> {
@@ -55,7 +61,7 @@ export class FileStorage extends Storage {
 			)
 		}
 
-		await getAllFiles(this.config.httpServer.basePath, '')
+		await getAllFiles(this._basePath, '')
 
 		packages.sort((a, b) => {
 			if (a.path > b.path) return 1
@@ -79,7 +85,7 @@ export class FileStorage extends Storage {
 				lastModified: Date
 		  }
 	> {
-		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
+		const fullPath = path.join(this._basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
 			return { found: false }
@@ -133,7 +139,7 @@ export class FileStorage extends Storage {
 		return true
 	}
 	async postPackage(paramPath: string, ctx: CTXPost): Promise<true | BadResponse> {
-		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
+		const fullPath = path.join(this._basePath, paramPath)
 
 		await mkdirp(path.dirname(fullPath))
 
@@ -161,7 +167,7 @@ export class FileStorage extends Storage {
 		}
 	}
 	async deletePackage(paramPath: string, ctx: CTXPost): Promise<true | BadResponse> {
-		const fullPath = path.join(this.config.httpServer.basePath, paramPath)
+		const fullPath = path.join(this._basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
 			return { code: 404, reason: 'Package not found' }

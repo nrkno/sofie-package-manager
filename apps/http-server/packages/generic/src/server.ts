@@ -114,7 +114,7 @@ export class PackageProxyServer {
 			} catch (err) {
 				// ignore
 			}
-			ctx.body = { name: 'Package proxy server', version: packageJson.version }
+			ctx.body = { name: 'Package proxy server', version: packageJson.version, info: this.storage.getInfo() }
 		})
 		this.router.get('/uploadForm/:path+', async (ctx) => {
 			// ctx.response.status = result.code
