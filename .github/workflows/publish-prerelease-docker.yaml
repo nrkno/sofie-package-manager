@@ -12,11 +12,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Get the Docker tag
-        id: docker-tag
-        uses: yuya-takeyama/docker-tag-from-github-ref-action@2b0614b1338c8f19dd9d3ea433ca9bc0cc7057ba
-        with:
-          remove-version-tag-prefix: false
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
@@ -29,4 +24,4 @@ jobs:
         with:
           push: true
           file: apps/http-server/app/Dockerfile
-          tags: sofietv/package-manager-http-server:${{ steps.docker-tag.outputs.tag }}
+          tags: sofietv/package-manager-http-server:nightly
