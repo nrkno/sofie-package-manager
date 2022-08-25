@@ -25,3 +25,9 @@ jobs:
           push: true
           file: apps/http-server/app/Dockerfile
           tags: sofietv/package-manager-http-server:nightly
+      - name: Quantel HTTP Transformer Proxy - Build Docker and push
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          file: apps/quantel-http-transformer-proxy/app/Dockerfile
+          tags: sofietv/quantel-http-transformer-proxy:nightly
