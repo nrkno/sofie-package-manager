@@ -12,7 +12,7 @@ WORKDIR /src
 # Common
 
 
-COPY package.json tsconfig.json tsconfig.build.json yarn.lock lerna.json ./
+COPY package.json tsconfig.json tsconfig.build.json yarn.lock lerna.json commonPackage.json ./
 COPY scripts ./scripts
 
 # Shared dependencies
