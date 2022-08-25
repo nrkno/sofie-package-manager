@@ -30,4 +30,4 @@ jobs:
         with:
           push: true
           file: apps/quantel-http-transformer-proxy/app/Dockerfile
-          tags: sofietv/quantel-http-transformer-proxy:nightly
+          tags: sofietv/package-manager-quantel-http-transformer-proxy:nightly
