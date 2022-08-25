@@ -1,4 +1,4 @@
-name: Publish Docker - Nightly
+name: Publish Docker
 
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -29,4 +29,4 @@ jobs:
         with:
           push: true
           file: apps/http-server/app/Dockerfile
-          tags: sofietv/package-manager-http-server:nightly
+          tags: sofietv/package-manager-http-server:${{ steps.docker-tag.outputs.tag }}
