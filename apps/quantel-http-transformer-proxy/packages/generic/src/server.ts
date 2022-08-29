@@ -121,11 +121,9 @@ export class QuantelHTTPTransformerProxy {
 			}
 		})
 		this.router.get('/*', async (ctx, next) => {
+			const url = `${this.transformerURL}${ctx.path}` + (ctx.querystring ? `?${ctx.querystring}` : '')
 			try {
-				const initReq = await got(
-					`${this.transformerURL}${ctx.path}` + (ctx.querystring ? `?${ctx.querystring}` : ''),
-					{ responseType: 'buffer' }
-				)
+				const initReq = await got(url, { responseType: 'buffer' })
 				ctx.type = initReq.headers['content-type'] || 'application/octet-stream'
 				ctx.body = initReq.body
 
@@ -143,6 +141,7 @@ export class QuantelHTTPTransformerProxy {
 				} else {
 					ctx.status = 502
 					ctx.body = 'Bad Gateway'
+					this.logger.error(`Error when requesting URL "${url}"`)
 					this.logger.error(JSON.stringify(err))
 					return
 				}
