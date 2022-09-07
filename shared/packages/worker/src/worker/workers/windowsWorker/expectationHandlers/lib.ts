@@ -358,6 +358,7 @@ export function proxyFFMpegArguments(
 	targetHandle: LocalFolderAccessorHandle<any> | FileShareAccessorHandle<any> | HTTPProxyAccessorHandle<any>
 ): string[] {
 	const args = [
+		'-hide_banner',
 		'-y', // Overwrite output files without asking.
 		seekableSource ? undefined : '-seekable 0',
 		`-i "${input}"`, // Input file path
