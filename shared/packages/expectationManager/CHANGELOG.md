@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.39.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0-in-development.1...v1.39.0) (2022-09-07)
+
+
+### Bug Fixes
+
+* add chaosMonkey CLI option ([077bb2e](https://github.com/nrkno/tv-automation-package-manager/commit/077bb2e0eb12b51943b37cc6b0b67a00897e1cf2))
+* expectationManager should cancel a workInProgress it thinks has timed out ([4658bd3](https://github.com/nrkno/tv-automation-package-manager/commit/4658bd320e8950ba255990808fc7de95a6bb3e50))
+* Implement a "chaos monkey" that cuts connections between the processes. This is to ensure that reconnections works as they should. ([45b05af](https://github.com/nrkno/tv-automation-package-manager/commit/45b05afde8fc9a755bee9f15385f8f7b59360e2d))
+* improve logging, adding categories for logger to make it easier to know where a lig line comes from ([db18a35](https://github.com/nrkno/tv-automation-package-manager/commit/db18a35e841169f0ace1b3d42db2b9932c15f88d))
+* improve some logging/explanations ([f8fd2b4](https://github.com/nrkno/tv-automation-package-manager/commit/f8fd2b4a1d3628cce2c7dd9a0e088be34526c805))
+* increase the delay for waiting for progress updates from jobs ([a836fb8](https://github.com/nrkno/tv-automation-package-manager/commit/a836fb8aad02d33778a33d8eab0dc391e0c3bb99))
+* only do a single job per worker ([fc94d3c](https://github.com/nrkno/tv-automation-package-manager/commit/fc94d3c64b468475625adb510290321b52fddf3d))
+
+
+
+
+
 # [1.39.0-in-development.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0-in-development.0...v1.39.0-in-development.1) (2022-02-15)
 
 ### Bug Fixes

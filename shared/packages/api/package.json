@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/api",
-    "version": "1.39.0-in-development.1",
+    "version": "1.39.0",
     "main": "dist/index",
     "types": "dist/index",
     "files": [
