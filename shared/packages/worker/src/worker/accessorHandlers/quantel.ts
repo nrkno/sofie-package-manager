@@ -407,18 +407,14 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 			// Note: We need to store a Promise<QuantelGateway> in the cache because otherwise many QuantelGateways
 			// can be created if multiple calls to this are done synchronously.
-			pGateway = new Promise((resolve, reject) => {
-				const gateway = new QuantelGateway()
-				this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
-				gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway: ${JSON.stringify(e)}`))
 
-				gateway
-					.init(quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
-					.then(() => {
-						resolve(gateway)
-					})
-					.catch(reject)
-			})
+			const gateway = new QuantelGateway()
+			this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
+			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway: ${JSON.stringify(e)}`))
+
+			pGateway = gateway
+				.init(quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
+				.then(() => gateway)
 
 			cacheGateways[id] = pGateway
 		}
