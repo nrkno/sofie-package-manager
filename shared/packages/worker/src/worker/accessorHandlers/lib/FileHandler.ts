@@ -186,7 +186,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 		let triggerSendUpdateTimeout: NodeJS.Timeout | null = null
 		let triggerSendUpdateIsRunning = false
+		let triggerSendUpdateRunAgain = false
 		const triggerSendUpdate = () => {
+			triggerSendUpdateRunAgain = false
 			if (triggerSendUpdateTimeout) {
 				clearTimeout(triggerSendUpdateTimeout)
 			}
@@ -194,7 +196,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 				triggerSendUpdateTimeout = null
 
 				if (triggerSendUpdateIsRunning) {
-					triggerSendUpdate() // try again later
+					triggerSendUpdateRunAgain = true
+					return
 				}
 
 				;(async () => {
@@ -277,9 +280,11 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					})
 
 					triggerSendUpdateIsRunning = false
+					if (triggerSendUpdateRunAgain) triggerSendUpdate()
 				})().catch((err) => {
 					triggerSendUpdateIsRunning = false
 					this.worker.logger.error(`Error in FileHandler triggerSendUpdate:${stringifyError(err)}`)
+					if (triggerSendUpdateRunAgain) triggerSendUpdate()
 				})
 			}, 1000) // Wait just a little bit, to avoid doing multiple updates
 		}

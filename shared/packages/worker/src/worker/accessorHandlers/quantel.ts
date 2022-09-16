@@ -384,7 +384,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	}
 	private async getQuantelGateway(): Promise<QuantelGateway> {
 		/** Persistant store for Quantel gatews */
-		const cacheGateways = this.ensureCache<Record<string, QuantelGateway>>('gateways', {})
+		const cacheGateways = this.ensureCache<Record<string, Promise<QuantelGateway>>>('gateways', {})
 
 		// These errors are just for types. User-facing checks are done in this.checkAccessor()
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
@@ -399,17 +399,27 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			ISAUrls = (ISAUrls as string).split(',')
 		}
 
-		let gateway: QuantelGateway = cacheGateways[id]
+		let pGateway: Promise<QuantelGateway> | undefined = cacheGateways[id]
 
-		if (!gateway) {
-			gateway = new QuantelGateway()
+		// eslint-disable-next-line @typescript-eslint/no-misused-promises
+		if (!pGateway) {
+			const quantelGatewayUrl = this.accessor.quantelGatewayUrl
+
+			// Note: We need to store a Promise<QuantelGateway> in the cache because otherwise many QuantelGateways
+			// can be created if multiple calls to this are done synchronously.
+
+			const gateway = new QuantelGateway()
 			this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
-			await gateway.init(this.accessor.quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
-
 			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway: ${JSON.stringify(e)}`))
 
-			cacheGateways[id] = gateway
+			pGateway = gateway
+				.init(quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
+				.then(() => gateway)
+
+			cacheGateways[id] = pGateway
 		}
+
+		const gateway: QuantelGateway = await pGateway
 
 		// Verify that the cached gateway matches what we want:
 		// The reason for this is that a Quantel gateway is pointed at an ISA-setup on startup,

@@ -13,6 +13,8 @@ export function expectedPackageIsSmartbull(packageWrap: ExpectedPackageWrap): bo
 	return !!packageWrap.expectedPackage._id.match(/smartbull_auto_clip/)
 }
 export function expectedPackageIsSmartbullSource(packageWrap: ExpectedPackageWrap): boolean {
+	if (expectedPackageIsSmartbull(packageWrap)) return false
+
 	if (
 		packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE &&
 		packageWrap.sources.find((source) => source.containerId === 'source-smartbull')
