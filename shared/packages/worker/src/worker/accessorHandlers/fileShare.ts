@@ -327,7 +327,10 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
+				const options = packageContainerExp.cronjobs[cronjob]
+
 				badReason = await this.removeDuePackages()
+				if (!badReason && options?.cleanFileAge) badReason = await this.cleanupOldFiles(options.cleanFileAge)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)

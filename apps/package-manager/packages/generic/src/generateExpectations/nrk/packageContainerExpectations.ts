@@ -1,5 +1,6 @@
 import { ActivePlaylist, PackageContainers } from '../../packageManager'
 import { PackageContainerExpectation } from '@sofie-package-manager/api'
+import { SMARTBULL_STORAGE_ID, TEMPORARY_STORAGE_ID } from './lib'
 
 export function getPackageContainerExpectations(
 	managerId: string,
@@ -29,7 +30,7 @@ export function getPackageContainerExpectations(
 
 		// This is a hard-coded hack for the "smartbull" feature,
 		// to be replaced or moved out later:
-		if (containerId === 'source-smartbull') {
+		if (containerId === SMARTBULL_STORAGE_ID) {
 			o[containerId] = {
 				...packageContainer,
 				id: containerId,
@@ -43,6 +44,22 @@ export function getPackageContainerExpectations(
 						awaitWriteFinishStabilityThreshold: 2000,
 					},
 				},
+			}
+		}
+		// There is a risk that the temporary storage gets a few old files left behind.
+		// Therefore we specifically set the cronjob to remove those:
+		if (containerId === TEMPORARY_STORAGE_ID) {
+			o[containerId] = {
+				...packageContainer,
+				id: containerId,
+				managerId: managerId,
+				cronjobs: {
+					cleanup: {
+						label: 'Clean up old packages and old files',
+						cleanFileAge: 30 * 24 * 3600, // 30 days
+					},
+				},
+				monitors: {},
 			}
 		}
 	}

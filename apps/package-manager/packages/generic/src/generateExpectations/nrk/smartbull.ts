@@ -1,6 +1,7 @@
 import { ExpectedPackageWrap } from '../../packageManager'
 import { ExpectedPackage, LoggerInstance } from '@sofie-package-manager/api'
 import { ExpectedPackageWrapMediaFile, PriorityMagnitude } from './types'
+import { SMARTBULL_STORAGE_ID } from './lib'
 
 export function shouldBeIgnored(packageWrap: ExpectedPackageWrap): boolean {
 	// Ignore the original smartbull package:
@@ -17,7 +18,7 @@ export function expectedPackageIsSmartbullSource(packageWrap: ExpectedPackageWra
 
 	if (
 		packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE &&
-		packageWrap.sources.find((source) => source.containerId === 'source-smartbull')
+		packageWrap.sources.find((source) => source.containerId === SMARTBULL_STORAGE_ID)
 	) {
 		if ((packageWrap as ExpectedPackageWrapMediaFile).expectedPackage.content.filePath.match(/^smartbull/)) {
 			// the files are on the form "smartbull_TIMESTAMP.mxf/mp4"

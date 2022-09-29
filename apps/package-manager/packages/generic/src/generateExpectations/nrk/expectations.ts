@@ -22,8 +22,7 @@ import {
 	generatePackageCopyFileProxy,
 } from './expectations-lib'
 import { getSmartbullExpectedPackages, shouldBeIgnored } from './smartbull'
-
-const TEMPORARY_STORAGE_ID = 'temporary-storage'
+import { TEMPORARY_STORAGE_ID } from './lib'
 
 /** Generate and return the appropriate Expectations based on the provided expectedPackages */
 export function getExpectations(

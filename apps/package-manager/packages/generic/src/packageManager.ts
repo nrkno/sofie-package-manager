@@ -385,17 +385,18 @@ export class PackageManagerHandler {
 					...packageContainer,
 					id: containerId,
 					managerId: this.expectationManager.managerId,
-					cronjobs: {
-						// interval: 0,
-					},
+					cronjobs: {},
 					monitors: {},
 				})
 			}
 			if (isWriteable) {
 				// All writeable packageContainers should have the clean-up cronjob:
-				packageContainerExpectations[containerId].cronjobs.cleanup = {
-					label: 'Clean up old packages',
-				} // Add cronjob to clean up
+				if (!packageContainerExpectations[containerId].cronjobs.cleanup) {
+					// Add cronjob to clean up:
+					packageContainerExpectations[containerId].cronjobs.cleanup = {
+						label: 'Clean up old packages',
+					}
+				}
 			}
 		}
 	}

@@ -1673,6 +1673,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					isUpdated: true,
 					removed: false,
 					lastEvaluationTime: 0,
+					lastCronjobTime: 0,
 					monitorIsSetup: false,
 					status: {
 						status: StatusCode.UNKNOWN,
