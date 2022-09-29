@@ -63,7 +63,7 @@ export class PackageProxyServer {
 				ctx.request.query?.apiKey || // Querystring parameter
 				ctx.request.body?.apiKey // Body parameter
 
-			if (ctx.request.method === 'GET') {
+			if (ctx.request.method === 'GET' || ctx.request.method === 'HEAD') {
 				if (
 					// Both read and write keys are accepted for GET requests
 					!this.config.httpServer.apiKeyRead ||
