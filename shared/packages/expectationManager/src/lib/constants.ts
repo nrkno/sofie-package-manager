@@ -25,6 +25,9 @@ export interface ExpectationManagerConstants {
 
 	/** How many times to try to remove a package upon fail */
 	FAILED_REMOVE_COUNT: number
+
+	/** Default interval for running cronjobs */
+	DEFAULT_CRONJOB_INTERVAL: number
 }
 
 export function getDefaultConstants(): ExpectationManagerConstants {
@@ -40,5 +43,6 @@ export function getDefaultConstants(): ExpectationManagerConstants {
 		ERROR_WAIT_TIME: 30 * 1000,
 
 		FAILED_REMOVE_COUNT: 2,
+		DEFAULT_CRONJOB_INTERVAL: 60 * 1000,
 	}
 }
