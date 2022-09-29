@@ -45,7 +45,7 @@ export class PackageProxyServer {
 		)
 
 		// todo: Add other storages?
-		this.storage = new FileStorage(this.config)
+		this.storage = new FileStorage(this.logger, this.config)
 	}
 
 	async init(): Promise<void> {

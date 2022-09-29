@@ -5,22 +5,28 @@ import mime from 'mime-types'
 import mkdirp from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
 import { CTX, CTXPost } from '../lib'
-import { HTTPServerConfig } from '@sofie-package-manager/api'
+import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
 const fsUnlink = promisify(fs.unlink)
+const fsRmDir = promisify(fs.rmdir)
 const fsReaddir = promisify(fs.readdir)
 const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
 
 export class FileStorage extends Storage {
 	private _basePath: string
-	constructor(config: HTTPServerConfig) {
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
 		super()
-		this._basePath = path.resolve(config.httpServer.basePath)
+		this._basePath = path.resolve(this.config.httpServer.basePath)
+		this.logger = logger.category('FileStorage')
+
+		// Run this on startup, so that if there are any critical errors we'll see them right away:
+		this.cleanupOldFiles().catch(this.logger.error)
 	}
 
 	getInfo(): string {
@@ -186,5 +192,74 @@ export class FileStorage extends Storage {
 		} catch (_err) {
 			return false
 		}
+	}
+	private async cleanupOldFiles() {
+		// Check the config. 0 or -1 means it's disabled:
+		if (this.config.httpServer.cleanFileAge <= 0) {
+			this.logger.info('Cleaning up old files is DISABLED')
+			return
+		}
+
+		this.logger.info(`Cleaning up files older than ${this.config.httpServer.cleanFileAge}s...`)
+
+		let fileCount = 0
+		let dirCount = 0
+		let removeFileCount = 0
+		let removeDirCount = 0
+
+		const cleanUpDirectory = async (dirPath: string, removeEmptyDir: boolean) => {
+			const now = Date.now()
+			const files = await fsReaddir(path.join(this._basePath, dirPath))
+
+			if (files.length === 0) {
+				if (removeEmptyDir) {
+					this.logger.debug(`Removing empty directory "${dirPath}"`)
+					await fsRmDir(path.join(this._basePath, dirPath))
+					removeDirCount++
+				}
+			} else {
+				for (const fileName of files) {
+					const filePath = path.join(dirPath, fileName)
+					const fullPath = path.join(this._basePath, filePath)
+					const lStat = await fsLstat(fullPath)
+					if (lStat.isDirectory()) {
+						dirCount++
+						await cleanUpDirectory(filePath, true)
+					} else {
+						fileCount++
+
+						const age = Math.floor((now - lStat.mtimeMs) / 1000) // in seconds
+
+						if (age > this.config.httpServer.cleanFileAge) {
+							this.logger.debug(`Removing file "${filePath}" (age: ${age}s)`)
+							await fsUnlink(fullPath)
+							removeFileCount++
+						}
+					}
+				}
+			}
+		}
+
+		try {
+			await cleanUpDirectory('', false)
+		} catch (error) {
+			this.logger.error(`Error when cleaning up: ${error}`)
+		}
+
+		this.logger.info(
+			`Done, removed ${removeFileCount} files and ${removeDirCount} directories (out of ${fileCount} files and ${dirCount} directories)`
+		)
+
+		// Schedule to run at 3:15 tomorrow:
+		const d = new Date()
+		const nextTime = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 3, 15, 0) // Tomorrow, at 3:15
+		const timeUntilNext = nextTime.getTime() - Date.now()
+
+		if (timeUntilNext <= 0) throw new Error(`timeUntilNext is negative! (${timeUntilNext})`)
+
+		this.logger.debug(`Next cleaning at ${nextTime.toISOString()} (in ${timeUntilNext}ms)`)
+		setTimeout(() => {
+			this.cleanupOldFiles().catch(this.logger.error)
+		}, timeUntilNext)
 	}
 }
