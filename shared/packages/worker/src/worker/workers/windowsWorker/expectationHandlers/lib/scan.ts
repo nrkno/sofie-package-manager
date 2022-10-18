@@ -231,7 +231,7 @@ export function scanMoreInfo(
 				targetVersion.blackDuration = targetVersion.blackDuration.slice(0, -1)
 			}
 			filterString +=
-				`blackdetect=d=${targetVersion.blackDuration || '2.0'}:` +
+				`blackdetect=d=${targetVersion.blackDuration || '0.2'}:` +
 				`pic_th=${targetVersion.blackRatio || 0.98}:` +
 				`pix_th=${targetVersion.blackThreshold || 0.1}`
 		}
