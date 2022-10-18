@@ -17,6 +17,14 @@ const fsReaddir = promisify(fs.readdir)
 const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
 
+type FileInfo = {
+	found: true
+	fullPath: string
+	mimeType: string
+	length: number
+	lastModified: Date
+}
+
 export class FileStorage extends Storage {
 	private _basePath: string
 	private logger: LoggerInstance
@@ -83,13 +91,9 @@ export class FileStorage extends Storage {
 		| {
 				found: false
 		  }
-		| {
+		| ({
 				found: true
-				fullPath: string
-				mimeType: string
-				length: number
-				lastModified: Date
-		  }
+		  } & FileInfo)
 	> {
 		const fullPath = path.join(this._basePath, paramPath)
 
@@ -120,9 +124,7 @@ export class FileStorage extends Storage {
 			return { code: 404, reason: 'Package not found' }
 		}
 
-		ctx.type = fileInfo.mimeType
-		ctx.length = fileInfo.length
-		ctx.lastModified = fileInfo.lastModified
+		this.setHeaders(fileInfo, ctx)
 
 		ctx.response.status = 204
 
@@ -132,13 +134,13 @@ export class FileStorage extends Storage {
 	}
 	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
 		const fileInfo = await this.getFileInfo(paramPath)
+
 		if (!fileInfo.found) {
 			return { code: 404, reason: 'Package not found' }
 		}
 
-		ctx.type = fileInfo.mimeType // or use mime.contentType(fullPath) ?
-		ctx.length = fileInfo.length
-		ctx.lastModified = fileInfo.lastModified
+		this.setHeaders(fileInfo, ctx)
+
 		const readStream = fs.createReadStream(fileInfo.fullPath)
 		ctx.body = readStream
 
@@ -261,5 +263,39 @@ export class FileStorage extends Storage {
 		setTimeout(() => {
 			this.cleanupOldFiles().catch(this.logger.error)
 		}, timeUntilNext)
+	}
+	/**
+	 * Set the headers for content requests (GET, HEAD), using provided FileInfo object
+	 *
+	 * @private
+	 * @param {FileInfo} info
+	 * @param {CTX} ctx
+	 * @memberof FileStorage
+	 */
+	private setHeaders(info: FileInfo, ctx: CTX) {
+		ctx.type = info.mimeType
+		ctx.length = info.length
+		ctx.lastModified = info.lastModified
+
+		// Check the config. 0 or -1 means it's disabled:
+		if (this.config.httpServer.cleanFileAge >= 0) {
+			ctx.set(
+				'Expires',
+				FileStorage.calculateExpiresTimestamp(info.lastModified, this.config.httpServer.cleanFileAge)
+			)
+		}
+	}
+	/**
+	 * Calculate the expiration timestamp, given a starting Date point and timespan duration
+	 *
+	 * @private
+	 * @static
+	 * @param {Date} begin
+	 * @param {number} durationS in seconds
+	 * @return {*}
+	 * @memberof FileStorage
+	 */
+	private static calculateExpiresTimestamp(begin: Date, durationS: number) {
+		return new Date(begin.getTime() + durationS * 1000).toUTCString()
 	}
 }
