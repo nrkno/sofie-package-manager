@@ -16,6 +16,8 @@ export interface PackageContainerExpectation extends PackageContainer {
 		interval?: number
 		cleanup?: {
 			label: string
+			/** If set, untracked files will also be removed after this time (in seconds) */
+			cleanFileAge?: number
 		}
 	}
 	/** Defines which monitors are expected to run */

@@ -155,6 +155,11 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 				// ignore
 			} else if (cronjob === 'cleanup') {
 				badReason = await this.removeDuePackages()
+				const options = packageContainerExp.cronjobs[cronjob]
+				badReason = await this.removeDuePackages()
+				if (!badReason && options?.cleanFileAge) {
+					// Not supported, since we aren't able to properly list all untracked files on a generic http-server
+				}
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)

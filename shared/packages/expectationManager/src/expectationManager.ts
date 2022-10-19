@@ -1673,6 +1673,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 					isUpdated: true,
 					removed: false,
 					lastEvaluationTime: 0,
+					lastCronjobTime: 0,
 					monitorIsSetup: false,
 					status: {
 						status: StatusCode.UNKNOWN,
@@ -1891,21 +1892,28 @@ export class ExpectationManager extends HelpfulEventEmitter {
 						}
 					}
 
-					const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
-						trackedPackageContainer.packageContainer
-					)
-					if (!cronJobStatus.success) {
-						badStatus = true
-						this.logger.verbose(
-							`ExpectationManager._evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not suceed: ${JSON.stringify(
-								cronJobStatus.reason
-							)}`
+					const cronjobInterval =
+						trackedPackageContainer.packageContainer.cronjobs.interval ||
+						this.constants.DEFAULT_CRONJOB_INTERVAL
+					const timeSinceLastCronjob = Date.now() - trackedPackageContainer.lastCronjobTime
+					if (timeSinceLastCronjob > cronjobInterval) {
+						trackedPackageContainer.lastCronjobTime = Date.now()
+						const cronJobStatus = await workerAgent.api.runPackageContainerCronJob(
+							trackedPackageContainer.packageContainer
 						)
-						this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
-							user: 'Cron job not completed, due to: ' + cronJobStatus.reason.user,
-							tech: 'Cron job not completed, due to: ' + cronJobStatus.reason.tech,
-						})
-						continue
+						if (!cronJobStatus.success) {
+							badStatus = true
+							this.logger.error(
+								`ExpectationManager._evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not suceed: ${JSON.stringify(
+									cronJobStatus.reason
+								)}`
+							)
+							this.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
+								user: 'Cron job not completed, due to: ' + cronJobStatus.reason.user,
+								tech: 'Cron job not completed, due to: ' + cronJobStatus.reason.tech,
+							})
+							continue
+						}
 					}
 				}
 
@@ -2271,6 +2279,9 @@ interface TrackedPackageContainerExpectation {
 
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
+
+	/** Timestamp of the last time the cronjob was run */
+	lastCronjobTime: number
 
 	/** If the monitor is set up okay */
 	monitorIsSetup: boolean

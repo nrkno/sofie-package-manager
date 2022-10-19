@@ -26,9 +26,12 @@ export const FileShareAccessorHandleType = 'fileShare'
 
 const fsAccess = promisify(fs.access)
 const fsReadFile = promisify(fs.readFile)
+const fsReaddir = promisify(fs.readdir)
+const fsRmDir = promisify(fs.rmdir)
 const fsStat = promisify(fs.stat)
 const fsWriteFile = promisify(fs.writeFile)
 const fsUnlink = promisify(fs.unlink)
+const fsLstat = promisify(fs.lstat)
 
 /**
  * This class handles things that are common between the Localfolder and FileShare classes
@@ -355,6 +358,56 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			// checksum?: string
 			// checkSumType?: 'sha' | 'md5' | 'whatever'
 		}
+	}
+
+	/** Clean up (remove) files older than a certain time */
+	public async cleanupOldFiles(
+		/** Remove files older than this age (in seconde) */
+		cleanFileAge: number
+	): Promise<Reason | null> {
+		// Check the config. 0 or -1 means it's disabled:
+		if (cleanFileAge <= 0) {
+			return {
+				user: 'Internal error',
+				tech: `cleanFileAge is ${cleanFileAge}`,
+			}
+		}
+
+		const cleanUpDirectory = async (dirPath: string, removeEmptyDir: boolean) => {
+			const now = Date.now()
+			const files = await fsReaddir(path.join(this.folderPath, dirPath))
+
+			if (files.length === 0) {
+				if (removeEmptyDir) {
+					await fsRmDir(path.join(this.folderPath, dirPath))
+				}
+			} else {
+				for (const fileName of files) {
+					const filePath = path.join(dirPath, fileName)
+					const fullPath = path.join(this.folderPath, filePath)
+					const lStat = await fsLstat(fullPath)
+					if (lStat.isDirectory()) {
+						await cleanUpDirectory(filePath, true)
+					} else {
+						const age = Math.floor((now - lStat.mtimeMs) / 1000) // in seconds
+
+						if (age > cleanFileAge) {
+							await fsUnlink(fullPath)
+						}
+					}
+				}
+			}
+		}
+
+		try {
+			await cleanUpDirectory('', false)
+		} catch (error) {
+			return {
+				user: 'Error when cleaning up files',
+				tech: stringifyError(error),
+			}
+		}
+		return null
 	}
 
 	/** Full path to the file containing deferred removals */

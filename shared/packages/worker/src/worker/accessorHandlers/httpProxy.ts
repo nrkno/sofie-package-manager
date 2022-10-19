@@ -181,7 +181,11 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			if (cronjob === 'interval') {
 				// ignore
 			} else if (cronjob === 'cleanup') {
+				const options = packageContainerExp.cronjobs[cronjob]
 				badReason = await this.removeDuePackages()
+				if (!badReason && options?.cleanFileAge) {
+					// Not supported, however the http-server has its own cleanup routine
+				}
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of cronjobs are handled:
 				assertNever(cronjob)
