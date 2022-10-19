@@ -306,7 +306,7 @@ export interface HTTPServerConfig {
 		basePath: string
 		apiKeyRead: string | undefined
 		apiKeyWrite: string | undefined
-		/** Clean up (remove) files older than this age (in seconds) */
+		/** Clean up (remove) files older than this age (in seconds). 0 or -1 means that it's disabled. */
 		cleanFileAge: number
 	}
 }

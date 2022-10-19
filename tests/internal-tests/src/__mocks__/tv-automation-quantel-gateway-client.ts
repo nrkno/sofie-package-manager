@@ -137,7 +137,7 @@ class QuantelGateway extends EventEmitter {
 		super()
 		client.QuantelGatewayInstances.push(this)
 	}
-	init(gatewayUrl: string, ISAUrls: string | string[], _zoneId: string | undefined, serverId: number) {
+	async init(gatewayUrl: string, ISAUrls: string | string[], _zoneId: string | undefined, serverId: number) {
 		this._gatewayUrl = gatewayUrl
 		this._ISAUrls = ISAUrls
 		// this._zoneId = _zoneId

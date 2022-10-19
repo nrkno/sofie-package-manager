@@ -43,6 +43,7 @@ const defaultTestConfig: SingleAppConfig = {
 		basePath: '',
 		apiKeyRead: '',
 		apiKeyWrite: '',
+		cleanFileAge: -1,
 	},
 	packageManager: {
 		coreHost: '',
