@@ -1,6 +1,6 @@
 {
 	"name": "@sofie-package-manager/worker",
-	"version": "1.39.1",
+	"version": "1.39.2",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"license": "MIT",
@@ -20,7 +20,7 @@
 		"lint-staged": "^7.2.0"
 	},
 	"dependencies": {
-		"@sofie-package-manager/api": "1.39.0",
+		"@sofie-package-manager/api": "1.39.2",
 		"abort-controller": "^3.0.0",
 		"atem-connection": "3.0.0-nightly-latest-20211125-222857-2b30eea.0",
 		"chokidar": "^3.5.1",
