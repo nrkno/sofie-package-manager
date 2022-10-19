@@ -44,6 +44,12 @@ const httpServerArguments = defineArguments({
 		default: process.env.HTTP_SERVER_API_KEY_WRITE || undefined,
 		describe: 'Set this to limit write-access',
 	},
+	cleanFileAge: {
+		type: 'number',
+		default: parseInt(process.env.HTTP_SERVER_CLEAN_FILE_AGE || '0', 10) || 3600 * 24 * 30, // default: 30 days
+		describe:
+			'Automatically remove files older than this age, in seconds (defaults to 30 days). Set to -1 to disable.',
+	},
 	basePath: {
 		type: 'string',
 		default: process.env.HTTP_SERVER_BASE_PATH || './fileStorage',
@@ -300,6 +306,8 @@ export interface HTTPServerConfig {
 		basePath: string
 		apiKeyRead: string | undefined
 		apiKeyWrite: string | undefined
+		/** Clean up (remove) files older than this age (in seconds) */
+		cleanFileAge: number
 	}
 }
 export function getHTTPServerConfig(): HTTPServerConfig {
@@ -319,6 +327,7 @@ export function getHTTPServerConfig(): HTTPServerConfig {
 			basePath: argv.basePath,
 			apiKeyRead: argv.apiKeyRead,
 			apiKeyWrite: argv.apiKeyWrite,
+			cleanFileAge: argv.cleanFileAge,
 		},
 	}
 }
