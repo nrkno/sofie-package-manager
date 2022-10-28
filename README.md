@@ -38,6 +38,12 @@ The packages in [tests/](tests/) contain unit/integration tests.
 | **Worker**             | [shared/packages/worker](shared/packages/worker)                         | The Worker class is used by the Worker application                      |
 | **Workforce**          | [shared/packages/Workforce](shared/packages/Workforce)                   | The Workforce class is used by the Worker application                   |
 
+## Notes on installation
+
+It has been observed a potential issue when running Package Manager as an executable on Windows:
+For unknown reasons, there is a buildup of "zombie" TCP sockets over time. It is unknown if this is caused by something in Package Manager or ffmpeg/ffprobe.
+As a remedy/hack, [this script](/scripts/clean-up-tcp-sockets.bat) has been useful to avoid potential longterm issues.
+
 ## For Developers
 
 Be sure to read the [FOR DEVELOPERS](/FOR_DEVELOPERS.md) documentation.
