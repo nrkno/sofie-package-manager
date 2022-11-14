@@ -197,7 +197,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 							// Default values:
 							type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
 							bitrate: '40k',
-							width: 190,
+							width: 320,
 							height: -1,
 						},
 						...exp.endRequirement.version,

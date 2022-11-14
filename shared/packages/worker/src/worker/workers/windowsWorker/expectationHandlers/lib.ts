@@ -323,7 +323,7 @@ export function previewFFMpegArguments(input: string, seekableSource: boolean, m
 		'-c:v libvpx-vp9', // encoder for video (use VP9)
 		`-b:v ${metadata.version.bitrate || '40k'}`,
 		'-auto-alt-ref 1',
-		`-vf scale=${metadata.version.width || 190}:${metadata.version.height || -1}`, // Scale to resolution
+		`-vf scale=${metadata.version.width || 320}:${metadata.version.height || -1}`, // Scale to resolution
 
 		'-threads 1', // Number of threads to use
 		'-cpu-used 5', // Sacrifice quality for speed, used in combination with -deadline realtime
