@@ -966,7 +966,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		return this.increment++
 	}
 }
-function wrapExpectedPackage(
+export function wrapExpectedPackage(
 	packageContainers: PackageContainers,
 	expectedPackage: ExpectedPackage.Any
 ): ExpectedPackageWrap | undefined {
