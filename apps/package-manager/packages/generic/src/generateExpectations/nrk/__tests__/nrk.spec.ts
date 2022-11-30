@@ -114,7 +114,7 @@ describe('Generate expectations - NRK', () => {
 		expect(eCopy).toBeTruthy()
 		expect(eCopy?.fromPackages).toHaveLength(2)
 	})
-	test.only('Package priority', () => {
+	test('Packages priority', () => {
 		const o = setup()
 
 		// The two packages should be combined into one expectation
