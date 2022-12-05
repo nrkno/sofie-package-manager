@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.4-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.3...v1.39.4-alpha.0) (2022-12-05)
+
+
+### Bug Fixes
+
+* blackDetectRegex expects  black_duration to be a number with a decimal point ([eb4aaa3](https://github.com/nrkno/tv-automation-package-manager/commit/eb4aaa36ae0a93697f38d263a6f526f82ca2077d))
+* blackDetectRegex expects black_duration to be a number with a decimal point ([#19](https://github.com/nrkno/tv-automation-package-manager/issues/19)) ([bb23fba](https://github.com/nrkno/tv-automation-package-manager/commit/bb23fba5dd9ffb97ee8791bd3342bbf0e482aa73))
+* support for multiple smartbulls ([bc9db81](https://github.com/nrkno/tv-automation-package-manager/commit/bc9db819a3436774686a19d212c1fe77f89ae3bf))
+
+
+
+
+
 ## [1.39.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.2...v1.39.3) (2022-11-30)
 
 
