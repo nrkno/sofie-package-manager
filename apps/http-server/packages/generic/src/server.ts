@@ -6,6 +6,7 @@ import Router from 'koa-router'
 import cors from '@koa/cors'
 import multer from '@koa/multer'
 import bodyParser from 'koa-bodyparser'
+import { Server as HttpServer } from 'http'
 
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage/storage'
@@ -18,6 +19,7 @@ export class PackageProxyServer {
 	private app = new Koa()
 	private router = new Router()
 	private upload = multer({ limits: { fileSize: 300 * 1024 * 1024 } })
+	private server?: HttpServer
 
 	private storage: Storage
 	private logger: LoggerInstance
@@ -54,6 +56,14 @@ export class PackageProxyServer {
 		await this.storage.init()
 
 		await this._setUpRoutes()
+	}
+	async getDebugDump(): Promise<{ listening: boolean; connections: number }> {
+		const connections = await new Promise<number>((r) => this.server?.getConnections((_, count) => r(count)))
+
+		return {
+			listening: this.server?.listening || false,
+			connections,
+		}
 	}
 	private async _setUpRoutes(): Promise<void> {
 		this.router.all('*', async (ctx, next) => {
@@ -123,6 +133,29 @@ export class PackageProxyServer {
 				.replace('$path', `/package/${ctx.params.path}`)
 				.replace('$apiKey', first(ctx.request.query.apiKey) ?? '')
 		})
+		this.router.get('/health', async (ctx) => {
+			let packageJson = {} as { version?: string }
+			try {
+				packageJson = JSON.parse(
+					await fsReadFile('../package.json', {
+						encoding: 'utf8',
+					})
+				)
+			} catch (err) {
+				// ignore
+			}
+
+			// presume it's always OK if we can reply to http requests
+			ctx.type = 'application/json'
+			ctx.body = {
+				status: 'ok',
+				name: 'Package proxy server',
+				updated: new Date(),
+				documentation: 'https://nrkconfluence.atlassian.net/wiki/spaces/Sof',
+				statusMessage: 'this healthy boy says hello to you',
+				appVersion: packageJson.version,
+			}
+		})
 
 		this.app.use(this.router.routes()).use(this.router.allowedMethods())
 
@@ -133,7 +166,7 @@ export class PackageProxyServer {
 
 		return new Promise<void>((resolve, reject) => {
 			if (this.config.httpServer.port) {
-				this.app.listen(this.config.httpServer.port, () => {
+				this.server = this.app.listen(this.config.httpServer.port, () => {
 					this.logger.info(`HTTP server listening on port ${this.config.httpServer.port}`)
 					resolve()
 				})

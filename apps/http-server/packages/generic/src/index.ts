@@ -6,6 +6,7 @@ import {
 	initializeLogger,
 	stringifyError,
 } from '@sofie-package-manager/api'
+import { initDebug } from './debug'
 
 export { PackageProxyServer }
 export async function startProcess(): Promise<void> {
@@ -24,4 +25,6 @@ export async function startProcess(): Promise<void> {
 	app.init().catch((e) => {
 		logger.error(`Error in PackageProxyServer.init: ${stringifyError(e)}`)
 	})
+
+	initDebug(app, logger)
 }

@@ -42,6 +42,8 @@ FROM node:14-alpine
 
 COPY --from=builder /src /src
 
+# not great to run on every restart, but it's just for debug
+RUN apk add iproute2
 
 WORKDIR /src/apps/http-server/app
 ENV HTTP_SERVER_PORT=8080
