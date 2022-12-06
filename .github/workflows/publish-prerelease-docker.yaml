@@ -3,6 +3,11 @@ name: Publish Docker
 on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      tagName:
+        description: 'Tag name to push'
+        default: 'nightly'
+        type: string
 
 jobs:
   build:
@@ -24,10 +29,10 @@ jobs:
         with:
           push: true
           file: apps/http-server/app/Dockerfile
-          tags: sofietv/package-manager-http-server:nightly
+          tags: sofietv/package-manager-http-server:${{ github.event.inputs.tagName }}
       - name: Quantel HTTP Transformer Proxy - Build Docker and push
         uses: docker/build-push-action@v3
         with:
           push: true
           file: apps/quantel-http-transformer-proxy/app/Dockerfile
-          tags: sofietv/package-manager-quantel-http-transformer-proxy:nightly
+          tags: sofietv/package-manager-quantel-http-transformer-proxy:${{ github.event.inputs.tagName }}
