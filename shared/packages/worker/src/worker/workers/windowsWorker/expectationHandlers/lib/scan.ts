@@ -126,9 +126,13 @@ export function scanWithFFProbe(
 function fixJSONResult(obj: FFProbeScanResult): void
 function fixJSONResult(obj: any): void {
 	if (Array.isArray(obj)) {
-		// do nothing
-	} else if (typeof obj === 'object') {
+		for (const value of obj) {
+			fixJSONResult(value)
+		}
+	} else if (obj && typeof obj === 'object') {
 		for (const key of Object.keys(obj)) {
+			fixJSONResult(obj[key])
+
 			if (key.indexOf('.') !== -1) {
 				const fixedKey = key.replace(/\./g, '_')
 				obj[fixedKey] = obj[key]
