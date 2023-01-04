@@ -32,61 +32,62 @@ export function getSmartbullExpectedPackages(
 	logger: LoggerInstance,
 	expectedPackages: ExpectedPackageWrap[]
 ): ExpectedPackageWrapMediaFile[] {
-	let orgSmartbullExpectedPackage: ExpectedPackageWrap | undefined = undefined
+	const orgSmartbullExpectedPackages: ExpectedPackageWrap[] = []
 
 	// Find the smartbull package:
 	for (const packageWrap of expectedPackages) {
 		if (expectedPackageIsSmartbull(packageWrap)) {
 			// hack
-			orgSmartbullExpectedPackage = packageWrap
+			orgSmartbullExpectedPackages.push(packageWrap)
 		}
 	}
 
 	// Find smartbull source packages:
-	const smartbullExpectations: ExpectedPackageWrap[] = []
+	const smartbullExpectations: ExpectedPackageWrapMediaFile[] = []
 	for (const packageWrap of expectedPackages) {
 		if (expectedPackageIsSmartbullSource(packageWrap)) {
 			// Set the smartbull priority:
 			packageWrap.priority = PriorityMagnitude.PLAY_SOON
-			smartbullExpectations.push(packageWrap)
+			smartbullExpectations.push(packageWrap as ExpectedPackageWrapMediaFile)
 		}
 	}
 
+	// Sort smartbulls alphabetically on filePath:
+	smartbullExpectations.sort((a, b) => {
+		// Lowest first:
+		if (a.expectedPackage.content.filePath > b.expectedPackage.content.filePath) return 1
+		if (a.expectedPackage.content.filePath < b.expectedPackage.content.filePath) return -1
+
+		// Lowest first: (lower is better)
+		if (a.priority > b.priority) return 1
+		if (a.priority < b.priority) return -1
+
+		return 0
+	})
+	// Pick the last one:
+	const bestSmartbull =
+		smartbullExpectations.length > 0 ? smartbullExpectations[smartbullExpectations.length - 1] : undefined
+
+	if (!bestSmartbull) return []
+
 	// Handle Smartbull:
 	const smartbulls: ExpectedPackageWrapMediaFile[] = []
-	if (orgSmartbullExpectedPackage && smartbullExpectations.length > 0) {
-		// Sort alphabetically on filePath:
-		smartbullExpectations.sort((a, b) => {
-			const expA = a.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
-			const expB = b.expectedPackage as ExpectedPackage.ExpectedPackageMediaFile
+	for (const orgSmartbullExpectedPackage of orgSmartbullExpectedPackages) {
+		if (orgSmartbullExpectedPackage.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
+			const org = orgSmartbullExpectedPackage as ExpectedPackageWrapMediaFile
 
-			// lowest first:
-			if (expA.content.filePath > expB.content.filePath) return 1
-			if (expA.content.filePath < expB.content.filePath) return -1
-
-			return 0
-		})
-		// Pick the last one:
-		const bestSmartbull = smartbullExpectations[smartbullExpectations.length - 1] as
-			| ExpectedPackageWrapMediaFile
-			| undefined
-		if (bestSmartbull) {
-			if (orgSmartbullExpectedPackage.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
-				const org = orgSmartbullExpectedPackage as ExpectedPackageWrapMediaFile
-
-				const newPackage: ExpectedPackageWrapMediaFile = {
-					...org,
-					expectedPackage: {
-						...org.expectedPackage,
-						// Take these from bestSmartbull:
-						content: bestSmartbull.expectedPackage.content,
-						version: {}, // Don't even use bestSmartbull.expectedPackage.version,
-						sources: bestSmartbull.expectedPackage.sources,
-					},
-				}
-				smartbulls.push(newPackage)
-			} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
-		}
+			const newPackage: ExpectedPackageWrapMediaFile = {
+				...org,
+				expectedPackage: {
+					...org.expectedPackage,
+					// Take these from bestSmartbull:
+					content: bestSmartbull.expectedPackage.content,
+					version: {}, // Don't even use bestSmartbull.expectedPackage.version,
+					sources: bestSmartbull.expectedPackage.sources,
+				},
+			}
+			smartbulls.push(newPackage)
+		} else logger.warn('orgSmartbullExpectation is not a MEDIA_FILE')
 	}
 	return smartbulls
 }
