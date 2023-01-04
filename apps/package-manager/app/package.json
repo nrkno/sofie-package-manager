@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/app",
-    "version": "1.39.4-alpha.0",
+    "version": "1.39.4",
     "private": true,
     "scripts": {
         "build": "rimraf dist && yarn build:main",
@@ -15,7 +15,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@package-manager/generic": "1.39.4-alpha.0"
+        "@package-manager/generic": "1.39.4"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"

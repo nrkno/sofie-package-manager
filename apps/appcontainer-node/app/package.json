@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/app",
-    "version": "1.39.4-alpha.0",
+    "version": "1.39.4",
     "description": "AppContainer-Node.js",
     "private": true,
     "scripts": {
@@ -16,7 +16,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@appcontainer-node/generic": "1.39.4-alpha.0"
+        "@appcontainer-node/generic": "1.39.4"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"
