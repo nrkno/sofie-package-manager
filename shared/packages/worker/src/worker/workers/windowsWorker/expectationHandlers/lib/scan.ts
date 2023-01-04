@@ -23,6 +23,7 @@ export interface FFProbeScanResultStream {
 }
 
 export interface FFProbeScanResult {
+	filePath: string
 	// to be defined...
 	streams?: FFProbeScanResultStream[]
 	format?: {
@@ -87,12 +88,14 @@ export function scanWithFFProbe(
 						reject(err)
 						return
 					}
-					const json: any = JSON.parse(stdout)
+					const json: FFProbeScanResult = JSON.parse(stdout)
 					if (!json.streams || !json.streams[0]) {
 						reject(new Error(`File doesn't seem to be a media file`))
 						return
 					}
 					json.filePath = filePath
+
+					fixJSONResult(json)
 					resolve(json)
 				}
 			)
@@ -108,11 +111,33 @@ export function scanWithFFProbe(
 
 			const scanResult = generateFFProbeFromClipData(clipDetails)
 
+			fixJSONResult(scanResult)
 			resolve(scanResult)
 		} else {
 			assertNever(sourceHandle)
 		}
 	})
+}
+
+/**
+ * Change "." to "_" in keys.
+ * This is due to "." not being supported in some databases.
+ */
+function fixJSONResult(obj: FFProbeScanResult): void
+function fixJSONResult(obj: any): void {
+	if (Array.isArray(obj)) {
+		// do nothing
+	} else if (typeof obj === 'object') {
+		for (const key of Object.keys(obj)) {
+			if (key.indexOf('.') !== -1) {
+				const fixedKey = key.replace(/\./g, '_')
+				obj[fixedKey] = obj[key]
+				delete obj[key]
+			}
+		}
+	} else {
+		// do nothing
+	}
 }
 
 export function scanFieldOrder(
