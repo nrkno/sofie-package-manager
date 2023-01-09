@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.6](https://github.com/nrkno/sofie-package-manager/compare/v1.39.5...v1.39.6) (2023-01-09)
+
+**Note:** Version bump only for package @single-app/app
+
+
+
+
+
 ## [1.39.5](https://github.com/nrkno/sofie-package-manager/compare/v1.39.4...v1.39.5) (2023-01-09)
 
 **Note:** Version bump only for package @single-app/app
