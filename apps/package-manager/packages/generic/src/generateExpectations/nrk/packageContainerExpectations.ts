@@ -2,6 +2,9 @@ import { ActivePlaylist, PackageContainers } from '../../packageManager'
 import { PackageContainerExpectation } from '@sofie-package-manager/api'
 import { SMARTBULL_STORAGE_ID, TEMPORARY_STORAGE_ID } from './lib'
 
+// Max age for untracked files
+const MAX_FILE_AGE = 30 * 24 * 3600 // 30 days
+
 export function getPackageContainerExpectations(
 	managerId: string,
 	packageContainers: PackageContainers,
@@ -56,7 +59,7 @@ export function getPackageContainerExpectations(
 				cronjobs: {
 					cleanup: {
 						label: 'Clean up old packages and old files',
-						cleanFileAge: 30 * 24 * 3600, // 30 days
+						cleanFileAge: MAX_FILE_AGE,
 					},
 				},
 				monitors: {},
