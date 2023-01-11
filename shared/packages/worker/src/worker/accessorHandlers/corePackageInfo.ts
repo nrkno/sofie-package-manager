@@ -92,6 +92,9 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('CorePackageInfo.putPackageInfo: Not supported')
 	}
+	async packageIsInPlace(): Promise<void> {
+		// do nothing
+	}
 	async finalizePackage(): Promise<void> {
 		// do nothing
 	}

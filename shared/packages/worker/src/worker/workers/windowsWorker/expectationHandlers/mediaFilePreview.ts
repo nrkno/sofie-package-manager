@@ -223,6 +223,8 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 				const args = previewFFMpegArguments(inputPath, true, metadata)
 
+				await targetHandle.packageIsInPlace()
+
 				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,

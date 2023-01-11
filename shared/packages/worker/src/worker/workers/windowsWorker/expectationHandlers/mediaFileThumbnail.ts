@@ -224,6 +224,8 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				// Use FFMpeg to generate the thumbnail:
 				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode)
 
+				await targetHandle.packageIsInPlace()
+
 				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,

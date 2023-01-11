@@ -202,6 +202,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 
 				// Stream the thumbnail from the Quantel-HTTP-transformer and into the target:
 
+				await targetHandle.packageIsInPlace()
 				sourceStream = await sourceHTTPHandle.getPackageReadStream()
 				writeStream = await lookupTarget.handle.putPackageStream(sourceStream.readStream)
 

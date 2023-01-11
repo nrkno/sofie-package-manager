@@ -215,8 +215,8 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 					workInProgress._reportError(err)
 				})
 			}, 100)
-
 			const sourceReadInfo = await sourceHandle.getPackageReadInfo()
+			await targetHandle.packageIsInPlace()
 			const putPackageHandler = await targetHandle.putPackageInfo(sourceReadInfo.readInfo)
 
 			putPackageHandler.on('error', (err) => {

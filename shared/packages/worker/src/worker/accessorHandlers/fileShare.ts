@@ -285,6 +285,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 	async finalizePackage(): Promise<void> {
 		if (this.workOptions.useTemporaryFilePath) {
+			await this.unlinkIfExists(this.fullPath)
 			await fsRename(this.temporaryFilePath, this.fullPath)
 		}
 	}

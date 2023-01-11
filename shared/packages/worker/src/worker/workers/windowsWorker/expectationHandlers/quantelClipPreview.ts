@@ -208,7 +208,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 				await targetHandle.removePackage()
 
 				const args = previewFFMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
-
+				await targetHandle.packageIsInPlace()
 				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,

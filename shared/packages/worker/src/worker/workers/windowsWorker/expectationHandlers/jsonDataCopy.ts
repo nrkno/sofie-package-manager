@@ -160,6 +160,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 				workInProgress._reportProgress(actualSourceVersionHash, 0.1)
 
 				if (wasCancelled) return
+				await targetHandle.packageIsInPlace()
 				sourceStream = await lookupSource.handle.getPackageReadStream()
 				writeStream = await targetHandle.putPackageStream(sourceStream.readStream)
 

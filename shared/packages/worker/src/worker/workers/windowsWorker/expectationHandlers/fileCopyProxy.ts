@@ -126,6 +126,8 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 
 					await targetHandle.removePackage()
 
+					await targetHandle.packageIsInPlace()
+
 					const args = proxyFFMpegArguments(sourceHTTPHandle.fullUrl, false, targetHandle)
 
 					ffMpegProcess = await spawnFFMpeg(
@@ -166,6 +168,7 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 				workInProgress = wip
 			}
 		}
+		// Fallback:
 		if (workInProgress === null) {
 			workInProgress = await doFileCopyExpectation(exp, lookupSource, lookupTarget)
 		}
