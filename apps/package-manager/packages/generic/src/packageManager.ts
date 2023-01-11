@@ -1,6 +1,7 @@
 import _ from 'underscore'
-import { PeripheralDeviceAPI } from '@sofie-automation/server-core-integration'
 import { CoreHandler } from './coreHandler'
+// eslint-disable-next-line node/no-extraneous-import
+import { PeripheralDeviceAPIMethods } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
 import {
 	ExpectationManager,
@@ -586,21 +587,21 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			case 'fetchPackageInfoMetadata': {
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 				return this.packageManager.coreHandler.callMethod(
-					PeripheralDeviceAPI.methods.fetchPackageInfoMetadata,
+					PeripheralDeviceAPIMethods.fetchPackageInfoMetadata,
 					message.arguments
 				)
 			}
 			case 'updatePackageInfo': {
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 				return this.packageManager.coreHandler.callMethod(
-					PeripheralDeviceAPI.methods.updatePackageInfo,
+					PeripheralDeviceAPIMethods.updatePackageInfo,
 					message.arguments
 				)
 			}
 			case 'removePackageInfo': {
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 				return this.packageManager.coreHandler.callMethod(
-					PeripheralDeviceAPI.methods.removePackageInfo,
+					PeripheralDeviceAPIMethods.removePackageInfo,
 					message.arguments
 				)
 			}
@@ -620,19 +621,19 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 		this.reportedExpectationStatuses = {}
 		await this.packageManager.coreHandler.callMethod(
-			PeripheralDeviceAPI.methods.removeAllExpectedPackageWorkStatusOfDevice,
+			PeripheralDeviceAPIMethods.removeAllExpectedPackageWorkStatusOfDevice,
 			[]
 		)
 
 		this.reportedPackageContainerStatuses = {}
 		await this.packageManager.coreHandler.callMethod(
-			PeripheralDeviceAPI.methods.removeAllPackageContainerPackageStatusesOfDevice,
+			PeripheralDeviceAPIMethods.removeAllPackageContainerPackageStatusesOfDevice,
 			[]
 		)
 
 		this.reportedPackageStatuses = {}
 		await this.packageManager.coreHandler.callMethod(
-			PeripheralDeviceAPI.methods.removeAllPackageContainerStatusesOfDevice,
+			PeripheralDeviceAPIMethods.removeAllPackageContainerStatusesOfDevice,
 			[]
 		)
 	}
@@ -767,7 +768,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 				try {
 					await this.packageManager.coreHandler.callMethod(
-						PeripheralDeviceAPI.methods.updateExpectedPackageWorkStatuses,
+						PeripheralDeviceAPIMethods.updateExpectedPackageWorkStatuses,
 						[sendToCore]
 					)
 				} catch (err) {
@@ -786,7 +787,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		await this.reportStatus(this.toReportPackageStatus, this.reportedPackageStatuses, async (changesToSend) => {
 			// Send the changes to Core:
 			await this.packageManager.coreHandler.callMethod(
-				PeripheralDeviceAPI.methods.updatePackageContainerPackageStatuses,
+				PeripheralDeviceAPIMethods.updatePackageContainerPackageStatuses,
 				[
 					literal<UpdatePackageContainerPackageStatusesChanges>(
 						changesToSend.map((change) => {
@@ -819,7 +820,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				// Send the changes to Core:
 				literal<UpdatePackageContainerStatusesChanges>(
 					await this.packageManager.coreHandler.callMethod(
-						PeripheralDeviceAPI.methods.updatePackageContainerStatuses,
+						PeripheralDeviceAPIMethods.updatePackageContainerStatuses,
 						[
 							changesToSend.map((change) => {
 								if (change.type === 'delete') {

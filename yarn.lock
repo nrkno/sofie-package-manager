@@ -1577,15 +1577,15 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@sofie-automation/blueprints-integration@1.38.0-nightly-release38-20211208-162831-102085a.0":
-  version "1.38.0-nightly-release38-20211208-162831-102085a.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.38.0-nightly-release38-20211208-162831-102085a.0.tgz#381e44642dd901f196479c8c824a26464473e35c"
-  integrity sha512-W7kW5VTQ1Ku3mGow7Jh4G+wZYpXYBnkXHhLdPT10qcxYrDQrswpTM3561VTUTPPHaDmqk6UHOGjKe8IPns/ERA==
+"@sofie-automation/blueprints-integration@1.44.1":
+  version "1.44.1"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.44.1.tgz#d0cc3c7af92b159f59d5435f210839714535c8c5"
+  integrity sha512-d/EQBz7nPDUEkaA+aBhz9TLX4iXng0aA0PWSPxUESCWLMYbhZQlW0BsmpddOdmMYkRqYpeELC7evbGH0FKVpPQ==
   dependencies:
-    moment "2.29.1"
-    timeline-state-resolver-types "6.3.0-nightly-release38-20211208-151539-570b2cfb5.0"
-    tslib "^2.3.1"
-    underscore "1.13.1"
+    "@sofie-automation/shared-lib" "1.44.1"
+    timeline-state-resolver-types "7.3.0"
+    tslib "^2.4.0"
+    type-fest "^2.12.2"
 
 "@sofie-automation/code-standard-preset@^0.2.1":
   version "0.2.5"
@@ -1626,17 +1626,27 @@
     read-pkg-up "^9.1.0"
     shelljs "^0.8.5"
 
-"@sofie-automation/server-core-integration@1.38.0-nightly-release38-20211208-162831-102085a.0":
-  version "1.38.0-nightly-release38-20211208-162831-102085a.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.38.0-nightly-release38-20211208-162831-102085a.0.tgz#8f5d733414485078db26a352da738b1f0cad65cf"
-  integrity sha512-8fG1ponVo4ucFJ5KsXX1a7XrX9RZv2VaFdHW2OpG0OnKL+WjJmyubu+XomG7ll8op3RFlIfFSRle2pdNlYaVvg==
+"@sofie-automation/server-core-integration@1.44.1":
+  version "1.44.1"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.44.1.tgz#eb6a0bb7c8dc1bdbb27c0582f650f57b750d53c5"
+  integrity sha512-/jIXwN8FhgE5LE3Njts8y9Ax8Wlnw5AYNr2TxWZAQYpG3Qv3J2Q+z4pDOUWb5lilm/a1r1pE17KtUZoDuydc9Q==
   dependencies:
+    "@sofie-automation/shared-lib" "1.44.1"
     data-store "^4.0.3"
-    ejson "^2.2.0"
+    ejson "^2.2.2"
+    eventemitter3 "^4.0.7"
     faye-websocket "^0.11.4"
-    got "^11.8.2"
-    tslib "^2.3.1"
-    underscore "^1.12.1"
+    got "^11.8.5"
+    tslib "^2.4.0"
+    underscore "^1.13.3"
+
+"@sofie-automation/shared-lib@1.44.1":
+  version "1.44.1"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.44.1.tgz#ea641c81ffe0705abd24a134f8b3f792cf9dbb77"
+  integrity sha512-6zsZdpebIDMnpUkBoAjqKw1qRnvVDnV98hAePyUOf0mWCsC/Ao/Y0I75HzVC2v5pskhDVdBBGqqLmk5EhRG2RA==
+  dependencies:
+    tslib "^2.4.0"
+    type-fest "^2.12.2"
 
 "@stroncium/procfs@^1.2.1":
   version "1.2.1"
@@ -4123,10 +4133,10 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==
 
-ejson@^2.2.0:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/ejson/-/ejson-2.2.2.tgz#095bf356a57295784cada6ff19b2b2abc70e4f9d"
-  integrity sha512-Wc/PZH7WMxuM6eBpAuD9+IX98q27hlBTD8nvhh7UyGy22eB9qTRG0oAzlviicADh9VVxYp+/onTyfYZC3DhI5w==
+ejson@^2.2.2:
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/ejson/-/ejson-2.2.3.tgz#2b18c2d8f5d61a5cfc6e3eab72c3343909e7afd2"
+  integrity sha512-hsFvJp6OpGxFRQfBR3PSxFpaPALdHDY+SB3TRbMpLWNhvu8GzLiZutof5+/DFd2QekZo3KyXau75ngdJqQUSrw==
 
 electron-to-chromium@^1.4.172:
   version "1.4.182"
@@ -5508,7 +5518,7 @@ globby@^9.2.0:
     pify "^4.0.1"
     slash "^2.0.0"
 
-got@^11.8.2, got@^11.8.5:
+got@^11.8.5:
   version "11.8.5"
   resolved "https://registry.yarnpkg.com/got/-/got-11.8.5.tgz#ce77d045136de56e8f024bebb82ea349bc730046"
   integrity sha512-o0Je4NvQObAuZPHLFoRSkdG2lTgtcynqymzg2Vupdx6PorhaT5MCbIyXG6d4D94kk8ZG57QeosgdiqfJWhEhlQ==
@@ -8035,11 +8045,6 @@ modify-values@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/modify-values/-/modify-values-1.0.1.tgz#b3939fa605546474e3e3e3c63d64bd43b4ee6022"
   integrity sha512-xV2bxeN6F7oYjZWTe/YPAy6MN2M+sL4u/Rlm2AHCIVGfo2p1yGmBHQ6vHehl4bRTZBdHu3TSkWdYgkwpYzAGSw==
-
-moment@2.29.1:
-  version "2.29.1"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.1.tgz#b2be769fa31940be9eeea6469c075e35006fa3d3"
-  integrity sha512-kHmoybcPV8Sqy59DwNDY3Jefr64lK/by/da0ViFcuA4DH0vQg5Q6Ze5VimxkfQNSC+Mls/Kx53s7TjP1RhFEDQ==
 
 mount-point@^3.0.0:
   version "3.0.0"
@@ -10710,10 +10715,10 @@ timed-out@^4.0.1:
   resolved "https://registry.yarnpkg.com/timed-out/-/timed-out-4.0.1.tgz#f32eacac5a175bea25d7fab565ab3ed8741ef56f"
   integrity sha512-G7r3AhovYtr5YKOWQkta8RKAPb+J9IsO4uVmzjl8AZwfhs8UcUwTiD6gcJYSgOtzyjvQKrKYn41syHbUWMkafA==
 
-timeline-state-resolver-types@6.3.0-nightly-release38-20211208-151539-570b2cfb5.0:
-  version "6.3.0-nightly-release38-20211208-151539-570b2cfb5.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-6.3.0-nightly-release38-20211208-151539-570b2cfb5.0.tgz#d8f0c7525bb1510fddf6ce8811e6a6c064a8a92c"
-  integrity sha512-suaEpBfjdFEM+v2AL6ugLUjFYkclU2TRbiPj7T5PVgGBzulR/7c1so1jiUqXXTtisMiCB0tQsyQPGNO9qkxcVw==
+timeline-state-resolver-types@7.3.0:
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-7.3.0.tgz#72515377c89a2ac253158b577bba3d9ffbf8d7c2"
+  integrity sha512-Y4fmmP0aut9LjpnnDzu1BliUhAYgAe+ygQsAx3uxMkpYGBEs/A/1wROv4WGyKpsqtf3PjeyDch92s1Femq3TSA==
   dependencies:
     tslib "^2.3.1"
 
@@ -10911,6 +10916,11 @@ tslib@^2.1.0, tslib@^2.3.1:
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.4.0.tgz#7cecaa7f073ce680a05847aa77be941098f36dc3"
   integrity sha512-d6xOpEDfsi2CZVlPQzGeux8XMwLT9hssAsaPYExaQMuYskwb+x1x7J371tWlbBdWHroy99KnVB6qIkUbs5X3UQ==
 
+tslib@^2.4.0:
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.4.1.tgz#0d0bfbaac2880b91e22df0768e55be9753a5b17e"
+  integrity sha512-tGyy4dAjRIEwI7BzsB0lynWgOpfqjUdq91XXAlIWD2OwKBH7oCl/GZG/HT4BOHrTlPMOASlMQ7veyTqpmRcrNA==
+
 tsscmp@1.0.6:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/tsscmp/-/tsscmp-1.0.6.tgz#85b99583ac3589ec4bfef825b5000aa911d605eb"
@@ -11015,6 +11025,11 @@ type-fest@^2.0.0, type-fest@^2.5.0:
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-2.16.0.tgz#1250fbd64dafaf4c8e405e393ef3fb16d9651db2"
   integrity sha512-qpaThT2HQkFb83gMOrdKVsfCN7LKxP26Yq+smPzY1FqoHRjqmjqHXA7n5Gkxi8efirtbeEUxzfEdePthQWCuHw==
 
+type-fest@^2.12.2:
+  version "2.19.0"
+  resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-2.19.0.tgz#88068015bb33036a598b952e55e9311a60fd3a9b"
+  integrity sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==
+
 type-is@^1.6.16, type-is@^1.6.18:
   version "1.6.18"
   resolved "https://registry.yarnpkg.com/type-is/-/type-is-1.6.18.tgz#4e552cd05df09467dcbc4ef739de89f2cf37c131"
@@ -11078,15 +11093,15 @@ unbzip2-stream@^1.0.9:
     buffer "^5.2.1"
     through "^2.3.8"
 
-underscore@1.13.1:
-  version "1.13.1"
-  resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.1.tgz#0c1c6bd2df54b6b69f2314066d65b6cde6fcf9d1"
-  integrity sha512-hzSoAVtJF+3ZtiFX0VgfFPHEDRm7Y/QPjGyNo4TVdnDTdft3tr8hEkD25a1jC+TjTuE7tkHGKkhwCgs9dgBB2g==
-
-underscore@^1.12.0, underscore@^1.12.1:
+underscore@^1.12.0:
   version "1.13.4"
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.4.tgz#7886b46bbdf07f768e0052f1828e1dcab40c0dee"
   integrity sha512-BQFnUDuAQ4Yf/cYY5LNrK9NCJFKriaRbD9uR1fTeXnBeoa97W0i41qkZfGO9pSo8I5KzjAcSY2XYtdf0oKd7KQ==
+
+underscore@^1.13.3:
+  version "1.13.6"
+  resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.6.tgz#04786a1f589dc6c09f761fc5f45b89e935136441"
+  integrity sha512-+A5Sja4HP1M08MaXya7p5LvjuM7K6q/2EaC0+iovj/wOcMsTzMvDFbasi/oSapiwOlt252IqsKqPjCl7huKS0A==
 
 union-value@^1.0.0:
   version "1.0.1"
