@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.7](https://github.com/nrkno/sofie-package-manager/compare/v1.39.6...v1.39.7) (2023-01-11)
+
+
+### Bug Fixes
+
+* update quantel-gateway-client ([0f75c1e](https://github.com/nrkno/sofie-package-manager/commit/0f75c1e330daee7dec31cc6499213309f3f6708e))
+
+
+
+
+
 ## [1.39.6](https://github.com/nrkno/sofie-package-manager/compare/v1.39.5...v1.39.6) (2023-01-09)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
