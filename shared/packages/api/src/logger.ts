@@ -40,11 +40,11 @@ export function initializeLogger(config: { process: ProcessConfig }): void {
 	})
 }
 export function getLogLevel(): LogLevel {
-	if (!loggerContainer) throw new Error('Logging has not been set up! setupLogging() must be called first.')
+	if (!loggerContainer) throw new Error('Logging has not been set up! initializeLogger() must be called first.')
 	return logLevel
 }
 export function setLogLevel(level: LogLevel, startup = false): void {
-	if (!loggerContainer) throw new Error('Logging has not been set up! setupLogging() must be called first.')
+	if (!loggerContainer) throw new Error('Logging has not been set up! initializeLogger() must be called first.')
 	if (logLevel !== level || startup) {
 		logLevel = level
 		for (const [_category, logger] of loggerContainer.loggers) {
@@ -61,7 +61,7 @@ export function setupLogger(
 	handleProcess = false,
 	initialLogLevel?: LogLevel
 ): LoggerInstance {
-	if (!loggerContainer) throw new Error('Logging has not been set up! setupLogging() must be called first.')
+	if (!loggerContainer) throw new Error('Logging has not been set up! initializeLogger() must be called first.')
 
 	if (!categoryLabel) categoryLabel = category
 
@@ -105,7 +105,7 @@ export function setupLogger(
 
 		if (isProduction) {
 			logger = loggerContainer.add(category, {
-				format: combine(label({ label: categoryLabel }), json()),
+				format: combine(timestamp(), label({ label: categoryLabel }), json()),
 				transports: [transportConsole],
 			})
 		} else {
