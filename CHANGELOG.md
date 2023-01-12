@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.8-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.8-alpha.0...v1.39.8-alpha.1) (2023-01-12)
+
+
+### Bug Fixes
+
+* add packageHandle.packageIsInPlace() method, used to signal that a package is in place (or is about to be), so that any scheduled delayRemoval are cleared. ([1a71bc5](https://github.com/nrkno/tv-automation-package-manager/commit/1a71bc5aca80013915a0932f7f2cff9e48e01c12))
+* potential issue when using temporaryFilePaths and renaming a file to an already existing file ([17caa32](https://github.com/nrkno/tv-automation-package-manager/commit/17caa32fd1670ca92c06c0657540c5bfbfc6a4a9))
+
+
+
+
+
 ## [1.39.8-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.7...v1.39.8-alpha.0) (2023-01-12)
 
 
