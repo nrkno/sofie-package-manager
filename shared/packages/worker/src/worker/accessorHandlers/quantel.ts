@@ -8,7 +8,14 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Accessor, AccessorOnPackage, Expectation, literal, Reason } from '@sofie-package-manager/api'
+import {
+	Accessor,
+	AccessorOnPackage,
+	Expectation,
+	literal,
+	Reason,
+	INNER_ACTION_TIMEOUT,
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { joinUrls } from './lib/pathJoin'
@@ -16,7 +23,7 @@ import { joinUrls } from './lib/pathJoin'
 /** The minimum amount of frames where a clip is minimumly playable */
 const MINIMUM_FRAMES = 10
 /** How long to wait for a response from Quantel Gateway before failing */
-const QUANTEL_TIMEOUT = 10 * 1000
+const QUANTEL_TIMEOUT = INNER_ACTION_TIMEOUT - 500
 
 /** Accessor handle for handling clips in a Quantel system */
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
