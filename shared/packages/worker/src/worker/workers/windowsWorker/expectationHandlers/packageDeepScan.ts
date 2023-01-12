@@ -211,6 +211,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 				}
 
 				// all done:
+				await targetHandle.packageIsInPlace()
 				await targetHandle.updatePackageInfo(
 					'deepScan',
 					exp,

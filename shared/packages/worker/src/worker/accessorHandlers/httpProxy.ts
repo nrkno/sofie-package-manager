@@ -160,6 +160,9 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('HTTP.putPackageInfo: Not supported')
 	}
+	async packageIsInPlace(): Promise<void> {
+		await this.clearPackageRemoval()
+	}
 	async finalizePackage(): Promise<void> {
 		// do nothing
 	}

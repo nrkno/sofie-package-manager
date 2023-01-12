@@ -174,6 +174,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 				currentProcess = undefined
 
 				// all done:
+				await targetHandle.packageIsInPlace()
 				await targetHandle.updatePackageInfo(
 					'scan',
 					exp,

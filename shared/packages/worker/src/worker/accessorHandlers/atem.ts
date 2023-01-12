@@ -361,6 +361,9 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('ATEM.putPackageInfo: Not supported')
 	}
+	async packageIsInPlace(): Promise<void> {
+		// do nothing
+	}
 	async finalizePackage(): Promise<void> {
 		// do nothing
 	}

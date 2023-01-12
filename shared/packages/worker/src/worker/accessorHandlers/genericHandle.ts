@@ -89,7 +89,14 @@ export abstract class GenericAccessorHandle<Metadata> {
 	/** For accessors that supports readInfo: Pipe info about a package source (obtained from getPackageReadInfo()) */
 	abstract putPackageInfo(readInfo: PackageReadInfo): Promise<PutPackageHandler>
 
-	/** Finalize the package. To be called after a .putPackageStream() or putPackageInfo() has completed. */
+	/** Called when the package is supposed to be in place (or is about to be put in place very soon) */
+	abstract packageIsInPlace(): Promise<void>
+
+	/**
+	 * Finalize the package.
+	 * To be called after a .putPackageStream(), putPackageInfo() or other file operation
+	 * (like a write or copy) has completed.
+	 */
 	abstract finalizePackage(): Promise<void>
 
 	/**

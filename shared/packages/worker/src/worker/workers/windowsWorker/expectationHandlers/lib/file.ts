@@ -269,6 +269,9 @@ export async function doFileCopyExpectation(
 			})
 
 			if (wasCancelled) return
+
+			await targetHandle.packageIsInPlace()
+
 			sourceStream = await lookupSource.handle.getPackageReadStream()
 			writeStream = await targetHandle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
 

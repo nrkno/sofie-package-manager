@@ -133,6 +133,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('HTTP.putPackageInfo: Not supported')
 	}
+	async packageIsInPlace(): Promise<void> {
+		await this.clearPackageRemoval()
+	}
 	async finalizePackage(): Promise<void> {
 		// do nothing
 	}

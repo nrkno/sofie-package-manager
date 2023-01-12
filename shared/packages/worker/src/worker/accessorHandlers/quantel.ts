@@ -285,6 +285,9 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		return streamHandler
 	}
+	async packageIsInPlace(): Promise<void> {
+		// do nothing
+	}
 	async finalizePackage(): Promise<void> {
 		// do nothing
 	}
