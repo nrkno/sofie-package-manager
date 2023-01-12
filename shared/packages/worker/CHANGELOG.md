@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.8-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.1...v1.39.8-alpha.2) (2023-01-12)
+
+
+### Bug Fixes
+
+* **Quantel:** shorten QUANTEL_TIMEOUT to be lower than INNER_ACTION_TIMEOUT ([0758974](https://github.com/nrkno/sofie-package-manager/commit/075897441dd64cba0cb8d0723483e052c08cfecb))
+
+
+
+
+
 ## [1.39.8-alpha.1](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.0...v1.39.8-alpha.1) (2023-01-12)
 
 
