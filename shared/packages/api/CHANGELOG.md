@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.8-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.39.7...v1.39.8-alpha.0) (2023-01-12)
+
+
+### Bug Fixes
+
+* add timestamp to production logs ([9deb2a3](https://github.com/nrkno/sofie-package-manager/commit/9deb2a3a3ce12ddaee704e72caccd5d0763e859a))
+
+
+
+
+
 # [1.39.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0-in-development.1...v1.39.0) (2022-09-07)
 
 

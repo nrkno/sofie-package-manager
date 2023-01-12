@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.8-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.39.7...v1.39.8-alpha.0) (2023-01-12)
+
+**Note:** Version bump only for package @sofie-package-manager/expectation-manager
+
+
+
+
+
 ## [1.39.7](https://github.com/nrkno/sofie-package-manager/compare/v1.39.6...v1.39.7) (2023-01-11)
 
 **Note:** Version bump only for package @sofie-package-manager/expectation-manager
