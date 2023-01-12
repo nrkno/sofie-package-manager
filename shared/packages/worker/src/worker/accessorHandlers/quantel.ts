@@ -15,6 +15,8 @@ import { joinUrls } from './lib/pathJoin'
 
 /** The minimum amount of frames where a clip is minimumly playable */
 const MINIMUM_FRAMES = 10
+/** How long to wait for a response from Quantel Gateway before failing */
+const QUANTEL_TIMEOUT = 10 * 1000
 
 /** Accessor handle for handling clips in a Quantel system */
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -408,7 +410,9 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// Note: We need to store a Promise<QuantelGateway> in the cache because otherwise many QuantelGateways
 			// can be created if multiple calls to this are done synchronously.
 
-			const gateway = new QuantelGateway()
+			const gateway = new QuantelGateway({
+				timeout: QUANTEL_TIMEOUT,
+			})
 			this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
 			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway: ${JSON.stringify(e)}`))
 
