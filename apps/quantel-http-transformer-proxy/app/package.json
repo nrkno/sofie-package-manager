@@ -1,35 +1,33 @@
 {
-    "name": "@quantel-http-transformer-proxy/app",
-    "version": "1.39.7",
-    "description": "Proxy for a Quantel HTTP Transformer",
-    "private": true,
-    "scripts": {
-        "build": "rimraf dist && yarn build:main",
-        "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.js quantel-http-transformer-proxy.exe && node ../../../scripts/copy-natives.js win32-x64",
-        "start": "node dist/index.js",
-        "precommit": "lint-staged"
-    },
-    "devDependencies": {
-        "lint-staged": "^7.2.0",
-        "nexe": "^3.3.7"
-    },
-    "dependencies": {
-        "@quantel-http-transformer-proxy/generic": "1.39.7"
-    },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-    "engines": {
-        "node": ">=14.18.0"
-    },
-    "lint-staged": {
-        "*.{js,css,json,md,scss}": [
-            "prettier"
-        ],
-        "*.{ts,tsx}": [
-            "eslint"
-        ]
-    }
+	"name": "@quantel-http-transformer-proxy/app",
+	"version": "1.39.7",
+	"description": "Proxy for a Quantel HTTP Transformer",
+	"private": true,
+	"scripts": {
+		"build": "rimraf dist && yarn build:main",
+		"build:main": "tsc -p tsconfig.json",
+		"build-win32": "mkdir deploy & node ../../../scripts/build-win32.js quantel-http-transformer-proxy.exe && node ../../../scripts/copy-natives.js win32-x64",
+		"start": "node dist/index.js",
+		"precommit": "lint-staged"
+	},
+	"devDependencies": {
+		"lint-staged": "^7.2.0",
+		"nexe": "^3.3.7"
+	},
+	"dependencies": {
+		"@quantel-http-transformer-proxy/generic": "1.39.7"
+	},
+	"peerDependencies": {},
+	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+	"engines": {
+		"node": ">=14.18.0"
+	},
+	"lint-staged": {
+		"*.{js,css,json,md,scss}": [
+			"prettier"
+		],
+		"*.{ts,tsx}": [
+			"eslint"
+		]
+	}
 }

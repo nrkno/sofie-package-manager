@@ -1,5 +1,6 @@
 import { Expectation, ExpectationManagerWorkerAgent, Reason } from '@sofie-package-manager/api'
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { WorkerAgentAPI } from '../workerAgentApi'
 
 export interface TrackedExpectation {

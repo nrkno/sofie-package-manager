@@ -22,7 +22,8 @@ import {
 	ExpectationManagerOptions,
 } from '@sofie-package-manager/expectation-manager'
 import { CoreMockAPI } from './coreMockAPI'
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 
 const defaultTestConfig: SingleAppConfig = {
 	singleApp: {

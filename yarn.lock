@@ -1577,16 +1577,6 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@sofie-automation/blueprints-integration@1.44.1":
-  version "1.44.1"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/blueprints-integration/-/blueprints-integration-1.44.1.tgz#d0cc3c7af92b159f59d5435f210839714535c8c5"
-  integrity sha512-d/EQBz7nPDUEkaA+aBhz9TLX4iXng0aA0PWSPxUESCWLMYbhZQlW0BsmpddOdmMYkRqYpeELC7evbGH0FKVpPQ==
-  dependencies:
-    "@sofie-automation/shared-lib" "1.44.1"
-    timeline-state-resolver-types "7.3.0"
-    tslib "^2.4.0"
-    type-fest "^2.12.2"
-
 "@sofie-automation/code-standard-preset@^0.2.1":
   version "0.2.5"
   resolved "https://registry.yarnpkg.com/@sofie-automation/code-standard-preset/-/code-standard-preset-0.2.5.tgz#d1f8135a88e6b0b4dd8bf8f83f7a69733194a718"
@@ -10714,13 +10704,6 @@ timed-out@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/timed-out/-/timed-out-4.0.1.tgz#f32eacac5a175bea25d7fab565ab3ed8741ef56f"
   integrity sha512-G7r3AhovYtr5YKOWQkta8RKAPb+J9IsO4uVmzjl8AZwfhs8UcUwTiD6gcJYSgOtzyjvQKrKYn41syHbUWMkafA==
-
-timeline-state-resolver-types@7.3.0:
-  version "7.3.0"
-  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-7.3.0.tgz#72515377c89a2ac253158b577bba3d9ffbf8d7c2"
-  integrity sha512-Y4fmmP0aut9LjpnnDzu1BliUhAYgAe+ygQsAx3uxMkpYGBEs/A/1wROv4WGyKpsqtf3PjeyDch92s1Femq3TSA==
-  dependencies:
-    tslib "^2.3.1"
 
 tmp@^0.0.33:
   version "0.0.33"

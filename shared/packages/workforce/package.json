@@ -1,37 +1,35 @@
 {
-    "name": "@sofie-package-manager/workforce",
-    "version": "1.39.2",
-    "main": "dist/index",
-    "types": "dist/index",
-    "files": [
-        "dist"
-    ],
-    "license": "MIT",
-    "scripts": {
-        "build": "rimraf dist && yarn build:main",
-        "build:main": "tsc -p tsconfig.json",
-        "__test": "jest",
-        "precommit": "lint-staged"
-    },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
-    "devDependencies": {
-        "lint-staged": "^7.2.0"
-    },
-    "dependencies": {
-        "@sofie-package-manager/api": "1.39.2"
-    },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-    "engines": {
-        "node": ">=14.18.0"
-    },
-    "lint-staged": {
-        "*.{js,css,json,md,scss}": [
-            "prettier"
-        ],
-        "*.{ts,tsx}": [
-            "eslint"
-        ]
-    }
+	"name": "@sofie-package-manager/workforce",
+	"version": "1.39.2",
+	"main": "dist/index",
+	"types": "dist/index",
+	"files": [
+		"dist"
+	],
+	"license": "MIT",
+	"scripts": {
+		"build": "rimraf dist && yarn build:main",
+		"build:main": "tsc -p tsconfig.json",
+		"__test": "jest",
+		"precommit": "lint-staged"
+	},
+	"peerDependencies": {},
+	"devDependencies": {
+		"lint-staged": "^7.2.0"
+	},
+	"dependencies": {
+		"@sofie-package-manager/api": "1.39.2"
+	},
+	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+	"engines": {
+		"node": ">=14.18.0"
+	},
+	"lint-staged": {
+		"*.{js,css,json,md,scss}": [
+			"prettier"
+		],
+		"*.{ts,tsx}": [
+			"eslint"
+		]
+	}
 }

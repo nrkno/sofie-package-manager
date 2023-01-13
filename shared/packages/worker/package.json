@@ -33,9 +33,7 @@
 		"windows-network-drive": "^3.0.1",
 		"xml-js": "^1.6.11"
 	},
-	"peerDependencies": {
-		"@sofie-automation/blueprints-integration": "*"
-	},
+	"peerDependencies": {},
 	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
 	"lint-staged": {
 		"*.{js,css,json,md,scss}": [

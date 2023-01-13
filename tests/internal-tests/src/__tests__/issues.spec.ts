@@ -1,6 +1,7 @@
 import fsOrg from 'fs'
 import { promisify } from 'util'
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { Expectation, literal } from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
@@ -12,7 +13,7 @@ jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
 
-const fs = (fsOrg as any) as typeof fsMockType
+const fs = fsOrg as any as typeof fsMockType
 
 const fsStat = promisify(fs.stat)
 

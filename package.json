@@ -65,7 +65,6 @@
 		"node": ">=12.11.0"
 	},
 	"dependencies": {
-		"@sofie-automation/blueprints-integration": "1.44.1",
 		"@sofie-automation/server-core-integration": "1.44.1"
 	},
 	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
