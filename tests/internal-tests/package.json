@@ -1,41 +1,41 @@
 {
-  "name": "@tests/internal-tests",
-  "version": "1.39.7",
-  "description": "Internal tests",
-  "private": true,
-  "scripts": {
-    "__build": "rimraf dist && yarn build:main",
-    "build:main": "tsc -p tsconfig.json",
-    "test": "jest --runInBand",
-    "precommit": "lint-staged"
-  },
-  "devDependencies": {
-    "deep-extend": "^0.6.0",
-    "lint-staged": "^7.2.0",
-    "nexe": "^3.3.7",
-    "tv-automation-quantel-gateway-client": "^2.0.2",
-    "windows-network-drive": "^3.0.1"
-  },
-  "dependencies": {
-    "@http-server/generic": "1.39.2",
-    "@package-manager/generic": "1.39.7",
-    "@sofie-package-manager/api": "1.39.2",
-    "@sofie-package-manager/expectation-manager": "1.39.7",
-    "@sofie-package-manager/worker": "1.39.7",
-    "@sofie-package-manager/workforce": "1.39.2",
-    "underscore": "^1.12.0"
-  },
-  "peerDependencies": {},
-  "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-  "engines": {
-    "node": ">=14.18.0"
-  },
-  "lint-staged": {
-    "*.{js,css,json,md,scss}": [
-      "prettier"
-    ],
-    "*.{ts,tsx}": [
-      "eslint"
-    ]
-  }
+    "name": "@tests/internal-tests",
+    "version": "1.39.7",
+    "description": "Internal tests",
+    "private": true,
+    "scripts": {
+        "__build": "rimraf dist && yarn build:main",
+        "build:main": "tsc -p tsconfig.json",
+        "test": "jest --runInBand",
+        "precommit": "lint-staged"
+    },
+    "devDependencies": {
+        "deep-extend": "^0.6.0",
+        "lint-staged": "^7.2.0",
+        "nexe": "^3.3.7",
+        "tv-automation-quantel-gateway-client": "^2.0.2",
+        "windows-network-drive": "^3.0.1"
+    },
+    "dependencies": {
+        "@http-server/generic": "1.39.2",
+        "@package-manager/generic": "1.39.7",
+        "@sofie-package-manager/api": "1.39.2",
+        "@sofie-package-manager/expectation-manager": "1.39.7",
+        "@sofie-package-manager/worker": "1.39.7",
+        "@sofie-package-manager/workforce": "1.39.2",
+        "underscore": "^1.12.0"
+    },
+    "peerDependencies": {},
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "engines": {
+        "node": ">=14.18.0"
+    },
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    }
 }
