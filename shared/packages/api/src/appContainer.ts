@@ -12,6 +12,7 @@ export interface AppContainerConfig {
 	appContainerId: string
 	minRunningApps: number
 	maxRunningApps: number
+	maxAppKeepalive: number
 	spinDownTime: number
 
 	worker: {

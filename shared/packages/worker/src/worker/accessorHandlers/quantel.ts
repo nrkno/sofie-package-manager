@@ -426,6 +426,23 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
 			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway: ${JSON.stringify(e)}`))
 
+			const { http: httpAgent } = gateway.getHTTPAgents()
+			setInterval(() => {
+				const sockets = Object.values(httpAgent.sockets)
+				this.worker.logger.silly(
+					`Quantel.QuantelGateway: Currently possessing ${sockets.reduce(
+						(mem, sockets) => mem + (sockets?.length ?? 0),
+						0
+					)} sockets`
+				)
+				// for (const socketGroup of sockets) {
+				// 	if (socketGroup === undefined) continue
+				// 	for (const socket of socketGroup) {
+				// 		socket.setKeepAlive()
+				// 	}
+				// }
+			}, 30 * 1000)
+
 			pGateway = gateway
 				.init(quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)
 				.then(() => gateway)

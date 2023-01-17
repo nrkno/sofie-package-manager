@@ -184,6 +184,11 @@ const appContainerArguments = defineArguments({
 		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 0,
 		describe: 'Minimum amount of apps (of a certain appType) to be running',
 	},
+	maxAppKeepalive: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_MAX_APP_KEEPALIVE || '', 10) || 6 * 3600 * 1000, // ms (6 hours)
+		describe: 'Maximum time an app will be kept running',
+	},
 	spinDownTime: {
 		type: 'number',
 		default: parseInt(process.env.APP_CONTAINER_SPIN_DOWN_TIME || '', 10) || 60 * 1000,
@@ -429,6 +434,7 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 			appContainerId: argv.appContainerId,
 			maxRunningApps: argv.maxRunningApps,
 			minRunningApps: argv.minRunningApps,
+			maxAppKeepalive: argv.maxAppKeepalive,
 			spinDownTime: argv.spinDownTime,
 
 			worker: {
