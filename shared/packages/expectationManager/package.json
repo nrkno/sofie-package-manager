@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/expectation-manager",
-    "version": "1.39.8-alpha.3",
+    "version": "1.39.8-alpha.4",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
@@ -17,8 +17,8 @@
         "lint-staged": "^7.2.0"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.39.8-alpha.0",
-        "@sofie-package-manager/worker": "1.39.8-alpha.3",
+        "@sofie-package-manager/api": "1.39.8-alpha.4",
+        "@sofie-package-manager/worker": "1.39.8-alpha.4",
         "@supercharge/promise-pool": "^1.7.0",
         "underscore": "^1.12.0"
     },

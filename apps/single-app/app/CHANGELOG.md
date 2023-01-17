@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.8-alpha.4](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.3...v1.39.8-alpha.4) (2023-01-17)
+
+**Note:** Version bump only for package @single-app/app
+
+
+
+
+
 ## [1.39.8-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.2...v1.39.8-alpha.3) (2023-01-13)
 
 **Note:** Version bump only for package @single-app/app

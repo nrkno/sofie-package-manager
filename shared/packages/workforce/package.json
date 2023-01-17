@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/workforce",
-    "version": "1.39.8-alpha.0",
+    "version": "1.39.8-alpha.4",
     "main": "dist/index",
     "types": "dist/index",
     "files": [
@@ -20,7 +20,7 @@
         "lint-staged": "^7.2.0"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.39.8-alpha.0"
+        "@sofie-package-manager/api": "1.39.8-alpha.4"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
