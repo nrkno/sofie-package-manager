@@ -44,7 +44,7 @@ export class EvaluationRunner {
 
 		// First we're going to see if there is any new incoming data which needs to be pulled in.
 		if (this.tracker.receivedUpdates.expectationsHasBeenUpdated) {
-			await this.updateReceivedData_Expectations()
+			await this.updateReceivedData_Expectations().promise
 		}
 		times['timeUpdateReceivedExpectations'] = Date.now() - startTime
 		startTime = Date.now()
@@ -81,8 +81,12 @@ export class EvaluationRunner {
 		})
 	}
 	/** Goes through the incoming data and stores it */
-	private async updateReceivedData_Expectations(): Promise<void> {
+	private updateReceivedData_Expectations(): {
+		promise: Promise<void>
+	} {
 		this.tracker.receivedUpdates.expectationsHasBeenUpdated = false
+
+		const cancelPromises: Promise<void>[] = []
 
 		// Added / Changed
 		for (const id of Object.keys(this.tracker.receivedUpdates.expectations)) {
@@ -106,7 +110,7 @@ export class EvaluationRunner {
 					if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 						if (trackedExp.status.workInProgressCancel) {
 							this.logger.debug(`Cancelling ${expLabel(trackedExp)} due to update`)
-							await trackedExp.status.workInProgressCancel()
+							cancelPromises.push(trackedExp.status.workInProgressCancel())
 						}
 					}
 					difference = 'major'
@@ -167,7 +171,7 @@ export class EvaluationRunner {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
 						this.logger.verbose(`Cancelling ${expLabel(trackedExp)} due to removed`)
-						await trackedExp.status.workInProgressCancel()
+						cancelPromises.push(trackedExp.status.workInProgressCancel())
 					}
 				}
 
@@ -196,7 +200,7 @@ export class EvaluationRunner {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
 						this.logger.verbose(`Cancelling ${expLabel(trackedExp)} due to restart`)
-						await trackedExp.status.workInProgressCancel()
+						cancelPromises.push(trackedExp.status.workInProgressCancel())
 					}
 				}
 
@@ -221,7 +225,7 @@ export class EvaluationRunner {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 					if (trackedExp.status.workInProgressCancel) {
 						this.logger.verbose(`Cancelling ${expLabel(trackedExp)} due to abort`)
-						await trackedExp.status.workInProgressCancel()
+						cancelPromises.push(trackedExp.status.workInProgressCancel())
 					}
 				}
 
@@ -239,6 +243,12 @@ export class EvaluationRunner {
 		this.tracker.receivedUpdates.abortExpectations = {}
 
 		this.tracker.listeningExpectations.rePopulate()
+
+		return {
+			promise: Promise.all(cancelPromises).then(() => {
+				return // void
+			}),
+		}
 	}
 	/** Iterate through the tracked Expectations */
 	private async _evaluateAllExpectations(): Promise<{ runAgainASAP: boolean; times: { [key: string]: number } }> {
