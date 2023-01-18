@@ -906,6 +906,10 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 		if (trackedExp.session.expectationCanBeRemoved) return // The expectation has been removed
 
+		const lastErrorTime = trackedExp.lastError?.time || 0
+		const timeSinceLastError = Date.now() - lastErrorTime
+		if (timeSinceLastError < this.constants.ERROR_WAIT_TIME) return // Don't run again too soon after an error
+
 		try {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
 				// Check which workers might want to handle it:
