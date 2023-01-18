@@ -26,7 +26,6 @@ if (!executableName) {
 }
 
 ;(async () => {
-
 	log(`Collecting dependencies for ${packageJson.name}...`)
 	// List all Lerna packages:
 	const list = await exec('yarn lerna list -a --json')
@@ -34,7 +33,7 @@ if (!executableName) {
 
 	const packages = JSON.parse(str)
 
-	await mkdirp(basePath + 'node_modules')
+	await mkdirp(path.join(basePath, 'node_modules'))
 
 	// Copy the packages into node_modules:
 	const copiedFolders = []
@@ -60,8 +59,8 @@ if (!executableName) {
 	// Remove things that arent used, to reduce file size:
 	log(`Remove unused files...`)
 	const copiedFiles = [
-		...(await glob(`${basePath}node_modules/@*/app/*`)),
-		...(await glob(`${basePath}node_modules/@*/generic/*`)),
+		...(await glob(`${basePath}/node_modules/@*/app/*`)),
+		...(await glob(`${basePath}/node_modules/@*/generic/*`)),
 	]
 
 	for (const file of copiedFiles) {
