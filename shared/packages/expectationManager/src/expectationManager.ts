@@ -904,6 +904,10 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 		if (trackedExp.session.expectationCanBeRemoved) return // The expectation has been removed
 
+		const lastErrorTime = trackedExp.lastError?.time || 0
+		const timeSinceLastError = Date.now() - lastErrorTime
+		if (timeSinceLastError < this.constants.ERROR_WAIT_TIME) return // Don't run again too soon after an error
+
 		try {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
 				// Check which workers might want to handle it:
@@ -1322,7 +1326,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			// Default minimum time to wait:
 			this.constants.FULLFILLED_MONITOR_TIME +
 			// Also add some more time, so that we don't check too often when we have a lot of expectations:
-			this.trackedExpectationsCount * 0.02
+			this.constants.FULLFILLED_MONITOR_TIME_ADD_PER_EXPECTATION * this.trackedExpectationsCount
 		)
 	}
 	/** Update the state and status of a trackedExpectation */
