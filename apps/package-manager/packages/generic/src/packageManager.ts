@@ -100,7 +100,9 @@ export class PackageManagerHandler {
 			this.callbacksHandler,
 			{
 				chaosMonkey: chaosMonkey,
-				stateReevaluationConcurrency: concurrency,
+				constants: {
+					PARALLEL_CONCURRENCY: concurrency,
+				},
 			}
 		)
 		this.expectationManager.on('error', (e) => `Caught error from ExpectationManager: ${stringifyError(e)}`)

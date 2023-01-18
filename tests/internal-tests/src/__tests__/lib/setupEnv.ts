@@ -226,7 +226,8 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 				packageId: string,
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			) => {
-				if (debugLogging) console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
+				if (debugLogging)
+					console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
 				if (!containerStatuses[containerId]) {
 					containerStatuses[containerId] = {
 						packages: {},
@@ -264,7 +265,6 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
 				ERROR_WAIT_TIME: ERROR_WAIT_TIME - 300,
 			},
-			stateReevaluationConcurrency: 50,
 		}
 	)
 
