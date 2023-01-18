@@ -1324,7 +1324,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			// Default minimum time to wait:
 			this.constants.FULLFILLED_MONITOR_TIME +
 			// Also add some more time, so that we don't check too often when we have a lot of expectations:
-			this.trackedExpectationsCount * 0.02
+			this.constants.FULLFILLED_MONITOR_TIME_ADD_PER_EXPECTATION * this.trackedExpectationsCount
 		)
 	}
 	/** Update the state and status of a trackedExpectation */
