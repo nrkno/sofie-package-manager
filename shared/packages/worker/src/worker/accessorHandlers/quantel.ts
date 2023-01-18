@@ -1,4 +1,5 @@
 import { QuantelGateway } from 'tv-automation-quantel-gateway-client'
+import { CachedQuantelGateway } from './lib/CachedQuantelGateway'
 import {
 	GenericAccessorHandle,
 	PackageReadInfo,
@@ -420,7 +421,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// Note: We need to store a Promise<QuantelGateway> in the cache because otherwise many QuantelGateways
 			// can be created if multiple calls to this are done synchronously.
 
-			const gateway = new QuantelGateway({
+			const gateway = new CachedQuantelGateway({
 				timeout: QUANTEL_TIMEOUT,
 			})
 			this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
