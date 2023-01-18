@@ -116,6 +116,11 @@ const packageManagerArguments = defineArguments({
 		default: process.env.CHAOS_MONKEY === '1',
 		describe: 'If true, enables the "chaos monkey"-feature, which will randomly kill processes every few seconds',
 	},
+	concurrency: {
+		type: 'number',
+		default: parseInt(process.env.CONCURRENCY || '', 10) || 50,
+		describe: 'How many expectation states can be evaluated at the same time',
+	},
 })
 /** CLI-argument-definitions for the Worker process */
 const workerArguments = defineArguments({
@@ -353,6 +358,7 @@ export interface PackageManagerConfig {
 		watchFiles: boolean
 		noCore: boolean
 		chaosMonkey: boolean
+		concurrency: number
 	}
 }
 export function getPackageManagerConfig(): PackageManagerConfig {
@@ -377,6 +383,7 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 			watchFiles: argv.watchFiles,
 			noCore: argv.noCore,
 			chaosMonkey: argv.chaosMonkey,
+			concurrency: argv.concurrency,
 		},
 	}
 }

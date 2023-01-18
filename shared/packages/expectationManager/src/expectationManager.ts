@@ -40,6 +40,7 @@ import { getDefaultTrackedExpectation, sortTrackedExpectations } from './lib/exp
 export class ExpectationManager extends HelpfulEventEmitter {
 	private constants: ExpectationManagerConstants
 	private enableChaosMonkey = false
+	private stateReevaluationConcurrency: number
 
 	private workforceAPI: WorkforceAPI
 
@@ -135,6 +136,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 			...options?.constants,
 		}
 		this.enableChaosMonkey = options?.chaosMonkey ?? false
+		this.stateReevaluationConcurrency = options?.stateReevaluationConcurrency ?? 50
 		this.workforceAPI = new WorkforceAPI(this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('ExpectationManager: Workforce disconnected')
@@ -833,9 +835,8 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 			if (trackedWithState.length) {
 				// We're using a PromisePool so that we don't send out an unlimited number of parallel requests to the workers.
-				const CONCURRENCY = 50
 				await PromisePool.for(trackedWithState)
-					.withConcurrency(CONCURRENCY)
+					.withConcurrency(this.stateReevaluationConcurrency)
 					.handleError(async (error, trackedExp) => {
 						// Log the error
 						this.logger.error(error.name + error.message)
@@ -2221,6 +2222,7 @@ function expLabel(exp: TrackedExpectation): string {
 export interface ExpectationManagerOptions {
 	constants?: Partial<ExpectationManagerConstants>
 	chaosMonkey?: boolean
+	stateReevaluationConcurrency: number
 }
 export type ExpectationManagerServerOptions =
 	| {
