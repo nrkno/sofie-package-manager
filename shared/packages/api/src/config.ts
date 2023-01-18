@@ -116,6 +116,11 @@ const packageManagerArguments = defineArguments({
 		default: process.env.CHAOS_MONKEY === '1',
 		describe: 'If true, enables the "chaos monkey"-feature, which will randomly kill processes every few seconds',
 	},
+	concurrency: {
+		type: 'number',
+		default: parseInt(process.env.CONCURRENCY || '', 10) || 50,
+		describe: 'How many expectation states can be evaluated at the same time',
+	},
 })
 /** CLI-argument-definitions for the Worker process */
 const workerArguments = defineArguments({
@@ -183,6 +188,11 @@ const appContainerArguments = defineArguments({
 		type: 'number',
 		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 0,
 		describe: 'Minimum amount of apps (of a certain appType) to be running',
+	},
+	maxAppKeepalive: {
+		type: 'number',
+		default: parseInt(process.env.APP_CONTAINER_MAX_APP_KEEPALIVE || '', 10) || 6 * 3600 * 1000, // ms (6 hours)
+		describe: 'Maximum time an app will be kept running',
 	},
 	spinDownTime: {
 		type: 'number',
@@ -348,6 +358,7 @@ export interface PackageManagerConfig {
 		watchFiles: boolean
 		noCore: boolean
 		chaosMonkey: boolean
+		concurrency: number
 	}
 }
 export function getPackageManagerConfig(): PackageManagerConfig {
@@ -372,6 +383,7 @@ export function getPackageManagerConfig(): PackageManagerConfig {
 			watchFiles: argv.watchFiles,
 			noCore: argv.noCore,
 			chaosMonkey: argv.chaosMonkey,
+			concurrency: argv.concurrency,
 		},
 	}
 }
@@ -429,6 +441,7 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 			appContainerId: argv.appContainerId,
 			maxRunningApps: argv.maxRunningApps,
 			minRunningApps: argv.minRunningApps,
+			maxAppKeepalive: argv.maxAppKeepalive,
 			spinDownTime: argv.spinDownTime,
 
 			worker: {

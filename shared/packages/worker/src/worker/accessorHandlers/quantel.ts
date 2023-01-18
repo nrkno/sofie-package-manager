@@ -8,7 +8,14 @@ import {
 	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Accessor, AccessorOnPackage, Expectation, literal, Reason } from '@sofie-package-manager/api'
+import {
+	Accessor,
+	AccessorOnPackage,
+	Expectation,
+	literal,
+	Reason,
+	INNER_ACTION_TIMEOUT,
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { joinUrls } from './lib/pathJoin'
@@ -16,7 +23,7 @@ import { joinUrls } from './lib/pathJoin'
 /** The minimum amount of frames where a clip is minimumly playable */
 const MINIMUM_FRAMES = 10
 /** How long to wait for a response from Quantel Gateway before failing */
-const QUANTEL_TIMEOUT = 10 * 1000
+const QUANTEL_TIMEOUT = INNER_ACTION_TIMEOUT - 500
 
 /** Accessor handle for handling clips in a Quantel system */
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -418,6 +425,23 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			})
 			this.worker.logger.debug(`Quantel.QuantelGateway: Created new Quantel Gateway client "${id}"`)
 			gateway.on('error', (e) => this.worker.logger.error(`Quantel.QuantelGateway: ${JSON.stringify(e)}`))
+
+			const { http: httpAgent } = gateway.getHTTPAgents()
+			setInterval(() => {
+				const sockets = Object.values(httpAgent.sockets)
+				this.worker.logger.silly(
+					`Quantel.QuantelGateway: Currently possessing ${sockets.reduce(
+						(mem, sockets) => mem + (sockets?.length ?? 0),
+						0
+					)} sockets`
+				)
+				// for (const socketGroup of sockets) {
+				// 	if (socketGroup === undefined) continue
+				// 	for (const socket of socketGroup) {
+				// 		socket.setKeepAlive()
+				// 	}
+				// }
+			}, 30 * 1000)
 
 			pGateway = gateway
 				.init(quantelGatewayUrl, ISAUrls, this.accessor.zoneId, this.accessor.serverId)

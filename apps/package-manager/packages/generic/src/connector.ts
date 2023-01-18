@@ -62,6 +62,7 @@ export class Connector {
 			packageManagerServerOptions,
 			config.packageManager.accessUrl || undefined,
 			workForceConnectionOptions,
+			config.packageManager.concurrency,
 			config.packageManager.chaosMonkey
 		)
 	}

@@ -28,6 +28,9 @@ export interface ExpectationTrackerConstants {
 
 	/** Default interval for running cronjobs */
 	DEFAULT_CRONJOB_INTERVAL: number
+
+	/** How many Expectation to evaluate in parallel */
+	PARALLEL_CONCURRENCY: number
 }
 
 export function getDefaultConstants(): ExpectationTrackerConstants {
@@ -44,5 +47,7 @@ export function getDefaultConstants(): ExpectationTrackerConstants {
 
 		FAILED_REMOVE_COUNT: 2,
 		DEFAULT_CRONJOB_INTERVAL: 60 * 1000,
+
+		PARALLEL_CONCURRENCY: 50,
 	}
 }

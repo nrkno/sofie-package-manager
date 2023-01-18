@@ -1,6 +1,6 @@
 {
     "name": "@http-server/app",
-    "version": "1.39.8-alpha.0",
+    "version": "1.39.8-alpha.4",
     "description": "Upload to and serve proxies of packages",
     "private": true,
     "scripts": {
@@ -16,7 +16,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@http-server/generic": "1.39.8-alpha.0"
+        "@http-server/generic": "1.39.8-alpha.4"
     },
     "peerDependencies": {
         "@sofie-automation/blueprints-integration": "*"

@@ -306,9 +306,9 @@ export class EvaluationRunner {
 
 			if (trackedWithState.length) {
 				// We're using a PromisePool so that we don't send out an unlimited number of parallel requests to the workers.
-				const CONCURRENCY = 50
+
 				await PromisePool.for(trackedWithState)
-					.withConcurrency(CONCURRENCY)
+					.withConcurrency(this.tracker.constants.PARALLEL_CONCURRENCY)
 					.handleError(async (error, trackedExp) => {
 						// Log the error
 						this.logger.error(error.name + error.message)

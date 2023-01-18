@@ -8,13 +8,15 @@ import { URL } from 'url'
 const MAX_FREE_SOCKETS = 5
 const MAX_SOCKETS_PER_HOST = 5
 const MAX_ALL_SOCKETS = 25
-const HTTP_TIMEOUT = 15 * 1000
+const HTTP_TIMEOUT = 30 * 1000
+const HTTP_KEEP_ALIVE = 60 * 1000
 
 const fetchHTTPAgent = new HTTPAgent({
 	keepAlive: true,
 	maxFreeSockets: MAX_FREE_SOCKETS,
 	maxSockets: MAX_SOCKETS_PER_HOST,
 	maxTotalSockets: MAX_ALL_SOCKETS,
+	keepAliveMsecs: HTTP_KEEP_ALIVE,
 	timeout: HTTP_TIMEOUT,
 })
 
@@ -23,10 +25,15 @@ const fetchHTTPSAgent = new HTTPSAgent({
 	maxFreeSockets: MAX_FREE_SOCKETS,
 	maxSockets: MAX_SOCKETS_PER_HOST,
 	maxTotalSockets: MAX_ALL_SOCKETS,
+	keepAliveMsecs: HTTP_KEEP_ALIVE,
 	timeout: HTTP_TIMEOUT,
 })
 
-export type FetchWithControllerOptions = Omit<RequestInit, 'signal'> & {
+export type RequestInitWithSimpleHeaders = Omit<RequestInit, 'headers'> & {
+	headers?: Record<string, string>
+}
+
+export type FetchWithControllerOptions = Omit<RequestInitWithSimpleHeaders, 'signal'> & {
 	/**
 	 * If provided, will refresh the fetch abort timeout every time the 'data' event is fired.
 	 * This is useful when uploading files, to avoid the timeout from firing.
@@ -38,7 +45,10 @@ export type FetchWithControllerOptions = Omit<RequestInit, 'signal'> & {
  * Fetches a url using node-fetch and times out prudently
  * Note that this function does not support using an AbortController (use fetchWithController for that)
  */
-export async function fetchWithTimeout(url: string, options?: Omit<RequestInit, 'signal'>): Promise<Response> {
+export async function fetchWithTimeout(
+	url: string,
+	options?: Omit<RequestInitWithSimpleHeaders, 'signal'>
+): Promise<Response> {
 	const o = fetchWithController(url, options)
 	return o.response
 }
@@ -69,7 +79,7 @@ export function fetchWithController(
 				return setTimeout(() => {
 					reject(
 						new Error(
-							`Timeout when fetching ${options?.method || ' '} "${url}" after ${INNER_ACTION_TIMEOUT}ms`
+							`Timeout when fetching ${options?.method ?? ''} "${url}" after ${INNER_ACTION_TIMEOUT}ms`
 						)
 					)
 
@@ -85,6 +95,10 @@ export function fetchWithController(
 					timeout = refreshTimeout()
 				})
 			}
+
+			const headers = options?.headers ?? ({} as Record<string, string>)
+			headers['Connection'] = 'keep-alive'
+			headers['Keep-Alive'] = `timeout=${Math.ceil(HTTP_KEEP_ALIVE / 1000)}`
 
 			const doTheFetch = async () =>
 				fetch(url, { ...options, signal: controller.signal, agent: selectAgent }).then((response) => {

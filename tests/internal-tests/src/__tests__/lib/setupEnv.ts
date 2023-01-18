@@ -80,6 +80,7 @@ const defaultTestConfig: SingleAppConfig = {
 		maxRunningApps: 1,
 		minRunningApps: 1,
 		spinDownTime: 0,
+		maxAppKeepalive: 6 * 3600 * 1000, // 6 hrs, the default
 		worker: {
 			resourceId: '',
 			networkIds: [],

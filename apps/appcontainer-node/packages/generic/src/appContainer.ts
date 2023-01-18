@@ -14,7 +14,6 @@ import {
 	Expectation,
 	waitTime,
 	APPCONTAINER_PING_TIME,
-	APPCONTAINER_MAX_KEEPALIVE,
 	PackageContainerExpectation,
 	Reason,
 	stringifyError,
@@ -33,6 +32,8 @@ import { WorkerAgentAPI } from './workerAgentApi'
 const RESTART_COOLDOWN = 60 * 1000 // ms
 
 const WORKER_DATA_LOCK_TIMEOUT = INNER_ACTION_TIMEOUT
+
+const MAX_APP_ID = 10000000
 
 export class AppContainer {
 	private workforceAPI: WorkforceAPI
@@ -467,11 +468,30 @@ export class AppContainer {
 			},
 		}
 	}
+	private getNewAppId(): string {
+		const newAppId = `${this.id}_${this.appId++}`
+
+		if (this.apps[newAppId] !== undefined) {
+			const existingApp = this.apps[newAppId]
+			throw new Error(
+				`New AppId "${newAppId}" is still being used by an existing process, existing process is "${
+					existingApp.appType
+				}" and was started at: ${new Date(existingApp.start).toISOString()}`
+			)
+		}
+
+		if (this.appId >= MAX_APP_ID) {
+			this.logger.warn(`Resetting appId counter to 0, will start re-using old IDs`)
+			this.appId = 0
+		}
+
+		return newAppId
+	}
 	async spinUp(appType: string, longSpinDownTime = false): Promise<string> {
 		const availableApp = this.availableApps[appType]
 		if (!availableApp) throw new Error(`Unknown appType "${appType}"`)
 
-		const appId = `${this.id}_${this.appId++}`
+		const appId = this.getNewAppId()
 
 		this.logger.debug(`Spinning up app "${appId}" of type "${appType}"`)
 
@@ -621,12 +641,13 @@ export class AppContainer {
 			}
 			// try to avoid shutting down all workers at the same time
 			const randomizeOffset = 2.5 * APPCONTAINER_PING_TIME * Math.random()
-			if (Date.now() - app.start > APPCONTAINER_MAX_KEEPALIVE + randomizeOffset) {
-				this.spinDown(appId, `Lifetime exceeded Max KeepAlive for apps: ${APPCONTAINER_MAX_KEEPALIVE}ms`).catch(
-					(error) => {
-						this.logger.error(`Error when spinning down app "${appId}": ${stringifyError(error)}`)
-					}
-				)
+			if (Date.now() - app.start > this.config.appContainer.maxAppKeepalive + randomizeOffset) {
+				this.spinDown(
+					appId,
+					`Lifetime exceeded Max KeepAlive for apps: ${this.config.appContainer.maxAppKeepalive}ms`
+				).catch((error) => {
+					this.logger.error(`Error when spinning down app "${appId}": ${stringifyError(error)}`)
+				})
 			}
 		}
 		this.spinUpMinimumApps().catch((error) => {
