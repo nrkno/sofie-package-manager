@@ -1,11 +1,11 @@
 import { Expectation } from '@sofie-package-manager/api'
 import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
-import { ExpectationManagerConstants } from './constants'
-import { TrackedExpectation } from './types'
+import { ExpectationTrackerConstants } from './constants'
+import { TrackedExpectation } from '../expectationTracker'
 
 export function sortTrackedExpectations(
 	trackedExpectations: { [id: string]: TrackedExpectation },
-	constants: ExpectationManagerConstants
+	constants: ExpectationTrackerConstants
 ): TrackedExpectation[] {
 	const tracked: TrackedExpectation[] = Object.values(trackedExpectations)
 	tracked.sort((a, b) => {
@@ -62,5 +62,22 @@ export function getDefaultTrackedExpectation(
 		prevStatusReasons: existingtrackedExp?.prevStatusReasons || {},
 		status: {},
 		session: null,
+	}
+}
+
+/** Convert expectation status to ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus */
+export function getPackageStatus(
+	trackedExp: TrackedExpectation
+): ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus {
+	if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
+		return ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+	} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
+		return trackedExp.status.targetCanBeUsedWhileTransferring
+			? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_READY
+			: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_NOT_READY
+	} else {
+		return trackedExp.status.sourceExists
+			? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY
+			: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 	}
 }

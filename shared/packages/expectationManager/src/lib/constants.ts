@@ -1,4 +1,4 @@
-export interface ExpectationManagerConstants {
+export interface ExpectationTrackerConstants {
 	/** Time between iterations of the expectation queue [ms] */
 	EVALUATE_INTERVAL: number
 	/** Minimum time between re-evaluating fulfilled expectations [ms] */
@@ -30,7 +30,7 @@ export interface ExpectationManagerConstants {
 	DEFAULT_CRONJOB_INTERVAL: number
 }
 
-export function getDefaultConstants(): ExpectationManagerConstants {
+export function getDefaultConstants(): ExpectationTrackerConstants {
 	return {
 		// Default values:
 		EVALUATE_INTERVAL: 5 * 1000,
