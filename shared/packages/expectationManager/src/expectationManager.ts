@@ -909,8 +909,14 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		if (
 			timeSinceLastError < this.constants.ERROR_WAIT_TIME &&
 			trackedExp.state !== ExpectedPackageStatusAPI.WorkStatusState.RESTARTED
-		)
+		) {
+			this.logger.silly(
+				`Skipping expectation state evaluation of "${expLabel(trackedExp)}" (${trackedExp.exp.type}), ` +
+					`because it's time from last error (${timeSinceLastError}ms) is less than ` +
+					`${this.constants.ERROR_WAIT_TIME}ms`
+			)
 			return // Don't run again too soon after an error, unless it's a manual restart
+		}
 
 		try {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
@@ -1547,7 +1553,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		} else {
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker, ${noCostReason.user}`,
-				tech: `Waiting for a free worker ${noCostReason} (${
+				tech: `Waiting for a free worker ${noCostReason.tech} (${
 					Object.keys(trackedExp.availableWorkers).length
 				} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
 			}
