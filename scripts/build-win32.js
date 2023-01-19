@@ -42,10 +42,9 @@ if (!executableName) {
 		if (package0.name.match(/boilerplate/)) continue
 		if (package0.name.match(packageJson.name)) continue
 
-		log(`  Copying: ${package0.name}`)
-
 		const source = path.join(`${basePath}/../../../tmp_packages_for_build/`, package0.name)
 		const target = path.resolve(path.join(basePath, 'node_modules', package0.name))
+		log(`  Copying: ${package0.name} to ${target}`)
 
 		// log(`    ${source} -> ${target}`)
 		ps.push(fseCopy(source, target))
@@ -66,10 +65,11 @@ if (!executableName) {
 	for (const file of copiedFiles) {
 		if (
 			// Only keep these:
-			!file.match(/package0.json$/) &&
+			!file.match(/package.json$/) &&
 			!file.match(/node_modules$/) &&
 			!file.match(/dist$/)
 		) {
+			log(`Removing: "${file}"`)
 			ps.push(rimraf(file))
 		}
 	}
@@ -80,7 +80,7 @@ if (!executableName) {
 
 	const nexeOutputPath = path.join(outputDirectory, executableName)
 
-	console.log('nexeOutputPath', nexeOutputPath)
+	log('nexeOutputPath', nexeOutputPath)
 
 	await nexe.compile({
 		input: path.join(basePath, './dist/index.js'),

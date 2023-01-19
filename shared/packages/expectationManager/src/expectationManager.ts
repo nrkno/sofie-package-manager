@@ -906,7 +906,17 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 		const lastErrorTime = trackedExp.lastError?.time || 0
 		const timeSinceLastError = Date.now() - lastErrorTime
-		if (timeSinceLastError < this.constants.ERROR_WAIT_TIME) return // Don't run again too soon after an error
+		if (
+			timeSinceLastError < this.constants.ERROR_WAIT_TIME &&
+			trackedExp.state !== ExpectedPackageStatusAPI.WorkStatusState.RESTARTED
+		) {
+			this.logger.silly(
+				`Skipping expectation state evaluation of "${expLabel(trackedExp)}" (${trackedExp.exp.type}), ` +
+					`because it's time from last error (${timeSinceLastError}ms) is less than ` +
+					`${this.constants.ERROR_WAIT_TIME}ms`
+			)
+			return // Don't run again too soon after an error, unless it's a manual restart
+		}
 
 		try {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {
@@ -1543,7 +1553,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		} else {
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker, ${noCostReason.user}`,
-				tech: `Waiting for a free worker ${noCostReason} (${
+				tech: `Waiting for a free worker ${noCostReason.tech} (${
 					Object.keys(trackedExp.availableWorkers).length
 				} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
 			}
@@ -2094,17 +2104,27 @@ export class ExpectationManager extends HelpfulEventEmitter {
 				!this.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
 			) {
 				if (!exp.waitingForWorkerTime) {
+					this.logger.silly(
+						`Starting to track how long expectation "${expLabel(exp)}" has been waiting for a worker`
+					)
 					exp.waitingForWorkerTime = Date.now()
 				}
 			} else {
 				exp.waitingForWorkerTime = null
 			}
 			if (exp.waitingForWorkerTime) {
+				const hasBeenWaitingFor = Date.now() - exp.waitingForWorkerTime
 				if (
-					Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME || // Don't scale up too fast
+					hasBeenWaitingFor > this.constants.SCALE_UP_TIME || // Don't scale up too fast
 					Object.keys(this.workerAgents).length === 0 // Although if there are no workers connected, we should scale up right away
 				) {
 					waitingExpectations.push(exp)
+				} else {
+					this.logger.silly(
+						`Expectation "${expLabel(exp)}" has been waiting for less than ${
+							this.constants.SCALE_UP_TIME
+						}ms (${hasBeenWaitingFor}ms), letting it wait a bit more`
+					)
 				}
 			}
 		}
@@ -2115,6 +2135,8 @@ export class ExpectationManager extends HelpfulEventEmitter {
 				await this.workforceAPI.requestResourcesForExpectation(exp.exp)
 			}
 		}
+
+		this.logger.silly(`Waiting expectations: ${waitingExpectations.length}, sent out ${requestsSentCount} requests`)
 
 		for (const packageContainer of Object.values(this.trackedPackageContainers)) {
 			if (!packageContainer.currentWorker) {
