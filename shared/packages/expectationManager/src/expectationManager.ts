@@ -2104,17 +2104,27 @@ export class ExpectationManager extends HelpfulEventEmitter {
 				!this.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
 			) {
 				if (!exp.waitingForWorkerTime) {
+					this.logger.silly(
+						`Starting to track how long expectation "${expLabel(exp)}" has been waiting for a worker`
+					)
 					exp.waitingForWorkerTime = Date.now()
 				}
 			} else {
 				exp.waitingForWorkerTime = null
 			}
 			if (exp.waitingForWorkerTime) {
+				const hasBeenWaitingFor = Date.now() - exp.waitingForWorkerTime
 				if (
-					Date.now() - exp.waitingForWorkerTime > this.constants.SCALE_UP_TIME || // Don't scale up too fast
+					hasBeenWaitingFor > this.constants.SCALE_UP_TIME || // Don't scale up too fast
 					Object.keys(this.workerAgents).length === 0 // Although if there are no workers connected, we should scale up right away
 				) {
 					waitingExpectations.push(exp)
+				} else {
+					this.logger.silly(
+						`Expectation "${expLabel(exp)}" has been waiting for less than ${
+							this.constants.SCALE_UP_TIME
+						}ms (${hasBeenWaitingFor}ms), letting it wait a bit more`
+					)
 				}
 			}
 		}
@@ -2125,6 +2135,8 @@ export class ExpectationManager extends HelpfulEventEmitter {
 				await this.workforceAPI.requestResourcesForExpectation(exp.exp)
 			}
 		}
+
+		this.logger.silly(`Waiting expectations: ${waitingExpectations.length}, sent out ${requestsSentCount} requests`)
 
 		for (const packageContainer of Object.values(this.trackedPackageContainers)) {
 			if (!packageContainer.currentWorker) {
