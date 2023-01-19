@@ -906,7 +906,11 @@ export class ExpectationManager extends HelpfulEventEmitter {
 
 		const lastErrorTime = trackedExp.lastError?.time || 0
 		const timeSinceLastError = Date.now() - lastErrorTime
-		if (timeSinceLastError < this.constants.ERROR_WAIT_TIME) return // Don't run again too soon after an error
+		if (
+			timeSinceLastError < this.constants.ERROR_WAIT_TIME &&
+			trackedExp.state !== ExpectedPackageStatusAPI.WorkStatusState.RESTARTED
+		)
+			return // Don't run again too soon after an error, unless it's a manual restart
 
 		try {
 			if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW) {

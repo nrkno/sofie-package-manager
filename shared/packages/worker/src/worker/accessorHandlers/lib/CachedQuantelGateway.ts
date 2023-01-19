@@ -73,7 +73,8 @@ export class CachedQuantelGateway extends QuantelGateway {
 		if (inCache === undefined) return undefined
 
 		// cache stale
-		if (inCache.timestamp < Date.now() - this.cacheExpire) {
+		const entryExpires = inCache.timestamp + this.cacheExpire
+		if (entryExpires < Date.now()) {
 			this._cache.delete(cacheKey)
 			return undefined
 		}
