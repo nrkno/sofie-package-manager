@@ -1,6 +1,6 @@
 import { LoggerInstance, stringifyError } from '@sofie-package-manager/api'
 import { EvaluationRunner } from './evaluationRunner'
-import { ExpectationManager } from './expectationManager'
+import { ExpectationManagerInternal } from './expectationManagerInternal'
 import { ExpectationTracker } from './expectationTracker'
 
 /**
@@ -17,7 +17,11 @@ export class EvaluationScheduler {
 	private terminated = false
 	private logger: LoggerInstance
 
-	constructor(logger: LoggerInstance, private manager: ExpectationManager, private tracker: ExpectationTracker) {
+	constructor(
+		logger: LoggerInstance,
+		private manager: ExpectationManagerInternal,
+		private tracker: ExpectationTracker
+	) {
 		this.logger = logger.category('Scheduler')
 	}
 

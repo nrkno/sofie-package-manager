@@ -11,7 +11,7 @@ import {
 } from '@sofie-package-manager/api'
 import _ from 'underscore'
 import { EvaluationScheduler } from './evaluationScheduler'
-import { ExpectationManager, ExpectationManagerCallbacks } from './expectationManager'
+import { ExpectationManagerCallbacks } from './expectationManager'
 import { ListeningExpectations } from './helpers/listeningExpectations'
 import { TrackedExpectations } from './helpers/trackedExpectations'
 import { TrackedPackageContainers } from './helpers/trackedPackageContainers'
@@ -20,6 +20,7 @@ import { ExpectationStateHandlerSession } from './lib/types'
 import { WorkerAgentAPI } from './workerAgentApi'
 import { WorkInProgressTracker } from './helpers/workInProgressTracker'
 import { TrackedReceivedUpdates } from './helpers/trackedReceivedUpdates'
+import { ExpectationManagerInternal } from './expectationManagerInternal'
 
 /**
  * The ExpectationTracker is responsible for tracking and uptating the state of the Expectations
@@ -43,7 +44,7 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 
 	private logger: LoggerInstance
 	constructor(
-		private manager: ExpectationManager,
+		private manager: ExpectationManagerInternal,
 		logger: LoggerInstance,
 		constants: ExpectationTrackerConstants,
 		private callbacks: ExpectationManagerCallbacks
@@ -412,6 +413,7 @@ export interface TrackedExpectation {
 	queriedWorkers: { [workerId: string]: number }
 	/** List of worker ids that supports this Expectation */
 	availableWorkers: { [workerId: string]: true }
+	/** Contains the latest reason why a worker refused to support an Expectation */
 	noAvailableWorkersReason: Reason
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number

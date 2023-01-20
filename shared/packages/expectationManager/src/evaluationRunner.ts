@@ -12,7 +12,7 @@ import {
 import PromisePool from '@supercharge/promise-pool'
 import _ from 'underscore'
 import { evaluateExpectationState } from './evaluateExpectation'
-import { ExpectationManager } from './expectationManager'
+import { ExpectationManagerInternal } from './expectationManagerInternal'
 import {
 	ExpectationTracker,
 	expLabel,
@@ -33,7 +33,11 @@ export class EvaluationRunner {
 	public logger: LoggerInstance
 	private instanceId: number
 
-	constructor(logger: LoggerInstance, public manager: ExpectationManager, public tracker: ExpectationTracker) {
+	constructor(
+		logger: LoggerInstance,
+		public manager: ExpectationManagerInternal,
+		public tracker: ExpectationTracker
+	) {
 		this.instanceId = EvaluationRunner.instanceId++
 		this.logger = logger.category(`Runner_${this.instanceId}`)
 	}
@@ -458,7 +462,7 @@ export class EvaluationRunner {
 								this.tracker.trackedPackageContainers.remove(containerId)
 							} else {
 								this.logger.error(
-									`ExpectationManager._updateReceivedPackageContainerExpectations: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
+									`_updateReceivedData_TrackedPackageContainers: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
 										result.reason
 									)}`
 								)
@@ -470,9 +474,7 @@ export class EvaluationRunner {
 							}
 						} catch (err) {
 							this.logger.error(
-								`ExpectationManager._updateReceivedPackageContainerExpectations: Caught exception: ${JSON.stringify(
-									err
-								)}`
+								`_updateReceivedData_TrackedPackageContainers: Caught exception: ${JSON.stringify(err)}`
 							)
 							this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 								user: 'Internal Error',
@@ -505,7 +507,7 @@ export class EvaluationRunner {
 							if (!disposeMonitorResult.success) {
 								badStatus = true
 								this.logger.verbose(
-									`ExpectationManager._evaluateAllTrackedPackageContainers: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
+									`_evaluateAllTrackedPackageContainers: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
 										disposeMonitorResult.reason
 									)}`
 								)
@@ -577,7 +579,7 @@ export class EvaluationRunner {
 					if (notSupportReason) {
 						badStatus = true
 						this.logger.verbose(
-							`ExpectationManager._evaluateAllTrackedPackageContainers: doYouSupportPackageContainer could not find a supportive worker: ${JSON.stringify(
+							`_evaluateAllTrackedPackageContainers: doYouSupportPackageContainer could not find a supportive worker: ${JSON.stringify(
 								notSupportReason
 							)}`
 						)
@@ -627,7 +629,7 @@ export class EvaluationRunner {
 							} else {
 								badStatus = true
 								this.logger.verbose(
-									`ExpectationManager._evaluateAllTrackedPackageContainers: setupPackageContainerMonitors did not suceed: ${JSON.stringify(
+									`_evaluateAllTrackedPackageContainers: setupPackageContainerMonitors did not suceed: ${JSON.stringify(
 										monitorSetup.reason
 									)}`
 								)
@@ -655,7 +657,7 @@ export class EvaluationRunner {
 						if (!cronJobStatus.success) {
 							badStatus = true
 							this.logger.error(
-								`ExpectationManager._evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not suceed: ${JSON.stringify(
+								`_evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not suceed: ${JSON.stringify(
 									cronJobStatus.reason
 								)}`
 							)
@@ -675,7 +677,7 @@ export class EvaluationRunner {
 					})
 				}
 			} catch (err) {
-				this.logger.error(`ExpectationManager._evaluateAllTrackedPackageContainers: ${JSON.stringify(err)}`)
+				this.logger.error(`_evaluateAllTrackedPackageContainers: ${JSON.stringify(err)}`)
 				this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
 					user: 'Internal Error',
 					tech: `Unhandled Error: ${stringifyError(err)}`,

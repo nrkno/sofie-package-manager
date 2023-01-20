@@ -2,16 +2,15 @@
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { assertNever, stringifyError } from '@sofie-package-manager/api'
 import { EvaluationRunner } from './evaluationRunner'
-import { ExpectationManager } from './expectationManager'
+import { ExpectationManagerInternal } from './expectationManagerInternal'
 import { ExpectationTracker, expLabel, TrackedExpectation } from './expectationTracker'
-import { TrackedWorkerAgent } from './helpers/trackedWorkerAgents'
 
 /** Evaluate the state of an Expectation */
 export async function evaluateExpectationState(
 	runner: EvaluationRunner,
 	trackedExp: TrackedExpectation
 ): Promise<void> {
-	const manager: ExpectationManager = runner.manager
+	const manager: ExpectationManagerInternal = runner.manager
 	const tracker: ExpectationTracker = runner.tracker
 
 	const timeSinceLastEvaluation = Date.now() - trackedExp.lastEvaluationTime
@@ -35,14 +34,11 @@ export async function evaluateExpectationState(
 		return // Don't run again too soon after an error, unless it's a manual restart
 	}
 
-	const workerAgents = manager.workerAgents.list()
-
 	const context: EvaluateContext = {
 		manager,
 		tracker,
 		runner,
 		trackedExp,
-		workerAgents,
 		timeSinceLastEvaluation,
 	}
 	try {
@@ -79,58 +75,24 @@ export async function evaluateExpectationState(
 	}
 }
 interface EvaluateContext {
-	manager: ExpectationManager
+	manager: ExpectationManagerInternal
 	tracker: ExpectationTracker
 	runner: EvaluationRunner
 	trackedExp: TrackedExpectation
-	workerAgents: {
-		workerId: string
-		workerAgent: TrackedWorkerAgent
-	}[]
 	timeSinceLastEvaluation: number
 }
 
-async function evaluateExpectationStateNew({ tracker, trackedExp, workerAgents }: EvaluateContext): Promise<void> {
+async function evaluateExpectationStateNew({ manager, tracker, trackedExp }: EvaluateContext): Promise<void> {
 	// Check which workers might want to handle it:
 	// Reset properties:
 	trackedExp.status = {}
 
-	let hasQueriedAnyone = false
-	await Promise.all(
-		workerAgents.map(async ({ workerId, workerAgent }) => {
-			if (!workerAgent.connected) return
-
-			// Only ask each worker once:
-			if (
-				!trackedExp.queriedWorkers[workerId] ||
-				Date.now() - trackedExp.queriedWorkers[workerId] > tracker.constants.WORKER_SUPPORT_TIME
-			) {
-				trackedExp.queriedWorkers[workerId] = Date.now()
-				hasQueriedAnyone = true
-				try {
-					const support = await workerAgent.api.doYouSupportExpectation(trackedExp.exp)
-
-					if (support.support) {
-						trackedExp.availableWorkers[workerId] = true
-					} else {
-						delete trackedExp.availableWorkers[workerId]
-						trackedExp.noAvailableWorkersReason = support.reason
-					}
-				} catch (err) {
-					delete trackedExp.availableWorkers[workerId]
-
-					if ((err + '').match(/timeout/i)) {
-						trackedExp.noAvailableWorkersReason = {
-							user: 'Worker timed out',
-							tech: `Worker "${workerId} timeout"`,
-						}
-					} else throw err
-				}
-			}
-		})
+	const { hasQueriedAnyone, workerCount } = await manager.workerAgents.updateAvailableWorkersForExpectation(
+		trackedExp
 	)
+
 	const availableWorkersCount = Object.keys(trackedExp.availableWorkers).length
-	if (availableWorkersCount) {
+	if (availableWorkersCount > 0) {
 		if (hasQueriedAnyone) {
 			tracker.updateTrackedExpStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.WAITING,
@@ -151,7 +113,7 @@ async function evaluateExpectationStateNew({ tracker, trackedExp, workerAgents }
 		}
 	} else {
 		if (!Object.keys(trackedExp.queriedWorkers).length) {
-			if (!workerAgents.length) {
+			if (!workerCount) {
 				tracker.updateTrackedExpStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					reason: {
@@ -166,7 +128,7 @@ async function evaluateExpectationStateNew({ tracker, trackedExp, workerAgents }
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					reason: {
 						user: `No Workers available (this is likely a configuration issue)`,
-						tech: `No Workers queried, ${workerAgents.length} available`,
+						tech: `No Workers queried, ${workerCount} available`,
 					},
 					// Don't update the package status, since we don't know anything about the package yet:
 					dontUpdatePackage: true,
