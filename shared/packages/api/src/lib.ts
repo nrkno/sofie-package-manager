@@ -160,30 +160,54 @@ export function assertTrue<T extends true>(): void {
 	// Nothing, this is a type guard only
 }
 
-/** Returns a string describing the first thing found that makes the two values different.
- * Returns null if no differences are found.
+/**
+ * Does a deep comparison between two objects, returns the first difference found
+ * @param a
+ * @param b
+ * @param omitKeys (Optional) An array of properties(-paths) to ignore. e.g. ["a", "a.b", "list.1"].
+ * 	"*" matches any key, useful for example in arrays: "list.*.ignoreMe"
+ * @returns a string describing the first thing found that makes the two values different, null if no differences are found.
  */
-export function diff(a: unknown, b: unknown): string | null {
-	const innerDiff = diffInner(a, b)
+export function diff<T>(a: T, b: T, omitKeys?: string[]): string | null {
+	let omitKeysMap: { [key: string]: true } | undefined
+	if (omitKeys && omitKeys.length) {
+		omitKeysMap = {}
+		for (const omitKey of omitKeys) {
+			omitKeysMap[omitKey] = true
+		}
+	} else {
+		omitKeysMap = undefined
+	}
+
+	const innerDiff = diffInner(a, b, omitKeysMap)
 	if (innerDiff) {
 		return (innerDiff[1].length ? `${innerDiff[1].join('.')}: ` : '') + innerDiff[0]
 	}
 	return null
 }
 /** Returns [ 'diff explanation', [path] ] */
-function diffInner(a: unknown, b: unknown): [string, string[]] | null {
+function diffInner(
+	a: unknown,
+	b: unknown,
+	omitKeysMap: { [key: string]: true } | undefined
+): [string, string[]] | null {
 	if (a === b) return null
 
-	if ((a == null || b == null || a == undefined || b == undefined) && a !== b) return [`${a} !== ${b}`, []] // Reduntant, gives nicer output for null & undefined
-	if (typeof a !== typeof b) return [`type ${typeof a} !== ${typeof b}`, []]
+	if (a == null || b == null || a == undefined || b == undefined) return [`${a} !== ${b}`, []] // Reduntant, gives nicer output for null & undefined
 
-	if (typeof a === 'object' && typeof b === 'object') {
+	const typeofA = typeof a
+	const typeofB = typeof b
+	if (typeofA !== typeofB) return [`type ${typeofA} !== ${typeofB}`, []]
+
+	if (typeofA === 'object' && typeofB === 'object') {
 		if (a === null && b === null) return null
 		if (a === null || b === null) return [`${a} !== ${b}`, []]
 
-		if (Array.isArray(a) || Array.isArray(b)) {
-			if (!Array.isArray(a) || !Array.isArray(b)) {
-				if (Array.isArray(a)) return [`array !== object`, []]
+		const isArrayA = Array.isArray(a)
+		const isArrayB = Array.isArray(b)
+		if (isArrayA || isArrayB) {
+			if (!isArrayA || !isArrayB) {
+				if (isArrayA) return [`array !== object`, []]
 				else return [`object !== array`, []]
 			}
 
@@ -191,13 +215,33 @@ function diffInner(a: unknown, b: unknown): [string, string[]] | null {
 		}
 
 		const checkedKeys: { [key: string]: true } = {}
-		for (const key of Object.keys(a).concat(Object.keys(b))) {
+		for (const key of Object.keys(a as any).concat(Object.keys(b as any))) {
 			if (checkedKeys[key]) continue // already checked this key
+			if (omitKeysMap && omitKeysMap[key]) continue // ignore this key
 
 			// const innerPath = pathOrg ? `${pathOrg}.${key}` : `${key}`
 
+			let omitKeysMapInner: { [key: string]: true } | undefined
+			if (omitKeysMap) {
+				omitKeysMapInner = {}
+				const replaceKey = key + '.'
+				for (const omitKey of Object.keys(omitKeysMap)) {
+					// "a.b.c" => "b.c"
+					if (omitKey.startsWith(replaceKey)) {
+						const innerKey = omitKey.slice(replaceKey.length)
+						if (innerKey) omitKeysMapInner[innerKey] = true
+					} else if (omitKey.startsWith('*.')) {
+						const innerKey = omitKey.slice(2)
+						if (innerKey) omitKeysMapInner[innerKey] = true
+					}
+					// else: the key can be omitted
+				}
+			} else {
+				omitKeysMapInner = undefined
+			}
+
 			// @ts-expect-error keys
-			const innerDiff = diffInner(a[key], b[key])
+			const innerDiff = diffInner(a[key], b[key], omitKeysMapInner)
 			if (innerDiff) {
 				return [innerDiff[0], [key, ...innerDiff[1]]]
 			}
@@ -210,6 +254,7 @@ function diffInner(a: unknown, b: unknown): [string, string[]] | null {
 	}
 	return [`${a} !== ${b}`, []]
 }
+
 export function isNodeRunningInDebugMode(): boolean {
 	return (
 		// @ts-expect-error v8debug is a NodeJS global
