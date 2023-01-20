@@ -78,12 +78,12 @@ export namespace ExpectedPackage {
 		/** The sideEffect is used by the Package Manager to generate extra artifacts, such as thumbnails & previews */
 		sideEffect: {
 			/** Which container previews are to be put into */
-			previewContainerId?: string
-			previewPackageSettings?: SideEffectPreviewSettings
+			previewContainerId?: string | null
+			previewPackageSettings?: SideEffectPreviewSettings | null
 
 			/** Which container thumbnails are to be put into */
-			thumbnailContainerId?: string
-			thumbnailPackageSettings?: SideEffectThumbnailSettings
+			thumbnailContainerId?: string | null
+			thumbnailPackageSettings?: SideEffectThumbnailSettings | null
 		}
 	}
 	export interface SideEffectPreviewSettings {

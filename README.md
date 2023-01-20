@@ -87,6 +87,11 @@ Other useful commands:
 # Start the single-app (contains all apps)
 yarn start:single-app
 
+# Start the single-app in local-only mode, using packages from expectedPackages.json
+yarn start:single-app -- -- --watchFiles=true --noCore=true
+
+
+
 # (Windows only) Compile all apps into executables, and put into the deploy/ folder.
 yarn do:build-win32
 
