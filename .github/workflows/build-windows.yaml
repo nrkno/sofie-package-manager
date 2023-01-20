@@ -1,0 +1,78 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - 'release**'
+    tags:
+      - 'v**'
+
+jobs:
+  build:
+    name: Build windows binaries
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
+      - name: Run build
+        run: yarn do:build-win32
+        env:
+          CI: true
+
+      - name: sign executables
+        shell: bash
+        continue-on-error: true
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          if [[ ! -z "$WINDOWS_CERTIFICATE" ]]; then
+            # write certficate to file
+            echo "$WINDOWS_CERTIFICATE" | base64 -d > certificate.pfx
+
+            for FILE in deploy/*; do
+              # This path is a bit fragile, but necessary as no signtool is on the path. 
+              # If this path breaks, then find what versions of windows kits are installed in the updated runner image https://github.com/actions/runner-images#available-images
+              'C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe' sign //fd SHA256 //f certificate.pfx //p "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" $FILE
+              echo $FILE
+            done
+          else
+            echo "No certificate found"
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows
+          path: deploy
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - build
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: Windows
+          path: deploy
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: deploy/*
+          fail_on_unmatched_files: true

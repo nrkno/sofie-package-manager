@@ -7,15 +7,10 @@
     "scripts": {
         "build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "__test": "jest",
-        "precommit": "lint-staged"
+        "__test": "jest"
     },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
-    "devDependencies": {
-        "lint-staged": "^7.2.0"
-    },
+    "peerDependencies": {},
+    "devDependencies": {},
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
         "node": ">=14.18.0"

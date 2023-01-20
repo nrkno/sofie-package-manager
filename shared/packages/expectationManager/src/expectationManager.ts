@@ -20,7 +20,8 @@ import {
 	hashObj,
 	setLogLevel,
 } from '@sofie-package-manager/api'
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 import PromisePool from '@supercharge/promise-pool'

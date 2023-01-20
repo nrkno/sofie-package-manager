@@ -4,10 +4,13 @@ import {
 	PackageManagerConfig,
 	ProcessHandler,
 	stringifyError,
+	ExpectedPackage,
+	literal,
+	Accessor,
 } from '@sofie-package-manager/api'
 import { ExpectationManager, ExpectationManagerServerOptions } from '@sofie-package-manager/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
-import { PackageManagerHandler } from './packageManager'
+import { PackageContainers, PackageManagerHandler } from './packageManager'
 import chokidar from 'chokidar'
 import fs from 'fs'
 import { promisify } from 'util'
@@ -15,6 +18,17 @@ import path from 'path'
 
 const fsAccess = promisify(fs.access)
 const fsReadFile = promisify(fs.readFile)
+const fsWriteFile = promisify(fs.writeFile)
+
+async function fsExist(fileName: string): Promise<boolean> {
+	try {
+		await fsAccess(fileName)
+		return true
+	} catch (err) {
+		if (`${err}`.includes('ENOENT')) return false
+		throw err
+	}
+}
 
 export interface Config {
 	process: ProcessConfig
@@ -108,6 +122,94 @@ export class Connector {
 
 	private async initFileWatcher(packageManagerHandler: PackageManagerHandler): Promise<void> {
 		const fileName = path.join(process.cwd(), './expectedPackages.json')
+
+		if (!(await fsExist(fileName))) {
+			// File does not exist, create it:
+			await fsWriteFile(
+				fileName,
+				JSON.stringify(
+					literal<{
+						description: string
+						packageContainers: PackageContainers
+						expectedPackages: ExpectedPackage.Any[]
+					}>({
+						description:
+							'This file is intended for debugging use. By passing the argument --watchFiles=true, the application will monitor this file as a second source of packages, so we can fiddle without going through Core',
+						packageContainers: {
+							source0: {
+								label: 'Source 0',
+								accessors: {
+									local: {
+										type: Accessor.AccessType.LOCAL_FOLDER,
+										label: 'Local',
+										folderPath: 'D:\\media\\source0',
+										allowRead: true,
+										allowWrite: false,
+									},
+								},
+							},
+							target0: {
+								label: 'Target 0',
+								accessors: {
+									local: {
+										type: Accessor.AccessType.LOCAL_FOLDER,
+										label: 'Local',
+										folderPath: 'D:\\media\\target0',
+										allowRead: true,
+										allowWrite: true,
+									},
+								},
+							},
+							internet: {
+								label: 'The Internet',
+								accessors: {
+									http: {
+										type: Accessor.AccessType.HTTP,
+										baseUrl: '',
+										allowRead: true,
+										allowWrite: false,
+										label: 'HTTP',
+									},
+								},
+							},
+						},
+						expectedPackages: [
+							{
+								type: ExpectedPackage.PackageType.MEDIA_FILE,
+								_id: 'test',
+								contentVersionHash: 'abc1234',
+								content: {
+									filePath: 'amb.mp4',
+								},
+								version: {},
+								sources: [
+									{
+										containerId: 'source0',
+										accessors: {
+											local: {
+												type: Accessor.AccessType.LOCAL_FOLDER,
+												filePath: 'amb.mp4',
+											},
+										},
+									},
+								],
+								layers: ['target0'],
+								sideEffect: {
+									previewContainerId: null,
+									previewPackageSettings: null,
+									thumbnailContainerId: null,
+									thumbnailPackageSettings: null,
+								},
+							},
+						],
+					}),
+					undefined,
+					2
+				),
+				'utf-8'
+			)
+		}
+
 		const watcher = chokidar.watch(fileName, { persistent: true })
 
 		this.logger.info(`Watching file "${fileName}"`)
@@ -135,12 +237,7 @@ export class Connector {
 		const reloadInput = async () => {
 			this.logger.info(`Change detected in ${fileName}`)
 			// Check that the file exists:
-			try {
-				await fsAccess(fileName)
-			} catch (_err) {
-				// ignore
-				return
-			}
+			if (!(await fsExist(fileName))) return
 
 			const str = await fsReadFile(fileName, { encoding: 'utf-8' })
 			const o = JSON.parse(str)

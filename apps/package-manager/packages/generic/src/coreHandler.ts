@@ -1,12 +1,21 @@
+/* eslint-disable node/no-extraneous-import */
 import {
 	CoreConnection,
 	CoreOptions,
-	PeripheralDeviceAPI as P,
 	DDPConnectorOptions,
 	CollectionObj,
 	Observer,
 	Collection,
+	CoreCredentials,
 } from '@sofie-automation/server-core-integration'
+import {
+	PeripheralDeviceCategory,
+	PeripheralDeviceType,
+	PERIPHERAL_SUBTYPE_PROCESS,
+} from '@sofie-automation/shared-lib/dist/peripheralDevice/peripheralDeviceAPI'
+import { PeripheralDeviceAPIMethods } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
+import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
+import { protectString, unprotectString } from '@sofie-automation/shared-lib/dist/lib/protectedString'
 
 import { DeviceConfig } from './connector'
 
@@ -100,7 +109,7 @@ export class CoreHandler {
 			this.logger.warn('Core Disconnected!')
 		})
 		this.core.onError((err) => {
-			this.logger.error('Core Error: ' + (err.message || err.toString() || err))
+			this.logger.error('Core Error: ' + (typeof err === 'string' ? err : err.message || err.toString() || err))
 		})
 
 		const ddpConfig: DDPConnectorOptions = {
@@ -170,8 +179,6 @@ export class CoreHandler {
 				this.onDeviceChanged(device._id)
 			})
 		}
-
-		return
 	}
 	async destroy(): Promise<void> {
 		this._statusDestroyed = true
@@ -179,20 +186,17 @@ export class CoreHandler {
 		await this.core.destroy()
 	}
 	getCoreConnectionOptions(name: string, subDeviceId: string): CoreOptions {
-		let credentials: {
-			deviceId: string
-			deviceToken: string
-		}
+		let credentials: CoreCredentials
 
 		if (this._deviceOptions.deviceId && this._deviceOptions.deviceToken) {
 			credentials = {
-				deviceId: this._deviceOptions.deviceId + subDeviceId,
+				deviceId: protectString(this._deviceOptions.deviceId + subDeviceId),
 				deviceToken: this._deviceOptions.deviceToken,
 			}
 		} else if (this._deviceOptions.deviceId) {
 			this.logger.warn('Token not set, only id! This might be unsecure!')
 			credentials = {
-				deviceId: this._deviceOptions.deviceId + subDeviceId,
+				deviceId: protectString(this._deviceOptions.deviceId + subDeviceId),
 				deviceToken: 'unsecureToken',
 			}
 		} else {
@@ -201,11 +205,9 @@ export class CoreHandler {
 		const options: CoreOptions = {
 			...credentials,
 
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore
-			deviceCategory: 'package_manager', //P.DeviceCategory.PACKAGE_MANAGER,
-			deviceType: 'package_manager', // P.DeviceType.PACKAGE_MANAGER,
-			deviceSubType: P.SUBTYPE_PROCESS,
+			deviceCategory: PeripheralDeviceCategory.PACKAGE_MANAGER,
+			deviceType: PeripheralDeviceType.PACKAGE_MANAGER,
+			deviceSubType: PERIPHERAL_SUBTYPE_PROCESS,
 
 			deviceName: name,
 			watchDog: this._coreConfig ? this._coreConfig.watchdog : true,
@@ -220,7 +222,7 @@ export class CoreHandler {
 		this._onConnected = fcn
 	}
 	onDeviceChanged(id: string): void {
-		if (id === this.core.deviceId) {
+		if (id === unprotectString(this.core.deviceId)) {
 			const col = this.core.getCollection('peripheralDevices')
 			if (!col) throw new Error('collection "peripheralDevices" not found!')
 
@@ -281,7 +283,7 @@ export class CoreHandler {
 					this.logger.error(`executeFunction error: ${stringifyError(err)}`)
 				}
 				this.core
-					.callMethod(P.methods.functionReply, [cmd._id, err, res])
+					.callMethod(PeripheralDeviceAPIMethods.functionReply, [cmd._id, err, res])
 					.then(() => {
 						// nothing
 					})
@@ -341,7 +343,7 @@ export class CoreHandler {
 			const cmd = cmds.findOne(id) as PeripheralDeviceCommand
 			if (!cmd) throw Error('PeripheralCommand "' + id + '" not found!')
 
-			if (cmd.deviceId === this.core.deviceId) {
+			if (cmd.deviceId === unprotectString(this.core.deviceId)) {
 				this.executeFunction(cmd)
 			}
 		}
@@ -359,7 +361,7 @@ export class CoreHandler {
 
 		cmds.find({}).forEach((cmd0: CollectionObj) => {
 			const cmd = cmd0 as PeripheralDeviceCommand
-			if (cmd.deviceId === this.core.deviceId) {
+			if (cmd.deviceId === unprotectString(this.core.deviceId)) {
 				this.executeFunction(cmd)
 			}
 		})
@@ -392,19 +394,19 @@ export class CoreHandler {
 		await this.updateCoreStatus()
 	}
 	private async updateCoreStatus(): Promise<any> {
-		let statusCode = P.StatusCode.GOOD
+		let statusCode = SofieStatusCode.GOOD
 		const messages: Array<string> = []
 
 		if (!this._statusInitialized) {
-			statusCode = P.StatusCode.BAD
+			statusCode = SofieStatusCode.BAD
 			messages.push('Starting up...')
 		}
 		if (this._statusDestroyed) {
-			statusCode = P.StatusCode.BAD
+			statusCode = SofieStatusCode.BAD
 			messages.push('Shut down')
 		}
 
-		if (statusCode === P.StatusCode.GOOD) {
+		if (statusCode === SofieStatusCode.GOOD) {
 			for (const status of Object.values(this.statuses)) {
 				if (status && status.statusCode !== StatusCode.GOOD) {
 					statusCode = Math.max(statusCode, status.statusCode)

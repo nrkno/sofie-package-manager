@@ -1,4 +1,6 @@
-import * as BI from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
+
 // import { assertTrue, EnumExtends, assertEnumValuesExtends } from './lib'
 /* eslint-disable @typescript-eslint/no-namespace */
 
@@ -13,8 +15,8 @@ import * as BI from '@sofie-automation/blueprints-integration'
 	later to add it into blueprints-integration.
 */
 
-export type StatusCode = BI.StatusCode
-export const StatusCode = BI.StatusCode
+export type StatusCode = SofieStatusCode
+export const StatusCode = SofieStatusCode
 
 /**
  * An ExpectedPackage is sent from Core to the Package Manager, to signal that a Package (ie a Media file) should be copied to a playout-device.
@@ -78,12 +80,12 @@ export namespace ExpectedPackage {
 		/** The sideEffect is used by the Package Manager to generate extra artifacts, such as thumbnails & previews */
 		sideEffect: {
 			/** Which container previews are to be put into */
-			previewContainerId?: string
-			previewPackageSettings?: SideEffectPreviewSettings
+			previewContainerId?: string | null
+			previewPackageSettings?: SideEffectPreviewSettings | null
 
 			/** Which container thumbnails are to be put into */
-			thumbnailContainerId?: string
-			thumbnailPackageSettings?: SideEffectThumbnailSettings
+			thumbnailContainerId?: string | null
+			thumbnailPackageSettings?: SideEffectThumbnailSettings | null
 		}
 	}
 	export interface SideEffectPreviewSettings {

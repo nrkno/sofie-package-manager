@@ -1,17 +1,16 @@
-/* eslint-disable node/no-unpublished-require, node/no-extraneous-require */
+/* eslint-disable node/no-unpublished-import, node/no-extraneous-import, no-console */
 
-const promisify = require('util').promisify
-const cp = require('child_process')
-const path = require('path')
-const nexe = require('nexe')
+import { promisify } from 'util'
+import cp from 'child_process'
+import path from 'path'
+import nexe from 'nexe'
+import glob0 from 'glob'
+import fse from 'fs-extra'
+import { createRequire } from 'module'
+
 const exec = promisify(cp.exec)
-const glob = promisify(require('glob'))
-
-const fse = require('fs-extra')
-const mkdirp = require('mkdirp')
-const rimraf = promisify(require('rimraf'))
-
-const fseCopy = promisify(fse.copy)
+const glob = promisify(glob0)
+const require = createRequire(import.meta.url)
 
 /*
 	Due to nexe not taking into account the packages in the mono-repo, we're doing a hack,
@@ -33,7 +32,7 @@ if (!executableName) {
 
 	const packages = JSON.parse(str)
 
-	await mkdirp(path.join(basePath, 'node_modules'))
+	await fse.mkdirp(path.join(basePath, 'node_modules'))
 
 	// Copy the packages into node_modules:
 	const copiedFolders = []
@@ -47,7 +46,7 @@ if (!executableName) {
 		log(`  Copying: ${package0.name} to ${target}`)
 
 		// log(`    ${source} -> ${target}`)
-		ps.push(fseCopy(source, target))
+		ps.push(fse.copy(source, target))
 
 		copiedFolders.push(target)
 	}
@@ -70,7 +69,7 @@ if (!executableName) {
 			!file.match(/dist$/)
 		) {
 			log(`Removing: "${file}"`)
-			ps.push(rimraf(file))
+			ps.push(fse.rm(file, { recursive: true }))
 		}
 	}
 	await Promise.all(ps)
@@ -92,7 +91,7 @@ if (!executableName) {
 	log(`Cleaning up...`)
 	// Clean up after ourselves:
 	for (const copiedFolder of copiedFolders) {
-		await rimraf(copiedFolder)
+		await fse.rm(copiedFolder, { recursive: true })
 	}
 
 	log(`...done!`)

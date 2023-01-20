@@ -1,4 +1,5 @@
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { assertNever, stringifyError } from '@sofie-package-manager/api'
 import { EvaluationRunner } from './evaluationRunner'
 import { ExpectationManager } from './expectationManager'
@@ -233,12 +234,21 @@ async function evaluateExpectationStateWaiting({
 					})
 				} else {
 					// Not ready to start
-					tracker.updateTrackedExpStatus(trackedExp, {
-						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
-						reason: readyToStart.reason,
-						status: newStatus,
-						isError: !readyToStart.isWaitingForAnother,
-					})
+					if (readyToStart.isWaitingForAnother) {
+						// Not ready to start because it's waiting for another expectation to be fullfilled first
+						// Stay here in WAITING state:
+						tracker.updateTrackedExpStatus(trackedExp, {
+							reason: readyToStart.reason,
+							status: newStatus,
+						})
+					} else {
+						// Not ready to start because of some other reason (e.g. the source doesn't exist)
+						tracker.updateTrackedExpStatus(trackedExp, {
+							state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
+							reason: readyToStart.reason,
+							status: newStatus,
+						})
+					}
 				}
 			}
 		} catch (error) {
