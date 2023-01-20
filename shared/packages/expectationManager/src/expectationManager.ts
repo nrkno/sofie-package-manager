@@ -607,16 +607,17 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		for (const id of Object.keys(this.receivedUpdates.expectations)) {
 			const exp = this.receivedUpdates.expectations[id]
 
+			let diffExplanation: string | null = null
+
 			let difference: null | 'new' | 'major' | 'minor' = null
 			const existingtrackedExp: TrackedExpectation | undefined = this.trackedExpectations[id]
 			if (!existingtrackedExp) {
 				// new
 				difference = 'new'
 			} else {
-				const isSignificantlyDifferent = !_.isEqual(
-					_.omit(existingtrackedExp.exp, 'priority'),
-					_.omit(exp, 'priority')
-				)
+				// Treat differences in priority as a "minor" update:
+				diffExplanation = diff(existingtrackedExp.exp, exp, ['priority'])
+				const isSignificantlyDifferent = Boolean(diffExplanation)
 				const isPriorityDifferent = existingtrackedExp.exp.priority !== exp.priority
 
 				if (isSignificantlyDifferent) {
@@ -653,7 +654,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason: {
 							user: `Updated just now`,
-							tech: `Updated ${Date.now()}, diff: (${diff(existingtrackedExp.exp, exp)})`,
+							tech: `Updated ${Date.now()}, diff: (${diffExplanation})`,
 						},
 						// Don't update the package status, since the package likely hasn't changed:
 						dontUpdatePackage: true,
