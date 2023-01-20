@@ -1058,12 +1058,21 @@ export class ExpectationManager extends HelpfulEventEmitter {
 								})
 							} else {
 								// Not ready to start
-								this.updateTrackedExpStatus(trackedExp, {
-									state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
-									reason: readyToStart.reason,
-									status: newStatus,
-									isError: !readyToStart.isWaitingForAnother,
-								})
+								if (readyToStart.isWaitingForAnother) {
+									// Not ready to start because it's waiting for another expectation to be fullfilled first
+									// Stay here in WAITING state:
+									this.updateTrackedExpStatus(trackedExp, {
+										reason: readyToStart.reason,
+										status: newStatus,
+									})
+								} else {
+									// Not ready to start because of some other reason (e.g. the source doesn't exist)
+									this.updateTrackedExpStatus(trackedExp, {
+										state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
+										reason: readyToStart.reason,
+										status: newStatus,
+									})
+								}
 							}
 						}
 					} catch (error) {
