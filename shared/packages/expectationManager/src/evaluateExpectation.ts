@@ -19,6 +19,21 @@ export async function evaluateExpectationState(
 
 	if (trackedExp.session.expectationCanBeRemoved) return // The expectation has been removed
 
+	const lastErrorTime = trackedExp.lastError?.time || 0
+	const timeSinceLastError = Date.now() - lastErrorTime
+
+	if (
+		timeSinceLastError < tracker.constants.ERROR_WAIT_TIME &&
+		trackedExp.state !== ExpectedPackageStatusAPI.WorkStatusState.RESTARTED
+	) {
+		runner.logger.silly(
+			`Skipping expectation state evaluation of "${expLabel(trackedExp)}" (${trackedExp.exp.type}), ` +
+				`because it's time from last error (${timeSinceLastError}ms) is less than ` +
+				`${tracker.constants.ERROR_WAIT_TIME}ms`
+		)
+		return // Don't run again too soon after an error, unless it's a manual restart
+	}
+
 	const workerAgents = manager.workerAgents.list()
 
 	const context: EvaluateContext = {

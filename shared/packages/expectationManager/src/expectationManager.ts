@@ -485,7 +485,7 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		} else {
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker, ${noCostReason.user}`,
-				tech: `Waiting for a free worker ${noCostReason} (${
+				tech: `Waiting for a free worker ${noCostReason.tech} (${
 					Object.keys(trackedExp.availableWorkers).length
 				} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
 			}
