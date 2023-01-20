@@ -31,7 +31,7 @@ export class CancelablePromise<T> implements Promise<T> {
 	): Promise<T | TResult> {
 		return this._basePromise.catch(onrejected)
 	}
-	[Symbol.toStringTag]: 'Promise' = 'Promise'
+	[Symbol.toStringTag] = 'Promise' as const
 	public async finally(onFinally?: (() => void) | undefined | null): Promise<T> {
 		return this._basePromise.finally(onFinally)
 	}

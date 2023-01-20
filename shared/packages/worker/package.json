@@ -7,8 +7,7 @@
 	"scripts": {
 		"build": "rimraf dist && yarn build:main",
 		"build:main": "tsc -p tsconfig.json",
-		"__test": "jest",
-		"precommit": "lint-staged"
+		"__test": "jest"
 	},
 	"engines": {
 		"node": ">=14.18.0"
@@ -16,8 +15,7 @@
 	"devDependencies": {
 		"@types/deep-diff": "^1.0.0",
 		"@types/node-fetch": "^2.5.8",
-		"@types/tmp": "~0.2.2",
-		"lint-staged": "^7.2.0"
+		"@types/tmp": "~0.2.2"
 	},
 	"dependencies": {
 		"@sofie-package-manager/api": "1.39.8-alpha.4",

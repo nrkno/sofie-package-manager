@@ -6,13 +6,11 @@
     "scripts": {
         "build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.js http-server.exe && node ../../../scripts/copy-natives.js win32-x64",
+        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs http-server.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
-        "start": "node dist/index.js",
-        "precommit": "lint-staged"
+        "start": "node dist/index.js"
     },
     "devDependencies": {
-        "lint-staged": "^7.2.0",
         "nexe": "^3.3.7"
     },
     "dependencies": {

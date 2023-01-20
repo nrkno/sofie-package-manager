@@ -1,13 +1,11 @@
 {
 	"description": "The properties of this file are automatically copied to all packages' package.json files",
 	"scripts": {
-		"precommit": "lint-staged"
 	},
 	"engines": {
 		"node": ">=14.18.0"
 	},
 	"devDependencies": {
-		"lint-staged": "^7.2.0"
 	},
 	"peerDependencies": {},
 	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
