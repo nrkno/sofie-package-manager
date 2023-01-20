@@ -45,7 +45,7 @@ export function getDefaultConstants(): ExpectationTrackerConstants {
 		ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
 		SCALE_UP_TIME: 5 * 1000,
 		SCALE_UP_COUNT: 1,
-		WORKER_SUPPORT_TIME: 60 * 1000,
+		WORKER_SUPPORT_TIME: 10 * 60 * 1000, // 10 minutes
 		ERROR_WAIT_TIME: 30 * 1000,
 
 		FAILED_REMOVE_COUNT: 2,
