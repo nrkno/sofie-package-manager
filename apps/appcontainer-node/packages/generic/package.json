@@ -10,9 +10,7 @@
         "__test": "jest",
         "precommit": "lint-staged"
     },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
+    "peerDependencies": {},
     "dependencies": {
         "@sofie-package-manager/api": "1.39.8-alpha.4",
         "@sofie-package-manager/worker": "1.39.8-alpha.4",

@@ -13,9 +13,7 @@
         "test": "jest",
         "precommit": "lint-staged"
     },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
+    "peerDependencies": {},
     "devDependencies": {
         "@types/winston": "^2.3.9",
         "@types/ws": "^7.4.0",

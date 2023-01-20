@@ -25,9 +25,7 @@
         "@sofie-package-manager/workforce": "1.39.8-alpha.4",
         "underscore": "^1.12.0"
     },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
+    "peerDependencies": {},
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
         "node": ">=14.18.0"

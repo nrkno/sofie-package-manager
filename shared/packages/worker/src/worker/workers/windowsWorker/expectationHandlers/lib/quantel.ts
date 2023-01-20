@@ -1,4 +1,5 @@
-import { AccessorOnPackage, Accessor } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { AccessorOnPackage, Accessor } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { Expectation, literal } from '@sofie-package-manager/api'
 import { getAccessorHandle, isHTTPProxyAccessorHandle } from '../../../../accessorHandlers/accessor'
 import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'

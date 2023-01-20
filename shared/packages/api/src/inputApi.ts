@@ -1,4 +1,6 @@
-import * as BI from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
+
 // import { assertTrue, EnumExtends, assertEnumValuesExtends } from './lib'
 /* eslint-disable @typescript-eslint/no-namespace */
 
@@ -13,8 +15,8 @@ import * as BI from '@sofie-automation/blueprints-integration'
 	later to add it into blueprints-integration.
 */
 
-export type StatusCode = BI.StatusCode
-export const StatusCode = BI.StatusCode
+export type StatusCode = SofieStatusCode
+export const StatusCode = SofieStatusCode
 
 /**
  * An ExpectedPackage is sent from Core to the Package Manager, to signal that a Package (ie a Media file) should be copied to a playout-device.

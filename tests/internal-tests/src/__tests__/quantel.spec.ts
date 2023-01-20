@@ -1,4 +1,5 @@
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import * as QGatewayClientOrg from 'tv-automation-quantel-gateway-client'
 import { Expectation, literal } from '@sofie-package-manager/api'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
@@ -8,7 +9,7 @@ import { getQuantelSource, getQuantelTarget } from './lib/containers'
 jest.mock('child_process')
 jest.mock('tv-automation-quantel-gateway-client')
 
-const QGatewayClient = (QGatewayClientOrg as any) as typeof QGatewayClientType
+const QGatewayClient = QGatewayClientOrg as any as typeof QGatewayClientType
 
 describe('Quantel', () => {
 	let env: TestEnviromnent

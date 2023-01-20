@@ -17,9 +17,7 @@
     "dependencies": {
         "@package-manager/generic": "1.39.8-alpha.4"
     },
-    "peerDependencies": {
-        "@sofie-automation/blueprints-integration": "*"
-    },
+    "peerDependencies": {},
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
         "node": ">=14.18.0"

@@ -1,7 +1,8 @@
 import fsOrg from 'fs'
 import { promisify } from 'util'
 import WNDOrg from 'windows-network-drive'
-import { ExpectedPackageStatusAPI } from '@sofie-automation/blueprints-integration'
+// eslint-disable-next-line node/no-extraneous-import
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import * as QGatewayClientOrg from 'tv-automation-quantel-gateway-client'
 import { Expectation, literal } from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
