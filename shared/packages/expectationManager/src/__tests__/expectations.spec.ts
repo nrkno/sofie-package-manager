@@ -1,7 +1,8 @@
 import { Expectation } from '@sofie-package-manager/api'
 import { getDefaultConstants } from '../lib/constants'
 import { getDefaultTrackedExpectation, sortTrackedExpectations } from '../lib/expectations'
-import { TrackedExpectation } from '../lib/types'
+import { TrackedExpectation } from '../expectationTracker'
+
 test('sortExpectations', () => {
 	// ensure that sort order is correct
 
