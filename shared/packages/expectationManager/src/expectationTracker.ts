@@ -134,15 +134,17 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 			}
 		}
 		// Log and report new states an reasons:
-		if (updatedState) {
+		if (updatedState && updatedReason) {
 			this.logger.debug(
 				`${expLabel(trackedExp)}: New state: "${prevState}"->"${trackedExp.state}", reason: "${
 					trackedExp.reason.tech
 				}"`
 			)
+		} else if (updatedState) {
+			this.logger.debug(`${expLabel(trackedExp)}: New state: "${prevState}"->"${trackedExp.state}"`)
 		} else if (updatedReason) {
 			this.logger.debug(
-				`${expLabel(trackedExp)}: State: "${trackedExp.state}", reason: "${trackedExp.reason.tech}"`
+				`${expLabel(trackedExp)}: State: "${trackedExp.state}", New reason: "${trackedExp.reason.tech}"`
 			)
 		}
 
