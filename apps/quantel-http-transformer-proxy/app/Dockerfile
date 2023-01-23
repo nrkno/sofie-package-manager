@@ -38,7 +38,7 @@ RUN rm -r scripts
 
 
 # Create deploy-image:
-FROM node:14-alpine
+FROM node:14-alpine as builder
 
 COPY --from=builder /src /src
 
