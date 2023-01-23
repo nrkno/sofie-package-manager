@@ -1,4 +1,4 @@
-FROM node:14.18-alpine as builder
+FROM node:14-alpine as builder
 
 # Note: Build this from the root directory:
 # cd package-manager
