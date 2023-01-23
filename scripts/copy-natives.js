@@ -1,5 +1,4 @@
-/* eslint-disable node/no-unpublished-require, node/no-extraneous-require */
-
+/* eslint-disable node/no-unpublished-require */
 const find = require('find')
 const os = require('os')
 const path = require('path')

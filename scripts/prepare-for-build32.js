@@ -1,5 +1,4 @@
-/* eslint-disable node/no-unpublished-require, node/no-extraneous-require */
-
+/* eslint-disable node/no-unpublished-require */
 const promisify = require('util').promisify
 const cp = require('child_process')
 const path = require('path')
