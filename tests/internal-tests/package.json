@@ -1,6 +1,6 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.39.8-alpha.4",
+    "version": "1.40.0",
     "description": "Internal tests",
     "private": true,
     "scripts": {
@@ -15,15 +15,14 @@
         "windows-network-drive": "^3.0.1"
     },
     "dependencies": {
-        "@http-server/generic": "1.39.8-alpha.4",
-        "@package-manager/generic": "1.39.8-alpha.4",
-        "@sofie-package-manager/api": "1.39.8-alpha.4",
-        "@sofie-package-manager/expectation-manager": "1.39.8-alpha.4",
-        "@sofie-package-manager/worker": "1.39.8-alpha.4",
-        "@sofie-package-manager/workforce": "1.39.8-alpha.4",
+        "@http-server/generic": "1.40.0",
+        "@package-manager/generic": "1.40.0",
+        "@sofie-package-manager/api": "1.40.0",
+        "@sofie-package-manager/expectation-manager": "1.40.0",
+        "@sofie-package-manager/worker": "1.40.0",
+        "@sofie-package-manager/workforce": "1.40.0",
         "underscore": "^1.12.0"
     },
-    "peerDependencies": {},
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
         "node": ">=14.18.0"
@@ -35,5 +34,6 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
-    }
+    },
+    "peerDependencies": {}
 }

@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.40.0](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.4...v1.40.0) (2023-01-23)
+
+
+### Bug Fixes
+
+* remove dependency on blueprints-integration ([e545992](https://github.com/nrkno/sofie-package-manager/commit/e545992e5204ff836e86011edeee7c08fdcaeaff))
+
+
+### Features
+
+* export stateReevaluationConcurrency as concurrencty config arguement ([3eabd63](https://github.com/nrkno/sofie-package-manager/commit/3eabd638d678e3c3761b6dbdd312802fd2f64e3b))
+
+
+
+
+
 ## [1.39.8-alpha.4](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.3...v1.39.8-alpha.4) (2023-01-17)
 
 **Note:** Version bump only for package @tests/internal-tests

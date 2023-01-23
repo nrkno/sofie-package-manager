@@ -1,6 +1,6 @@
 {
     "name": "@http-server/generic",
-    "version": "1.39.8-alpha.4",
+    "version": "1.40.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -9,11 +9,10 @@
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
-    "peerDependencies": {},
     "dependencies": {
         "@koa/cors": "^3.0.0",
         "@koa/multer": "3.0.0",
-        "@sofie-package-manager/api": "1.39.8-alpha.4",
+        "@sofie-package-manager/api": "1.40.0",
         "koa": "^2.14.1",
         "koa-bodyparser": "^4.3.0",
         "koa-range": "^0.3.0",
@@ -51,5 +50,6 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
-    }
+    },
+    "peerDependencies": {}
 }
