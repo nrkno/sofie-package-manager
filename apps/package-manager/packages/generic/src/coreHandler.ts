@@ -30,6 +30,7 @@ import {
 	hashObj,
 	setLogLevel,
 	getLogLevel,
+	ensureValidValue,
 } from '@sofie-package-manager/api'
 import {
 	DEFAULT_DELAY_REMOVAL_PACKAGE,
@@ -257,11 +258,18 @@ export class CoreHandler {
 			}
 
 			if (this.deviceSettings['delayRemoval'] !== this.delayRemoval) {
-				this.delayRemoval = Number(this.deviceSettings['delayRemoval']) || DEFAULT_DELAY_REMOVAL_PACKAGE
+				this.delayRemoval = ensureValidValue<number>(
+					Number(this.deviceSettings['delayRemoval']),
+					(input: any) => Number(input) >= 0,
+					DEFAULT_DELAY_REMOVAL_PACKAGE
+				)
 			}
 			if (this.deviceSettings['delayRemovalPackageInfo'] !== this.delayRemovalPackageInfo) {
-				this.delayRemovalPackageInfo =
-					Number(this.deviceSettings['delayRemovalPackageInfo']) || DEFAULT_DELAY_REMOVAL_PACKAGE_INFO
+				this.delayRemovalPackageInfo = ensureValidValue<number>(
+					Number(this.deviceSettings['delayRemovalPackageInfo']),
+					(input: any) => Number(input) >= 0,
+					DEFAULT_DELAY_REMOVAL_PACKAGE_INFO
+				)
 			}
 			if (this.deviceSettings['useTemporaryFilePath'] !== this.useTemporaryFilePath) {
 				this.useTemporaryFilePath = this.deviceSettings['useTemporaryFilePath']

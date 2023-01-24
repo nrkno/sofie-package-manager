@@ -311,3 +311,7 @@ export function ensureArray<T>(v: T | (T | undefined)[]): T[] {
 export function first<T>(v: T | (T | undefined)[]): T | undefined {
 	return ensureArray(v)[0]
 }
+export function ensureValidValue<T>(value: T, check: (value: any) => boolean, defaultValue: T): T {
+	if (check(value)) return value
+	return defaultValue
+}
