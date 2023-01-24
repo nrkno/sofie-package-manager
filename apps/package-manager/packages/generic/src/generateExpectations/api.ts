@@ -1,10 +1,5 @@
-import {
-	ActivePlaylist,
-	ActiveRundown,
-	ExpectedPackageWrap,
-	PackageContainers,
-	PackageManagerSettings,
-} from '../packageManager'
+import { ActivePlaylist, ActiveRundown, ExpectedPackageWrap, PackageContainers } from '../packageManager'
+import { PackageManagerSettings } from '../generated/options'
 import { Expectation, LoggerInstance, PackageContainerExpectation } from '@sofie-package-manager/api'
 
 export interface GenerateExpectationApi {

@@ -1,0 +1,29 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://example.com/product.schema.json",
+	"title": "Package Manager Settings",
+	"type": "object",
+	"properties": {
+		"logLevel": {
+			"type": "string",
+			"ui:title": "Log level",
+			"default": "info",
+			"enum": ["error", "warn", "info", "verbose", "debug", "silly"]
+		},
+		"delayRemoval": {
+			"type": "integer",
+			"ui:title": "Delay removal of packages (milliseconds)"
+		},
+		"delayRemovalPackageInfo": {
+			"type": "integer",
+			"ui:title": "Delay removal of package scan results (milliseconds)"
+		},
+		"useTemporaryFilePath": {
+			"type": "boolean",
+			"ui:title": "Use temporary file paths when copying",
+			"default": false
+		}
+	},
+	"required": [],
+	"additionalProperties": false
+}

@@ -1,6 +1,4 @@
-import { CoreCredentials } from '@sofie-automation/server-core-integration'
-// eslint-disable-next-line node/no-extraneous-import
-import { protectString } from '@sofie-automation/shared-lib/dist/lib/protectedString'
+import { CoreCredentials, protectString } from '@sofie-automation/server-core-integration'
 import { nanoid } from 'nanoid'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

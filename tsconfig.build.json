@@ -27,7 +27,8 @@
 		"noUnusedParameters": true,
 		"outDir": "./dist",
 		"baseUrl": "./",
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"resolveJsonModule": true
 	},
 	"compileOnSave": false,
 	"exclude": [
