@@ -55,11 +55,14 @@
         "typescript": "~4.9",
         "underscore": "^1.13.6"
     },
+    "resolutions": {
+		"**/data-store/set-value": "^4.1.0"
+    },
     "engines": {
         "node": ">=12.11.0"
     },
     "dependencies": {
-        "@sofie-automation/server-core-integration": "1.44.1"
+        "@sofie-automation/server-core-integration": "1.49.0-nightly-release49-20221216-175820-6d17a49.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {
