@@ -17,21 +17,23 @@ import {
 } from '@sofie-package-manager/api'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { WorkforceAPI } from './workforceApi'
-import { WorkerAgentAPI } from './workerAgentApi'
+import { WorkforceAPI } from '../workforceApi'
+import { WorkerAgentAPI } from '../workerAgentApi'
 
-import { getDefaultConstants } from './lib/constants'
-import { ExpectationStateHandlerSession } from './lib/types'
-import { getPackageStatus } from './lib/expectations'
-import { ExpectationTracker, TrackedExpectation, TrackedPackageContainerExpectation } from './expectationTracker'
-import { TrackedWorkerAgents } from './helpers/trackedWorkerAgents'
-import { ManagerStatusReporter } from './helpers/managerStatusReporter'
-import { ManagerStatusMonitor } from './helpers/managerStatusMonitor'
+import { getDefaultConstants } from '../lib/constants'
+import { ExpectationStateHandlerSession } from '../lib/types'
+
+import { ExpectationTracker } from '../expectationTracker/expectationTracker'
+import { TrackedWorkerAgents } from './lib/trackedWorkerAgents'
+import { ManagerStatusMonitor } from './lib/managerStatusMonitor'
 import {
 	ExpectationManagerCallbacks,
 	ExpectationManagerOptions,
 	ExpectationManagerServerOptions,
-} from './expectationManager'
+} from '../expectationManager'
+import { ManagerStatusReporter } from './lib/managerStatusReporter'
+import { TrackedExpectation } from '../lib/trackedExpectation'
+import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContainerExpectation'
 
 /**
  * ExpectationManagerInternal contains methods that are used internally in this library.
@@ -47,8 +49,9 @@ export class ExpectationManagerInternal {
 
 	private enableChaosMonkey = false
 
-	public workerAgents: TrackedWorkerAgents
 	public tracker: ExpectationTracker
+
+	public workerAgents: TrackedWorkerAgents
 	private statuses: ManagerStatusReporter
 	private managerMonitor: ManagerStatusMonitor
 
@@ -321,7 +324,7 @@ export class ExpectationManagerInternal {
 					this.callbacks.reportPackageContainerPackageStatus(packageContainer.containerId, fromPackage.id, {
 						contentVersionHash: trackedExp.status.actualVersionHash || '',
 						progress: trackedExp.status.workProgress || 0,
-						status: getPackageStatus(trackedExp),
+						status: this.getPackageStatus(trackedExp),
 						statusReason: trackedExp.reason,
 						priority: trackedExp.exp.priority,
 
@@ -496,5 +499,22 @@ export class ExpectationManagerInternal {
 			}
 		}
 		return statusReport
+	}
+
+	/** Convert expectation status to ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus */
+	private getPackageStatus(
+		trackedExp: TrackedExpectation
+	): ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus {
+		if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
+			return ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+		} else if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
+			return trackedExp.status.targetCanBeUsedWhileTransferring
+				? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_READY
+				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_NOT_READY
+		} else {
+			return trackedExp.status.sourceExists
+				? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY
+				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
+		}
 	}
 }

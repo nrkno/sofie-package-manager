@@ -2,18 +2,18 @@ import { LoggerInstance } from '@sofie-package-manager/api'
 import { ExpectationTracker } from '../expectationTracker'
 
 /** Keeps track of which Expectations are waiting for the fullfillment of other Expectations */
-export class ListeningExpectations {
-	private logger: LoggerInstance
-	constructor(logger: LoggerInstance, private tracker: ExpectationTracker) {
-		this.logger = logger.category('ListeningExpectations')
-	}
-
+export class ListeningExpectationsStorage {
 	/**
 	 * key-value store of which expectations are triggered when another is fullfilled.
 	 * The value is a list of the expectations that listen to the fullfillment
 	 * The key is the id of the expectation they are listening to
 	 */
 	private _listeningExpectations: { [fullfilledId: string]: string[] } = {}
+
+	private logger: LoggerInstance
+	constructor(logger: LoggerInstance, private tracker: ExpectationTracker) {
+		this.logger = logger.category('ListeningExpectations')
+	}
 
 	/**
 	 * Repopulate the cache of which expectations are listening to whom

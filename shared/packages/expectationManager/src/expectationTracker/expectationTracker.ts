@@ -1,26 +1,25 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import {
-	Expectation,
 	HelpfulEventEmitter,
 	LoggerInstance,
-	PackageContainerExpectation,
 	Reason,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	StatusCode,
 } from '@sofie-package-manager/api'
 import _ from 'underscore'
-import { EvaluationScheduler } from './evaluationScheduler'
-import { ExpectationManagerCallbacks } from './expectationManager'
-import { ListeningExpectations } from './helpers/listeningExpectations'
-import { TrackedExpectations } from './helpers/trackedExpectations'
-import { TrackedPackageContainers } from './helpers/trackedPackageContainers'
-import { ExpectationTrackerConstants } from './lib/constants'
-import { ExpectationStateHandlerSession } from './lib/types'
-import { WorkerAgentAPI } from './workerAgentApi'
-import { WorkInProgressTracker } from './helpers/workInProgressTracker'
-import { TrackedReceivedUpdates } from './helpers/trackedReceivedUpdates'
-import { ExpectationManagerInternal } from './expectationManagerInternal'
+import { EvaluationScheduler } from './lib/evaluationScheduler'
+import { ExpectationManagerCallbacks } from '../expectationManager'
+import { ListeningExpectationsStorage } from './lib/listeningExpectationsStorage'
+import { TrackedExpectationsStorage } from './lib/trackedExpectationsStorage'
+import { TrackedPackageContainersStorage } from './lib/trackedPackageContainersStorage'
+import { ExpectationTrackerConstants } from '../lib/constants'
+import { WorkerAgentAPI } from '../workerAgentApi'
+import { WorkInProgressTracker } from './lib/workInProgressTracker'
+import { TrackedReceivedUpdates } from './lib/trackedReceivedUpdates'
+import { ExpectationManagerInternal } from '../expectationManager/expectationManagerInternal'
+import { expLabel, TrackedExpectation } from '../lib/trackedExpectation'
+import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContainerExpectation'
 
 /**
  * The ExpectationTracker is responsible for tracking and uptating the state of the Expectations
@@ -33,12 +32,12 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 	public receivedUpdates: TrackedReceivedUpdates
 
 	/** This is the main store of all Tracked Expectations */
-	public trackedExpectations: TrackedExpectations
+	public trackedExpectations: TrackedExpectationsStorage
 	public waitingExpectations: TrackedExpectation[] = []
 
-	public trackedPackageContainers: TrackedPackageContainers
+	public trackedPackageContainers: TrackedPackageContainersStorage
 
-	public listeningExpectations: ListeningExpectations
+	public listeningExpectations: ListeningExpectationsStorage
 
 	public worksInProgress: WorkInProgressTracker
 
@@ -56,9 +55,9 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 		this.scheduler = new EvaluationScheduler(this.logger, this.manager, this)
 		this.worksInProgress = new WorkInProgressTracker(this.logger, this)
 
-		this.listeningExpectations = new ListeningExpectations(this.logger, this)
-		this.trackedExpectations = new TrackedExpectations(this)
-		this.trackedPackageContainers = new TrackedPackageContainers()
+		this.listeningExpectations = new ListeningExpectationsStorage(this.logger, this)
+		this.trackedExpectations = new TrackedExpectationsStorage(this)
+		this.trackedPackageContainers = new TrackedPackageContainersStorage()
 
 		this.receivedUpdates = new TrackedReceivedUpdates()
 	}
@@ -76,7 +75,7 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 		this.scheduler.triggerEvaluateExpectations(true)
 	}
 	/** Update the state and status of a trackedExpectation */
-	public updateTrackedExpStatus(
+	public updateTrackedExpectationStatus(
 		trackedExp: TrackedExpectation,
 		upd: {
 			/** If set, sets a new state of the Expectation */
@@ -378,7 +377,7 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 
 		// Special case: When WAITING and no worker was assigned, return to NEW so that another worker might be assigned:
 		if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) {
-			this.updateTrackedExpStatus(trackedExp, {
+			this.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 				reason: noAssignedWorkerReason,
 				// Don't update the package status, since this means that we don't know anything about the package:
@@ -386,100 +385,11 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 			})
 		} else {
 			// only update the reason
-			this.updateTrackedExpStatus(trackedExp, {
+			this.updateTrackedExpectationStatus(trackedExp, {
 				reason: noAssignedWorkerReason,
 				// Don't update the package status, since this means that we don't know anything about the package:
 				dontUpdatePackage: true,
 			})
 		}
 	}
-}
-/** Persistant data structure used to track the progress of an Expectation */
-export interface TrackedExpectation {
-	/** Unique ID of the tracked expectation */
-	id: string
-	/** The Expectation */
-	exp: Expectation.Any
-
-	/** The current State of the expectation. */
-	state: ExpectedPackageStatusAPI.WorkStatusState
-	/** Reason for the current state. */
-	reason: Reason
-
-	/** Previous reasons, for each state. */
-	prevStatusReasons: { [status: string]: Reason }
-
-	/** List of worker ids that have gotten the question wether they support this expectation */
-	queriedWorkers: { [workerId: string]: number }
-	/** List of worker ids that supports this Expectation */
-	availableWorkers: { [workerId: string]: true }
-	/** Contains the latest reason why a worker refused to support an Expectation */
-	noAvailableWorkersReason: Reason
-	/** Timestamp of the last time the expectation was evaluated. */
-	lastEvaluationTime: number
-	/** Timestamp to track how long the expectation has been waiting for a worker (can't start working), used to request more resources */
-	waitingForWorkerTime: number | null
-	/** Timestamp to track  how long the expectation has been waiting for a worker, used to restart to re-query for workers */
-	noWorkerAssignedTime: number | null
-	/** The number of times the expectation has failed */
-	errorCount: number
-	/** When set, contains info about the last error that happened on the expectation. */
-	lastError: {
-		/** Timestamp of the last error */
-		time: number
-		/** Explanation of what the last error was */
-		reason: Reason
-	} | null
-	/** How many times the Expectation failed to be Removed */
-	errorOnRemoveCount: number
-
-	/** These statuses are sent from the workers */
-	status: {
-		workProgress?: number
-		// workInProgress?: IWorkInProgress
-		workInProgressCancel?: () => Promise<void>
-		actualVersionHash?: string | null
-
-		sourceExists?: boolean
-		targetCanBeUsedWhileTransferring?: boolean
-		sourceIsPlaceholder?: boolean // todo: to be implemented (quantel)
-	}
-	/** A storage which is persistant only for a short while, during an evaluation of the Expectation. */
-	session: ExpectationStateHandlerSession | null
-}
-export interface TrackedPackageContainerExpectation {
-	/** Unique ID of the tracked packageContainer */
-	id: string
-	/** The PackageContainerExpectation */
-	packageContainer: PackageContainerExpectation
-	/** True whether the packageContainer was newly updated */
-	isUpdated: boolean
-
-	/** The currently assigned Worker */
-	currentWorker: string | null
-	/** Timestamp to track how long the packageContainer has been waiting for a worker (can't start working), used to request more resources */
-	waitingForWorkerTime: number | null
-
-	/** Timestamp of the last time the expectation was evaluated. */
-	lastEvaluationTime: number
-
-	/** Timestamp of the last time the cronjob was run */
-	lastCronjobTime: number
-
-	/** If the monitor is set up okay */
-	monitorIsSetup: boolean
-
-	/** These statuses are sent from the workers */
-	status: ExpectedPackageStatusAPI.PackageContainerStatus
-
-	/** Is set if the packageContainer has been removed */
-	removed: boolean
-}
-export function expLabel(exp: TrackedExpectation): string {
-	let id = `${exp.id}`
-	if (id.length > 16) {
-		id = id.slice(0, 8) + '...' + id.slice(-8)
-	}
-
-	return `${id} ${exp.exp.statusReport.label.slice(0, 50)}`
 }

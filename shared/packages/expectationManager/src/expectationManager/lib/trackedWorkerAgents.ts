@@ -1,8 +1,9 @@
 import PromisePool from '@supercharge/promise-pool'
 import { LoggerInstance, Reason, stringifyError } from '@sofie-package-manager/api'
-import { WorkerAgentAssignment } from '../lib/types'
-import { WorkerAgentAPI } from '../workerAgentApi'
-import { ExpectationTracker, TrackedExpectation } from '../expectationTracker'
+import { WorkerAgentAssignment } from '../../lib/types'
+import { WorkerAgentAPI } from '../../workerAgentApi'
+import { ExpectationTracker } from '../../expectationTracker/expectationTracker'
+import { TrackedExpectation } from '../../lib/trackedExpectation'
 
 /** Storage for WorkerAgents */
 export class TrackedWorkerAgents {

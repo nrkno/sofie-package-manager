@@ -1,9 +1,14 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { ExpectationManagerWorkerAgent, LoggerInstance, Reason, stringifyError } from '@sofie-package-manager/api'
-import { ExpectationTracker, expLabel, TrackedExpectation } from '../expectationTracker'
-import { WorkerAgentAPI } from '../workerAgentApi'
+import { expLabel, TrackedExpectation } from '../../lib/trackedExpectation'
+import { ExpectationTracker } from '../expectationTracker'
+import { WorkerAgentAPI } from '../../workerAgentApi'
 
+/**
+ * This class tracks works-in-progress.
+ * It receives update-events from a Worker
+ */
 export class WorkInProgressTracker {
 	private worksInProgress: { [id: string]: WorkInProgress } = {}
 
@@ -14,14 +19,17 @@ export class WorkInProgressTracker {
 	public getWorksInProgress(): { [id: string]: WorkInProgress } {
 		return this.worksInProgress
 	}
-	public get(id: string): WorkInProgress | undefined {
+	public upsert(workerId: string, wipId: number, wip: WorkInProgress): void {
+		this.worksInProgress[this.getId(workerId, wipId)] = wip
+	}
+	private get(id: string): WorkInProgress | undefined {
 		return this.worksInProgress[id]
 	}
-	public upsert(workerId: string, wipId: number, wip: WorkInProgress): void {
-		this.worksInProgress[`${workerId}_${wipId}`] = wip
+	private remove(id: string): void {
+		delete this.worksInProgress[id]
 	}
 	/** Monitor the Works in progress, to restart them if necessary. */
-	public monitorWorksInProgress(): void {
+	public checkWorksInProgress(): void {
 		for (const [wipId, wip] of Object.entries(this.worksInProgress)) {
 			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 				if (Date.now() - wip.lastUpdated > this.tracker.constants.WORK_TIMEOUT_TIME) {
@@ -36,11 +44,11 @@ export class WorkInProgressTracker {
 					}
 
 					wip.trackedExp.errorCount++
-					this.tracker.updateTrackedExpStatus(wip.trackedExp, {
+					this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason,
 					})
-					delete this.worksInProgress[wipId]
+					this.remove(wipId)
 
 					// Send a cancel request to the worker as a courtesy:
 					wip.worker.cancelWorkInProgress(wip.wipId).catch((err) => {
@@ -52,7 +60,7 @@ export class WorkInProgressTracker {
 				this.logger.error(
 					`WorkInProgress ${wipId} has an exp (${expLabel(wip.trackedExp)}) which is not working..`
 				)
-				delete this.worksInProgress[wipId]
+				this.remove(wipId)
 			}
 		}
 	}
@@ -67,7 +75,7 @@ export class WorkInProgressTracker {
 		if (wip) {
 			wip.lastUpdated = Date.now()
 			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
-				this.tracker.updateTrackedExpStatus(wip.trackedExp, {
+				this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
 					status: {
 						actualVersionHash: actualVersionHash,
 						workProgress: progress,
@@ -75,25 +83,28 @@ export class WorkInProgressTracker {
 				})
 				this.logger.debug(`Expectation "${expLabel(wip.trackedExp)}" progress: ${progress}`)
 			} else {
-				// ignore
+				// Expectation not in WORKING state, ignore
 			}
+		} else {
+			// not found, ignore
 		}
 	}
 	/** Called when there is a done-message from a worker */
 	public async onWipEventDone(
-		clientId: string,
+		workerId: string,
 		wipId: number,
 		actualVersionHash: string,
 		reason: Reason,
 		_result: unknown
 	): Promise<void> {
-		const wip = this.worksInProgress[`${clientId}_${wipId}`]
+		const id = this.getId(workerId, wipId)
+		const wip = this.get(id)
 		if (wip) {
 			wip.lastUpdated = Date.now()
 			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 				wip.trackedExp.status.actualVersionHash = actualVersionHash
 				wip.trackedExp.status.workProgress = 1
-				this.tracker.updateTrackedExpStatus(wip.trackedExp, {
+				this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
 					reason,
 					status: {
@@ -107,28 +118,35 @@ export class WorkInProgressTracker {
 					this.tracker.triggerEvaluateExpectationsNow()
 				}
 			} else {
-				// ignore
+				// Expectation not in WORKING state, ignore
 			}
-			delete this.worksInProgress[`${clientId}_${wipId}`]
+			this.remove(id)
+		} else {
+			// not found, ignore
 		}
 	}
 	/** Called when there is a error-message from a worker */
 	public async onWipEventError(clientId: string, wipId: number, reason: Reason): Promise<void> {
-		const wip = this.worksInProgress[`${clientId}_${wipId}`]
+		const wip = this.worksInProgress[this.getId(clientId, wipId)]
 		if (wip) {
 			wip.lastUpdated = Date.now()
 			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 				wip.trackedExp.errorCount++
-				this.tracker.updateTrackedExpStatus(wip.trackedExp, {
+				this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					reason,
 					isError: true,
 				})
 			} else {
-				// ignore
+				// Expectation not in WORKING state, ignore
 			}
 			delete this.worksInProgress[`${clientId}_${wipId}`]
+		} else {
+			// not found, ignore
 		}
+	}
+	private getId(workerId: string, wipId: number): string {
+		return `${workerId}_${wipId}`
 	}
 }
 export interface WorkInProgress {

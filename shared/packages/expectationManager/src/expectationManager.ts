@@ -12,7 +12,7 @@ import {
 	Hook,
 	WorkForceExpectationManager,
 } from '@sofie-package-manager/api'
-import { ExpectationManagerInternal } from './expectationManagerInternal'
+import { ExpectationManagerInternal } from './expectationManager/expectationManagerInternal'
 import { ExpectationTrackerConstants } from './lib/constants'
 
 /**

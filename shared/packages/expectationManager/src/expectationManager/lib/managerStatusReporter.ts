@@ -1,6 +1,6 @@
 import _ from 'underscore'
 import { StatusCode, Statuses } from '@sofie-package-manager/api'
-import { ExpectationManagerCallbacks } from '../expectationManager'
+import { ExpectationManagerCallbacks } from '../../expectationManager'
 
 /** Coordinates the ExpectationManager statuses and reports the status updates */
 export class ManagerStatusReporter {

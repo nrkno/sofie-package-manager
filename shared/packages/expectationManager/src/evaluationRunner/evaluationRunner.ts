@@ -11,15 +11,11 @@ import {
 } from '@sofie-package-manager/api'
 import PromisePool from '@supercharge/promise-pool'
 import _ from 'underscore'
-import { evaluateExpectationState } from './evaluateExpectation'
-import { ExpectationManagerInternal } from './expectationManagerInternal'
-import {
-	ExpectationTracker,
-	expLabel,
-	TrackedExpectation,
-	TrackedPackageContainerExpectation,
-} from './expectationTracker'
-import { getDefaultTrackedExpectation } from './lib/expectations'
+import { evaluateExpectationState } from './evaluateExpectationState'
+import { ExpectationManagerInternal } from '../expectationManager/expectationManagerInternal'
+import { ExpectationTracker } from '../expectationTracker/expectationTracker'
+import { expLabel, getDefaultTrackedExpectation, TrackedExpectation } from '../lib/trackedExpectation'
+import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContainerExpectation'
 
 /**
  * The EvaluationRunner goes through one pass of evaluation of expectations.
@@ -65,7 +61,7 @@ export class EvaluationRunner {
 		times['timeEvaluateAllTrackedPackageContainers'] = Date.now() - startTime
 		startTime = Date.now()
 
-		this.tracker.worksInProgress.monitorWorksInProgress()
+		this.tracker.worksInProgress.checkWorksInProgress()
 		times['timeMonitorWorksInProgress'] = Date.now() - startTime
 
 		// Iterate through all Expectations:
@@ -130,7 +126,7 @@ export class EvaluationRunner {
 
 				this.tracker.trackedExpectations.upsert(id, newTrackedExp)
 				if (difference === 'new') {
-					this.tracker.updateTrackedExpStatus(newTrackedExp, {
+					this.tracker.updateTrackedExpectationStatus(newTrackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason: {
 							user: `Added just now`,
@@ -140,7 +136,7 @@ export class EvaluationRunner {
 						dontUpdatePackage: true,
 					})
 				} else {
-					this.tracker.updateTrackedExpStatus(newTrackedExp, {
+					this.tracker.updateTrackedExpectationStatus(newTrackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason: {
 							user: `Updated just now`,
@@ -181,7 +177,7 @@ export class EvaluationRunner {
 					}
 				}
 
-				this.tracker.updateTrackedExpStatus(trackedExp, {
+				this.tracker.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
 					reason: {
 						user: 'Expectation was removed',
@@ -210,7 +206,7 @@ export class EvaluationRunner {
 					}
 				}
 
-				this.tracker.updateTrackedExpStatus(trackedExp, {
+				this.tracker.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
 					reason: {
 						user: 'Restarted by user',
@@ -235,7 +231,7 @@ export class EvaluationRunner {
 					}
 				}
 
-				this.tracker.updateTrackedExpStatus(trackedExp, {
+				this.tracker.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
 					reason: {
 						user: 'Aborted by user',

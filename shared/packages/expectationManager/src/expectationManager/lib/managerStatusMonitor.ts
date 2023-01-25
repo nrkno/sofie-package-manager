@@ -1,5 +1,5 @@
 import { LoggerInstance, StatusCode } from '@sofie-package-manager/api'
-import { ExpectationTracker } from '../expectationTracker'
+import { ExpectationTracker } from '../../expectationTracker/expectationTracker'
 import { ManagerStatusReporter } from './managerStatusReporter'
 
 /** Monitors the status of the ExpectationTracker and alerts if there's a problem */

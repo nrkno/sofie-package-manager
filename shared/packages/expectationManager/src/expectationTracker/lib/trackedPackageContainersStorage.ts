@@ -1,7 +1,7 @@
-import { TrackedPackageContainerExpectation } from '../expectationTracker'
+import { TrackedPackageContainerExpectation } from '../../lib/trackedPackageContainerExpectation'
 
 /** Storage for Tracked PackageContainerExpectations*/
-export class TrackedPackageContainers {
+export class TrackedPackageContainersStorage {
 	private trackedPackageContainers: { [id: string]: TrackedPackageContainerExpectation } = {}
 
 	private cacheIsDirty = true

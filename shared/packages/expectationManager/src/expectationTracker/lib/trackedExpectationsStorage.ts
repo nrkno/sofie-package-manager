@@ -1,8 +1,8 @@
-import { ExpectationTracker, TrackedExpectation } from '../expectationTracker'
-import { sortTrackedExpectations } from '../lib/expectations'
+import { sortTrackedExpectations, TrackedExpectation } from '../../lib/trackedExpectation'
+import { ExpectationTracker } from '../expectationTracker'
 
 /** Storage for Expectations */
-export class TrackedExpectations {
+export class TrackedExpectationsStorage {
 	private trackedExpectations: { [id: string]: TrackedExpectation } = {}
 
 	private cacheIsDirty = true

@@ -1,7 +1,7 @@
 import { LoggerInstance, stringifyError } from '@sofie-package-manager/api'
-import { EvaluationRunner } from './evaluationRunner'
-import { ExpectationManagerInternal } from './expectationManagerInternal'
-import { ExpectationTracker } from './expectationTracker'
+import { EvaluationRunner } from '../../evaluationRunner/evaluationRunner'
+import { ExpectationManagerInternal } from '../../expectationManager/expectationManagerInternal'
+import { ExpectationTracker } from '../expectationTracker'
 
 /**
  * The EvaluateRunner goes through one pass of evaluation of expectations.
