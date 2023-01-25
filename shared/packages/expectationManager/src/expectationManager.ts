@@ -12,7 +12,7 @@ import {
 	Hook,
 	WorkForceExpectationManager,
 } from '@sofie-package-manager/api'
-import { ExpectationManagerInternal } from './expectationManager/expectationManagerInternal'
+import { InternalManager } from './expectationManager/internalManager'
 import { ExpectationTrackerConstants } from './lib/constants'
 
 /**
@@ -21,7 +21,7 @@ import { ExpectationTrackerConstants } from './lib/constants'
  * @see FOR_DEVELOPERS.md
  */
 export class ExpectationManager {
-	private internalManager: ExpectationManagerInternal
+	private internalManager: InternalManager
 	constructor(
 		logger: LoggerInstance,
 		managerId: string,
@@ -31,7 +31,7 @@ export class ExpectationManager {
 		callbacks: ExpectationManagerCallbacks,
 		options?: ExpectationManagerOptions
 	) {
-		this.internalManager = new ExpectationManagerInternal(
+		this.internalManager = new InternalManager(
 			logger,
 			managerId,
 			serverOptions,

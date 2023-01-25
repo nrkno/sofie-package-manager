@@ -12,7 +12,7 @@ import {
 import PromisePool from '@supercharge/promise-pool'
 import _ from 'underscore'
 import { evaluateExpectationState } from './evaluateExpectationState'
-import { ExpectationManagerInternal } from '../expectationManager/expectationManagerInternal'
+import { InternalManager } from '../expectationManager/internalManager'
 import { ExpectationTracker } from '../expectationTracker/expectationTracker'
 import { expLabel, getDefaultTrackedExpectation, TrackedExpectation } from '../lib/trackedExpectation'
 import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContainerExpectation'
@@ -29,11 +29,7 @@ export class EvaluationRunner {
 	public logger: LoggerInstance
 	private instanceId: number
 
-	constructor(
-		logger: LoggerInstance,
-		public manager: ExpectationManagerInternal,
-		public tracker: ExpectationTracker
-	) {
+	constructor(logger: LoggerInstance, public manager: InternalManager, public tracker: ExpectationTracker) {
 		this.instanceId = EvaluationRunner.instanceId++
 		this.logger = logger.category(`Runner_${this.instanceId}`)
 	}

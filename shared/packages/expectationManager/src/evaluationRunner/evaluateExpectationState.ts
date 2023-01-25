@@ -2,7 +2,7 @@
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { assertNever, stringifyError } from '@sofie-package-manager/api'
 import { EvaluationRunner } from './evaluationRunner'
-import { ExpectationManagerInternal } from '../expectationManager/expectationManagerInternal'
+import { InternalManager } from '../expectationManager/internalManager'
 import { ExpectationTracker } from '../expectationTracker/expectationTracker'
 import { EvaluateContext } from './lib'
 import { evaluateExpectationStateAborted } from './evaluateExpectationStates/aborted'
@@ -20,7 +20,7 @@ export async function evaluateExpectationState(
 	runner: EvaluationRunner,
 	trackedExp: TrackedExpectation
 ): Promise<void> {
-	const manager: ExpectationManagerInternal = runner.manager
+	const manager: InternalManager = runner.manager
 	const tracker: ExpectationTracker = runner.tracker
 
 	const timeSinceLastEvaluation = Date.now() - trackedExp.lastEvaluationTime

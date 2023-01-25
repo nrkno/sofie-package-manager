@@ -17,7 +17,7 @@ import { ExpectationTrackerConstants } from '../lib/constants'
 import { WorkerAgentAPI } from '../workerAgentApi'
 import { WorkInProgressTracker } from './lib/workInProgressTracker'
 import { TrackedReceivedUpdates } from './lib/trackedReceivedUpdates'
-import { ExpectationManagerInternal } from '../expectationManager/expectationManagerInternal'
+import { InternalManager } from '../expectationManager/internalManager'
 import { expLabel, TrackedExpectation } from '../lib/trackedExpectation'
 import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContainerExpectation'
 
@@ -43,7 +43,7 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 
 	private logger: LoggerInstance
 	constructor(
-		private manager: ExpectationManagerInternal,
+		private manager: InternalManager,
 		logger: LoggerInstance,
 		constants: ExpectationTrackerConstants,
 		private callbacks: ExpectationManagerCallbacks

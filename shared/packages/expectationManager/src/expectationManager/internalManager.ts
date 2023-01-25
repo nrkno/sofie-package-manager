@@ -40,8 +40,7 @@ import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContain
  * It is used by ExpectationManager.
  *
  */
-
-export class ExpectationManagerInternal {
+export class InternalManager {
 	public workforceAPI: WorkforceAPI
 	private websocketServer?: WebsocketServer
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
@@ -213,7 +212,7 @@ export class ExpectationManagerInternal {
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
 		setLogLevel(logLevel)
 	}
-	/** Called by Workforce*/
+	/** Called by Workforce */
 	async _debugKill(): Promise<void> {
 		// This is for testing purposes only
 		setTimeout(() => {

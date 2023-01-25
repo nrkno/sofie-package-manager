@@ -1,12 +1,12 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { EvaluationRunner } from './evaluationRunner'
-import { ExpectationManagerInternal } from '../expectationManager/expectationManagerInternal'
+import { InternalManager } from '../expectationManager/internalManager'
 import { ExpectationTracker } from '../expectationTracker/expectationTracker'
 import { TrackedExpectation } from '../lib/trackedExpectation'
 
 export interface EvaluateContext {
-	manager: ExpectationManagerInternal
+	manager: InternalManager
 	tracker: ExpectationTracker
 	runner: EvaluationRunner
 	trackedExp: TrackedExpectation
