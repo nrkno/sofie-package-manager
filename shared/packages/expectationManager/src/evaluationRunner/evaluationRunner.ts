@@ -12,7 +12,7 @@ import {
 import PromisePool from '@supercharge/promise-pool'
 import _ from 'underscore'
 import { evaluateExpectationState } from './evaluateExpectationState'
-import { InternalManager } from '../expectationManager/internalManager'
+import { InternalManager } from '../internalManager/internalManager'
 import { ExpectationTracker } from '../expectationTracker/expectationTracker'
 import { expLabel, getDefaultTrackedExpectation, TrackedExpectation } from '../lib/trackedExpectation'
 import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContainerExpectation'
@@ -67,11 +67,11 @@ export class EvaluationRunner {
 			times[key] = evaluateTimes[key]
 		}
 
-		await this.tracker.checkIfNeedToScaleUp().catch((err) => {
+		await this.tracker.scaler.checkIfNeedToScaleUp().catch((err) => {
 			this.logger.error(`Error in checkIfNeedToScaleUp: ${stringifyError(err)}`)
 		})
 
-		this.manager.updateManagerStatusReport()
+		this.manager.statusReport.update(times)
 
 		return literal<EvaluationResult>({
 			runAgainASAP,
@@ -122,7 +122,7 @@ export class EvaluationRunner {
 
 				this.tracker.trackedExpectations.upsert(id, newTrackedExp)
 				if (difference === 'new') {
-					this.tracker.updateTrackedExpectationStatus(newTrackedExp, {
+					this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(newTrackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason: {
 							user: `Added just now`,
@@ -132,7 +132,7 @@ export class EvaluationRunner {
 						dontUpdatePackage: true,
 					})
 				} else {
-					this.tracker.updateTrackedExpectationStatus(newTrackedExp, {
+					this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(newTrackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason: {
 							user: `Updated just now`,
@@ -173,7 +173,7 @@ export class EvaluationRunner {
 					}
 				}
 
-				this.tracker.updateTrackedExpectationStatus(trackedExp, {
+				this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
 					reason: {
 						user: 'Expectation was removed',
@@ -202,7 +202,7 @@ export class EvaluationRunner {
 					}
 				}
 
-				this.tracker.updateTrackedExpectationStatus(trackedExp, {
+				this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
 					reason: {
 						user: 'Restarted by user',
@@ -227,7 +227,7 @@ export class EvaluationRunner {
 					}
 				}
 
-				this.tracker.updateTrackedExpectationStatus(trackedExp, {
+				this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
 					reason: {
 						user: 'Aborted by user',
@@ -423,15 +423,23 @@ export class EvaluationRunner {
 				trackedPackageContainer.removed = false
 
 				if (isNew) {
-					this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.UNKNOWN, {
-						user: `Added just now`,
-						tech: `Added ${Date.now()}`,
-					})
+					this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+						trackedPackageContainer,
+						StatusCode.UNKNOWN,
+						{
+							user: `Added just now`,
+							tech: `Added ${Date.now()}`,
+						}
+					)
 				} else {
-					this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.UNKNOWN, {
-						user: `Updated just now`,
-						tech: `Updated ${Date.now()}`,
-					})
+					this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+						trackedPackageContainer,
+						StatusCode.UNKNOWN,
+						{
+							user: `Updated just now`,
+							tech: `Updated ${Date.now()}`,
+						}
+					)
 				}
 			}
 		}
@@ -458,7 +466,7 @@ export class EvaluationRunner {
 										result.reason
 									)}`
 								)
-								this.manager.updateTrackedPackageContainerStatus(
+								this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
 									trackedPackageContainer,
 									StatusCode.BAD,
 									result.reason
@@ -468,10 +476,14 @@ export class EvaluationRunner {
 							this.logger.error(
 								`_updateReceivedData_TrackedPackageContainers: Caught exception: ${JSON.stringify(err)}`
 							)
-							this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
-								user: 'Internal Error',
-								tech: `Error when removing: ${stringifyError(err)}`,
-							})
+							this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+								trackedPackageContainer,
+								StatusCode.BAD,
+								{
+									user: 'Internal Error',
+									tech: `Error when removing: ${stringifyError(err)}`,
+								}
+							)
 						}
 					}
 				}
@@ -503,7 +515,7 @@ export class EvaluationRunner {
 										disposeMonitorResult.reason
 									)}`
 								)
-								this.manager.updateTrackedPackageContainerStatus(
+								this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
 									trackedPackageContainer,
 									StatusCode.BAD,
 									{
@@ -575,10 +587,14 @@ export class EvaluationRunner {
 								notSupportReason
 							)}`
 						)
-						this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
-							user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
-							tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
-						})
+						this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+							trackedPackageContainer,
+							StatusCode.BAD,
+							{
+								user: `Unable to handle PackageContainer, due to: ${notSupportReason.user}`,
+								tech: `Unable to handle PackageContainer, due to: ${notSupportReason.tech}`,
+							}
+						)
 						continue // Break further execution for this PackageContainer
 					}
 				}
@@ -587,10 +603,14 @@ export class EvaluationRunner {
 					const workerAgent = this.manager.workerAgents.get(trackedPackageContainer.currentWorker)
 
 					if (!workerAgent) {
-						this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
-							user: `Internal error`,
-							tech: `Internal error: currentWorker (${trackedPackageContainer.currentWorker}) does not exist`,
-						})
+						this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+							trackedPackageContainer,
+							StatusCode.BAD,
+							{
+								user: `Internal error`,
+								tech: `Internal error: currentWorker (${trackedPackageContainer.currentWorker}) does not exist`,
+							}
+						)
 						continue // Break further execution for this PackageContainer
 					}
 
@@ -606,7 +626,7 @@ export class EvaluationRunner {
 								for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
 									if (trackedPackageContainer.status.monitors[monitorId]) {
 										// In case there no monitor status has been emitted yet:
-										this.manager.updateTrackedPackageContainerMonitorStatus(
+										this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerMonitorStatus(
 											trackedPackageContainer,
 											monitorId,
 											monitor.label,
@@ -625,7 +645,7 @@ export class EvaluationRunner {
 										monitorSetup.reason
 									)}`
 								)
-								this.manager.updateTrackedPackageContainerStatus(
+								this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
 									trackedPackageContainer,
 									StatusCode.BAD,
 									{
@@ -653,27 +673,39 @@ export class EvaluationRunner {
 									cronJobStatus.reason
 								)}`
 							)
-							this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
-								user: 'Cron job not completed, due to: ' + cronJobStatus.reason.user,
-								tech: 'Cron job not completed, due to: ' + cronJobStatus.reason.tech,
-							})
+							this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+								trackedPackageContainer,
+								StatusCode.BAD,
+								{
+									user: 'Cron job not completed, due to: ' + cronJobStatus.reason.user,
+									tech: 'Cron job not completed, due to: ' + cronJobStatus.reason.tech,
+								}
+							)
 							continue
 						}
 					}
 				}
 
 				if (!badStatus) {
-					this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.GOOD, {
-						user: `All good`,
-						tech: `All good`,
-					})
+					this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+						trackedPackageContainer,
+						StatusCode.GOOD,
+						{
+							user: `All good`,
+							tech: `All good`,
+						}
+					)
 				}
 			} catch (err) {
 				this.logger.error(`_evaluateAllTrackedPackageContainers: ${JSON.stringify(err)}`)
-				this.manager.updateTrackedPackageContainerStatus(trackedPackageContainer, StatusCode.BAD, {
-					user: 'Internal Error',
-					tech: `Unhandled Error: ${stringifyError(err)}`,
-				})
+				this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
+					trackedPackageContainer,
+					StatusCode.BAD,
+					{
+						user: 'Internal Error',
+						tech: `Unhandled Error: ${stringifyError(err)}`,
+					}
+				)
 			}
 			this.logger.debug(
 				`trackedPackageContainer ${trackedPackageContainer.id}, took ${Date.now() - startTime} ms`

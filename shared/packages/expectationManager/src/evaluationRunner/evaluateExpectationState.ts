@@ -2,7 +2,7 @@
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { assertNever, stringifyError } from '@sofie-package-manager/api'
 import { EvaluationRunner } from './evaluationRunner'
-import { InternalManager } from '../expectationManager/internalManager'
+import { InternalManager } from '../internalManager/internalManager'
 import { ExpectationTracker } from '../expectationTracker/expectationTracker'
 import { EvaluateContext } from './lib'
 import { evaluateExpectationStateAborted } from './evaluateExpectationStates/aborted'
@@ -75,7 +75,7 @@ export async function evaluateExpectationState(
 		runner.logger.error(
 			`Error thrown in evaluateExpectationState for expectation "${expLabel(trackedExp)}": ${stringifyError(err)}`
 		)
-		tracker.updateTrackedExpectationStatus(trackedExp, {
+		tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 			reason: {
 				user: 'Internal error in Package Manager',
 				tech: `${stringifyError(err)}`,

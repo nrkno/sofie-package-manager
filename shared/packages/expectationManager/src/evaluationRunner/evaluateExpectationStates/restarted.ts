@@ -14,12 +14,12 @@ export async function evaluateExpectationStateRestarted({
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.RESTARTED)
 
 	if (!trackedExp.session) trackedExp.session = {}
-	await manager.assignWorkerToSession(trackedExp)
+	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
 		// Start by removing the expectation
 		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
 		if (removed.removed) {
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 				reason: {
 					user: 'Ready to start (after restart)',
@@ -28,7 +28,7 @@ export async function evaluateExpectationStateRestarted({
 			})
 		} else {
 			// Something went wrong when trying to remove
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.RESTARTED,
 				reason: removed.reason,
 				isError: true,
@@ -37,6 +37,6 @@ export async function evaluateExpectationStateRestarted({
 	} else {
 		// No worker is available at the moment.
 		// Do nothing, hopefully some will be available at a later iteration
-		tracker.noWorkerAssigned(trackedExp)
+		tracker.trackedExpectationAPI.noWorkerAssigned(trackedExp)
 	}
 }

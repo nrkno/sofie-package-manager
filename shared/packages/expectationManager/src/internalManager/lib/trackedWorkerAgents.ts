@@ -1,6 +1,6 @@
 import PromisePool from '@supercharge/promise-pool'
 import { LoggerInstance, Reason, stringifyError } from '@sofie-package-manager/api'
-import { WorkerAgentAssignment } from '../../lib/types'
+import { ExpectationStateHandlerSession, WorkerAgentAssignment } from '../../lib/types'
 import { WorkerAgentAPI } from '../../workerAgentApi'
 import { ExpectationTracker } from '../../expectationTracker/expectationTracker'
 import { TrackedExpectation } from '../../lib/trackedExpectation'
@@ -171,6 +171,35 @@ export class TrackedWorkerAgents {
 			countQueried,
 			countInfinite,
 			noCostReason,
+		}
+	}
+
+	/** Do a bidding between the available Workers and assign the cheapest one to use for the evaulation-session. */
+	public async assignWorkerToSession(trackedExp: TrackedExpectation): Promise<void> {
+		const session: ExpectationStateHandlerSession | null = trackedExp.session
+		if (!session) throw new Error('ExpectationManager: Internal error: Session not set')
+		if (session.assignedWorker) return // A worker has already been assigned
+
+		if (!Object.keys(trackedExp.availableWorkers).length) {
+			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }
+		}
+
+		// Send a number of requests simultaneously:
+
+		const { bestWorker, countQueried, countInfinite, noCostReason } = await this.determineBestWorkerForExpectation(
+			trackedExp
+		)
+
+		if (bestWorker) {
+			session.assignedWorker = bestWorker
+			trackedExp.noWorkerAssignedTime = null
+		} else {
+			session.noAssignedWorkerReason = {
+				user: `Waiting for a free worker, ${noCostReason.user}`,
+				tech: `Waiting for a free worker ${noCostReason.tech} (${
+					Object.keys(trackedExp.availableWorkers).length
+				} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
+			}
 		}
 	}
 }

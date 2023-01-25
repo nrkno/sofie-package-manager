@@ -18,7 +18,7 @@ export async function evaluateExpectationStateRemoved({
 	let removeTheExpectation = false
 
 	if (!trackedExp.session) trackedExp.session = {}
-	await manager.assignWorkerToSession(trackedExp)
+	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
 		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
 		// Check if the removal was successful:
@@ -27,7 +27,7 @@ export async function evaluateExpectationStateRemoved({
 		} else {
 			// Something went wrong when trying to handle the removal.
 			trackedExp.errorOnRemoveCount++
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.REMOVED,
 				reason: removed.reason,
 				isError: true,
@@ -37,7 +37,7 @@ export async function evaluateExpectationStateRemoved({
 		// No worker is available at the moment.
 		// Do nothing, hopefully some will be available at a later iteration
 		trackedExp.errorOnRemoveCount++
-		tracker.noWorkerAssigned(trackedExp)
+		tracker.trackedExpectationAPI.noWorkerAssigned(trackedExp)
 	}
 
 	// We only allow a number of failure-of-removals.
@@ -48,7 +48,7 @@ export async function evaluateExpectationStateRemoved({
 	if (removeTheExpectation) {
 		trackedExp.session.expectationCanBeRemoved = true
 		// Send a status that this expectation has been removed:
-		manager.updatePackageContainerPackageStatus(trackedExp, true)
+		tracker.trackedPackageContainerPackageAPI.updatePackageContainerPackageStatus(trackedExp, true)
 		manager.callbacks.reportExpectationStatus(trackedExp.id, null, null, {})
 	}
 }

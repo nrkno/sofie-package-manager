@@ -1,7 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { PackageContainerExpectation } from '@sofie-package-manager/api'
-import _ from 'underscore'
 
 export interface TrackedPackageContainerExpectation {
 	/** Unique ID of the tracked packageContainer */

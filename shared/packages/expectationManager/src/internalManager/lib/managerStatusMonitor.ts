@@ -32,7 +32,9 @@ export class ManagerStatusMonitor {
 	private _monitorStatus() {
 		// If the work-queue is long (>10 items) and nothing has progressed for the past 10 minutes.
 
-		if (this.tracker.waitingExpectations.length > 10) {
+		const waitingExpectationCount = this.tracker.scaler.getWaitingExpectationCount()
+
+		if (waitingExpectationCount > 10) {
 			if (!this.monitorStatusWaiting) {
 				this.monitorStatusWaiting = Date.now()
 			}
@@ -47,7 +49,7 @@ export class ManagerStatusMonitor {
 				statusCode: StatusCode.BAD,
 				message: `The Work-queue has been stuck for ${Math.round(
 					stuckDuration / 1000 / 60
-				)} minutes, and there are ${this.tracker.waitingExpectations.length} waiting`,
+				)} minutes, and there are ${waitingExpectationCount} waiting`,
 			})
 		} else {
 			this.managerStatuses.update('work-queue-stuck', { statusCode: StatusCode.GOOD, message: '' })

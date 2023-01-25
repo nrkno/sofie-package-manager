@@ -20,7 +20,7 @@ export async function evaluateExpectationStateWaiting({
 
 	// Check if the expectation is ready to start:
 	if (!trackedExp.session) trackedExp.session = {}
-	await manager.assignWorkerToSession(trackedExp)
+	await manager.workerAgents.assignWorkerToSession(trackedExp)
 
 	if (trackedExp.session.assignedWorker) {
 		try {
@@ -31,15 +31,15 @@ export async function evaluateExpectationStateWaiting({
 			)
 			if (fulfilled.fulfilled) {
 				// The expectation is already fulfilled:
-				tracker.updateTrackedExpectationStatus(trackedExp, {
+				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
 				})
-				if (tracker.onExpectationFullfilled(trackedExp)) {
+				if (tracker.trackedExpectationAPI.onExpectationFullfilled(trackedExp)) {
 					// Something was triggered, run again ASAP:
 					trackedExp.session.triggerOtherExpectationsAgain = true
 				}
 			} else {
-				const readyToStart = await tracker.isExpectationReadyToStartWorkingOn(
+				const readyToStart = await tracker.trackedExpectationAPI.isExpectationReadyToStartWorkingOn(
 					trackedExp.session.assignedWorker.worker,
 					trackedExp
 				)
@@ -48,7 +48,7 @@ export async function evaluateExpectationStateWaiting({
 				if (readyToStart.sourceExists !== undefined) newStatus.sourceExists = readyToStart.sourceExists
 
 				if (readyToStart.ready) {
-					tracker.updateTrackedExpectationStatus(trackedExp, {
+					tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.READY,
 						reason: {
 							user: 'About to start working..',
@@ -61,13 +61,13 @@ export async function evaluateExpectationStateWaiting({
 					if (readyToStart.isWaitingForAnother) {
 						// Not ready to start because it's waiting for another expectation to be fullfilled first
 						// Stay here in WAITING state:
-						tracker.updateTrackedExpectationStatus(trackedExp, {
+						tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 							reason: readyToStart.reason,
 							status: newStatus,
 						})
 					} else {
 						// Not ready to start because of some other reason (e.g. the source doesn't exist)
-						tracker.updateTrackedExpectationStatus(trackedExp, {
+						tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 							state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 							reason: readyToStart.reason,
 							status: newStatus,
@@ -79,7 +79,7 @@ export async function evaluateExpectationStateWaiting({
 			// There was an error, clearly it's not ready to start
 			runner.logger.warn(`Error in WAITING: ${stringifyError(error)}`)
 
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 				reason: {
 					user: 'Restarting due to error',
@@ -91,6 +91,6 @@ export async function evaluateExpectationStateWaiting({
 	} else {
 		// No worker is available at the moment.
 		// Do nothing, hopefully some will be available at a later iteration
-		tracker.noWorkerAssigned(trackedExp)
+		tracker.trackedExpectationAPI.noWorkerAssigned(trackedExp)
 	}
 }

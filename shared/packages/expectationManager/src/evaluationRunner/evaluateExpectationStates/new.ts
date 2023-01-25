@@ -22,7 +22,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 	const availableWorkersCount = Object.keys(trackedExp.availableWorkers).length
 	if (availableWorkersCount > 0) {
 		if (hasQueriedAnyone) {
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.WAITING,
 				reason: {
 					user: `${availableWorkersCount} workers available, about to start...`,
@@ -33,7 +33,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 			})
 		} else {
 			// If we didn't query anyone, just skip ahead to next state without being too verbose:
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.WAITING,
 				// Don't update the package status, since we don't know anything about the package yet:
 				dontUpdatePackage: true,
@@ -42,7 +42,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 	} else {
 		if (!Object.keys(trackedExp.queriedWorkers).length) {
 			if (!workerCount) {
-				tracker.updateTrackedExpectationStatus(trackedExp, {
+				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					reason: {
 						user: `No Workers available (this is likely a configuration issue)`,
@@ -52,7 +52,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 					dontUpdatePackage: true,
 				})
 			} else {
-				tracker.updateTrackedExpectationStatus(trackedExp, {
+				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					reason: {
 						user: `No Workers available (this is likely a configuration issue)`,
@@ -63,7 +63,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 				})
 			}
 		} else {
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 				reason: {
 					user: `Found no workers who supports this Expectation, due to: ${trackedExp.noAvailableWorkersReason.user}`,

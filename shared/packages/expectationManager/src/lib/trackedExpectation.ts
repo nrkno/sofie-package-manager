@@ -1,7 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { Expectation, Reason } from '@sofie-package-manager/api'
-import _ from 'underscore'
 import { ExpectationStateHandlerSession } from '../lib/types'
 import { ExpectationTrackerConstants } from './constants'
 

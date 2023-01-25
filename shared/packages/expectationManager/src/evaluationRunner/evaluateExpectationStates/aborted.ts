@@ -15,13 +15,13 @@ export async function evaluateExpectationStateAborted({
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.ABORTED)
 
 	if (!trackedExp.session) trackedExp.session = {}
-	await manager.assignWorkerToSession(trackedExp)
+	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
 		// Start by removing the expectation
 		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
 		if (removed.removed) {
 			// This will cause the expectation to be intentionally stuck in the ABORTED state.
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
 				reason: {
 					user: 'Aborted',
@@ -30,7 +30,7 @@ export async function evaluateExpectationStateAborted({
 			})
 		} else {
 			// Something went wrong when trying to remove
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.ABORTED,
 				reason: removed.reason,
 				isError: true,
@@ -39,6 +39,6 @@ export async function evaluateExpectationStateAborted({
 	} else {
 		// No worker is available at the moment.
 		// Do nothing, hopefully some will be available at a later iteration
-		tracker.noWorkerAssigned(trackedExp)
+		tracker.trackedExpectationAPI.noWorkerAssigned(trackedExp)
 	}
 }

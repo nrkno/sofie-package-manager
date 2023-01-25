@@ -44,7 +44,7 @@ export class WorkInProgressTracker {
 					}
 
 					wip.trackedExp.errorCount++
-					this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
+					this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(wip.trackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason,
 					})
@@ -75,7 +75,7 @@ export class WorkInProgressTracker {
 		if (wip) {
 			wip.lastUpdated = Date.now()
 			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
-				this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
+				this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(wip.trackedExp, {
 					status: {
 						actualVersionHash: actualVersionHash,
 						workProgress: progress,
@@ -104,7 +104,7 @@ export class WorkInProgressTracker {
 			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 				wip.trackedExp.status.actualVersionHash = actualVersionHash
 				wip.trackedExp.status.workProgress = 1
-				this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
+				this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(wip.trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
 					reason,
 					status: {
@@ -112,10 +112,10 @@ export class WorkInProgressTracker {
 					},
 				})
 
-				if (this.tracker.onExpectationFullfilled(wip.trackedExp)) {
+				if (this.tracker.trackedExpectationAPI.onExpectationFullfilled(wip.trackedExp)) {
 					// Something was triggered, run again asap.
 					// We should reevaluate asap, so that any other expectation which might be waiting on this work could start.
-					this.tracker.triggerEvaluateExpectationsNow()
+					this.tracker.triggerEvaluationNow()
 				}
 			} else {
 				// Expectation not in WORKING state, ignore
@@ -132,7 +132,7 @@ export class WorkInProgressTracker {
 			wip.lastUpdated = Date.now()
 			if (wip.trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 				wip.trackedExp.errorCount++
-				this.tracker.updateTrackedExpectationStatus(wip.trackedExp, {
+				this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(wip.trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 					reason,
 					isError: true,

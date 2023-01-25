@@ -21,7 +21,7 @@ export async function evaluateExpectationStateFulfilled({
 
 	if (timeSinceLastEvaluation > tracker.getFullfilledWaitTime()) {
 		if (!trackedExp.session) trackedExp.session = {}
-		await manager.assignWorkerToSession(trackedExp)
+		await manager.workerAgents.assignWorkerToSession(trackedExp)
 		if (trackedExp.session.assignedWorker) {
 			try {
 				// Check if it is still fulfilled:
@@ -37,7 +37,7 @@ export async function evaluateExpectationStateFulfilled({
 					// It appears like it's not fullfilled anymore
 					trackedExp.status.actualVersionHash = undefined
 					trackedExp.status.workProgress = undefined
-					tracker.updateTrackedExpectationStatus(trackedExp, {
+					tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 						reason: fulfilled.reason,
 					})
@@ -46,7 +46,7 @@ export async function evaluateExpectationStateFulfilled({
 				runner.logger.warn(`Error in FULFILLED: ${stringifyError(error)}`)
 				// Do nothing, hopefully some will be available at a later iteration
 				// todo: Is this the right thing to do?
-				tracker.updateTrackedExpectationStatus(trackedExp, {
+				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					reason: {
 						user: `Can't check if fulfilled, due to an error`,
 						tech: `Error from worker ${trackedExp.session.assignedWorker.id}: ${stringifyError(error)}`,
@@ -58,7 +58,7 @@ export async function evaluateExpectationStateFulfilled({
 		} else {
 			// No worker is available at the moment.
 			// Do nothing, hopefully some will be available at a later iteration
-			tracker.noWorkerAssigned(trackedExp)
+			tracker.trackedExpectationAPI.noWorkerAssigned(trackedExp)
 		}
 	} else {
 		// Do nothing

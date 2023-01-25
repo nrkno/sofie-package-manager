@@ -1,6 +1,6 @@
 import { LoggerInstance, stringifyError } from '@sofie-package-manager/api'
 import { EvaluationRunner } from '../../evaluationRunner/evaluationRunner'
-import { InternalManager } from '../../expectationManager/internalManager'
+import { InternalManager } from '../../internalManager/internalManager'
 import { ExpectationTracker } from '../expectationTracker'
 
 /**
@@ -33,7 +33,7 @@ export class EvaluationScheduler {
 	 * Schedule an evaluation to run
 	 * @param asap if true, will run an evaluation as soon as possible
 	 */
-	public triggerEvaluateExpectations(asap?: boolean): void {
+	public triggerEvaluation(asap?: boolean): void {
 		if (this.terminated) return
 
 		if (asap) this._runNextAsap = true
@@ -57,13 +57,13 @@ export class EvaluationScheduler {
 					.then((evaluationResult) => {
 						this.isRunning = false
 
-						this.triggerEvaluateExpectations(evaluationResult.runAgainASAP)
+						this.triggerEvaluation(evaluationResult.runAgainASAP)
 					})
 					.catch((err) => {
 						this.logger.error(`Error in EvaluationRunner.run(): ${stringifyError(err)}`)
 
 						this.isRunning = false
-						this.triggerEvaluateExpectations()
+						this.triggerEvaluation()
 					})
 			},
 			this._runNextAsap ? 1 : this.tracker.constants.EVALUATE_INTERVAL

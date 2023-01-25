@@ -5,14 +5,13 @@ import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
 	LoggerInstance,
-	LogLevel,
 	PackageContainerExpectation,
 	Reason,
 	Statuses,
 	Hook,
 	WorkForceExpectationManager,
 } from '@sofie-package-manager/api'
-import { InternalManager } from './expectationManager/internalManager'
+import { InternalManager } from './internalManager/internalManager'
 import { ExpectationTrackerConstants } from './lib/constants'
 
 /**
@@ -52,7 +51,7 @@ export class ExpectationManager {
 	hookToWorkforce(
 		hook: Hook<WorkForceExpectationManager.WorkForce, WorkForceExpectationManager.ExpectationManager>
 	): void {
-		this.internalManager.workforceAPI.hook(hook)
+		this.internalManager.workforceConnection.workforceAPI.hook(hook)
 	}
 	get managerId(): string {
 		return this.internalManager.managerId
@@ -62,24 +61,24 @@ export class ExpectationManager {
 	updatePackageContainerExpectations(packageContainers: { [id: string]: PackageContainerExpectation }): void {
 		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
 		this.internalManager.tracker.receivedUpdates.packageContainers = packageContainers
-		this.internalManager.tracker.triggerEvaluateExpectationsNow()
+		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	/** Called when there is an updated set of Expectations. */
 	updateExpectations(expectations: { [id: string]: Expectation.Any }): void {
 		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
 		this.internalManager.tracker.receivedUpdates.expectations = expectations
 
-		this.internalManager.tracker.triggerEvaluateExpectationsNow()
+		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	/** Request that an Expectation is restarted. This functions returns immediately, not waiting for a result. */
 	restartExpectation(expectationId: string): void {
 		this.internalManager.tracker.receivedUpdates.restartExpectations[expectationId] = true
-		this.internalManager.tracker.triggerEvaluateExpectationsNow()
+		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	/** Request that all Expectations are restarted. This functions returns immediately, not waiting for a result. */
 	restartAllExpectations(): void {
 		this.internalManager.tracker.receivedUpdates.restartAllExpectations = true
-		this.internalManager.tracker.triggerEvaluateExpectationsNow()
+		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	/** Request that an Expectation is aborted.
 	 * "Aborted" means that any current work is cancelled and any finished work will be removed.
@@ -88,24 +87,12 @@ export class ExpectationManager {
 	 * This functions returns immediately, not waiting for a result. */
 	abortExpectation(expectationId: string): void {
 		this.internalManager.tracker.receivedUpdates.abortExpectations[expectationId] = true
-		this.internalManager.tracker.triggerEvaluateExpectationsNow()
+		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	restartPackageContainer(containerId: string): void {
 		this.internalManager.tracker.receivedUpdates.restartPackageContainers[containerId] = true
 
-		this.internalManager.tracker.triggerEvaluateExpectationsNow()
-	}
-	/** Called by Workforce */
-	async setLogLevel(logLevel: LogLevel): Promise<void> {
-		await this.internalManager.setLogLevel(logLevel)
-	}
-	/** Called by Workforce*/
-	async _debugKill(): Promise<void> {
-		await this.internalManager._debugKill()
-	}
-	/** FOR DEBUGGING ONLY. Cut websocket connections, in order to ensure that they are restarted */
-	async _debugSendKillConnections(): Promise<void> {
-		await this.internalManager._debugSendKillConnections()
+		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	public getTroubleshootData(): any {
 		return {
@@ -115,14 +102,14 @@ export class ExpectationManager {
 	}
 	async getStatusReport(): Promise<any> {
 		return {
-			workforce: this.internalManager.workforceAPI.connected
-				? await this.internalManager.workforceAPI.getStatusReport()
+			workforce: this.internalManager.workforceConnection.workforceAPI.connected
+				? await this.internalManager.workforceConnection.workforceAPI.getStatusReport()
 				: {},
 			expectationManager: this.internalManager.statusReport,
 		}
 	}
 	async debugKillApp(appId: string): Promise<void> {
-		return this.internalManager.workforceAPI._debugKillApp(appId)
+		return this.internalManager.workforceConnection.workforceAPI._debugKillApp(appId)
 	}
 }
 export interface ExpectationManagerOptions {

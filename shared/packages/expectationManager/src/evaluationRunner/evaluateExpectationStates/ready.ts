@@ -18,7 +18,7 @@ export async function evaluateExpectationStateReady({
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.READY)
 	// Start working on it:
 	if (!trackedExp.session) trackedExp.session = {}
-	await manager.assignWorkerToSession(trackedExp)
+	await manager.workerAgents.assignWorkerToSession(trackedExp)
 
 	if (
 		trackedExp.session.assignedWorker &&
@@ -61,7 +61,7 @@ export async function evaluateExpectationStateReady({
 				lastUpdated: Date.now(),
 			})
 
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.WORKING,
 				reason: {
 					user: `Working on: ${wipInfo.properties.workLabel}`,
@@ -72,7 +72,7 @@ export async function evaluateExpectationStateReady({
 		} catch (error) {
 			runner.logger.warn(`Error in READY: ${stringifyError(error)}`)
 			// There was an error
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 				reason: {
 					user: 'Restarting due to an error',
@@ -90,14 +90,14 @@ export async function evaluateExpectationStateReady({
 			Date.now() - trackedExp.noWorkerAssignedTime > tracker.constants.WORKER_SUPPORT_TIME
 		) {
 			// Restart
-			tracker.updateTrackedExpectationStatus(trackedExp, {
+			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 				// Don't update the package status, since we don't know anything about the package at this point:
 				dontUpdatePackage: true,
 			})
 		} else {
 			// Do nothing, hopefully some will be available at a later iteration
-			tracker.noWorkerAssigned(trackedExp)
+			tracker.trackedExpectationAPI.noWorkerAssigned(trackedExp)
 		}
 	}
 }
