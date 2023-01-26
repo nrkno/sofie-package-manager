@@ -81,7 +81,26 @@ if (!executableName) {
 
 	log('binaryOutputPath', binaryOutputPath)
 
-	await pkg.exec([path.join(basePath, './dist/index.js'), '--target', 'node16-win-x64', '--output', binaryOutputPath])
+	const extraArgs = []
+
+	if (packageJson.name === '@single-app/app') {
+		extraArgs.push(
+			'--assets',
+			[
+				path.join(basePath, './node_modules/@sofie-automation/server-core-integration/package.json'),
+				path.join(basePath, './package.json'),
+			].join(',')
+		)
+	}
+
+	await pkg.exec([
+		path.join(basePath, './dist/index.js'),
+		'--targets',
+		'node16-win-x64',
+		'--output',
+		binaryOutputPath,
+		...extraArgs,
+	])
 
 	log(`Cleaning up...`)
 	// Clean up after ourselves:
