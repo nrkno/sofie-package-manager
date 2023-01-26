@@ -27,6 +27,7 @@ jobs:
         run: yarn do:build-win32
         env:
           CI: true
+          PKG_CACHE_PATH: ${{ runner.temp }}
 
       - name: Sign executables
         shell: bash
