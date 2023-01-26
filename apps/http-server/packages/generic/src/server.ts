@@ -2,22 +2,24 @@ import { promisify } from 'util'
 
 import fs from 'fs'
 import Koa from 'koa'
+import path from 'path'
 import Router from 'koa-router'
 import cors from '@koa/cors'
-import multer from '@koa/multer'
 import bodyParser from 'koa-bodyparser'
 
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
 import { CTX } from './lib'
+import { parseFormData } from 'pechkin'
 
 const fsReadFile = promisify(fs.readFile)
+
+const MAX_UPLOAD_FILE_SIZE = 300 * 1024 * 1024
 
 export class PackageProxyServer {
 	private app = new Koa()
 	private router = new Router()
-	private upload = multer({ limits: { fileSize: 300 * 1024 * 1024 } })
 
 	private storage: Storage
 	private logger: LoggerInstance
@@ -35,7 +37,6 @@ export class PackageProxyServer {
 			}
 		})
 
-		this.app.use(this.upload.any())
 		this.app.use(bodyParser())
 
 		this.app.use(
@@ -95,7 +96,13 @@ export class PackageProxyServer {
 		})
 		this.router.post('/package/:path+', async (ctx) => {
 			this.logger.debug(`POST ${ctx.request.URL}`)
-			await this.handleStorage(ctx, async () => this.storage.postPackage(ctx.params.path, ctx))
+			const { files, fields } = await parseFormData(ctx.req, {
+				maxFileByteLength: MAX_UPLOAD_FILE_SIZE,
+			})
+			const { value: file } = await files.next()
+			await this.handleStorage(ctx, async () =>
+				this.storage.postPackage(ctx.params.path, ctx, file?.stream ?? fields?.text)
+			)
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
 			this.logger.debug(`DELETE ${ctx.request.URL}`)
@@ -119,7 +126,7 @@ export class PackageProxyServer {
 		this.router.get('/uploadForm/:path+', async (ctx) => {
 			// ctx.response.status = result.code
 			ctx.type = 'text/html'
-			ctx.body = (await fsReadFile('./static/uploadForm.html', 'utf-8'))
+			ctx.body = (await fsReadFile(path.join(__dirname, '../static/uploadForm.html'), 'utf-8'))
 				.replace('$path', `/package/${ctx.params.path}`)
 				.replace('$apiKey', first(ctx.request.query.apiKey) ?? '')
 		})

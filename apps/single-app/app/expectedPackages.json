@@ -6,8 +6,10 @@
             "accessors": {
                 "local": {
                     "type": "local_folder",
-                    "folderPath": "D:\\media\\source0",
-                    "allowRead": true
+                    "label": "Local",
+                    "folderPath": "C:\\temp\\source0",
+                    "allowRead": true,
+                    "allowWrite": false
                 }
             }
         },
@@ -16,19 +18,34 @@
             "accessors": {
                 "local": {
                     "type": "local_folder",
-                    "folderPath": "D:\\media\\target0",
+                    "label": "Local",
+                    "folderPath": "C:\\temp\\target0",
                     "allowRead": true,
                     "allowWrite": true
                 }
             }
         },
-        "internet": {
-            "label": "The Internet",
+        "thumbnails0": {
+            "label": "Thumbnails",
             "accessors": {
-                "http": {
-                    "type": "http",
-                    "baseUrl": "",
-                    "allowRead": true
+                "local": {
+                    "type": "http_proxy",
+                    "label": "http proxy",
+                    "baseUrl": "http://localhost:8080/package",
+                    "allowRead": true,
+                    "allowWrite": true
+                }
+            }
+        },
+        "thumbnails0_local": {
+            "label": "Thumbnails",
+            "accessors": {
+                "local": {
+                    "type": "local_folder",
+                    "label": "Local",
+                    "folderPath": "C:\\temp\\thumbnails",
+                    "allowRead": true,
+                    "allowWrite": true
                 }
             }
         }
@@ -59,8 +76,10 @@
             "sideEffect": {
                 "previewContainerId": null,
                 "previewPackageSettings": null,
-                "thumbnailContainerId": null,
-                "thumbnailPackageSettings": null
+                "thumbnailContainerId": "thumbnails0",
+                "thumbnailPackageSettings": {
+                    "path": "thumbnail.png"
+                }
             }
         }
     ]
