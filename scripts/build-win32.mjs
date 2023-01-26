@@ -81,7 +81,7 @@ if (!executableName) {
 
 	log('binaryOutputPath', binaryOutputPath)
 
-	await pkg.exec([path.join(basePath, './dist/index.js'), '--target', 'node18-win-x64', '--output', binaryOutputPath])
+	await pkg.exec([path.join(basePath, './dist/index.js'), '--target', 'node16-win-x64', '--output', binaryOutputPath])
 
 	log(`Cleaning up...`)
 	// Clean up after ourselves:
