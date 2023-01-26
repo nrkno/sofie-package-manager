@@ -31,7 +31,7 @@ jobs:
           # try and avoid timeout errors
           yarn config set network-timeout 100000 -g
 
-          yarn do:build-win32
+          yarn do:build-win32:ci
 
       - name: Sign executables
         shell: bash
@@ -54,7 +54,7 @@ jobs:
           fi
 
       - name: Verify build
-        run: yarn verify-build-win32
+        run: yarn verify:build-win32
         env:
           CI: true
 

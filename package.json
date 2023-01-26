@@ -28,7 +28,8 @@
         "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
         "typecheck": "lerna exec -- tsc --noEmit",
         "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
-        "build-win32": "node scripts/prepare-for-build32.js && lerna run build-win32 --stream --concurrency=1 && node scripts/cleanup-after-build32.mjs",
+        "build-win32": "node scripts/prepare-for-build32.js && lerna run build-win32 --stream && node scripts/cleanup-after-build32.mjs",
+        "build-win32:ci": "node scripts/prepare-for-build32.js && lerna run build-win32 --stream --concurrency=1 && node scripts/cleanup-after-build32.mjs",
         "gather-built": "node scripts/gather-all-built.mjs",
         "sign-executables": "node scripts/sign-executables.mjs",
         "start:http-server": "lerna run start --stream --scope @http-server/app",
@@ -38,7 +39,8 @@
         "start:single-app": "lerna run start --stream --scope @single-app/app",
         "postinstall": "node scripts/update-packages.js",
         "do:build-win32": "yarn install && yarn build && yarn build-win32 && yarn gather-built",
-        "verify-build-win32": "node scripts/verify-build-win32.mjs",
+        "do:build-win32:ci": "yarn install && yarn build && yarn build-win32:ci && yarn gather-built",
+        "verify:build-win32": "node scripts/verify-build-win32.mjs",
         "precommit": "lint-staged"
     },
     "devDependencies": {
