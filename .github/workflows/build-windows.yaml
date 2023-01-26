@@ -24,10 +24,14 @@ jobs:
           node-version: '16'
 
       - name: Run build
-        run: yarn do:build-win32
         env:
           CI: true
           PKG_CACHE_PATH: ${{ runner.temp }}
+        run: |
+          # try and avoid timeout errors
+          yarn config set network-timeout 100000 -g
+
+          yarn do:build-win32
 
       - name: Sign executables
         shell: bash
