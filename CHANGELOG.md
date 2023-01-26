@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.40.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.1...v1.40.2) (2023-01-26)
+
+
+### Bug Fixes
+
+* app version is not reported to Core ([5f0917c](https://github.com/nrkno/tv-automation-package-manager/commit/5f0917c64942eae4eab18a1f7c8c4bc8c208e995))
+
+
+
+
+
 ## [1.40.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
 
 **Note:** Version bump only for package package-manager-monorepo

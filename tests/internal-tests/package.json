@@ -1,6 +1,6 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.40.1",
+    "version": "1.40.2",
     "description": "Internal tests",
     "private": true,
     "scripts": {
@@ -16,7 +16,7 @@
     },
     "dependencies": {
         "@http-server/generic": "1.40.1",
-        "@package-manager/generic": "1.40.1",
+        "@package-manager/generic": "1.40.2",
         "@sofie-package-manager/api": "1.40.1",
         "@sofie-package-manager/expectation-manager": "1.40.1",
         "@sofie-package-manager/worker": "1.40.1",
