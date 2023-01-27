@@ -21,14 +21,19 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '14'
+          node-version: '16'
 
       - name: Run build
-        run: yarn do:build-win32
         env:
           CI: true
+          PKG_CACHE_PATH: ${{ runner.temp }}
+        run: |
+          # try and avoid timeout errors
+          yarn config set network-timeout 100000 -g
 
-      - name: sign executables
+          yarn do:build-win32:ci
+
+      - name: Sign executables
         shell: bash
         continue-on-error: true
         env:
@@ -47,6 +52,11 @@ jobs:
           else
             echo "No certificate found"
           fi
+
+      - name: Verify build
+        run: yarn verify:build-win32
+        env:
+          CI: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

@@ -1,4 +1,4 @@
-/* eslint-disable node/no-unpublished-require, node/no-extraneous-require, no-console */
+/* eslint-disable node/no-unpublished-import, no-console */
 
 import path from 'path'
 import fse from 'fs-extra'

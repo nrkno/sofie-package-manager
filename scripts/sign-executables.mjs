@@ -1,5 +1,4 @@
-/* eslint-disable no-process-exit */
-/* eslint-disable no-console */
+/* eslint-disable no-process-exit, no-console */
 import { promisify } from 'util'
 import glob0 from 'glob'
 import { exec } from 'child_process'

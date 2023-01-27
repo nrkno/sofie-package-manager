@@ -7,6 +7,7 @@ import prettyBytes from 'pretty-bytes'
 import { CTX, CTXPost } from '../lib'
 import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage'
+import { Readable } from 'stream'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
 const fsStat = promisify(fs.stat)
@@ -146,7 +147,11 @@ export class FileStorage extends Storage {
 
 		return true
 	}
-	async postPackage(paramPath: string, ctx: CTXPost): Promise<true | BadResponse> {
+	async postPackage(
+		paramPath: string,
+		ctx: CTXPost,
+		fileStreamOrText: string | Readable | undefined
+	): Promise<true | BadResponse> {
 		const fullPath = path.join(this._basePath, paramPath)
 
 		await mkdirp(path.dirname(fullPath))
@@ -154,18 +159,21 @@ export class FileStorage extends Storage {
 		const exists = await this.exists(fullPath)
 		if (exists) await fsUnlink(fullPath)
 
-		if (ctx.request.body?.text) {
+		let plainText = ctx.request.body?.text
+		if (!plainText && typeof fileStreamOrText === 'string') {
+			plainText = fileStreamOrText
+		}
+
+		if (plainText) {
 			// store plain text into file
-			await fsWriteFile(fullPath, ctx.request.body.text)
+			await fsWriteFile(fullPath, plainText)
 
 			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
 			ctx.response.status = 201
 			return true
-		} else if (ctx.request.files?.length) {
-			const file = (ctx.request.files as any)[0]
-			const stream = file.stream as fs.ReadStream
-
-			stream.pipe(fs.createWriteStream(fullPath))
+		} else if (fileStreamOrText && typeof fileStreamOrText !== 'string') {
+			const fileStream = fileStreamOrText
+			fileStream.pipe(fs.createWriteStream(fullPath))
 
 			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
 			ctx.response.status = 201

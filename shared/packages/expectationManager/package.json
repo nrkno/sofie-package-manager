@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/expectation-manager",
-    "version": "1.39.8-alpha.4",
+    "version": "1.40.1",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
@@ -12,14 +12,12 @@
     "engines": {
         "node": ">=14.18.0"
     },
-    "devDependencies": {},
     "dependencies": {
-        "@sofie-package-manager/api": "1.39.8-alpha.4",
-        "@sofie-package-manager/worker": "1.39.8-alpha.4",
+        "@sofie-package-manager/api": "1.40.1",
+        "@sofie-package-manager/worker": "1.40.1",
         "@supercharge/promise-pool": "^1.7.0",
         "underscore": "^1.12.0"
     },
-    "peerDependencies": {},
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {
         "*.{js,css,json,md,scss}": [
@@ -28,5 +26,7 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
-    }
+    },
+    "devDependencies": {},
+    "peerDependencies": {}
 }

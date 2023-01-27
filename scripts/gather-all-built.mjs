@@ -1,3 +1,4 @@
+/* eslint-disable node/no-unpublished-require */
 import { promisify } from 'util'
 import glob0 from 'glob'
 import fse from 'fs-extra'

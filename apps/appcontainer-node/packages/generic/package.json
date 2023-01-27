@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/generic",
-    "version": "1.39.8-alpha.4",
+    "version": "1.40.1",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -9,10 +9,9 @@
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
-    "peerDependencies": {},
     "dependencies": {
-        "@sofie-package-manager/api": "1.39.8-alpha.4",
-        "@sofie-package-manager/worker": "1.39.8-alpha.4",
+        "@sofie-package-manager/api": "1.40.1",
+        "@sofie-package-manager/worker": "1.40.1",
         "underscore": "^1.12.0"
     },
     "devDependencies": {
@@ -29,5 +28,6 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
-    }
+    },
+    "peerDependencies": {}
 }

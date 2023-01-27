@@ -3,6 +3,31 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.40.1](https://github.com/nrkno/sofie-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
+
+**Note:** Version bump only for package @sofie-package-manager/worker
+
+
+
+
+
+# [1.40.0](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.4...v1.40.0) (2023-01-23)
+
+
+### Bug Fixes
+
+* don't respect timeSinceLastError if state is RESTARTED ([c94de26](https://github.com/nrkno/sofie-package-manager/commit/c94de268c27669be90b58c5a3d6fcc7321d23c4b))
+* remove dependency on blueprints-integration ([e545992](https://github.com/nrkno/sofie-package-manager/commit/e545992e5204ff836e86011edeee7c08fdcaeaff))
+
+
+### Features
+
+* CachedQuantelGateway to buffer requests ([33a2477](https://github.com/nrkno/sofie-package-manager/commit/33a2477d8b6ce495f6d2694e431f14a2fa90eeec))
+
+
+
+
+
 ## [1.39.8-alpha.4](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.3...v1.39.8-alpha.4) (2023-01-17)
 
 **Note:** Version bump only for package @sofie-package-manager/worker

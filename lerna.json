@@ -4,7 +4,7 @@
         "apps/**",
         "tests/**"
     ],
-    "version": "1.39.8-alpha.4",
+    "version": "1.40.2",
     "npmClient": "yarn",
     "useWorkspaces": true
 }

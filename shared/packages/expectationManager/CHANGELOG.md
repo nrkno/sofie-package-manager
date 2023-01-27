@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.40.1](https://github.com/nrkno/sofie-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
+
+**Note:** Version bump only for package @sofie-package-manager/expectation-manager
+
+
+
+
+
+# [1.40.0](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.4...v1.40.0) (2023-01-23)
+
+
+### Bug Fixes
+
+* bug when updating priority only. ([30c00cd](https://github.com/nrkno/sofie-package-manager/commit/30c00cda17c4231b286713e60814bc7081173bf7))
+* don't re-evaluate expectations that has had recent errors ([3d77d5f](https://github.com/nrkno/sofie-package-manager/commit/3d77d5f4f9169398d42bc6dc12e64dcb64699476))
+* don't respect timeSinceLastError if state is RESTARTED ([c94de26](https://github.com/nrkno/sofie-package-manager/commit/c94de268c27669be90b58c5a3d6fcc7321d23c4b))
+* remove dependency on blueprints-integration ([e545992](https://github.com/nrkno/sofie-package-manager/commit/e545992e5204ff836e86011edeee7c08fdcaeaff))
+* when an exp is waiting for another exp, it will be jumping between WAITING and NEW unnecessarily. ([44d6dd8](https://github.com/nrkno/sofie-package-manager/commit/44d6dd8588842e1e1d6b07980af185f092138f2d))
+
+
+### Features
+
+* export stateReevaluationConcurrency as concurrencty config arguement ([3eabd63](https://github.com/nrkno/sofie-package-manager/commit/3eabd638d678e3c3761b6dbdd312802fd2f64e3b))
+
+
+
+
+
 ## [1.39.8-alpha.4](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.3...v1.39.8-alpha.4) (2023-01-17)
 
 **Note:** Version bump only for package @sofie-package-manager/expectation-manager

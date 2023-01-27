@@ -3,7 +3,7 @@
 import { promisify } from 'util'
 import cp from 'child_process'
 import path from 'path'
-import nexe from 'nexe'
+import pkg from 'pkg'
 import glob0 from 'glob'
 import fse from 'fs-extra'
 import { createRequire } from 'module'
@@ -75,18 +75,32 @@ if (!executableName) {
 	await Promise.all(ps)
 	ps = []
 
-	log(`Compiling using nexe...`)
+	log(`Compiling using pkg...`)
 
-	const nexeOutputPath = path.join(outputDirectory, executableName)
+	const binaryOutputPath = path.join(outputDirectory, executableName)
 
-	log('nexeOutputPath', nexeOutputPath)
+	log('binaryOutputPath', binaryOutputPath)
 
-	await nexe.compile({
-		input: path.join(basePath, './dist/index.js'),
-		output: nexeOutputPath,
-		// build: true, //required to use patches
-		targets: ['windows-x64-12.18.1'],
-	})
+	const extraArgs = []
+
+	if (packageJson.name === '@single-app/app') {
+		extraArgs.push(
+			'--assets',
+			[
+				path.join(basePath, './node_modules/@sofie-automation/server-core-integration/package.json'),
+				path.join(basePath, './package.json'),
+			].join(',')
+		)
+	}
+
+	await pkg.exec([
+		path.join(basePath, './dist/index.js'),
+		'--targets',
+		'node16-win-x64',
+		'--output',
+		binaryOutputPath,
+		...extraArgs,
+	])
 
 	log(`Cleaning up...`)
 	// Clean up after ourselves:
