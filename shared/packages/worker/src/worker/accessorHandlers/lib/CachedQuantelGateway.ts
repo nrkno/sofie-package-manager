@@ -1,5 +1,5 @@
 import { ClipSearchQuery, QuantelGateway } from 'tv-automation-quantel-gateway-client'
-import { ClipDataSummary, ServerInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
+import { ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
 const DEFAULT_CACHE_EXPIRE = 3000
 
@@ -23,43 +23,48 @@ export class CachedQuantelGateway extends QuantelGateway {
 		super(config)
 		this.cacheExpire = config?.cacheExpire ?? DEFAULT_CACHE_EXPIRE
 	}
-	public purgeCache(): void {
-		this._cache.clear()
+
+	async purgeCacheSearchClip(searchQuery: ClipSearchQuery): Promise<ClipDataSummary[]> {
+		return this.clearCache('searchClip', [searchQuery]) ?? []
 	}
 	// searchClip() is used often. By caching it, we reduce the load on the server.
 	async searchClip(searchQuery: ClipSearchQuery): Promise<ClipDataSummary[]> {
-		const result = this.queryCache<ClipDataSummary[]>('searchClip', [searchQuery])
-		if (result !== undefined) return result
-
-		return this.ensureInCache('searchClip', [searchQuery], super.searchClip(searchQuery))
+		return this.ensureInCache('searchClip', [searchQuery], async () => super.searchClip(searchQuery))
+	}
+	async getZones(): Promise<ZoneInfo[]> {
+		return this.ensureInCache('getZones', [], async () => super.getZones())
 	}
 	// getServer() is used often. By caching it, we reduce the load on the server.
 	async getServer(disableCache?: boolean): Promise<ServerInfo | null> {
-		const result = this.queryCache<ServerInfo>('getServer', [disableCache])
-		if (result !== undefined) return result
-
-		return this.ensureInCache('getServer', [disableCache], super.getServer(disableCache))
+		return this.ensureInCache('getServer', [disableCache], async () => super.getServer(disableCache))
 	}
-
-	private queryCache<T>(method: string, args: any[]): Promise<T> | undefined {
+	private getCacheKey(method: string, args: any[]) {
+		return `${method}_${JSON.stringify(args)}`
+	}
+	private async clearCache(method: string, args: any[]): Promise<any | undefined> {
 		const cacheKey = this.getCacheKey(method, args)
 
-		const inCache = this._cache.get(cacheKey)
+		const cached = this._cache.get(cacheKey)
+		this._cache.delete(cacheKey)
 
-		// cache miss
-		if (inCache === undefined) return undefined
+		return cached ? cached.promise : undefined
+	}
+	private async ensureInCache<T>(method: string, args: any[], getValueFcn: () => Promise<T>): Promise<T> {
+		this.triggerPurgeExpiredFromCache()
 
-		// cache stale
-		const entryExpires = inCache.timestamp + this.cacheExpire
-		if (entryExpires < Date.now()) {
-			this._cache.delete(cacheKey)
-			return undefined
-		}
+		const cacheKey = this.getCacheKey(method, args)
 
-		if (inCache.result.state === 'rejected') {
-			return Promise.reject(inCache.result.err)
+		const cached = this._cache.get(cacheKey)
+		if (cached && Date.now() - cached.timestamp < this.cacheExpire) {
+			return cached.promise
 		} else {
-			return Promise.resolve(inCache.result.value)
+			const promise: Promise<any> = getValueFcn()
+
+			this._cache.set(cacheKey, {
+				timestamp: Date.now(),
+				promise: promise,
+			})
+			return promise
 		}
 	}
 
@@ -83,48 +88,9 @@ export class CachedQuantelGateway extends QuantelGateway {
 			this._cache.delete(key)
 		}
 	}
-
-	private async ensureInCache<T>(method: string, args: any[], answer: Promise<T>): Promise<T> {
-		this.triggerPurgeExpiredFromCache()
-
-		const cacheKey = this.getCacheKey(method, args)
-
-		try {
-			const result = await answer
-			this._cache.set(cacheKey, {
-				timestamp: Date.now(),
-				result: {
-					state: 'resolved',
-					value: result,
-				},
-			})
-			return result
-		} catch (e) {
-			this._cache.set(cacheKey, {
-				timestamp: Date.now(),
-				result: {
-					state: 'rejected',
-					err: e,
-				},
-			})
-			return Promise.reject(e)
-		}
-	}
-
-	private getCacheKey(method: string, args: any[]) {
-		return `${method}_${JSON.stringify(args)}`
-	}
 }
 
 interface CacheEntry {
 	timestamp: number
-	result:
-		| {
-				state: 'rejected'
-				err: any
-		  }
-		| {
-				state: 'resolved'
-				value: any
-		  }
+	promise: Promise<any>
 }

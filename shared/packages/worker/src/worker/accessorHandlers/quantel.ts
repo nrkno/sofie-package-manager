@@ -302,7 +302,25 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		// this is a good time to purge the cache so that a later call to searchClip()
 		// returns the updated data.
 		const quantel = await this.getQuantelGateway()
-		quantel.purgeCache()
+
+		const content = this.getContent()
+		if (content.guid) {
+			await quantel.purgeCacheSearchClip({
+				ClipGUID: `"${content.guid}"`,
+			})
+		}
+		if (content.title) {
+			const purgedClips = await quantel.purgeCacheSearchClip({
+				Title: `"${content.title}"`,
+			})
+
+			// Also remove any clips with the same GUI, to handle an edge-case where the title has changed:
+			for (const purgedClip of purgedClips) {
+				await quantel.purgeCacheSearchClip({
+					ClipGUID: `"${purgedClip.ClipGUID}"`,
+				})
+			}
+		}
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
