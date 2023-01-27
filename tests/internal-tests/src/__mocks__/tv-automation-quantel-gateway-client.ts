@@ -2,6 +2,9 @@ import EventEmitter from 'events'
 // eslint-disable-next-line node/no-unpublished-import
 import { Q, ClipSearchQuery } from 'tv-automation-quantel-gateway-client' // note: this is a mocked module
 
+import { Agent as HTTPAgent } from 'http'
+import { Agent as HTTPSAgent } from 'https'
+
 /* eslint-disable no-console */
 
 const client: any = jest.createMockFromModule('tv-automation-quantel-gateway-client')
@@ -37,6 +40,7 @@ interface MockClip {
 let mockClipId = 1000
 
 export function resetMock(): void {
+	if (DEBUG_LOG) console.log('RESET MOCK')
 	mock.servers = [
 		{
 			ident: 1000,
@@ -244,6 +248,7 @@ class QuantelGateway extends EventEmitter {
 			return c.CloneId === clip.CloneId || clip.ClipID
 		})
 		if (existingClip) {
+			if (DEBUG_LOG) console.log('copyClip: already there')
 			// already there:
 			return {
 				zoneID: zoneID,
@@ -262,6 +267,8 @@ class QuantelGateway extends EventEmitter {
 			newClip.CloneId = clip.CloneId || clip.ClipID
 
 			toPool.clips.push(newClip)
+
+			if (DEBUG_LOG) console.log('copyClip: add', newClip)
 
 			return {
 				zoneID: zoneID,
@@ -304,6 +311,16 @@ class QuantelGateway extends EventEmitter {
 				PoolID: result.pool.id,
 			}
 		})
+	}
+
+	getHTTPAgents(): Readonly<{
+		http: HTTPAgent
+		https: HTTPSAgent
+	}> {
+		return {
+			http: { sockets: [] },
+			https: { sockets: [] },
+		} as any
 	}
 }
 client.QuantelGateway = QuantelGateway
