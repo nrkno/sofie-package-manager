@@ -1,4 +1,3 @@
-import { QuantelGateway } from 'tv-automation-quantel-gateway-client'
 import { CachedQuantelGateway } from './lib/CachedQuantelGateway'
 import {
 	GenericAccessorHandle,
@@ -298,6 +297,12 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	}
 	async finalizePackage(): Promise<void> {
 		// do nothing
+
+		// Since this is called after a "file operation" has completed,
+		// this is a good time to purge the cache so that a later call to searchClip()
+		// returns the updated data.
+		const quantel = await this.getQuantelGateway()
+		quantel.purgeCache()
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
@@ -395,9 +400,9 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			frames: parseInt(clipSummary.Frames, 10) || 0,
 		}
 	}
-	private async getQuantelGateway(): Promise<QuantelGateway> {
+	private async getQuantelGateway(): Promise<CachedQuantelGateway> {
 		/** Persistant store for Quantel gatews */
-		const cacheGateways = this.ensureCache<Record<string, Promise<QuantelGateway>>>('gateways', {})
+		const cacheGateways = this.ensureCache<Record<string, Promise<CachedQuantelGateway>>>('gateways', {})
 
 		// These errors are just for types. User-facing checks are done in this.checkAccessor()
 		if (!this.accessor.quantelGatewayUrl) throw new Error('accessor.quantelGatewayUrl is not set')
@@ -412,7 +417,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			ISAUrls = (ISAUrls as string).split(',')
 		}
 
-		let pGateway: Promise<QuantelGateway> | undefined = cacheGateways[id]
+		let pGateway: Promise<CachedQuantelGateway> | undefined = cacheGateways[id]
 
 		// eslint-disable-next-line @typescript-eslint/no-misused-promises
 		if (!pGateway) {
@@ -451,7 +456,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			cacheGateways[id] = pGateway
 		}
 
-		const gateway: QuantelGateway = await pGateway
+		const gateway: CachedQuantelGateway = await pGateway
 
 		// Verify that the cached gateway matches what we want:
 		// The reason for this is that a Quantel gateway is pointed at an ISA-setup on startup,
@@ -473,7 +478,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	/**
 	 * Returns the clip to use as source
 	 */
-	private async searchForLatestClip(quantel: QuantelGateway): Promise<ClipDataSummary | undefined> {
+	private async searchForLatestClip(quantel: CachedQuantelGateway): Promise<ClipDataSummary | undefined> {
 		return (await this.searchForClips(quantel))[0]
 	}
 	private getContent() {
@@ -486,7 +491,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	 * Returns a list of all clips that match the guid or title.
 	 * Sorted in the order of Created (latest first)
 	 */
-	private async searchForClips(quantel: QuantelGateway): Promise<ClipDataSummary[]> {
+	private async searchForClips(quantel: CachedQuantelGateway): Promise<ClipDataSummary[]> {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 
 		let guid = ''

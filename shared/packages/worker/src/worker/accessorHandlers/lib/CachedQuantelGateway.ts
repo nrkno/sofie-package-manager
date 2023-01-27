@@ -1,18 +1,15 @@
 import { ClipSearchQuery, QuantelGateway } from 'tv-automation-quantel-gateway-client'
-import {
-	ClipData,
-	ClipDataSummary,
-	ConnectionDetails,
-	ServerInfo,
-	ZoneInfo,
-} from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
+import { ClipDataSummary, ServerInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
 const DEFAULT_CACHE_EXPIRE = 3000
-const PURGE_CACHE_INTERVAL = 60 * 1000
 
+/**
+ * This is a wrapper for the QuantelGateway class, adding a caching-layer to
+ */
 export class CachedQuantelGateway extends QuantelGateway {
 	private readonly _cache: Map<string, CacheEntry> = new Map()
 	private cacheExpire: number
+	private purgeExpiredCacheTimeout: NodeJS.Timeout | null = null
 
 	constructor(
 		config?:
@@ -25,43 +22,23 @@ export class CachedQuantelGateway extends QuantelGateway {
 	) {
 		super(config)
 		this.cacheExpire = config?.cacheExpire ?? DEFAULT_CACHE_EXPIRE
-		setInterval(() => this.purgeCache(), PURGE_CACHE_INTERVAL)
 	}
-	async connectToISA(ISAUrls: string | string[]): Promise<ConnectionDetails> {
-		const result = this.queryCache<ConnectionDetails>('connectToISA', [ISAUrls])
-		if (result !== undefined) return result
-
-		return this.ensureInCache('connectToISA', [ISAUrls], super.connectToISA(ISAUrls))
+	public purgeCache(): void {
+		this._cache.clear()
 	}
-	async getClip(clipId: number): Promise<ClipData | null> {
-		const result = this.queryCache<ClipData>('getClip', [clipId])
-		if (result !== undefined) return result
-
-		return this.ensureInCache('getClip', [clipId], super.getClip(clipId))
-	}
+	// searchClip() is used often. By caching it, we reduce the load on the server.
 	async searchClip(searchQuery: ClipSearchQuery): Promise<ClipDataSummary[]> {
 		const result = this.queryCache<ClipDataSummary[]>('searchClip', [searchQuery])
 		if (result !== undefined) return result
 
 		return this.ensureInCache('searchClip', [searchQuery], super.searchClip(searchQuery))
 	}
-	async getZones(): Promise<ZoneInfo[]> {
-		const result = this.queryCache<ZoneInfo[]>('getZones', [])
-		if (result !== undefined) return result
-
-		return this.ensureInCache('getZones', [], super.getZones())
-	}
+	// getServer() is used often. By caching it, we reduce the load on the server.
 	async getServer(disableCache?: boolean): Promise<ServerInfo | null> {
 		const result = this.queryCache<ServerInfo>('getServer', [disableCache])
 		if (result !== undefined) return result
 
 		return this.ensureInCache('getServer', [disableCache], super.getServer(disableCache))
-	}
-	async getServers(zoneId?: string): Promise<ServerInfo[]> {
-		const result = this.queryCache<ServerInfo[]>('getServers', [zoneId])
-		if (result !== undefined) return result
-
-		return this.ensureInCache('getServers', [zoneId], super.getServers(zoneId))
 	}
 
 	private queryCache<T>(method: string, args: any[]): Promise<T> | undefined {
@@ -86,7 +63,16 @@ export class CachedQuantelGateway extends QuantelGateway {
 		}
 	}
 
-	private purgeCache() {
+	private triggerPurgeExpiredFromCache() {
+		// Schedule a purging of expired packages
+		if (!this.purgeExpiredCacheTimeout) {
+			this.purgeExpiredCacheTimeout = setTimeout(() => {
+				this.purgeExpiredCacheTimeout = null
+				this.purgeExpiredFromCache()
+			}, this.cacheExpire + 100)
+		}
+	}
+	private purgeExpiredFromCache() {
 		const expiredKeys: string[] = []
 		this._cache.forEach((value, key) => {
 			if (value.timestamp >= Date.now() - this.cacheExpire) return
@@ -99,6 +85,8 @@ export class CachedQuantelGateway extends QuantelGateway {
 	}
 
 	private async ensureInCache<T>(method: string, args: any[], answer: Promise<T>): Promise<T> {
+		this.triggerPurgeExpiredFromCache()
+
 		const cacheKey = this.getCacheKey(method, args)
 
 		try {
