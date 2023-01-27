@@ -22,6 +22,7 @@ import {
 	Statuses,
 	hashObj,
 	setLogLevel,
+	removeUndefinedProperties,
 } from '@sofie-package-manager/api'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
@@ -133,7 +134,8 @@ export class ExpectationManager extends HelpfulEventEmitter {
 		this.logger = logger.category('ExpectationManager')
 		this.constants = {
 			...getDefaultConstants(),
-			...options?.constants,
+			// Remove undefined properties so that {myConstant: undefined} doesn't overried the default:
+			...removeUndefinedProperties(options?.constants),
 		}
 		this.enableChaosMonkey = options?.chaosMonkey ?? false
 		this.workforceAPI = new WorkforceAPI(this.logger)
