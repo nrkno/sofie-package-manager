@@ -118,7 +118,7 @@ const packageManagerArguments = defineArguments({
 	},
 	concurrency: {
 		type: 'number',
-		default: parseInt(process.env.CONCURRENCY || '', 10) || 50,
+		default: parseInt(process.env.CONCURRENCY || '', 10) || undefined,
 		describe: 'How many expectation states can be evaluated at the same time',
 	},
 })
@@ -358,7 +358,7 @@ export interface PackageManagerConfig {
 		watchFiles: boolean
 		noCore: boolean
 		chaosMonkey: boolean
-		concurrency: number
+		concurrency?: number
 	}
 }
 export function getPackageManagerConfig(): PackageManagerConfig {

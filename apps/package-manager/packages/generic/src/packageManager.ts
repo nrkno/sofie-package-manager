@@ -87,7 +87,7 @@ export class PackageManagerHandler {
 		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
-		concurrency: number,
+		concurrency: number | undefined,
 		chaosMonkey: boolean
 	) {
 		this.logger = logger.category('PackageManager')

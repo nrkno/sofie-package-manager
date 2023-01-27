@@ -5,6 +5,7 @@ import {
 	Hook,
 	LoggerInstance,
 	Reason,
+	removeUndefinedProperties,
 } from '@sofie-package-manager/api'
 
 import { WorkerAgentAPI } from '../workerAgentApi'
@@ -56,7 +57,8 @@ export class InternalManager {
 
 		const constants = {
 			...getDefaultConstants(),
-			...options?.constants,
+			// Remove undefined properties so that {myConstant: undefined} doesn't overried the default:
+			...removeUndefinedProperties(options?.constants),
 		}
 
 		this.workforceConnection = new WorkforceConnection(this.logger, this, workForceConnectionOptions)

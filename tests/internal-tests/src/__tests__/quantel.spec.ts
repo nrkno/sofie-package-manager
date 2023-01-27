@@ -1,10 +1,10 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import * as QGatewayClientOrg from 'tv-automation-quantel-gateway-client'
-import { Expectation, literal } from '@sofie-package-manager/api'
+import { Expectation, literal, waitTime } from '@sofie-package-manager/api'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
-import { waitTime } from './lib/lib'
+import { waitUntil } from './lib/lib'
 import { getQuantelSource, getQuantelTarget } from './lib/containers'
 jest.mock('child_process')
 jest.mock('tv-automation-quantel-gateway-client')
@@ -55,15 +55,14 @@ describe('Quantel', () => {
 			}),
 		})
 
-		await waitTime(env.WAIT_JOB_TIME)
-
-		// Expect the copy to have completed by now:
-
-		expect(env.containerStatuses['target1']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
+		// Wait for the job to complete:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target1']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_JOB_TIME)
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 
@@ -111,15 +110,14 @@ describe('Quantel', () => {
 			}),
 		})
 
-		await waitTime(env.WAIT_JOB_TIME)
-
-		// Expect the copy to have completed by now:
-
-		expect(env.containerStatuses['target1']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
+		// Wait for the job to complete:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target1']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_JOB_TIME)
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 
@@ -202,9 +200,8 @@ describe('Quantel', () => {
 			}),
 		})
 
+		// Wait a little while, to ensure that an evaulation has passed:
 		await waitTime(env.WAIT_JOB_TIME)
-
-		// Expect the job to have completed by now:
 
 		expect(QGatewayClient.QuantelGatewayInstances.length).toBeGreaterThanOrEqual(1)
 		for (const instance of QGatewayClient.QuantelGatewayInstances) {
