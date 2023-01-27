@@ -1,8 +1,8 @@
 import { Expectation } from '@sofie-package-manager/api'
-import { getDefaultConstants } from '../lib/constants'
-import { getDefaultTrackedExpectation, sortTrackedExpectations } from '../lib/expectations'
-import { TrackedExpectation } from '../lib/types'
-test('sortExpectations', () => {
+import { getDefaultConstants } from '../constants'
+import { TrackedExpectation, getDefaultTrackedExpectation, sortTrackedExpectations } from '../trackedExpectation'
+
+test('sortTrackedExpectations', () => {
 	// ensure that sort order is correct
 
 	const exp: Expectation.FileCopy = {
