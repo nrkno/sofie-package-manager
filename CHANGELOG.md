@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
+
+
+### Bug Fixes
+
+* CachedQuantelGateway: ([6597efe](https://github.com/nrkno/tv-automation-package-manager/commit/6597efe7b990b8152b3468a1842deadc168e621f))
+* increase WORKER_SUPPORT_TIME ([bccf20e](https://github.com/nrkno/tv-automation-package-manager/commit/bccf20ecf00962ab9b575b72fe82b551eb015a87))
+* possible race-condition when receiving new data ([ba17cb1](https://github.com/nrkno/tv-automation-package-manager/commit/ba17cb18573016a99fdbd115d30f66da2a88f798))
+* rework CachedQuantelGateway ([216ac06](https://github.com/nrkno/tv-automation-package-manager/commit/216ac062114d464e89270e5ce0ead6e9bddeb367))
+
+
+### Features
+
+* **lib:** add ensureValidValue ([e7e19af](https://github.com/nrkno/tv-automation-package-manager/commit/e7e19af65333ac0a4ecb72011a5960f0e41ba1a4))
+* enforce a default delay removal package ([53387b8](https://github.com/nrkno/tv-automation-package-manager/commit/53387b8dd51051f2c8398c55807e793ce740b5e7))
+
+
+
+
+
 ## [1.40.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.1...v1.40.2) (2023-01-26)
 
 

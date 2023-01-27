@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
+
+
+### Features
+
+* **lib:** add ensureValidValue ([e7e19af](https://github.com/nrkno/tv-automation-package-manager/commit/e7e19af65333ac0a4ecb72011a5960f0e41ba1a4))
+
+
+
+
+
 ## [1.40.1](https://github.com/nrkno/sofie-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
 
 **Note:** Version bump only for package @sofie-package-manager/api
