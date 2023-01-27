@@ -6,7 +6,7 @@
     "scripts": {
         "__build": "rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "test": "jest --runInBand"
+        "test": "jest --runInBand --forceExit"
     },
     "devDependencies": {
         "deep-extend": "^0.6.0",
