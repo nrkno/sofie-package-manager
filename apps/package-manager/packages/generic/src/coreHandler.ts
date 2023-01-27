@@ -31,8 +31,13 @@ import {
 	hashObj,
 	setLogLevel,
 	getLogLevel,
+	ensureValidValue,
 } from '@sofie-package-manager/api'
-import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
+import {
+	DEFAULT_DELAY_REMOVAL_PACKAGE,
+	DEFAULT_DELAY_REMOVAL_PACKAGE_INFO,
+	PACKAGE_MANAGER_DEVICE_CONFIG,
+} from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
 export interface CoreConfig {
@@ -254,10 +259,18 @@ export class CoreHandler {
 			}
 
 			if (this.deviceSettings['delayRemoval'] !== this.delayRemoval) {
-				this.delayRemoval = this.deviceSettings['delayRemoval']
+				this.delayRemoval = ensureValidValue<number>(
+					Number(this.deviceSettings['delayRemoval']),
+					(input: any) => Number(input) >= 0,
+					DEFAULT_DELAY_REMOVAL_PACKAGE
+				)
 			}
 			if (this.deviceSettings['delayRemovalPackageInfo'] !== this.delayRemovalPackageInfo) {
-				this.delayRemovalPackageInfo = this.deviceSettings['delayRemovalPackageInfo']
+				this.delayRemovalPackageInfo = ensureValidValue<number>(
+					Number(this.deviceSettings['delayRemovalPackageInfo']),
+					(input: any) => Number(input) >= 0,
+					DEFAULT_DELAY_REMOVAL_PACKAGE_INFO
+				)
 			}
 			if (this.deviceSettings['useTemporaryFilePath'] !== this.useTemporaryFilePath) {
 				this.useTemporaryFilePath = this.deviceSettings['useTemporaryFilePath']

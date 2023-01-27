@@ -322,3 +322,7 @@ export function removeUndefinedProperties<T extends { [key: string]: unknown } |
 	}
 	return o2 as T
 }
+export function ensureValidValue<T>(value: T, check: (value: any) => boolean, defaultValue: T): T {
+	if (check(value)) return value
+	return defaultValue
+}
