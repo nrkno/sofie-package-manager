@@ -86,3 +86,4 @@ jobs:
         with:
           files: deploy/*
           fail_on_unmatched_files: true
+          prerelease: contains(github.ref, '-')
