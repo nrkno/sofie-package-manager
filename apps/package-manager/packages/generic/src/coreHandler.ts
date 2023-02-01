@@ -40,6 +40,13 @@ import {
 } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
+let packageJson: any
+try {
+	packageJson = require('../package.json')
+} catch {
+	packageJson = null
+}
+
 export interface CoreConfig {
 	host: string
 	port: number
@@ -452,18 +459,7 @@ export class CoreHandler {
 
 		const entrypointDir = path.dirname((require as any).main.filename)
 
-		if (process.env.npm_package_version) {
-			versions['_process'] = process.env.npm_package_version
-		} else {
-			try {
-				const packageJson = fs.readFileSync(path.join(entrypointDir, '../package.json'), 'utf8')
-				const json = JSON.parse(packageJson)
-				versions['_process'] = json.version || 'N/A'
-			} catch (e) {
-				this.logger.error(`Error in _getVersions, own package.json: ${stringifyError(e)}`)
-				hadError = true
-			}
-		}
+		versions['_process'] = process.env.npm_package_version || packageJson?.version || 'N/A'
 
 		const dirNames = ['@sofie-automation/server-core-integration']
 		try {
