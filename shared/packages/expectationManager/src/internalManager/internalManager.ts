@@ -6,6 +6,7 @@ import {
 	LoggerInstance,
 	Reason,
 	removeUndefinedProperties,
+	stringifyError,
 } from '@sofie-package-manager/api'
 
 import { WorkerAgentAPI } from '../workerAgentApi'
@@ -70,6 +71,7 @@ export class InternalManager {
 			workForceConnectionOptions
 		)
 		this.tracker = new ExpectationTracker(this, this.logger, constants, callbacks)
+		this.tracker.on('error', (err) => this.logger.error(`ExpectationTracker error" ${stringifyError(err)}`))
 		this.workerAgents = new TrackedWorkerAgents(this.logger, this.tracker)
 		this.statuses = new ManagerStatusReporter(this.callbacks)
 		this.managerMonitor = new ManagerStatusMonitor(this.logger, this.tracker, this.statuses)
