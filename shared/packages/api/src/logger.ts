@@ -98,7 +98,7 @@ export function setupLogger(
 		logger.info('Logging to', logPath)
 	} else {
 		const transportConsole = new Winston.transports.Console({
-			level: 'silly',
+			level: logLevel,
 			handleExceptions: handleProcess,
 			handleRejections: handleProcess,
 		})
