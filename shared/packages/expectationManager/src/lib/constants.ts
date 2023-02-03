@@ -1,4 +1,4 @@
-export interface ExpectationManagerConstants {
+export interface ExpectationTrackerConstants {
 	/** Time between iterations of the expectation queue [ms] */
 	EVALUATE_INTERVAL: number
 	/** Minimum time between re-evaluating fulfilled expectations [ms] */
@@ -35,7 +35,7 @@ export interface ExpectationManagerConstants {
 	PARALLEL_CONCURRENCY: number
 }
 
-export function getDefaultConstants(): ExpectationManagerConstants {
+export function getDefaultConstants(): ExpectationTrackerConstants {
 	return {
 		// Default values:
 		EVALUATE_INTERVAL: 5 * 1000,
@@ -45,7 +45,7 @@ export function getDefaultConstants(): ExpectationManagerConstants {
 		ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
 		SCALE_UP_TIME: 5 * 1000,
 		SCALE_UP_COUNT: 1,
-		WORKER_SUPPORT_TIME: 60 * 1000,
+		WORKER_SUPPORT_TIME: 10 * 60 * 1000, // 10 minutes
 		ERROR_WAIT_TIME: 30 * 1000,
 
 		FAILED_REMOVE_COUNT: 2,

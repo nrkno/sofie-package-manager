@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.41.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.0...v1.41.0-alpha.1) (2023-02-03)
+
+
+### Bug Fixes
+
+* bugs after refactoring ([8b3f19e](https://github.com/nrkno/tv-automation-package-manager/commit/8b3f19e347a432ddec3cb7d73d03b22d08e1330a))
+
+
+
+
+
+# [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
+
+
+### Bug Fixes
+
+* increase WORKER_SUPPORT_TIME ([bccf20e](https://github.com/nrkno/tv-automation-package-manager/commit/bccf20ecf00962ab9b575b72fe82b551eb015a87))
+* possible race-condition when receiving new data ([ba17cb1](https://github.com/nrkno/tv-automation-package-manager/commit/ba17cb18573016a99fdbd115d30f66da2a88f798))
+
+
+
+
+
 ## [1.40.1](https://github.com/nrkno/sofie-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
 
 **Note:** Version bump only for package @sofie-package-manager/expectation-manager

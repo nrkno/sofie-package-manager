@@ -26,7 +26,10 @@ const packageJson = require(path.join(basePath, '/package.json'))
 	log(`Collecting dependencies for ${packageJson.name}...`)
 	// List all Lerna packages:
 	const list = await exec('yarn lerna list -a --json')
-	const str = list.stdout.replace(/^\$.*$/gm, '').replace(/^Done in.*$/gm, '')
+	const str = list.stdout
+		.replace(/^yarn run .*$/gm, '')
+		.replace(/^\$.*$/gm, '')
+		.replace(/^Done in.*$/gm, '')
 
 	const packages = JSON.parse(str)
 

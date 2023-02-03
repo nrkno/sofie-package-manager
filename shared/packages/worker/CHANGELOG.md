@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.41.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.0...v1.41.0-alpha.1) (2023-02-03)
+
+**Note:** Version bump only for package @sofie-package-manager/worker
+
+
+
+
+
+# [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
+
+
+### Bug Fixes
+
+* CachedQuantelGateway: ([6597efe](https://github.com/nrkno/tv-automation-package-manager/commit/6597efe7b990b8152b3468a1842deadc168e621f))
+* rework CachedQuantelGateway ([216ac06](https://github.com/nrkno/tv-automation-package-manager/commit/216ac062114d464e89270e5ce0ead6e9bddeb367))
+
+
+
+
+
 ## [1.40.1](https://github.com/nrkno/sofie-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
 
 **Note:** Version bump only for package @sofie-package-manager/worker

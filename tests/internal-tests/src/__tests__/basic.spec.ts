@@ -9,7 +9,7 @@ import type * as fsMockType from '../__mocks__/fs'
 import type * as WNDType from '../__mocks__/windows-network-drive'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
-import { waitTime } from './lib/lib'
+import { waitUntil } from './lib/lib'
 import {
 	getFileShareSource,
 	getLocalSource,
@@ -22,9 +22,9 @@ jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
 
-const fs = (fsOrg as any) as typeof fsMockType
-const WND = (WNDOrg as any) as typeof WNDType
-const QGatewayClient = (QGatewayClientOrg as any) as typeof QGatewayClientType
+const fs = fsOrg as any as typeof fsMockType
+const WND = WNDOrg as any as typeof WNDType
+const QGatewayClient = QGatewayClientOrg as any as typeof QGatewayClientType
 
 const fsStat = promisify(fs.stat)
 
@@ -78,15 +78,14 @@ describe('Basic', () => {
 			}),
 		})
 
-		await waitTime(env.WAIT_JOB_TIME)
-
-		// Expect the copy to have completed by now:
-
-		expect(env.containerStatuses['target0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
+		// Wait for the job to complete:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_JOB_TIME)
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 
@@ -127,17 +126,14 @@ describe('Basic', () => {
 			}),
 		})
 
-		await waitTime(env.WAIT_JOB_TIME)
-
-		// Expect the copy to have completed by now:
-
-		// console.log(fs.__printAllFiles())
-
-		expect(env.containerStatuses['target1']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
+		// Wait for the job to complete:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target1']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_JOB_TIME)
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 
@@ -180,15 +176,14 @@ describe('Basic', () => {
 			}),
 		})
 
-		await waitTime(env.WAIT_JOB_TIME)
-
-		// Expect the copy to have completed by now:
-
-		expect(env.containerStatuses['target1']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
+		// Wait for the job to complete:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target1']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_JOB_TIME)
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 

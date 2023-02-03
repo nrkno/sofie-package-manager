@@ -87,7 +87,7 @@ export class PackageManagerHandler {
 		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
-		concurrency: number,
+		concurrency: number | undefined,
 		chaosMonkey: boolean
 	) {
 		this.logger = logger.category('PackageManager')
@@ -107,10 +107,6 @@ export class PackageManagerHandler {
 				},
 			}
 		)
-		this.expectationManager.on('error', (e) => `Caught error from ExpectationManager: ${stringifyError(e)}`)
-		this.expectationManager.on('status', (statuses: Statuses) => {
-			this.callbacksHandler.updateExpectationManagerStatuses(statuses)
-		})
 
 		this.expectationGeneratorApi = NRK.api
 	}
@@ -587,6 +583,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			}
 		}
 	}
+	public reportManagerStatus(statuses: Statuses): void {
+		this.expectationManagerStatuses = statuses
+		this.triggerReportUpdatedStatuses()
+	}
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {
 			case 'fetchPackageInfoMetadata': {
@@ -645,10 +645,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	public onCoreConnected() {
 		this.triggerReportUpdatedStatuses()
 	}
-	public updateExpectationManagerStatuses(statuses: Statuses) {
-		this.expectationManagerStatuses = statuses
-		this.triggerReportUpdatedStatuses()
-	}
+
 	private updateExpectationStatus(expectationId: string, workStatus: ExpectedPackageStatusAPI.WorkStatus | null) {
 		this.toReportExpectationStatuses[expectationId] = {
 			status: workStatus,

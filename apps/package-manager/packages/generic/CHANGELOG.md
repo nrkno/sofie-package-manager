@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.41.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.0...v1.41.0-alpha.1) (2023-02-03)
+
+
+### Bug Fixes
+
+* add a self-check function to ensure that coreHandler._getVersions() work ([a94c0d3](https://github.com/nrkno/tv-automation-package-manager/commit/a94c0d3ede14903dc7a031447b74d6540b35e51c))
+* change how process version is exposed ([0f7f80f](https://github.com/nrkno/tv-automation-package-manager/commit/0f7f80f2ebe58e0b28a93982b0064937572228ba))
+
+
+
+
+
+# [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
+
+
+### Features
+
+* **lib:** add ensureValidValue ([e7e19af](https://github.com/nrkno/tv-automation-package-manager/commit/e7e19af65333ac0a4ecb72011a5960f0e41ba1a4))
+* enforce a default delay removal package ([53387b8](https://github.com/nrkno/tv-automation-package-manager/commit/53387b8dd51051f2c8398c55807e793ce740b5e7))
+
+
+
+
+
 ## [1.40.2](https://github.com/nrkno/sofie-package-manager/compare/v1.40.1...v1.40.2) (2023-01-26)
 
 
