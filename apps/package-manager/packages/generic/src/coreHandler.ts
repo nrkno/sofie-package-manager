@@ -40,6 +40,13 @@ import {
 } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
 
+let packageJson: any
+try {
+	packageJson = require('../package.json')
+} catch {
+	packageJson = null
+}
+
 export interface CoreConfig {
 	host: string
 	port: number
@@ -220,7 +227,7 @@ export class CoreHandler {
 
 			configManifest: PACKAGE_MANAGER_DEVICE_CONFIG,
 
-			versions: this._getVersions(),
+			versions: this._getVersions().versions,
 		}
 		return options
 	}
@@ -407,6 +414,10 @@ export class CoreHandler {
 		this.statuses = statuses
 		await this.updateCoreStatus()
 	}
+	/** Do a self-test. Throws if something is not working as it should */
+	public checkIfWorking(): void {
+		if (this._getVersions().hadError) throw new Error('Error in getVersions()')
+	}
 	private async updateCoreStatus(): Promise<any> {
 		let statusCode = SofieStatusCode.GOOD
 		const messages: Array<string> = []
@@ -439,22 +450,16 @@ export class CoreHandler {
 			})
 		}
 	}
-	private _getVersions() {
+	private _getVersions(): {
+		hadError: boolean
+		versions: { [packageName: string]: string }
+	} {
+		let hadError = false
 		const versions: { [packageName: string]: string } = {}
 
 		const entrypointDir = path.dirname((require as any).main.filename)
 
-		if (process.env.npm_package_version) {
-			versions['_process'] = process.env.npm_package_version
-		} else {
-			try {
-				const packageJson = fs.readFileSync(path.join(entrypointDir, '../package.json'), 'utf8')
-				const json = JSON.parse(packageJson)
-				versions['_process'] = json.version || 'N/A'
-			} catch (e) {
-				this.logger.error(`Error in _getVersions, own package.json: ${stringifyError(e)}`)
-			}
-		}
+		versions['_process'] = process.env.npm_package_version || packageJson?.version || 'N/A'
 
 		const dirNames = ['@sofie-automation/server-core-integration']
 		try {
@@ -469,12 +474,14 @@ export class CoreHandler {
 					}
 				} catch (e) {
 					this.logger.error(`Error in _getVersions, dir "${dir}": ${stringifyError(e)}`)
+					hadError = true
 				}
 			}
 		} catch (e) {
 			this.logger.error(`Error in _getVersions: ${stringifyError(e)}`)
+			hadError = true
 		}
-		return versions
+		return { hadError, versions }
 	}
 
 	restartExpectation(workId: string): void {
