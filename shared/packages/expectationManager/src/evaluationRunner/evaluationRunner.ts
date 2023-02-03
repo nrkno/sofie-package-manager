@@ -85,7 +85,7 @@ export class EvaluationRunner {
 
 		const cancelPromises: Promise<void>[] = []
 
-		// Added / Changed
+		// Added / Changed Expectations
 		for (const id of Object.keys(this.tracker.receivedUpdates.expectations)) {
 			const exp = this.tracker.receivedUpdates.expectations[id]
 
@@ -156,7 +156,7 @@ export class EvaluationRunner {
 			}
 		}
 
-		// Removed:
+		// Removed Expectations:
 		for (const id of this.tracker.trackedExpectations.getIds()) {
 			const trackedExp = this.tracker.trackedExpectations.get(id)
 			if (!trackedExp) continue
@@ -184,7 +184,7 @@ export class EvaluationRunner {
 			}
 		}
 
-		// Restarted:
+		// Restarted Expectations:
 		if (this.tracker.receivedUpdates.restartAllExpectations) {
 			for (const id of this.tracker.trackedExpectations.getIds()) {
 				this.tracker.receivedUpdates.restartExpectations[id] = true
@@ -240,6 +240,10 @@ export class EvaluationRunner {
 		}
 		this.tracker.receivedUpdates.abortExpectations = {}
 
+		// We have now handled all new updates:
+		this.tracker.receivedUpdates.expectationsHasBeenUpdated = false
+
+		// Recalculate the tree of listening expectations:
 		this.tracker.listeningExpectations.rePopulate()
 
 		return {

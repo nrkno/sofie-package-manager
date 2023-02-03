@@ -114,7 +114,7 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 		)
 	}
 	public getTrackedPackageContainers(): TrackedPackageContainerExpectation[] {
-		return Object.values(this.trackedPackageContainers)
+		return this.trackedPackageContainers.list()
 	}
 	public getSortedTrackedExpectations(): TrackedExpectation[] {
 		return this.trackedExpectations.list()

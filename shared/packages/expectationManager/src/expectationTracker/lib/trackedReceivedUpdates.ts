@@ -1,4 +1,5 @@
 import { Expectation, PackageContainerExpectation } from '@sofie-package-manager/api'
+import _ from 'underscore'
 
 /** Store for various incoming data, to be processed on next iteration round */
 export class TrackedReceivedUpdates {
@@ -43,32 +44,40 @@ export class TrackedReceivedUpdates {
 		return this._expectations
 	}
 	public set expectations(value: { [id: string]: Expectation.Any }) {
-		this._expectations = value
-		this._expectationsHasBeenUpdated = true
+		if (!_.isEqual(this._expectations, value)) {
+			this._expectations = value
+			this._expectationsHasBeenUpdated = true
+		}
 	}
 
 	public get restartExpectations(): { [id: string]: true } {
 		return this._restartExpectations
 	}
 	public set restartExpectations(value: { [id: string]: true }) {
-		this._restartExpectations = value
-		this._expectationsHasBeenUpdated = true
+		if (!_.isEqual(this._restartExpectations, value)) {
+			this._restartExpectations = value
+			this._expectationsHasBeenUpdated = true
+		}
 	}
 
 	public get abortExpectations(): { [id: string]: true } {
 		return this._abortExpectations
 	}
 	public set abortExpectations(value: { [id: string]: true }) {
-		this._abortExpectations = value
-		this._expectationsHasBeenUpdated = true
+		if (!_.isEqual(this._abortExpectations, value)) {
+			this._abortExpectations = value
+			this._expectationsHasBeenUpdated = true
+		}
 	}
 
 	public get restartAllExpectations(): boolean {
 		return this._restartAllExpectations
 	}
 	public set restartAllExpectations(value: boolean) {
-		this._restartAllExpectations = value
-		this._expectationsHasBeenUpdated = true
+		if (this._restartAllExpectations !== value) {
+			this._restartAllExpectations = value
+			this._expectationsHasBeenUpdated = true
+		}
 	}
 
 	public get packageContainersHasBeenUpdated(): boolean {
