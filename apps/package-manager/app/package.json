@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/app",
-    "version": "1.41.0-alpha.0",
+    "version": "1.41.0-alpha.1",
     "private": true,
     "scripts": {
         "build": "rimraf dist && yarn build:main",
@@ -13,7 +13,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@package-manager/generic": "1.41.0-alpha.0"
+        "@package-manager/generic": "1.41.0-alpha.1"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

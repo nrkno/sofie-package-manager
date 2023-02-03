@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.41.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.0...v1.41.0-alpha.1) (2023-02-03)
+
+
+### Bug Fixes
+
+* add a self-check function to ensure that coreHandler._getVersions() work ([a94c0d3](https://github.com/nrkno/tv-automation-package-manager/commit/a94c0d3ede14903dc7a031447b74d6540b35e51c))
+* bug with logLevels ([115651b](https://github.com/nrkno/tv-automation-package-manager/commit/115651b5a4a1b2b33de3887a2971f76e2b2abe11))
+* bugs after refactoring ([8b3f19e](https://github.com/nrkno/tv-automation-package-manager/commit/8b3f19e347a432ddec3cb7d73d03b22d08e1330a))
+* change how process version is exposed ([0f7f80f](https://github.com/nrkno/tv-automation-package-manager/commit/0f7f80f2ebe58e0b28a93982b0064937572228ba))
+
+
+
+
+
 # [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
 
 
