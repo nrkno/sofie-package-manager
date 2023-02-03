@@ -128,8 +128,8 @@ export function setupLogger(
 				transports: [transportConsole],
 			})
 		}
+		if (handleProcess) logger.info('Logging to Console')
 		if (initialLogLevel) setLogLevel(initialLogLevel, true)
-		logger.info('Logging to Console')
 	}
 	// Somewhat of a hack, inject the category method:
 	const loggerInstance = logger as LoggerInstance
