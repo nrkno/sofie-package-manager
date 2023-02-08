@@ -82,11 +82,6 @@ export async function isFileReadyToStartWorkingOn(
 
 	return {
 		ready: true,
-		sourceExists: true,
-		// reason: {
-		// 	user: 'Ready to start copying',
-		// 	tech: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
-		// },
 	}
 }
 export async function isFileFulfilled(

@@ -85,7 +85,6 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
-			sourceExists: true,
 		}
 	},
 	isExpectationFullfilled: async (

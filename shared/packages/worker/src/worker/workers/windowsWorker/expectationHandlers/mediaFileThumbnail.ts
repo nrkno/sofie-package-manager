@@ -74,8 +74,6 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
-			sourceExists: true,
-			// reason: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 		}
 	},
 	isExpectationFullfilled: async (

@@ -57,7 +57,6 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
-			sourceExists: true,
 		}
 	},
 	isExpectationFullfilled: async (

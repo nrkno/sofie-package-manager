@@ -71,7 +71,6 @@ export const PackageScan: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
-			sourceExists: true,
 		}
 	},
 	isExpectationFullfilled: async (

@@ -82,7 +82,6 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 
 		return {
 			ready: true,
-			sourceExists: true,
 		}
 	},
 	isExpectationFullfilled: async (
