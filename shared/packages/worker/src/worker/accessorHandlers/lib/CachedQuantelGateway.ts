@@ -14,14 +14,13 @@ export class CachedQuantelGateway extends QuantelGateway {
 	constructor(
 		config?:
 			| {
-					timeout?: number | undefined
 					checkStatusInterval?: number | undefined
-					cacheExpire?: number | undefined
+					timeout?: number | undefined
 			  }
 			| undefined
 	) {
 		super(config)
-		this.cacheExpire = config?.cacheExpire ?? DEFAULT_CACHE_EXPIRE
+		this.cacheExpire = config?.timeout ?? DEFAULT_CACHE_EXPIRE
 	}
 
 	async purgeCacheSearchClip(searchQuery: ClipSearchQuery): Promise<ClipDataSummary[]> {
