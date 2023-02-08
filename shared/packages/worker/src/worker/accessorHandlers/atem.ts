@@ -3,8 +3,13 @@ import {
 	PackageReadInfo,
 	PackageReadStream,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerTryPackageReadResult,
+	AccessorHandlerRunCronJobResult,
 } from './genericHandle'
 import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
@@ -60,7 +65,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 		return this.worker.accessorCache['atem'] as Atem
 	}
-	checkHandleRead(): AccessorHandlerResult {
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		if (!this.accessor.allowRead) {
 			return {
 				success: false,
@@ -72,7 +77,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		if (!this.accessor.allowWrite) {
 			return {
 				success: false,
@@ -84,7 +89,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 		return this.checkAccessor()
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		// Check if the package exists:
 		const atem = await this.getAtem()
 		if (!atem.state) {
@@ -118,7 +123,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			},
 		}
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		const atem = await this.getAtem()
 		if (!atem.state?.media.clipPool || !atem.state?.media.stillPool) {
 			return {
@@ -132,7 +137,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		const atem = await this.getAtem()
 		if (atem.status === AtemConnectionStatus.CONNECTED && atem.state) {
 			return { success: true }
@@ -382,7 +387,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async removeMetadata(): Promise<void> {
 		// Not supported
 	}
-	async runCronJob(): Promise<AccessorHandlerResult> {
+	async runCronJob(): Promise<AccessorHandlerRunCronJobResult> {
 		return {
 			success: true,
 		} // not applicable
@@ -397,7 +402,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		} // not applicable
 	}
 
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
 		if (this.accessor.type !== Accessor.AccessType.ATEM_MEDIA_STORE) {
 			return {
 				success: false,

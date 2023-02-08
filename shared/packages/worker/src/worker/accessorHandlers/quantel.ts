@@ -5,8 +5,13 @@ import {
 	PackageReadInfoBaseType,
 	PackageReadInfoQuantelClip,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
+	AccessorHandlerTryPackageReadResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerRunCronJobResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -60,13 +65,13 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		const accessor = accessor0 as AccessorOnPackage.Quantel
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): AccessorHandlerResult {
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		if (!this.accessor.allowRead) {
 			return { success: false, reason: { user: `Not allowed to read`, tech: `Not allowed to read` } }
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		if (!this.accessor.allowWrite) {
 			return { success: false, reason: { user: `Not allowed to write`, tech: `Not allowed to write` } }
 		}
@@ -81,7 +86,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		}
 		return this.checkAccessor()
 	}
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleReadResult {
 		if (this.accessor.type !== Accessor.AccessType.QUANTEL) {
 			return {
 				success: false,
@@ -117,7 +122,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const quantel = await this.getQuantelGateway()
 
 		// Search for a clip that match:
@@ -137,7 +142,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			}
 		}
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		const quantel = await this.getQuantelGateway()
 
 		const clipSummary = await this.searchForLatestClip(quantel)
@@ -171,7 +176,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		const quantel = await this.getQuantelGateway()
 
 		const server = await quantel.getServer()
@@ -332,7 +337,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	async removeMetadata(): Promise<void> {
 		// Not supported, do nothing
 	}
-	async runCronJob(): Promise<AccessorHandlerResult> {
+	async runCronJob(): Promise<AccessorHandlerRunCronJobResult> {
 		return {
 			success: true,
 		} // not applicable

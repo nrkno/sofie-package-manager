@@ -3,8 +3,13 @@ import {
 	PackageReadInfo,
 	PackageReadStream,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
+	AccessorHandlerRunCronJobResult,
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerTryPackageReadResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -52,7 +57,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		const accessor = accessor0 as AccessorOnPackage.HTTP
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): AccessorHandlerResult {
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		if (!this.accessor.allowRead) {
 			return {
 				success: false,
@@ -64,7 +69,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		if (!this.accessor.allowWrite) {
 			return {
 				success: false,
@@ -76,7 +81,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 		return this.checkAccessor()
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const header = await this.fetchHeader()
 
 		if (header.status >= 400) {
@@ -90,11 +95,11 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 		return { success: true }
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		// TODO: how to do this?
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		// todo: how to check this?
 		return { success: true }
 	}
@@ -177,7 +182,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		await this.deletePackageIfExists(this.getMetadataPath(this.fullUrl))
 	}
 
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerRunCronJobResult> {
 		let badReason: Reason | null = null
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
@@ -221,7 +226,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return joinUrls(this.baseUrl, this.filePath)
 	}
 
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
 		if (this.accessor.type !== Accessor.AccessType.HTTP_PROXY) {
 			return {
 				success: false,

@@ -4,8 +4,13 @@ import fs from 'fs'
 import {
 	PackageReadInfo,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
+	AccessorHandlerRunCronJobResult,
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerTryPackageReadResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -71,19 +76,19 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		return path.join(this.folderPath, this.filePath)
 	}
 
-	checkHandleRead(): AccessorHandlerResult {
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		if (!this.accessor.allowRead) {
 			return { success: false, reason: { user: `Not allowed to read`, tech: `Not allowed to read` } }
 		}
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		if (!this.accessor.allowWrite) {
 			return { success: false, reason: { user: `Not allowed to write`, tech: `Not allowed to write` } }
 		}
 		return this.checkAccessor()
 	}
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
 		if (this.accessor.type !== Accessor.AccessType.LOCAL_FOLDER) {
 			return {
 				success: false,
@@ -101,7 +106,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		}
 		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		try {
 			await fsAccess(this.fullPath, fs.constants.R_OK)
 			// The file exists and can be read
@@ -117,7 +122,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		}
 		return { success: true }
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		try {
 			// Check if we can open the file for reading:
 			const fd = await fsOpen(this.fullPath, 'r')
@@ -131,7 +136,10 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err, true)}` },
 				}
 			} else if (err && (err as any).code === 'ENOENT') {
-				return { success: false, reason: { user: `File does not exist`, tech: `${stringifyError(err, true)}` } }
+				return {
+					success: false,
+					reason: { user: `File does not exist`, tech: `${stringifyError(err, true)}` },
+				}
 			} else {
 				return {
 					success: false,
@@ -141,7 +149,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		}
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		try {
 			await fsAccess(this.folderPath, fs.constants.W_OK)
 			// The file exists
@@ -249,7 +257,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	async removeMetadata(): Promise<void> {
 		await this.unlinkIfExists(this.metadataPath)
 	}
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerRunCronJobResult> {
 		// Always check read/write access first:
 		const checkRead = await this.checkPackageContainerReadAccess()
 		if (!checkRead.success) return checkRead
@@ -327,7 +335,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		return this.fullPath + '_metadata.json'
 	}
 
-	private async checkPackageContainerReadAccess(): Promise<AccessorHandlerResult> {
+	private async checkPackageContainerReadAccess(): Promise<AccessorHandlerRunCronJobResult> {
 		try {
 			await fsAccess(this.folderPath, fs.constants.R_OK)
 			// The file exists
