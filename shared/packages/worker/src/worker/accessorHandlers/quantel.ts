@@ -175,7 +175,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// Check that it is meaningfully playable
 			return {
 				success: false,
-				packageExists: false,
+				packageExists: true,
 				reason: {
 					user: `Clip not yet published`,
 					tech: `Clip "${clipSummary.ClipGUID}" hasn't received enough frames (${clipSummary.Frames})`,
