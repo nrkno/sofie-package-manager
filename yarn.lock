@@ -1599,12 +1599,12 @@
     semver "^7.3.8"
     shelljs "^0.8.5"
 
-"@sofie-automation/server-core-integration@1.44.1":
-  version "1.44.1"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.44.1.tgz#eb6a0bb7c8dc1bdbb27c0582f650f57b750d53c5"
-  integrity sha512-/jIXwN8FhgE5LE3Njts8y9Ax8Wlnw5AYNr2TxWZAQYpG3Qv3J2Q+z4pDOUWb5lilm/a1r1pE17KtUZoDuydc9Q==
+"@sofie-automation/server-core-integration@1.44.2":
+  version "1.44.2"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.44.2.tgz#b14f2b06dd977d25fca2aefd123494a3e900f358"
+  integrity sha512-7rY2lZ0Y89oarZ5pvL2Y53eS07fuK+Df0popJr14YjTGaGz9RQoDKaRqt2ojOwlbMVHfGdTZXJfV4FOfek50kw==
   dependencies:
-    "@sofie-automation/shared-lib" "1.44.1"
+    "@sofie-automation/shared-lib" "1.44.2"
     data-store "^4.0.3"
     ejson "^2.2.2"
     eventemitter3 "^4.0.7"
@@ -1613,10 +1613,10 @@
     tslib "^2.4.0"
     underscore "^1.13.3"
 
-"@sofie-automation/shared-lib@1.44.1":
-  version "1.44.1"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.44.1.tgz#ea641c81ffe0705abd24a134f8b3f792cf9dbb77"
-  integrity sha512-6zsZdpebIDMnpUkBoAjqKw1qRnvVDnV98hAePyUOf0mWCsC/Ao/Y0I75HzVC2v5pskhDVdBBGqqLmk5EhRG2RA==
+"@sofie-automation/shared-lib@1.44.2":
+  version "1.44.2"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.44.2.tgz#91bb4a439b860b86d58ad7a9d3d04ad3b4540e8e"
+  integrity sha512-WG1HDM5cP55qjXeyeSCJyF6h7dKJpkOgIga51Ex9chV13S/Q5TyjJLhwEpJLpjanNLMQcEyVflGVjgigDqL0Ow==
   dependencies:
     tslib "^2.4.0"
     type-fest "^2.12.2"
