@@ -57,6 +57,14 @@ export function resetMock(): void {
 							Completed: '2020-01-01',
 							Frames: '1337',
 						},
+						{
+							ClipID: 11,
+							ClipGUID: 'abc123-reserved-clip',
+							Title: 'i-am-a-reserved-clip',
+							CloneId: null,
+							Completed: '2020-01-01',
+							Frames: '5',
+						},
 					],
 				},
 			],
@@ -125,6 +133,23 @@ export function searchClip(searchQuery: (clip: MockClip) => boolean): SearchResu
 	return foundClips
 }
 client.searchClip = searchClip
+
+export function updateClip(updateFunction: (clip: MockClip) => MockClip | null | undefined): void {
+	for (const server of mock.servers) {
+		for (const pool of server.pools) {
+			const updatedClips: MockClip[] = []
+			for (const clip of pool.clips) {
+				const updatedClip = updateFunction(clip)
+
+				if (updatedClip === null) continue
+				else if (updatedClip === undefined) updatedClips.push(clip)
+				else updatedClips.push(updatedClip)
+			}
+			pool.clips = updatedClips
+		}
+	}
+}
+client.updateClip = updateClip
 
 export const QuantelGatewayInstances: QuantelGateway[] = []
 client.QuantelGatewayInstances = QuantelGatewayInstances
