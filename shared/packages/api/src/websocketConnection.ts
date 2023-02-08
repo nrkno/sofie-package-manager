@@ -8,7 +8,9 @@ export const PING_TIME = 10 * 1000
  * If the sender doesn't recieve a reply after this time,
  * the message is considered lost.
  */
-export const MESSAGE_TIMEOUT = 10000
+export const MESSAGE_TIMEOUT = process.env.JEST_WORKER_ID !== undefined ? 3000 : 10000
+// Note: JEST_WORKER_ID is set when running in unit tests
+
 /**
  * Execution timeout.
  * It is common courtesy that the receiver should reply with
@@ -16,6 +18,7 @@ export const MESSAGE_TIMEOUT = 10000
  * so that the sender doesn't consider the message lost.
  */
 export const ACTION_TIMEOUT = MESSAGE_TIMEOUT - 1000
+if (ACTION_TIMEOUT < 0) throw new Error('ACTION_TIMEOUT < 0')
 
 /**
  * "Inner execution timeout"
@@ -23,6 +26,7 @@ export const ACTION_TIMEOUT = MESSAGE_TIMEOUT - 1000
  * This allows the action to gracefully handle an external timeout, by not triggering the ACTION_TIMEOUT.
  */
 export const INNER_ACTION_TIMEOUT = ACTION_TIMEOUT - 1000
+if (INNER_ACTION_TIMEOUT < 0) throw new Error('INNER_ACTION_TIMEOUT < 0')
 
 export abstract class WebsocketConnection extends HelpfulEventEmitter {
 	protected ws?: WebSocket

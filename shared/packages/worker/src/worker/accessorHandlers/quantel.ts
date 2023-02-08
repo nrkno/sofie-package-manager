@@ -24,6 +24,7 @@ import { joinUrls } from './lib/pathJoin'
 const MINIMUM_FRAMES = 10
 /** How long to wait for a response from Quantel Gateway before failing */
 const QUANTEL_TIMEOUT = INNER_ACTION_TIMEOUT - 500
+if (QUANTEL_TIMEOUT < 0) throw new Error('QUANTEL_TIMEOUT < 0')
 
 /** Accessor handle for handling clips in a Quantel system */
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
