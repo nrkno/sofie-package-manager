@@ -155,7 +155,12 @@ export type AccessorHandlerResultGeneric = AccessorHandlerResultSuccess | Access
 export type AccessorHandlerCheckHandleReadResult = AccessorHandlerResultGeneric
 export type AccessorHandlerCheckHandleWriteResult = AccessorHandlerCheckHandleReadResult
 export type AccessorHandlerCheckPackageReadAccessResult = AccessorHandlerResultGeneric
-export type AccessorHandlerTryPackageReadResult = AccessorHandlerResultSuccess | (AccessorHandlerResultBad & {})
+export type AccessorHandlerTryPackageReadResult =
+	| AccessorHandlerResultSuccess
+	| (AccessorHandlerResultBad & {
+			/** If true, indicates that the package exists at all */
+			packageExists: boolean
+	  })
 export type AccessorHandlerCheckPackageContainerWriteAccessResult = AccessorHandlerResultGeneric
 export type AccessorHandlerRunCronJobResult = Promise<AccessorHandlerResultGeneric>
 export type SetupPackageContainerMonitorsResult =

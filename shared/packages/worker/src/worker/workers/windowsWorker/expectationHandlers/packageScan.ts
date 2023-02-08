@@ -67,7 +67,8 @@ export const PackageScan: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
-		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
+		if (!tryReading.success)
+			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
 
 		return {
 			ready: true,

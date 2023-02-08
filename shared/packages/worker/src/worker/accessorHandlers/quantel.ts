@@ -26,7 +26,7 @@ import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-q
 import { joinUrls } from './lib/pathJoin'
 
 /** The minimum amount of frames where a clip is minimumly playable */
-const MINIMUM_FRAMES = 10
+const RESERVED_CLIP_MINIMUM_FRAMES = 10
 /** How long to wait for a response from Quantel Gateway before failing */
 const QUANTEL_TIMEOUT = INNER_ACTION_TIMEOUT - 500
 
@@ -147,23 +147,36 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		const clipSummary = await this.searchForLatestClip(quantel)
 
-		if (!clipSummary) return { success: false, reason: { user: `No clip found`, tech: `No clip found` } }
+		if (!clipSummary) {
+			const content = this.getContent()
+			return {
+				success: false,
+				packageExists: false,
+				reason: { user: `Clip not found`, tech: `Clip "${content.guid || content.title}" not found` },
+			}
+		}
 
 		if (!parseInt(clipSummary.Frames, 10)) {
 			return {
 				success: false,
+				packageExists: true,
 				reason: {
-					user: `The clip has no frames`,
+					user: `Clip has no frames`,
 					tech: `Clip "${clipSummary.ClipGUID}" has no frames`,
 				},
 			}
 		}
-		if (parseInt(clipSummary.Frames, 10) < MINIMUM_FRAMES) {
+
+		// If the clip is less than XX frames long, it is considered to be unplayable.
+		// This concept is called a "Reserved clip".
+		// The intention with this is that the clip is expected to show up "soon".
+		if (RESERVED_CLIP_MINIMUM_FRAMES && parseInt(clipSummary.Frames, 10) < RESERVED_CLIP_MINIMUM_FRAMES) {
 			// Check that it is meaningfully playable
 			return {
 				success: false,
+				packageExists: false,
 				reason: {
-					user: `The clip hasn't received enough frames`,
+					user: `Clip not yet published`,
 					tech: `Clip "${clipSummary.ClipGUID}" hasn't received enough frames (${clipSummary.Frames})`,
 				},
 			}

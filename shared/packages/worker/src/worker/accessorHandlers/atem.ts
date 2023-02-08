@@ -128,6 +128,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (!atem.state?.media.clipPool || !atem.state?.media.stillPool) {
 			return {
 				success: false,
+				packageExists: false,
 				reason: {
 					user: `ATEM media pools are inaccessible`,
 					tech: `ATEM media pools are inaccessible`,

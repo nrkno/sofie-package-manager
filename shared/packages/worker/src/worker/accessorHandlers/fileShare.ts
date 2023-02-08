@@ -172,16 +172,19 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
+					packageExists: true,
 					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err, true)}` },
 				}
 			} else if (err && (err as any).code === 'ENOENT') {
 				return {
 					success: false,
+					packageExists: false,
 					reason: { user: `File does not exist`, tech: `${stringifyError(err, true)}` },
 				}
 			} else {
 				return {
 					success: false,
+					packageExists: false,
 					reason: { user: `Not able to read file`, tech: `${stringifyError(err, true)}` },
 				}
 			}
