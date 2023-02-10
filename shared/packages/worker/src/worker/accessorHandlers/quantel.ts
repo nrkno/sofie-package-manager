@@ -162,7 +162,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				success: false,
 				packageExists: true,
 				reason: {
-					user: `Clip has no frames`,
+					user: `Reserved clip`,
 					tech: `Clip "${clipSummary.ClipGUID}" has no frames`,
 				},
 			}
@@ -177,7 +177,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				success: false,
 				packageExists: true,
 				reason: {
-					user: `Clip not yet published`,
+					user: `Reserved clip`,
 					tech: `Clip "${clipSummary.ClipGUID}" hasn't received enough frames (${clipSummary.Frames})`,
 				},
 			}
