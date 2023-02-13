@@ -25,7 +25,7 @@
         "deep-diff": "^1.0.2",
         "form-data": "^4.0.0",
         "mkdirp": "^1.0.4",
-        "node-fetch": "^2.6.1",
+        "node-fetch": "^3.3.0",
         "tmp": "~0.2.1",
         "tv-automation-quantel-gateway-client": "3.1.7",
         "windows-network-drive": "^3.0.1",
