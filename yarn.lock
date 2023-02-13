@@ -10557,10 +10557,10 @@ windows-drive-letters@^4.0.0:
   dependencies:
     array-differ "^3.0.0"
 
-windows-network-drive@^3.0.1:
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/windows-network-drive/-/windows-network-drive-3.0.2.tgz#18946a43fc562c837048337060b49f3f8a900d6b"
-  integrity sha512-w7CgnXSelHoOOg0COfknPJNciSku3ocg+28oWiah+rPwVHZugu97NKs2AgF0xKP5u3TzIYWif2l+M2mA1LZgwQ==
+windows-network-drive@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/windows-network-drive/-/windows-network-drive-4.0.1.tgz#8477dfe4faa17d150fe8a9c79daf2c42cfa6f8a8"
+  integrity sha512-ElCS7fxQK1/ewQ1m6WVvC6O1pu/kXqZOel94ABl+ONmAfPuKqsVsGgEkZ8KA3fOn9vj5Q848ccWo+fyAzSsY0w==
   dependencies:
     windows-drive-letters "^4.0.0"
 
