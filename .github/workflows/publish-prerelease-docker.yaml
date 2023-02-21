@@ -128,6 +128,7 @@ jobs:
           context: .
           file: apps/http-server/app/Dockerfile
           push: true
+          provenance: false
           labels: ${{ steps.http-server-ghcr-tag.outputs.labels }}
           tags: "${{ steps.http-server-ghcr-tag.outputs.tags }}"
 
@@ -138,6 +139,7 @@ jobs:
           context: .
           file: apps/http-server/app/Dockerfile
           push: true
+          provenance: false
           labels: ${{ steps.http-server-dockerhub-tag.outputs.labels }}
           tags: "${{ steps.http-server-dockerhub-tag.outputs.tags }}"
 
@@ -148,6 +150,7 @@ jobs:
           context: .
           file: apps/quantel-http-transformer-proxy/app/Dockerfile
           push: true
+          provenance: false
           labels: ${{ steps.quantel-ghcr-tag.outputs.labels }}
           tags: "${{ steps.quantel-ghcr-tag.outputs.tags }}"
 
@@ -158,5 +161,6 @@ jobs:
           context: .
           file: apps/quantel-http-transformer-proxy/app/Dockerfile
           push: true
+          provenance: false
           labels: ${{ steps.quantel-dockerhub-tag.outputs.labels }}
           tags: "${{ steps.quantel-dockerhub-tag.outputs.tags }}"
