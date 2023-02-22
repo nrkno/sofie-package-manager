@@ -45,7 +45,8 @@ export async function evaluateExpectationStateWaiting({
 				)
 
 				const newStatus: Partial<TrackedExpectation['status']> = {}
-				if (readyToStart.sourceExists !== undefined) newStatus.sourceExists = readyToStart.sourceExists
+				const sourceExists = readyToStart.ready || readyToStart.sourceExists
+				if (sourceExists !== undefined) newStatus.sourceExists = sourceExists
 
 				if (readyToStart.ready) {
 					tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {

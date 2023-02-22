@@ -230,6 +230,72 @@ describe('Quantel', () => {
 			},
 		})
 	})
+	test('Reserved clip', async () => {
+		// const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123-reserved-clip')[0]
+
+		env.expectationManager.updateExpectations({
+			copy0: literal<Expectation.QuantelClipCopy>({
+				id: 'copy0',
+				priority: 0,
+				managerId: 'manager0',
+				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				type: Expectation.Type.QUANTEL_CLIP_COPY,
+				statusReport: {
+					label: `Copy quantel clip0`,
+					description: `Copy clip0 because test`,
+					requiredForPlayout: true,
+					displayRank: 0,
+					sendReport: true,
+				},
+				startRequirement: {
+					sources: [getQuantelSource('source0')],
+				},
+				endRequirement: {
+					targets: [getQuantelTarget('target1', 1001)],
+					content: {
+						guid: 'abc123-reserved-clip',
+					},
+					version: { type: Expectation.Version.Type.QUANTEL_CLIP },
+				},
+				workOptions: {},
+			}),
+		})
+
+		// Wait for the job to get the correct status:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target1']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.statusReason.user).toEqual(
+				'Clip not yet published'
+			)
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY
+			)
+		}, env.WAIT_JOB_TIME)
+
+		// Now, set the clip to have frames:
+		QGatewayClient.updateClip((clip) => {
+			if (clip.ClipGUID === 'abc123-reserved-clip') {
+				return {
+					...clip,
+					Frames: '1234',
+				}
+			}
+			return undefined
+		})
+
+		// Wait for the job to finish:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target1']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
+			// expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.statusReason.user).toEqual('')
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, 500 + env.WAIT_JOB_TIME)
+
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+	})
 })
 
 export {} // Just to get rid of a "not a module" warning

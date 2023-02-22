@@ -1,9 +1,14 @@
 import { promisify } from 'util'
 import fs from 'fs'
 import {
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerRunCronJobResult,
+	AccessorHandlerTryPackageReadResult,
 	PackageReadInfo,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
 import {
@@ -23,6 +28,7 @@ import { exec } from 'child_process'
 import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -96,31 +102,17 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		const accessor = accessor0 as AccessorOnPackage.FileShare
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): AccessorHandlerResult {
-		if (!this.accessor.allowRead) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to read`,
-					tech: `Not allowed to read`,
-				},
-			}
-		}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
-		if (!this.accessor.allowWrite) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to write`,
-					tech: `Not allowed to write`,
-				},
-			}
-		}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
 		if (this.accessor.type !== Accessor.AccessType.FILE_SHARE) {
 			return {
 				success: false,
@@ -138,7 +130,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		}
 		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const readIssue = await this._checkPackageReadAccess()
 		if (!readIssue.success) {
 			if (readIssue.reason.tech.match(/EPERM/)) {
@@ -156,7 +148,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		}
 		return { success: true }
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		try {
 			// Check if we can open the file for reading:
 			const fd = await fsOpen(this.fullPath, 'r')
@@ -167,20 +159,26 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
+					packageExists: true,
 					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err, true)}` },
 				}
 			} else if (err && (err as any).code === 'ENOENT') {
-				return { success: false, reason: { user: `File does not exist`, tech: `${stringifyError(err, true)}` } }
+				return {
+					success: false,
+					packageExists: false,
+					reason: { user: `File does not exist`, tech: `${stringifyError(err, true)}` },
+				}
 			} else {
 				return {
 					success: false,
+					packageExists: false,
 					reason: { user: `Not able to read file`, tech: `${stringifyError(err, true)}` },
 				}
 			}
 		}
 		return { success: true }
 	}
-	private async _checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	private async _checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		await this.prepareFileAccess()
 
 		try {
@@ -198,7 +196,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		}
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		await this.prepareFileAccess()
 		try {
 			await fsAccess(this.folderPath, fs.constants.W_OK)
@@ -312,7 +310,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async removeMetadata(): Promise<void> {
 		await this.unlinkIfExists(this.metadataPath)
 	}
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerRunCronJobResult> {
 		// Always check read/write access first:
 		const checkRead = await this.checkPackageContainerReadAccess()
 		if (!checkRead.success) return checkRead
@@ -591,7 +589,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		}
 		return usedDriveLetters
 	}
-	private async checkPackageContainerReadAccess(): Promise<AccessorHandlerResult> {
+	private async checkPackageContainerReadAccess(): Promise<AccessorHandlerRunCronJobResult> {
 		await this.prepareFileAccess()
 		try {
 			await fsAccess(this.folderPath, fs.constants.R_OK)
