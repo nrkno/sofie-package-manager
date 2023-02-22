@@ -23,6 +23,7 @@ import * as path from 'path'
 import { promisify } from 'util'
 import { UniversalVersion } from '../workers/windowsWorker/lib/lib'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 const fsReadFile = promisify(fs.readFile)
 
@@ -66,27 +67,13 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return this.worker.accessorCache['atem'] as Atem
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		if (!this.accessor.allowRead) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to read`,
-					tech: `Not allowed to read`,
-				},
-			}
-		}
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		if (!this.accessor.allowWrite) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to write`,
-					tech: `Not allowed to write`,
-				},
-			}
-		}
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {

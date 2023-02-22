@@ -24,6 +24,7 @@ import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
 import { joinUrls } from './lib/pathJoin'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** Accessor handle for accessing files in HTTP- */
 export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -58,27 +59,13 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		if (!this.accessor.allowRead) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to read`,
-					tech: `Not allowed to read`,
-				},
-			}
-		}
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		if (!this.accessor.allowWrite) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to write`,
-					tech: `Not allowed to write`,
-				},
-			}
-		}
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {

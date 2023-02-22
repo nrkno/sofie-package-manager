@@ -28,6 +28,7 @@ import { exec } from 'child_process'
 import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -102,27 +103,13 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		if (!this.accessor.allowRead) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to read`,
-					tech: `Not allowed to read`,
-				},
-			}
-		}
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		if (!this.accessor.allowWrite) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to write`,
-					tech: `Not allowed to write`,
-				},
-			}
-		}
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {

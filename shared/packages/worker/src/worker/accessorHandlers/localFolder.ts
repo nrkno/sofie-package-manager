@@ -25,6 +25,7 @@ import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { compareResourceIds } from '../workers/windowsWorker/lib/lib'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -77,15 +78,13 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		if (!this.accessor.allowRead) {
-			return { success: false, reason: { user: `Not allowed to read`, tech: `Not allowed to read` } }
-		}
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		if (!this.accessor.allowWrite) {
-			return { success: false, reason: { user: `Not allowed to write`, tech: `Not allowed to write` } }
-		}
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {

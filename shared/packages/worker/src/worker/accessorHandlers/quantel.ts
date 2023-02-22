@@ -24,6 +24,7 @@ import {
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { joinUrls } from './lib/pathJoin'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** The minimum amount of frames where a clip is minimumly playable */
 const RESERVED_CLIP_MINIMUM_FRAMES = 10
@@ -67,15 +68,13 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		if (!this.accessor.allowRead) {
-			return { success: false, reason: { user: `Not allowed to read`, tech: `Not allowed to read` } }
-		}
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		if (!this.accessor.allowWrite) {
-			return { success: false, reason: { user: `Not allowed to write`, tech: `Not allowed to write` } }
-		}
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		if (!this.accessor.serverId) {
 			return {
 				success: false,
