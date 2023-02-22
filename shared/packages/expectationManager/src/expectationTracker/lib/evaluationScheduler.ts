@@ -11,11 +11,11 @@ import { ExpectationTracker } from '../expectationTracker'
  */
 export class EvaluationScheduler {
 	private scheduleTimeout: NodeJS.Timeout | undefined = undefined
-	private isRunning = false
-	private _runNextAsap = false
+	private runNextAsap = false
 
 	private terminated = false
 	private logger: LoggerInstance
+	private runner: EvaluationRunner | null = null
 
 	constructor(logger: LoggerInstance, private manager: InternalManager, private tracker: ExpectationTracker) {
 		this.logger = logger.category('Scheduler')
@@ -36,8 +36,14 @@ export class EvaluationScheduler {
 	public triggerEvaluation(asap?: boolean): void {
 		if (this.terminated) return
 
-		if (asap) this._runNextAsap = true
-		if (this.isRunning) return
+		if (asap) {
+			this.runNextAsap = true
+		}
+		if (this.runner) {
+			// Is already running
+			if (asap) this.runner?.pleaseAbortRun()
+			return
+		}
 
 		if (this.scheduleTimeout) {
 			clearTimeout(this.scheduleTimeout)
@@ -48,25 +54,22 @@ export class EvaluationScheduler {
 			() => {
 				if (this.terminated) return
 
-				this._runNextAsap = false
-				this.isRunning = true
+				this.runNextAsap = false
 
 				const runner = new EvaluationRunner(this.logger, this.manager, this.tracker)
 				runner
 					.run()
 					.then((evaluationResult) => {
-						this.isRunning = false
-
+						this.runner = null
 						this.triggerEvaluation(evaluationResult.runAgainASAP)
 					})
 					.catch((err) => {
+						this.runner = null
 						this.logger.error(`Error in EvaluationRunner.run(): ${stringifyError(err)}`)
-
-						this.isRunning = false
 						this.triggerEvaluation()
 					})
 			},
-			this._runNextAsap ? 1 : this.tracker.constants.EVALUATE_INTERVAL
+			this.runNextAsap ? 1 : this.tracker.constants.EVALUATE_INTERVAL
 		)
 	}
 }

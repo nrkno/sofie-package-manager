@@ -28,6 +28,8 @@ export class EvaluationRunner {
 
 	public logger: LoggerInstance
 	private instanceId: number
+	/** When true, try to abort the .run()-method when possible */
+	private abortRun = false
 
 	constructor(logger: LoggerInstance, public manager: InternalManager, public tracker: ExpectationTracker) {
 		this.instanceId = EvaluationRunner.instanceId++
@@ -36,46 +38,69 @@ export class EvaluationRunner {
 	public async run(): Promise<EvaluationResult> {
 		this.logger.verbose(Date.now() / 1000 + ' _evaluateExpectations ----------')
 
+		let runAgainASAP = false
 		let startTime = Date.now()
 		const times: { [key: string]: number } = {}
 
-		// First we're going to see if there is any new incoming data which needs to be pulled in.
-		if (this.tracker.receivedUpdates.expectationsHasBeenUpdated) {
-			await this.updateReceivedData_Expectations().promise
-		}
-		times['timeUpdateReceivedExpectations'] = Date.now() - startTime
-		startTime = Date.now()
-
-		if (this.tracker.receivedUpdates.packageContainersHasBeenUpdated) {
-			await this._updateReceivedData_TrackedPackageContainers()
-		}
-		times['timeUpdateReceivedPackageContainerExpectations'] = Date.now() - startTime
-		startTime = Date.now()
-
-		// Iterate through the PackageContainerExpectations:
-		await this._evaluateAllTrackedPackageContainers()
-		times['timeEvaluateAllTrackedPackageContainers'] = Date.now() - startTime
-		startTime = Date.now()
-
-		this.tracker.worksInProgress.checkWorksInProgress()
-		times['timeMonitorWorksInProgress'] = Date.now() - startTime
-
-		// Iterate through all Expectations:
-		const { runAgainASAP, times: evaluateTimes } = await this._evaluateAllExpectations()
-
-		for (const key in evaluateTimes) {
-			times[key] = evaluateTimes[key]
+		if (!this.abortRun) {
+			startTime = Date.now()
+			// First we're going to see if there is any new incoming data which needs to be pulled in:
+			if (this.tracker.receivedUpdates.expectationsHasBeenUpdated) {
+				await this.updateReceivedData_Expectations().promise
+			}
+			times['timeUpdateReceivedExpectations'] = Date.now() - startTime
 		}
 
-		await this.tracker.scaler.checkIfNeedToScaleUp().catch((err) => {
-			this.logger.error(`Error in checkIfNeedToScaleUp: ${stringifyError(err)}`)
-		})
+		if (!this.abortRun) {
+			startTime = Date.now()
+			if (this.tracker.receivedUpdates.packageContainersHasBeenUpdated) {
+				await this._updateReceivedData_TrackedPackageContainers()
+			}
+			times['timeUpdateReceivedPackageContainerExpectations'] = Date.now() - startTime
+		}
 
+		if (!this.abortRun) {
+			startTime = Date.now()
+			// Iterate through the PackageContainerExpectations:
+			await this._evaluateAllTrackedPackageContainers()
+			times['timeEvaluateAllTrackedPackageContainers'] = Date.now() - startTime
+		}
+
+		if (!this.abortRun) {
+			startTime = Date.now()
+			this.tracker.worksInProgress.checkWorksInProgress()
+			times['timeMonitorWorksInProgress'] = Date.now() - startTime
+		}
+
+		if (!this.abortRun) {
+			// Iterate through all Expectations:
+			startTime = Date.now()
+			const evExpResult = await this._evaluateAllExpectations()
+			runAgainASAP = evExpResult.runAgainASAP
+			for (const [key, value] of Object.entries(evExpResult.times)) {
+				times[key] = value
+			}
+			times['timeEvaluateAllExpectations'] = Date.now() - startTime
+		}
+
+		if (!this.abortRun) {
+			startTime = Date.now()
+			await this.tracker.scaler.checkIfNeedToScaleUp().catch((err) => {
+				this.logger.error(`Error in checkIfNeedToScaleUp: ${stringifyError(err)}`)
+			})
+			times['timeCheckIfNeedToScaleUp'] = Date.now() - startTime
+		}
+
+		if (this.abortRun) times['aborted'] = Date.now() - startTime
 		this.manager.statusReport.update(times)
 
 		return literal<EvaluationResult>({
 			runAgainASAP,
 		})
+	}
+	/** Called to kindly ask the .run()-method to abort when possible */
+	public pleaseAbortRun(): void {
+		this.abortRun = true
 	}
 	/** Goes through the incoming data and stores it */
 	private updateReceivedData_Expectations(): {
@@ -320,6 +345,8 @@ export class EvaluationRunner {
 						}
 					})
 					.process(async (trackedExp) => {
+						if (this.abortRun) return // abort the run
+
 						await evaluateExpectationState(this, trackedExp)
 						postProcessSession(trackedExp)
 					})
@@ -343,6 +370,8 @@ export class EvaluationRunner {
 		const startTime = Date.now()
 		// Step 2: Evaluate the expectations, now one by one:
 		for (const trackedExp of tracked) {
+			if (this.abortRun) break // Abort the run
+
 			// Only handle the states that
 			if (handleStatesSerial.includes(trackedExp.state)) {
 				// Evaluate the Expectation:
@@ -498,6 +527,8 @@ export class EvaluationRunner {
 	}
 	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of this.tracker.trackedPackageContainers.list()) {
+			if (this.abortRun) break // abort the run
+
 			const startTime = Date.now()
 
 			try {
