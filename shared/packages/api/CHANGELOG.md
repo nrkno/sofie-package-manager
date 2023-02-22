@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.41.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0...v1.41.1) (2023-02-22)
+
+
+### Bug Fixes
+
+* adjust MESSAGE_TIMEOUT during unit tests ([2411472](https://github.com/nrkno/tv-automation-package-manager/commit/2411472811f39835985d3d86c7950d12be077b5c))
+
+
+
+
+
 # [1.41.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.1...v1.41.0) (2023-02-03)
 
 **Note:** Version bump only for package @sofie-package-manager/api
