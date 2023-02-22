@@ -11,8 +11,7 @@
     "devDependencies": {
         "deep-extend": "^0.6.0",
         "nexe": "^3.3.7",
-        "tv-automation-quantel-gateway-client": "^2.0.2",
-        "windows-network-drive": "^4.0.1"
+        "tv-automation-quantel-gateway-client": "^2.0.2"
     },
     "dependencies": {
         "@http-server/generic": "1.41.0",
@@ -21,7 +20,8 @@
         "@sofie-package-manager/expectation-manager": "1.41.0",
         "@sofie-package-manager/worker": "1.41.0",
         "@sofie-package-manager/workforce": "1.41.0",
-        "underscore": "^1.12.0"
+        "underscore": "^1.12.0",
+        "windows-network-drive": "^4.0.1"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
