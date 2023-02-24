@@ -24,7 +24,7 @@ describe('Handle unhappy paths', () => {
 	let env: TestEnviromnent
 
 	beforeAll(async () => {
-		env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
+		env = await prepareTestEnviromnent(true) // set to true to enable debug-logging
 		// Verify that the fs mock works:
 		expect(fs.lstat).toBeTruthy()
 		expect(fs.__mockReset).toBeTruthy()
@@ -40,7 +40,7 @@ describe('Handle unhappy paths', () => {
 		env.reset()
 	})
 
-	test('Wait for non-existing local file', async () => {
+	test.only('Wait for non-existing local file', async () => {
 		fs.__mockSetDirectory('/sources/source0/')
 		fs.__mockSetDirectory('/targets/target0')
 		addCopyFileExpectation(
@@ -68,6 +68,12 @@ describe('Handle unhappy paths', () => {
 		)
 
 		// Now the file suddenly pops up:
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
 
 		// Wait for the job to complete:

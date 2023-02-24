@@ -8,7 +8,7 @@
     ],
     "license": "MIT",
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest"
     },

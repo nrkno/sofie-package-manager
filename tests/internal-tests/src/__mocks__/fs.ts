@@ -511,8 +511,10 @@ export function createWriteStream(path: string, _options?: BufferEncoding | unde
 }
 fs.createWriteStream = createWriteStream
 
+const DEBUG_STREAMS = true
 class FSReadStream extends Readable {
 	constructor(public path: string) {
+		if (DEBUG_STREAMS) console.log('READ created')
 		super()
 	}
 	_construct(callback: () => void) {
@@ -523,6 +525,7 @@ class FSReadStream extends Readable {
 
 	private readI = 0
 	_read(_size: number): void {
+		if (DEBUG_STREAMS) console.log('READ read')
 		if (this.readI === 0) {
 			this.push(JSON.stringify({ sourcePath: this.path }))
 		} else {
@@ -531,11 +534,13 @@ class FSReadStream extends Readable {
 		this.readI++
 	}
 	pipe<T extends NodeJS.WritableStream>(destination: T, options?: { end?: boolean | undefined } | undefined): T {
+		if (DEBUG_STREAMS) console.log('READ pipe')
 		return super.pipe(destination, options)
 	}
 }
 class FSWriteStream extends Writable {
 	constructor(public path: string) {
+		if (DEBUG_STREAMS) console.log('WRITE created')
 		super()
 	}
 	_construct(callback: () => void) {
@@ -546,6 +551,7 @@ class FSWriteStream extends Writable {
 	_write(chunk: any, _encoding: any, callback: (err?: any) => void) {
 		const chunkStr = String(chunk)
 
+		if (DEBUG_STREAMS) console.log('WRITE write', chunkStr)
 		const obj = JSON.parse(chunkStr)
 
 		if (obj.sourcePath) {
@@ -564,6 +570,7 @@ class FSWriteStream extends Writable {
 		}
 	}
 	_final(callback: () => void) {
+		if (DEBUG_STREAMS) console.log('WRITE final')
 		callback()
 	}
 }

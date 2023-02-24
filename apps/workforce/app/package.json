@@ -4,7 +4,7 @@
     "description": "Boilerplace",
     "private": true,
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs workforce.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
