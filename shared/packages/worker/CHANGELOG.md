@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.41.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0...v1.41.1) (2023-02-22)
+
+
+### Bug Fixes
+
+* add packageExists property to tryPackageRead() method, in order to return better sourceExists from isFileReadyToStartWorkingOn() ([ddccbbe](https://github.com/nrkno/tv-automation-package-manager/commit/ddccbbef9d7c00340cb746ad8e2645e143ea6de9))
+* adjust MESSAGE_TIMEOUT during unit tests ([2411472](https://github.com/nrkno/tv-automation-package-manager/commit/2411472811f39835985d3d86c7950d12be077b5c))
+* bug in joinUrls where it incorrectly joined the paths ("asdf/package", "//nas/folder/path") ([72b837a](https://github.com/nrkno/tv-automation-package-manager/commit/72b837acebae1eb3140400226fdcc58d91169d15))
+* packageExists value ([fc7e5c6](https://github.com/nrkno/tv-automation-package-manager/commit/fc7e5c6275eefcca86c9c4c124d9fc5bd7b809fa))
+
+
+
+
+
 # [1.41.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.1...v1.41.0) (2023-02-03)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
