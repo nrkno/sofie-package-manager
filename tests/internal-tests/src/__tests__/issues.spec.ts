@@ -9,6 +9,7 @@ import { waitUntil, waitTime } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
 import { WorkerAgent } from '@sofie-package-manager/worker'
 jest.mock('fs')
+jest.mock('mkdirp')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
