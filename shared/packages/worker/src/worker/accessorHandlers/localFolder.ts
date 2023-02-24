@@ -26,6 +26,7 @@ import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { compareResourceIds } from '../workers/windowsWorker/lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
+import { mkdirp } from 'mkdirp'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -198,6 +199,8 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		await this.clearPackageRemoval(this.filePath)
 
 		const fullPath = this.workOptions.useTemporaryFilePath ? this.temporaryFilePath : this.fullPath
+
+		await mkdirp(path.dirname(fullPath)) // Create folder if it doesn't exist
 
 		// Remove the file if it exists:
 		let exists = false

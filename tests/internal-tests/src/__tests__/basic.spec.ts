@@ -69,7 +69,7 @@ describe('Basic', () => {
 					sources: [getLocalSource('source0', 'file0Source.mp4')],
 				},
 				endRequirement: {
-					targets: [getLocalTarget('target0', 'file0Target.mp4')],
+					targets: [getLocalTarget('target0', 'myFolder/file0Target.mp4')],
 					content: {
 						filePath: 'file0Target.mp4',
 					},
@@ -90,14 +90,13 @@ describe('Basic', () => {
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 
-		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
+		expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
 			size: 1234,
 		})
 	})
 	test('Be able to copy Networked file to local', async () => {
 		fs.__mockSetFile('\\\\networkShare/sources/source1/file0Source.mp4', 1234)
 		fs.__mockSetDirectory('/targets/target1')
-		// console.log(fs.__printAllFiles())
 
 		env.expectationManager.updateExpectations({
 			copy0: literal<Expectation.FileCopy>({

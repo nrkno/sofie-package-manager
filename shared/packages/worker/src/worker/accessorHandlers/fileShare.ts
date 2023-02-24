@@ -29,6 +29,8 @@ import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/Fi
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
+import * as path from 'path'
+import { mkdirp } from 'mkdirp'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -249,6 +251,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		await this.clearPackageRemoval(this.filePath)
 
 		const fullPath = this.workOptions.useTemporaryFilePath ? this.temporaryFilePath : this.fullPath
+
+		await mkdirp(path.dirname(fullPath)) // Create folder if it doesn't exist
 
 		// Remove the file if it exists:
 		let exists = false
