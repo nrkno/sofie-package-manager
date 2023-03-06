@@ -86,6 +86,9 @@ export namespace ExpectedPackage {
 			/** Which container thumbnails are to be put into */
 			thumbnailContainerId?: string | null
 			thumbnailPackageSettings?: SideEffectThumbnailSettings | null
+
+			/** Should the package be scanned for loudness */
+			loudness?: boolean
 		}
 	}
 	export interface SideEffectPreviewSettings {

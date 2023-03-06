@@ -288,6 +288,62 @@ export function generatePackageDeepScan(
 	})
 }
 
+export function generatePackageLoudness(
+	expectation:
+		| Expectation.FileCopy
+		| Expectation.FileCopyProxy
+		| Expectation.FileVerify
+		| Expectation.QuantelClipCopy,
+	settings: PackageManagerSettings
+): Expectation.PackageLoudnessScan {
+	return literal<Expectation.PackageLoudnessScan>({
+		id: expectation.id + '_loudness',
+		priority: expectation.priority + PriorityAdditions.LOUDNESS_SCAN,
+		managerId: expectation.managerId,
+		type: Expectation.Type.PACKAGE_LOUDNESS_SCAN,
+		fromPackages: expectation.fromPackages,
+
+		statusReport: {
+			label: `Loudness Scan`,
+			description: `Measure clip loudness`,
+			requiredForPlayout: false,
+			displayRank: 14,
+			sendReport: expectation.statusReport.sendReport,
+		},
+
+		startRequirement: {
+			sources: expectation.endRequirement.targets,
+			content: expectation.endRequirement.content,
+			version: expectation.endRequirement.version,
+		},
+		endRequirement: {
+			targets: [
+				{
+					containerId: '__corePackageInfo',
+					label: 'Core package info',
+					accessors: {
+						coreCollection: {
+							type: Accessor.AccessType.CORE_PACKAGE_INFO,
+						},
+					},
+				},
+			],
+			content: null,
+			version: {
+				channels: ['0+1'],
+			},
+		},
+		workOptions: {
+			...expectation.workOptions,
+			allowWaitForCPU: true,
+			usesCPUCount: 1,
+			removeDelay: settings.delayRemovalPackageInfo,
+		},
+		dependsOnFullfilled: [expectation.id],
+		triggerByFullfilledIds: [expectation.id],
+	})
+}
+
 export function generateMediaFileThumbnail(
 	expectation: Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify,
 	packageContainerId: string,

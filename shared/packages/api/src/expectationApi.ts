@@ -35,6 +35,7 @@ export namespace Expectation {
 
 		PACKAGE_SCAN = 'package_scan',
 		PACKAGE_DEEP_SCAN = 'package_deep_scan',
+		PACKAGE_LOUDNESS_SCAN = 'package_loudness_scan',
 
 		QUANTEL_CLIP_COPY = 'quantel_clip_copy',
 		// QUANTEL_CLIP_SCAN = 'quantel_clip_scan',
@@ -182,6 +183,25 @@ export namespace Expectation {
 				blackRatio?: number
 				/** Luminance threshold for a single pixel to be considered black. Default is `0.1` */
 				blackThreshold?: number
+			}
+		}
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
+	}
+	/** Defines a Loudness Scan of a Media file. A Loudness Scan is to be performed on (one of) the sources and the scan result is to be stored on the target. */
+	export interface PackageLoudnessScan extends Base {
+		type: Type.PACKAGE_LOUDNESS_SCAN
+
+		startRequirement: {
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
+			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: SpecificPackageContainerOnPackage.CorePackage[]
+			content: null // not using content, entries are stored using this.fromPackages
+			version: {
+				/** List of channels or stereo channel pairs to be inspected for loudness, 0-indexed. Use channel number as string (e.g. "0") or two numbers with a plus sign for stereo pairs (e.g. "0+1") */
+				channels: string[]
 			}
 		}
 		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay

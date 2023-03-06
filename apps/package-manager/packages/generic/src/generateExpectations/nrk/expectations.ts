@@ -20,6 +20,7 @@ import {
 	generateQuantelClipPreview,
 	generateJsonDataCopy,
 	generatePackageCopyFileProxy,
+	generatePackageLoudness,
 } from './expectations-lib'
 import { getSmartbullExpectedPackages, shouldBeIgnored } from './smartbull'
 import { TEMPORARY_STORAGE_ID } from './lib'
@@ -259,6 +260,11 @@ function getSideEffectOfExpectation(
 				expectations[preview.id] = preview
 			}
 		}
+
+		if (expectation0.sideEffect?.loudness) {
+			const preview = generatePackageLoudness(expectation, settings)
+			expectations[preview.id] = preview
+		}
 	} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
 		const expectation = expectation0 as Expectation.QuantelClipCopy
 
@@ -302,6 +308,11 @@ function getSideEffectOfExpectation(
 				)
 				expectations[preview.id] = preview
 			}
+		}
+
+		if (expectation0.sideEffect?.loudness) {
+			const preview = generatePackageLoudness(expectation, settings)
+			expectations[preview.id] = preview
 		}
 	}
 	return expectations

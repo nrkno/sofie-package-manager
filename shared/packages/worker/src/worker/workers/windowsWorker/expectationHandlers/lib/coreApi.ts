@@ -1,3 +1,9 @@
+export enum PackageInfoType {
+	Scan = 'scan',
+	DeepScan = 'deepScan',
+	Loudness = 'loudness',
+}
+
 export interface DeepScanResult {
 	field_order: FieldOrder
 	blacks: ScanAnomaly[]
@@ -15,4 +21,26 @@ export interface ScanAnomaly {
 	start: number
 	duration: number
 	end: number
+}
+
+export interface LoudnessScanResult {
+	channels: {
+		[channelSpec: string]: LoudnessScanResultForStream
+	}
+}
+
+export interface LoudnessScanResultForStream {
+	// Unit: LUFS
+	integrated: number
+	// Unit: LUFS
+	integratedThreshold: number
+
+	// Unit: LU
+	range: number
+	// Unit: LUFS
+	rangeThreshold: number
+	// Unit: LUFS
+	rangeLow: number
+	// Unit: LUFS
+	rangeHigh: number
 }

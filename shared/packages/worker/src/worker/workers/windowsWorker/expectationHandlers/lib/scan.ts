@@ -10,7 +10,7 @@ import {
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { QuantelAccessorHandle } from '../../../../accessorHandlers/quantel'
 import { CancelablePromise } from '../../../../lib/cancelablePromise'
-import { FieldOrder, ScanAnomaly } from './coreApi'
+import { FieldOrder, LoudnessScanResult, LoudnessScanResultForStream, ScanAnomaly } from './coreApi'
 import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
@@ -469,6 +469,153 @@ export function scanMoreInfo(
 		})
 		ffMpegProcess.on('exit', (code) => {
 			onClose(code)
+		})
+	})
+}
+
+function scanLoudnessStream(
+	sourceHandle:
+		| LocalFolderAccessorHandle<any>
+		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
+		| QuantelAccessorHandle<any>,
+	_previouslyScanned: FFProbeScanResult,
+	channelSpec: string
+): CancelablePromise<LoudnessScanResultForStream> {
+	return new CancelablePromise<LoudnessScanResultForStream>(async (resolve, reject, onCancel) => {
+		const stereoPairMatch = channelSpec.match(/(\d+)\+(\d+)/)
+		const singleChannel = Number.parseInt(channelSpec)
+		if (!stereoPairMatch && !Number.isInteger(singleChannel)) {
+			reject(`Invalid channel specification: ${channelSpec}`)
+			return
+		}
+
+		let filterComplex = `ebur128`
+
+		if (stereoPairMatch) {
+			filterComplex = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128[out]`
+		} else {
+			filterComplex = `[0:a:${singleChannel}]ebur128[out]`
+		}
+
+		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		const args = [
+			'-nostats',
+			'-filter_complex',
+			JSON.stringify(filterComplex),
+			'-map',
+			JSON.stringify('[out]'),
+			'-f',
+			'null',
+			'-',
+		]
+
+		if (isLocalFolderAccessorHandle(sourceHandle)) {
+			args.push(`-i "${sourceHandle.fullPath}"`)
+		} else if (isFileShareAccessorHandle(sourceHandle)) {
+			await sourceHandle.prepareFileAccess()
+			args.push(`-i "${sourceHandle.fullPath}"`)
+		} else if (isHTTPAccessorHandle(sourceHandle)) {
+			args.push(`-i "${sourceHandle.fullUrl}"`)
+		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
+			args.push(`-i "${sourceHandle.fullUrl}"`)
+		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
+			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
+
+			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
+
+			args.push('-seekable 0')
+			args.push(`-i "${httpStreamURL.fullURL}"`)
+		} else {
+			assertNever(sourceHandle)
+		}
+
+		let ffmpegProcess: ChildProcess | undefined = undefined
+		onCancel(() => {
+			ffmpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffmpegProcess?.kill()
+			reject('Cancelled')
+		})
+
+		ffmpegProcess = execFile(
+			file,
+			args,
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+			},
+			(err, _stdout, stderr) => {
+				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+				ffmpegProcess = undefined
+				if (err) {
+					reject(err)
+					return
+				}
+
+				const LoudnessRegex =
+					/Integrated loudness:\s+I:\s+(?<integrated>[\d-.,]+)\s+LUFS\s+Threshold:\s+(?<threshold>[\d-.,]+)\s+LUFS\s+Loudness range:\s+LRA:\s+(?<lra>[\d-.,]+)\s+LU\s+Threshold:\s+(?<rangeThreshold>[\d-.,]+)\s+LUFS\s+LRA low:\s+(?<lraLow>[\d-.,]+)\s+LUFS\s+LRA high:\s+(?<lraHigh>[\d-.,]+)\s+LUFS/i
+
+				const res = LoudnessRegex.exec(stderr)
+				if (res === null) {
+					reject(`ffmpeg output unreadable`)
+				} else {
+					resolve({
+						integrated: Number.parseFloat(res.groups?.['integrated'] ?? ''),
+						integratedThreshold: Number.parseFloat(res.groups?.['threshold'] ?? ''),
+						range: Number.parseFloat(res.groups?.['lra'] ?? ''),
+						rangeThreshold: Number.parseFloat(res.groups?.['rangeThreshold'] ?? ''),
+						rangeHigh: Number.parseFloat(res.groups?.['lraHigh'] ?? ''),
+						rangeLow: Number.parseFloat(res.groups?.['lraLow'] ?? ''),
+					})
+				}
+			}
+		)
+	})
+}
+
+export function scanLoudness(
+	sourceHandle:
+		| LocalFolderAccessorHandle<any>
+		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
+		| QuantelAccessorHandle<any>,
+	previouslyScanned: FFProbeScanResult,
+	targetVersion: Expectation.PackageLoudnessScan['endRequirement']['version'],
+	/** Callback which is called when there is some new progress */
+	onProgress: (
+		/** Progress, goes from 0 to 1 */
+		progress: number
+	) => void
+): CancelablePromise<LoudnessScanResult> {
+	return new CancelablePromise<LoudnessScanResult>(async (resolve, _reject, onCancel) => {
+		if (!targetVersion.channels.length) {
+			resolve({
+				channels: {},
+			})
+			return
+		}
+
+		const step = 1 / targetVersion.channels.length
+
+		let progress = 0
+
+		const packageScanResult: Record<string, LoudnessScanResultForStream> = {}
+
+		for (const channelSpec of targetVersion.channels) {
+			const resultPromise = scanLoudnessStream(sourceHandle, previouslyScanned, channelSpec)
+			onCancel(() => {
+				resultPromise.cancel()
+			})
+			const result = await resultPromise
+			packageScanResult[channelSpec] = result
+			progress += step
+			onProgress(progress)
+		}
+
+		resolve({
+			channels: packageScanResult,
 		})
 	})
 }
