@@ -88,7 +88,7 @@ export namespace ExpectedPackage {
 			thumbnailPackageSettings?: SideEffectThumbnailSettings | null
 
 			/** Should the package be scanned for loudness */
-			loudness?: boolean
+			loudnessPackageSettings?: SideEffectLoudnessSettings
 		}
 	}
 	export interface SideEffectPreviewSettings {
@@ -101,6 +101,13 @@ export namespace ExpectedPackage {
 		/** What time to pick the thumbnail from [ms] */
 		seekTime?: number
 	}
+
+	export interface SideEffectLoudnessSettings {
+		/** Which channels should be scanned. Use a single 0-indexed number, or two numbers with a plus sign ("0+1") for stereo pairs */
+		channelSpec: SideEffectLoudnessSettingsChannelSpec[]
+	}
+
+	export type SideEffectLoudnessSettingsChannelSpec = `${number}` | `${number}+${number}`
 
 	export interface ExpectedPackageMediaFile extends Base {
 		type: PackageType.MEDIA_FILE

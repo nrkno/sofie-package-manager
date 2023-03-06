@@ -261,8 +261,12 @@ function getSideEffectOfExpectation(
 			}
 		}
 
-		if (expectation0.sideEffect?.loudness) {
-			const preview = generatePackageLoudness(expectation, settings)
+		if (expectation0.sideEffect?.loudnessPackageSettings) {
+			const preview = generatePackageLoudness(
+				expectation,
+				expectation0.sideEffect?.loudnessPackageSettings,
+				settings
+			)
 			expectations[preview.id] = preview
 		}
 	} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
@@ -310,8 +314,12 @@ function getSideEffectOfExpectation(
 			}
 		}
 
-		if (expectation0.sideEffect?.loudness) {
-			const preview = generatePackageLoudness(expectation, settings)
+		if (expectation0.sideEffect?.loudnessPackageSettings) {
+			const preview = generatePackageLoudness(
+				expectation,
+				expectation0.sideEffect?.loudnessPackageSettings,
+				settings
+			)
 			expectations[preview.id] = preview
 		}
 	}

@@ -15,6 +15,7 @@ export namespace Expectation {
 		| FileCopyProxy
 		| PackageScan
 		| PackageDeepScan
+		| PackageLoudnessScan
 		| MediaFileThumbnail
 		| MediaFilePreview
 		| QuantelClipCopy

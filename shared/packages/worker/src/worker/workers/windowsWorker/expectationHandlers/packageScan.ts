@@ -25,6 +25,7 @@ import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { scanWithFFProbe } from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
+import { PackageInfoType } from './lib/coreApi'
 
 /**
  * Scans the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
@@ -176,7 +177,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 				// all done:
 				await targetHandle.packageIsInPlace()
 				await targetHandle.updatePackageInfo(
-					'scan',
+					PackageInfoType.Scan,
 					exp,
 					exp.startRequirement.content,
 					actualSourceVersion,

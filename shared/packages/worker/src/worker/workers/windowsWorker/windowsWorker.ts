@@ -18,6 +18,7 @@ import { FileCopy } from './expectationHandlers/fileCopy'
 import { FileCopyProxy } from './expectationHandlers/fileCopyProxy'
 import { PackageScan } from './expectationHandlers/packageScan'
 import { PackageDeepScan } from './expectationHandlers/packageDeepScan'
+import { PackageLoudnessScan } from './expectationHandlers/packageLoudnessScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
 import { IWorkInProgress } from '../../lib/workInProgress'
@@ -108,6 +109,8 @@ export class WindowsWorker extends GenericWorker {
 				return PackageScan
 			case Expectation.Type.PACKAGE_DEEP_SCAN:
 				return PackageDeepScan
+			case Expectation.Type.PACKAGE_LOUDNESS_SCAN:
+				return PackageLoudnessScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
 				return MediaFileThumbnail
 			case Expectation.Type.MEDIA_FILE_PREVIEW:

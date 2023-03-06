@@ -22,7 +22,7 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { DeepScanResult, FieldOrder, ScanAnomaly } from './lib/coreApi'
+import { DeepScanResult, FieldOrder, PackageInfoType, ScanAnomaly } from './lib/coreApi'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { FFProbeScanResult, scanFieldOrder, scanMoreInfo, scanWithFFProbe } from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
@@ -212,7 +212,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 				// all done:
 				await targetHandle.packageIsInPlace()
 				await targetHandle.updatePackageInfo(
-					'deepScan',
+					PackageInfoType.DeepScan,
 					exp,
 					exp.startRequirement.content,
 					actualSourceVersion,

@@ -294,6 +294,7 @@ export function generatePackageLoudness(
 		| Expectation.FileCopyProxy
 		| Expectation.FileVerify
 		| Expectation.QuantelClipCopy,
+	packageSettings: ExpectedPackage.SideEffectLoudnessSettings,
 	settings: PackageManagerSettings
 ): Expectation.PackageLoudnessScan {
 	return literal<Expectation.PackageLoudnessScan>({
@@ -330,7 +331,7 @@ export function generatePackageLoudness(
 			],
 			content: null,
 			version: {
-				channels: ['0+1'],
+				channels: packageSettings.channelSpec,
 			},
 		},
 		workOptions: {
