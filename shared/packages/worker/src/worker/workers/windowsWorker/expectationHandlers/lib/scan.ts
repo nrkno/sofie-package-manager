@@ -484,7 +484,7 @@ function scanLoudnessStream(
 	channelSpec: string
 ): CancelablePromise<LoudnessScanResultForStream> {
 	return new CancelablePromise<LoudnessScanResultForStream>(async (resolve, reject, onCancel) => {
-		const stereoPairMatch = channelSpec.match(/(\d+)\+(\d+)/)
+		const stereoPairMatch = channelSpec.match(/^(\d+)\+(\d+)$/)
 		const singleChannel = Number.parseInt(channelSpec)
 		if (!stereoPairMatch && !Number.isInteger(singleChannel)) {
 			reject(`Invalid channel specification: ${channelSpec}`)
