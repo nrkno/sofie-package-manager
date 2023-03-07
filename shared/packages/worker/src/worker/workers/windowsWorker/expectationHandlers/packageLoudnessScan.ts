@@ -12,18 +12,17 @@ import {
 	ReturnTypeRemoveExpectation,
 	stringifyError,
 } from '@sofie-package-manager/api'
-import {
-	isCorePackageInfoAccessorHandle,
-	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
-	isHTTPProxyAccessorHandle,
-	isLocalFolderAccessorHandle,
-	isQuantelClipAccessorHandle,
-} from '../../../accessorHandlers/accessor'
+import { isCorePackageInfoAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
-import { FFProbeScanResult, scanLoudness, scanWithFFProbe } from './lib/scan'
+import {
+	FFProbeScanResult,
+	isAnFFMpegSupportedSourceAccessor,
+	isAnFFMpegSupportedSourceAccessorHandle,
+	scanLoudness,
+	scanWithFFProbe,
+} from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
 import { LoudnessScanResult, PackageInfoType } from './lib/coreApi'
 
@@ -142,75 +141,63 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 			const sourceHandle = lookupSource.handle
 			const targetHandle = lookupTarget.handle
 			if (
-				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-					lookupSource.accessor.type === Accessor.AccessType.HTTP ||
-					lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY ||
-					lookupSource.accessor.type === Accessor.AccessType.QUANTEL) &&
-				lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
-			) {
-				if (
-					!isLocalFolderAccessorHandle(sourceHandle) &&
-					!isFileShareAccessorHandle(sourceHandle) &&
-					!isHTTPAccessorHandle(sourceHandle) &&
-					!isHTTPProxyAccessorHandle(sourceHandle) &&
-					!isQuantelClipAccessorHandle(sourceHandle)
-				)
-					throw new Error(`Source AccessHandler type is wrong`)
-
-				if (!isCorePackageInfoAccessorHandle(targetHandle))
-					throw new Error(`Target AccessHandler type is wrong`)
-
-				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
-				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
-
-				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
-				const sourceVersionHash = hashObj(actualSourceVersion)
-
-				workInProgress._reportProgress(sourceVersionHash, 0.01)
-
-				// Scan with FFProbe:
-				currentProcess = scanWithFFProbe(sourceHandle)
-				const ffProbeScan: FFProbeScanResult = await currentProcess
-				const hasAudioStream =
-					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'audio')
-				workInProgress._reportProgress(sourceVersionHash, 0.1)
-				currentProcess = undefined
-				let result: LoudnessScanResult | undefined = undefined
-
-				if (hasAudioStream) {
-					currentProcess = scanLoudness(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
-						workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
-					})
-					result = await currentProcess
-				}
-				workInProgress._reportProgress(sourceVersionHash, 0.2)
-
-				// all done:
-				await targetHandle.packageIsInPlace()
-				await targetHandle.updatePackageInfo(
-					PackageInfoType.Loudness,
-					exp,
-					exp.startRequirement.content,
-					actualSourceVersion,
-					exp.endRequirement.version,
-					result
-				)
-
-				const duration = Date.now() - startTime
-				workInProgress._reportComplete(
-					sourceVersionHash,
-					{
-						user: `Scan completed in ${Math.round(duration / 100) / 10}s`,
-						tech: `Completed at ${Date.now()}`,
-					},
-					undefined
-				)
-			} else {
+				!isAnFFMpegSupportedSourceAccessor(lookupSource.accessor) ||
+				lookupTarget.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO
+			)
 				throw new Error(
-					`MediaFileScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+					`PackageLoudnessScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
 				)
+
+			if (!isAnFFMpegSupportedSourceAccessorHandle(sourceHandle))
+				throw new Error(`Source AccessHandler type is wrong`)
+
+			if (!isCorePackageInfoAccessorHandle(targetHandle)) throw new Error(`Target AccessHandler type is wrong`)
+
+			const tryReadPackage = await sourceHandle.checkPackageReadAccess()
+			if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
+
+			const actualSourceVersion = await sourceHandle.getPackageActualVersion()
+			const sourceVersionHash = hashObj(actualSourceVersion)
+
+			workInProgress._reportProgress(sourceVersionHash, 0.01)
+
+			// Scan with FFProbe:
+			currentProcess = scanWithFFProbe(sourceHandle)
+			const ffProbeScan: FFProbeScanResult = await currentProcess
+			const hasAudioStream =
+				ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'audio')
+			workInProgress._reportProgress(sourceVersionHash, 0.1)
+			currentProcess = undefined
+			let result: LoudnessScanResult | undefined = undefined
+
+			if (hasAudioStream) {
+				currentProcess = scanLoudness(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
+					workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+				})
+				result = await currentProcess
 			}
+			workInProgress._reportProgress(sourceVersionHash, 0.2)
+
+			// all done:
+			await targetHandle.packageIsInPlace()
+			await targetHandle.updatePackageInfo(
+				PackageInfoType.Loudness,
+				exp,
+				exp.startRequirement.content,
+				actualSourceVersion,
+				exp.endRequirement.version,
+				result
+			)
+
+			const duration = Date.now() - startTime
+			workInProgress._reportComplete(
+				sourceVersionHash,
+				{
+					user: `Scan completed in ${Math.round(duration / 100) / 10}s`,
+					tech: `Completed at ${Date.now()}`,
+				},
+				undefined
+			)
 		})
 
 		return workInProgress

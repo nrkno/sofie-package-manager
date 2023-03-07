@@ -1,5 +1,5 @@
 import { execFile, ChildProcess, spawn } from 'child_process'
-import { Expectation, assertNever } from '@sofie-package-manager/api'
+import { Expectation, assertNever, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -17,6 +17,7 @@ import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
 import { MAX_EXEC_BUFFER } from '../../../../lib/lib'
 import { getFFMpegExecutable } from './ffmpeg'
+import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'
 
 export interface FFProbeScanResultStream {
 	index: number
@@ -598,4 +599,33 @@ async function getFFMpegInputArgsFromAccessorHandle(
 	}
 
 	return args
+}
+
+const FFMPEG_SUPPORTED_SOURCE_ACCESSORS: Set<Accessor.AccessType | undefined> = new Set([
+	Accessor.AccessType.LOCAL_FOLDER,
+	Accessor.AccessType.FILE_SHARE,
+	Accessor.AccessType.HTTP,
+	Accessor.AccessType.HTTP_PROXY,
+	Accessor.AccessType.QUANTEL,
+])
+
+export function isAnFFMpegSupportedSourceAccessor(sourceAccessorOnPackage: AccessorOnPackage.Any): boolean {
+	return FFMPEG_SUPPORTED_SOURCE_ACCESSORS.has(sourceAccessorOnPackage.type)
+}
+
+export function isAnFFMpegSupportedSourceAccessorHandle(
+	sourceHandle: GenericAccessorHandle<any>
+): sourceHandle is
+	| LocalFolderAccessorHandle<any>
+	| FileShareAccessorHandle<any>
+	| HTTPAccessorHandle<any>
+	| HTTPProxyAccessorHandle<any>
+	| QuantelAccessorHandle<any> {
+	return (
+		isLocalFolderAccessorHandle(sourceHandle) ||
+		isFileShareAccessorHandle(sourceHandle) ||
+		isHTTPAccessorHandle(sourceHandle) ||
+		isHTTPProxyAccessorHandle(sourceHandle) ||
+		isQuantelClipAccessorHandle(sourceHandle)
+	)
 }
