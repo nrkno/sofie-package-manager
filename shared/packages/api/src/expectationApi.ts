@@ -202,7 +202,7 @@ export namespace Expectation {
 			content: null // not using content, entries are stored using this.fromPackages
 			version: {
 				/** List of channels or stereo channel pairs to be inspected for loudness, 0-indexed. Use channel number as string (e.g. "0") or two numbers with a plus sign for stereo pairs (e.g. "0+1") */
-				channels: string[]
+				channels: (`${number}` | `${number}+${number}`)[]
 			}
 		}
 		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
