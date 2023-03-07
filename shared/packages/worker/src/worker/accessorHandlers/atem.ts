@@ -24,6 +24,7 @@ import { promisify } from 'util'
 import { UniversalVersion } from '../workers/windowsWorker/lib/lib'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
+import { getFFMpegExecutable, getFFProbeExecutable } from '../workers/windowsWorker/expectationHandlers/lib/ffmpeg'
 
 const fsReadFile = promisify(fs.readFile)
 
@@ -544,7 +545,7 @@ async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Pr
 
 async function ffprobe(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
+		const file = getFFProbeExecutable()
 		execFile(
 			file,
 			args,
@@ -565,7 +566,7 @@ async function ffprobe(args: string[]): Promise<string> {
 
 async function ffmpeg(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		const file = getFFMpegExecutable()
 		execFile(
 			file,
 			['-v error', ...args],

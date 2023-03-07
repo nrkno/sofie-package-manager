@@ -16,6 +16,7 @@ import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
 import { MAX_EXEC_BUFFER } from '../../../../lib/lib'
+import { getFFMpegExecutable } from './ffmpeg'
 
 export interface FFProbeScanResultStream {
 	index: number
@@ -159,7 +160,7 @@ export function scanFieldOrder(
 			return
 		}
 
-		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		const file = getFFMpegExecutable()
 		const args = [
 			'-hide_banner',
 			'-filter:v idet',
@@ -171,25 +172,7 @@ export function scanFieldOrder(
 			process.platform === 'win32' ? 'NUL' : '/dev/null',
 		]
 
-		if (isLocalFolderAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isFileShareAccessorHandle(sourceHandle)) {
-			await sourceHandle.prepareFileAccess()
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isHTTPAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
-			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
-
-			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
-
-			args.push('-seekable 0')
-			args.push(`-i "${httpStreamURL.fullURL}"`)
-		} else {
-			assertNever(sourceHandle)
-		}
+		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
 
 		let ffmpegProcess: ChildProcess | undefined = undefined
 		onCancel(() => {
@@ -282,25 +265,8 @@ export function scanMoreInfo(
 
 		const args = ['-hide_banner']
 
-		if (isLocalFolderAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isFileShareAccessorHandle(sourceHandle)) {
-			await sourceHandle.prepareFileAccess()
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isHTTPAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
-			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
+		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
 
-			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
-
-			args.push('-seekable 0')
-			args.push(`-i "${httpStreamURL.fullURL}"`)
-		} else {
-			assertNever(sourceHandle)
-		}
 		args.push('-filter:v', filterString)
 		args.push('-an')
 		args.push('-f null')
@@ -323,7 +289,7 @@ export function scanMoreInfo(
 			reject('Cancelled')
 		})
 
-		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
+		ffMpegProcess = spawn(getFFMpegExecutable(), args, {
 			windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
 		})
 
@@ -491,19 +457,19 @@ function scanLoudnessStream(
 			return
 		}
 
-		let filterComplex = `ebur128`
+		let filterString: string
 
 		if (stereoPairMatch) {
-			filterComplex = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128[out]`
+			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128[out]`
 		} else {
-			filterComplex = `[0:a:${singleChannel}]ebur128[out]`
+			filterString = `[0:a:${singleChannel}]ebur128[out]`
 		}
 
-		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		const file = getFFMpegExecutable()
 		const args = [
 			'-nostats',
 			'-filter_complex',
-			JSON.stringify(filterComplex),
+			JSON.stringify(filterString),
 			'-map',
 			JSON.stringify('[out]'),
 			'-f',
@@ -511,25 +477,7 @@ function scanLoudnessStream(
 			'-',
 		]
 
-		if (isLocalFolderAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isFileShareAccessorHandle(sourceHandle)) {
-			await sourceHandle.prepareFileAccess()
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isHTTPAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
-			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
-
-			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
-
-			args.push('-seekable 0')
-			args.push(`-i "${httpStreamURL.fullURL}"`)
-		} else {
-			assertNever(sourceHandle)
-		}
+		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
 
 		let ffmpegProcess: ChildProcess | undefined = undefined
 		onCancel(() => {
@@ -618,4 +566,36 @@ export function scanLoudness(
 			channels: packageScanResult,
 		})
 	})
+}
+
+async function getFFMpegInputArgsFromAccessorHandle(
+	sourceHandle:
+		| LocalFolderAccessorHandle<any>
+		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
+		| QuantelAccessorHandle<any>
+): Promise<string[]> {
+	const args: string[] = []
+	if (isLocalFolderAccessorHandle(sourceHandle)) {
+		args.push(`-i "${sourceHandle.fullPath}"`)
+	} else if (isFileShareAccessorHandle(sourceHandle)) {
+		await sourceHandle.prepareFileAccess()
+		args.push(`-i "${sourceHandle.fullPath}"`)
+	} else if (isHTTPAccessorHandle(sourceHandle)) {
+		args.push(`-i "${sourceHandle.fullUrl}"`)
+	} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
+		args.push(`-i "${sourceHandle.fullUrl}"`)
+	} else if (isQuantelClipAccessorHandle(sourceHandle)) {
+		const httpStreamURL = await sourceHandle.getTransformerStreamURL()
+
+		if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
+
+		args.push('-seekable 0')
+		args.push(`-i "${httpStreamURL.fullURL}"`)
+	} else {
+		assertNever(sourceHandle)
+	}
+
+	return args
 }

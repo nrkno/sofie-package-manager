@@ -15,13 +15,19 @@ export interface FFMpegProcess {
 	pid: number
 	cancel: () => void
 }
+export function getFFMpegExecutable(): string {
+	return process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+}
+export function getFFProbeExecutable(): string {
+	return process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
+}
 /** Check if FFMpeg is available, returns null if no error found */
 export async function testFFMpeg(): Promise<string | null> {
-	return testFFExecutable(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+	return testFFExecutable(getFFMpegExecutable())
 }
 /** Check if FFProbe is available */
 export async function testFFProbe(): Promise<string | null> {
-	return testFFExecutable(process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe')
+	return testFFExecutable(getFFProbeExecutable())
 }
 export async function testFFExecutable(ffExecutable: string): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {
@@ -96,13 +102,9 @@ export async function spawnFFMpeg<Metadata>(
 	}
 
 	log?.('ffmpeg: spawn..')
-	let ffMpegProcess: ChildProcessWithoutNullStreams | undefined = spawn(
-		process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
-		args,
-		{
-			windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
-		}
-	)
+	let ffMpegProcess: ChildProcessWithoutNullStreams | undefined = spawn(getFFMpegExecutable(), args, {
+		windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+	})
 	log?.('ffmpeg: spawned')
 
 	function killFFMpeg() {
