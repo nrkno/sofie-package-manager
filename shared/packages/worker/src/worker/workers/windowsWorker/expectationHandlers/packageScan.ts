@@ -106,7 +106,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
-			'scan',
+			PackageInfoType.Scan,
 			exp,
 			exp.startRequirement.content,
 			actualSourceVersion,
@@ -115,7 +115,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 		if (packageInfoSynced.needsUpdate) {
 			if (wasFullfilled) {
 				// Remove the outdated scan result:
-				await lookupTarget.handle.removePackageInfo('scan', exp)
+				await lookupTarget.handle.removePackageInfo(PackageInfoType.Scan, exp)
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
@@ -217,7 +217,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		try {
-			await lookupTarget.handle.removePackageInfo('scan', exp)
+			await lookupTarget.handle.removePackageInfo(PackageInfoType.Scan, exp)
 		} catch (err) {
 			return {
 				removed: false,

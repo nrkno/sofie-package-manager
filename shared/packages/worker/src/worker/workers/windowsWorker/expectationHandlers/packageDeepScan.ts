@@ -107,7 +107,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
-			'deepScan',
+			PackageInfoType.DeepScan,
 			exp,
 			exp.startRequirement.content,
 			actualSourceVersion,
@@ -116,7 +116,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		if (packageInfoSynced.needsUpdate) {
 			if (wasFullfilled) {
 				// Remove the outdated scan result:
-				await lookupTarget.handle.removePackageInfo('deepScan', exp)
+				await lookupTarget.handle.removePackageInfo(PackageInfoType.DeepScan, exp)
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
@@ -252,7 +252,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		try {
-			await lookupTarget.handle.removePackageInfo('deepScan', exp)
+			await lookupTarget.handle.removePackageInfo(PackageInfoType.DeepScan, exp)
 		} catch (err) {
 			return {
 				removed: false,
