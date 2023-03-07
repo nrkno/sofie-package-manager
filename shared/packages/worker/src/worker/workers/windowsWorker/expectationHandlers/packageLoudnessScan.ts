@@ -63,9 +63,9 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupDeepScanSources(worker, exp)
+		const lookupSource = await lookupLoudnessSources(worker, exp)
 		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
-		const lookupTarget = await lookupDeepScanSources(worker, exp)
+		const lookupTarget = await lookupLoudnessSources(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
@@ -83,7 +83,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 	): Promise<ReturnTypeIsExpectationFullfilled> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupDeepScanSources(worker, exp)
+		const lookupSource = await lookupLoudnessSources(worker, exp)
 		if (!lookupSource.ready)
 			return {
 				fulfilled: false,
@@ -92,7 +92,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 					tech: `Not able to access source: ${lookupSource.reason.tech}`,
 				},
 			}
-		const lookupTarget = await lookupDeepScanTargets(worker, exp)
+		const lookupTarget = await lookupLoudnessTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
@@ -128,10 +128,10 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		// Scan the source media file and upload the results to Core
 		const startTime = Date.now()
 
-		const lookupSource = await lookupDeepScanSources(worker, exp)
+		const lookupSource = await lookupLoudnessSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
-		const lookupTarget = await lookupDeepScanTargets(worker, exp)
+		const lookupTarget = await lookupLoudnessTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		let currentProcess: CancelablePromise<any> | undefined
@@ -217,7 +217,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 	},
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupTarget = await lookupDeepScanTargets(worker, exp)
+		const lookupTarget = await lookupLoudnessTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return {
 				removed: false,
@@ -248,7 +248,7 @@ function isPackageLoudnessScan(exp: Expectation.Any): exp is Expectation.Package
 }
 type Metadata = any // not used
 
-async function lookupDeepScanSources(
+async function lookupLoudnessSources(
 	worker: GenericWorker,
 	exp: Expectation.PackageLoudnessScan
 ): Promise<LookupPackageContainer<Metadata>> {
@@ -264,7 +264,7 @@ async function lookupDeepScanSources(
 		}
 	)
 }
-async function lookupDeepScanTargets(
+async function lookupLoudnessTargets(
 	worker: GenericWorker,
 	exp: Expectation.PackageLoudnessScan
 ): Promise<LookupPackageContainer<Metadata>> {
