@@ -590,21 +590,33 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {
 			case 'fetchPackageInfoMetadata': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				if (this.packageManager.coreHandler.notUsingCore) {
+					return [] // Abort if we are not using core
+				}
 				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPIMethods.fetchPackageInfoMetadata,
 					message.arguments
 				)
 			}
 			case 'updatePackageInfo': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				if (this.packageManager.coreHandler.notUsingCore) {
+					this.logger.info('UPDATE PackageInfo')
+					this.logger.info(message.arguments)
+
+					return // Abort if we are not using core
+				}
 				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPIMethods.updatePackageInfo,
 					message.arguments
 				)
 			}
 			case 'removePackageInfo': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				if (this.packageManager.coreHandler.notUsingCore) {
+					this.logger.info('REMOVE PackageInfo')
+					this.logger.info(message.arguments)
+
+					return // Abort if we are not using core
+				}
 				return this.packageManager.coreHandler.callMethod(
 					PeripheralDeviceAPIMethods.removePackageInfo,
 					message.arguments
