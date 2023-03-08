@@ -29,18 +29,26 @@ export interface LoudnessScanResult {
 	}
 }
 
-export interface LoudnessScanResultForStream {
-	// Unit: LUFS
-	integrated: number
-	// Unit: LUFS
-	integratedThreshold: number
+export type LoudnessScanResultForStream =
+	| {
+			success: false
+			reason: string
+	  }
+	| {
+			success: true
+			// Detected channel layout for the stream
+			layout: string
+			/** Unit: LUFS */
+			integrated: number
+			/** Unit: LUFS */
+			integratedThreshold: number
 
-	// Unit: LU
-	range: number
-	// Unit: LUFS
-	rangeThreshold: number
-	// Unit: LUFS
-	rangeLow: number
-	// Unit: LUFS
-	rangeHigh: number
-}
+			/** Unit: LU */
+			range: number
+			/** Unit: LUFS */
+			rangeThreshold: number
+			/** Unit: LUFS  */
+			rangeLow: number
+			/** Unit: LUFS */
+			rangeHigh: number
+	  }

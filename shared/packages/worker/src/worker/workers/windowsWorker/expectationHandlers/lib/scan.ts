@@ -502,20 +502,36 @@ function scanLoudnessStream(
 					return
 				}
 
+				const StreamNotFoundRegex = /Stream specifier [\S\s]+ matches no streams./
+
+				const LayoutRegex = /Output #0, null[\S\s]+Stream #0:0: Audio: [\w]+, [\d]+ Hz, (?<layout>\w+),/
+
 				const LoudnessRegex =
 					/Integrated loudness:\s+I:\s+(?<integrated>[\d-.,]+)\s+LUFS\s+Threshold:\s+(?<threshold>[\d-.,]+)\s+LUFS\s+Loudness range:\s+LRA:\s+(?<lra>[\d-.,]+)\s+LU\s+Threshold:\s+(?<rangeThreshold>[\d-.,]+)\s+LUFS\s+LRA low:\s+(?<lraLow>[\d-.,]+)\s+LUFS\s+LRA high:\s+(?<lraHigh>[\d-.,]+)\s+LUFS/i
 
-				const res = LoudnessRegex.exec(stderr)
-				if (res === null) {
+				const loudnessRes = LoudnessRegex.exec(stderr)
+				const layoutRes = LayoutRegex.exec(stderr)
+				const streamNotFound = StreamNotFoundRegex.exec(stderr)
+
+				if (streamNotFound) {
+					return resolve({
+						success: false,
+						reason: 'Specified Audio stream not found',
+					})
+				}
+
+				if (loudnessRes === null) {
 					reject(`ffmpeg output unreadable`)
 				} else {
 					resolve({
-						integrated: Number.parseFloat(res.groups?.['integrated'] ?? ''),
-						integratedThreshold: Number.parseFloat(res.groups?.['threshold'] ?? ''),
-						range: Number.parseFloat(res.groups?.['lra'] ?? ''),
-						rangeThreshold: Number.parseFloat(res.groups?.['rangeThreshold'] ?? ''),
-						rangeHigh: Number.parseFloat(res.groups?.['lraHigh'] ?? ''),
-						rangeLow: Number.parseFloat(res.groups?.['lraLow'] ?? ''),
+						success: true,
+						layout: layoutRes?.groups?.['layout'] ?? 'unknown',
+						integrated: Number.parseFloat(loudnessRes.groups?.['integrated'] ?? ''),
+						integratedThreshold: Number.parseFloat(loudnessRes.groups?.['threshold'] ?? ''),
+						range: Number.parseFloat(loudnessRes.groups?.['lra'] ?? ''),
+						rangeThreshold: Number.parseFloat(loudnessRes.groups?.['rangeThreshold'] ?? ''),
+						rangeHigh: Number.parseFloat(loudnessRes.groups?.['lraHigh'] ?? ''),
+						rangeLow: Number.parseFloat(loudnessRes.groups?.['lraLow'] ?? ''),
 					})
 				}
 			}
@@ -553,12 +569,19 @@ export function scanLoudness(
 		const packageScanResult: Record<string, LoudnessScanResultForStream> = {}
 
 		for (const channelSpec of targetVersion.channels) {
-			const resultPromise = scanLoudnessStream(sourceHandle, previouslyScanned, channelSpec)
-			onCancel(() => {
-				resultPromise.cancel()
-			})
-			const result = await resultPromise
-			packageScanResult[channelSpec] = result
+			try {
+				const resultPromise = scanLoudnessStream(sourceHandle, previouslyScanned, channelSpec)
+				onCancel(() => {
+					resultPromise.cancel()
+				})
+				const result = await resultPromise
+				packageScanResult[channelSpec] = result
+			} catch (e) {
+				packageScanResult[channelSpec] = {
+					success: false,
+					reason: String(e),
+				}
+			}
 			progress += step
 			onProgress(progress)
 		}
