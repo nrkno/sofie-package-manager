@@ -309,7 +309,11 @@ export class CoreHandler {
 						// nothing
 					})
 					.catch((e) => {
-						this.logger.error(`Error when calling method functionReply: ${stringifyError(e)}`)
+						this.logger.error(
+							`(Replying to ${
+								cmd.functionName
+							}) Error when calling method functionReply: ${stringifyError(e)}`
+						)
 					})
 			}
 			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
