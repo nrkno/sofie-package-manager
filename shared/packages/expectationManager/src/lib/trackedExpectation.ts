@@ -52,7 +52,7 @@ export interface TrackedExpectation {
 
 		sourceExists?: boolean
 		targetCanBeUsedWhileTransferring?: boolean
-		sourceIsPlaceholder?: boolean // todo: to be implemented (quantel)
+		sourceIsPlaceholder?: boolean
 	}
 	/** A storage which is persistant only for a short while, during an evaluation of the Expectation. */
 	session: ExpectationStateHandlerSession | null

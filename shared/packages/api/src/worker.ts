@@ -28,6 +28,7 @@ export type ReturnTypeIsExpectationReadyToStartWorkingOn =
 			 * undefined means unknown
 			 */
 			sourceExists?: boolean
+			isPlaceholder?: boolean
 			isWaitingForAnother?: boolean
 			reason: Reason
 	  }
