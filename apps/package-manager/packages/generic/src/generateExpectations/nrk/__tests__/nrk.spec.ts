@@ -60,7 +60,7 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(6) // copy, scan, deep-scan, thumbnail, preview
+		expect(Object.keys(expectations)).toHaveLength(6) // copy, scan, deep-scan, thumbnail, preview, loudness
 		// expect(expectations).toMatchSnapshot()
 
 		const eCopy = Object.values(expectations).find((e) => e.type === Expectation.Type.FILE_COPY)
@@ -167,7 +167,7 @@ describe('Generate expectations - NRK', () => {
 			Expectation.Type.FILE_COPY,
 			Expectation.Type.PACKAGE_SCAN,
 			Expectation.Type.PACKAGE_SCAN,
-			// The rest aren't as important
+			// The order of the rest aren't as important:
 			Expectation.Type.MEDIA_FILE_THUMBNAIL,
 			Expectation.Type.MEDIA_FILE_PREVIEW,
 			Expectation.Type.MEDIA_FILE_THUMBNAIL,

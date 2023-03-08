@@ -76,9 +76,14 @@
             "sideEffect": {
                 "previewContainerId": null,
                 "previewPackageSettings": null,
-                "thumbnailContainerId": "thumbnails0",
+                "thumbnailContainerId": "thumbnails0_local",
                 "thumbnailPackageSettings": {
                     "path": "thumbnail.png"
+                },
+                "loudnessPackageSettings": {
+                    "channelSpec": [
+                        "0"
+                    ]
                 }
             }
         }
