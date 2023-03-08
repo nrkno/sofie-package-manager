@@ -262,12 +262,12 @@ function getSideEffectOfExpectation(
 		}
 
 		if (expectation0.sideEffect?.loudnessPackageSettings) {
-			const preview = generatePackageLoudness(
+			const loudness = generatePackageLoudness(
 				expectation,
 				expectation0.sideEffect?.loudnessPackageSettings,
 				settings
 			)
-			expectations[preview.id] = preview
+			expectations[loudness.id] = loudness
 		}
 	} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
 		const expectation = expectation0 as Expectation.QuantelClipCopy
@@ -315,12 +315,12 @@ function getSideEffectOfExpectation(
 		}
 
 		if (expectation0.sideEffect?.loudnessPackageSettings) {
-			const preview = generatePackageLoudness(
+			const loudness = generatePackageLoudness(
 				expectation,
 				expectation0.sideEffect?.loudnessPackageSettings,
 				settings
 			)
-			expectations[preview.id] = preview
+			expectations[loudness.id] = loudness
 		}
 	}
 	return expectations

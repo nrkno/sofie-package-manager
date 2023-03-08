@@ -306,7 +306,7 @@ export function generatePackageLoudness(
 
 		statusReport: {
 			label: `Loudness Scan`,
-			description: `Measure clip loudness`,
+			description: `Measure clip loudness, using channels ${packageSettings.channelSpec.join(', ')}`,
 			requiredForPlayout: false,
 			displayRank: 14,
 			sendReport: expectation.statusReport.sendReport,
