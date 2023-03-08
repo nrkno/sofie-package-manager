@@ -118,7 +118,7 @@ export class ExpectationManager {
 			workforce: this.internalManager.workforceConnection.workforceAPI.connected
 				? await this.internalManager.workforceConnection.workforceAPI.getStatusReport()
 				: {},
-			expectationManager: this.internalManager.statusReport,
+			expectationManager: this.internalManager.statusReport.get(),
 		}
 	}
 	async debugKillApp(appId: string): Promise<void> {
