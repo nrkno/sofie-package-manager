@@ -184,7 +184,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
-		return joinUrls(this.baseUrl, this.path)
+		return joinUrls(this.baseUrl, encodeURIComponent(this.path))
 	}
 
 	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
@@ -314,7 +314,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove the package:
-				const fullUrl: string = joinUrls(this.baseUrl, entry.filePath)
+				const fullUrl: string = joinUrls(this.baseUrl, encodeURIComponent(entry.filePath))
 
 				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)

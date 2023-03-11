@@ -134,7 +134,8 @@ export class FileStorage extends Storage {
 		return true
 	}
 	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
-		const fileInfo = await this.getFileInfo(paramPath)
+		const uriEncodedParamPath = encodeURIComponent(paramPath)
+		const fileInfo = await this.getFileInfo(uriEncodedParamPath)
 
 		if (!fileInfo.found) {
 			return { code: 404, reason: 'Package not found' }
