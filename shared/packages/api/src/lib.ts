@@ -326,3 +326,6 @@ export function ensureValidValue<T>(value: T, check: (value: any) => boolean, de
 	if (check(value)) return value
 	return defaultValue
 }
+export function makeFileNameUrlSafe(fileName: string): string {
+	return encodeURIComponent(fileName)
+}

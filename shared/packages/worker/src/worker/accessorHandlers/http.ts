@@ -25,6 +25,7 @@ import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { joinUrls } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
+import { makeFileNameUrlSafe } from '@sofie-package-manager/api'
 
 /** Accessor handle for accessing files in a local folder */
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -184,7 +185,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
-		return joinUrls(this.baseUrl, encodeURIComponent(this.path))
+		return joinUrls(this.baseUrl, makeFileNameUrlSafe(this.path))
 	}
 
 	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
@@ -314,7 +315,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove the package:
-				const fullUrl: string = joinUrls(this.baseUrl, encodeURIComponent(entry.filePath))
+				const fullUrl: string = joinUrls(this.baseUrl, makeFileNameUrlSafe(entry.filePath))
 
 				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)
