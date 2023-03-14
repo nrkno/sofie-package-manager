@@ -9,14 +9,8 @@ import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { Diff } from 'deep-diff'
-import {
-	AccessorOnPackage,
-	PackageContainerOnPackage,
-	Expectation,
-	Reason,
-	ReturnTypeDoYouSupportExpectation,
-	assertNever,
-} from '@sofie-package-manager/api'
+import { Expectation, Reason, ReturnTypeDoYouSupportExpectation, assertNever } from '@sofie-package-manager/api'
+import { AccessorOnPackage, PackageContainerOnPackage } from '@sofie-package-manager/input-api'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'

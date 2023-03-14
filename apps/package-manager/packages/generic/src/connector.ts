@@ -4,10 +4,9 @@ import {
 	PackageManagerConfig,
 	ProcessHandler,
 	stringifyError,
-	ExpectedPackage,
 	literal,
-	Accessor,
 } from '@sofie-package-manager/api'
+import { Accessor, ExpectedPackage } from '@sofie-package-manager/input-api'
 import { ExpectationManager, ExpectationManagerServerOptions } from '@sofie-package-manager/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageContainers, PackageManagerHandler } from './packageManager'

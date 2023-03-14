@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
+// eslint-disable-next-line node/no-extraneous-import
+import { StatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
+import { ExpectedPackage } from '@sofie-package-manager/input-api'
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
@@ -15,7 +18,6 @@ import {
 } from './worker'
 import { WorkerStatusReport, WorkforceStatusReport } from './statusReport'
 import { LogLevel } from './logger'
-import { ExpectedPackage, StatusCode } from './inputApi'
 import { Statuses } from './status'
 
 /** Contains textual descriptions for statuses. */

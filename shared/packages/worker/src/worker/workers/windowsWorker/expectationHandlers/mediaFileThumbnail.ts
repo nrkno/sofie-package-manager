@@ -1,5 +1,4 @@
 import {
-	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -10,6 +9,7 @@ import {
 	assertNever,
 	stringifyError,
 } from '@sofie-package-manager/api'
+import { Accessor } from '@sofie-package-manager/input-api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'

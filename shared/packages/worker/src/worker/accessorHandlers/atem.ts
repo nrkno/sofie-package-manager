@@ -11,7 +11,8 @@ import {
 	AccessorHandlerTryPackageReadResult,
 	AccessorHandlerRunCronJobResult,
 } from './genericHandle'
-import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
+import { Expectation } from '@sofie-package-manager/api'
+import { Accessor, AccessorOnPackage } from '@sofie-package-manager/input-api'
 import { GenericWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'

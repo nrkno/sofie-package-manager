@@ -2,9 +2,6 @@ import { GenericWorker } from '../../../worker'
 import { UniversalVersion, getStandardCost } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
-	Accessor,
-	AccessorOnPackage,
-	PackageContainerOnPackage,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
@@ -14,6 +11,7 @@ import {
 	Reason,
 	stringifyError,
 } from '@sofie-package-manager/api'
+import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-package-manager/input-api'
 import { IWorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'

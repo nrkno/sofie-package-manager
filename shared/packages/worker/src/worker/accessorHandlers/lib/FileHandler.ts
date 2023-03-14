@@ -2,10 +2,7 @@ import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
 import {
-	ExpectedPackage,
 	StatusCode,
-	Accessor,
-	AccessorOnPackage,
 	Expectation,
 	hashObj,
 	literal,
@@ -14,6 +11,7 @@ import {
 	Reason,
 	stringifyError,
 } from '@sofie-package-manager/api'
+import { Accessor, AccessorOnPackage, ExpectedPackage } from '@sofie-package-manager/input-api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
 

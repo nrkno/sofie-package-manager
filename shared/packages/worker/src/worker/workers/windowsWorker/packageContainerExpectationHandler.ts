@@ -1,13 +1,11 @@
 import {
-	Accessor,
-	PackageContainer,
-	PackageContainerOnPackage,
 	PackageContainerExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeRunPackageContainerCronJob,
 	Reason,
 	assertNever,
 } from '@sofie-package-manager/api'
+import { Accessor, PackageContainerOnPackage, PackageContainer } from '@sofie-package-manager/input-api'
 
 import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { GenericWorker } from '../../worker'

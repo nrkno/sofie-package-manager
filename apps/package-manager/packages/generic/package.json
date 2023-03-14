@@ -14,6 +14,7 @@
     },
     "dependencies": {
         "@sofie-package-manager/api": "1.41.1",
+        "@sofie-package-manager/input-api": "1.41.1",
         "@sofie-package-manager/expectation-manager": "1.41.1",
         "@sofie-package-manager/worker": "1.41.1",
         "chokidar": "^3.5.1",

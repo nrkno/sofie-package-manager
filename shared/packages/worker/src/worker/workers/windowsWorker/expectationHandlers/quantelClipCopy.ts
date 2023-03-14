@@ -2,7 +2,6 @@ import { GenericWorker } from '../../../worker'
 import { compareUniversalVersions, getStandardCost, makeUniversalVersion } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
-	Accessor,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -12,6 +11,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	stringifyError,
 } from '@sofie-package-manager/api'
+import { Accessor } from '@sofie-package-manager/input-api'
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'

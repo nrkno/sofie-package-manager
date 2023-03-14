@@ -1,12 +1,7 @@
 import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
 import { GenericWorker } from '../../../worker'
-import {
-	AccessorOnPackage,
-	PackageContainer,
-	PackageContainerOnPackage,
-	Expectation,
-	ReturnTypeGetCostFortExpectation,
-} from '@sofie-package-manager/api'
+import { Expectation, ReturnTypeGetCostFortExpectation } from '@sofie-package-manager/api'
+import { AccessorOnPackage, PackageContainerOnPackage, PackageContainer } from '@sofie-package-manager/input-api'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { AccessorHandlerResultGeneric } from '../../../accessorHandlers/genericHandle'
 

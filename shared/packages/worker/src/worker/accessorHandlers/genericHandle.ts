@@ -1,10 +1,5 @@
-import {
-	AccessorOnPackage,
-	Expectation,
-	PackageContainerExpectation,
-	Reason,
-	HelpfulEventEmitter,
-} from '@sofie-package-manager/api'
+import { Expectation, PackageContainerExpectation, Reason, HelpfulEventEmitter } from '@sofie-package-manager/api'
+import { AccessorOnPackage } from '@sofie-package-manager/input-api'
 import { GenericWorker } from '../worker'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 

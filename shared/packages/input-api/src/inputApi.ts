@@ -1,22 +1,4 @@
-// eslint-disable-next-line node/no-extraneous-import
-import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
-
-// import { assertTrue, EnumExtends, assertEnumValuesExtends } from './lib'
 /* eslint-disable @typescript-eslint/no-namespace */
-
-/*
-	This file contains a copy of the package-related types from blueprints-integration.
-	Other libraries should (when possible) refer to these types instead of blueprints-integration directly.
-
-	The reason for this is to allow for easier addition of custom types without
-	having to update the blueprints-integration library.
-
-	Note: When adding types in this file, consider opening a PR to Sofie Core (https://github.com/nrkno/tv-automation-server-core)
-	later to add it into blueprints-integration.
-*/
-
-export type StatusCode = SofieStatusCode
-export const StatusCode = SofieStatusCode
 
 /**
  * An ExpectedPackage is sent from Core to the Package Manager, to signal that a Package (ie a Media file) should be copied to a playout-device.

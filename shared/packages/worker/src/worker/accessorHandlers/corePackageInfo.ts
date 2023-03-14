@@ -10,7 +10,8 @@ import {
 	PutPackageHandler,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Accessor, AccessorOnPackage, hashObj, Expectation, Reason } from '@sofie-package-manager/api'
+import { hashObj, Expectation, Reason } from '@sofie-package-manager/api'
+import { Accessor, AccessorOnPackage } from '@sofie-package-manager/input-api'
 import { GenericWorker } from '../worker'
 
 /** Accessor handle for accessing data store in Core */

@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { AccessorOnPackage, PackageContainerOnPackage } from './inputApi'
+import { AccessorOnPackage, PackageContainerOnPackage } from '@sofie-package-manager/input-api'
 
 /*
  * This file contains definitions for Expectations, the internal datastructure upon which the Package Manager operates.

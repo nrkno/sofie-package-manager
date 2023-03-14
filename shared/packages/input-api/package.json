@@ -1,5 +1,5 @@
 {
-    "name": "@sofie-package-manager/api",
+    "name": "@sofie-package-manager/input-api",
     "version": "1.41.1",
     "main": "dist/index",
     "types": "dist/index",
@@ -9,20 +9,9 @@
     "license": "MIT",
     "scripts": {
         "build": "yarn rimraf dist && yarn build:main",
-        "build:main": "tsc -p tsconfig.json",
-        "test": "jest"
+        "build:main": "tsc -p tsconfig.json"
     },
-    "devDependencies": {
-        "@types/winston": "^2.3.9",
-        "@types/ws": "^8.5.4"
-    },
-    "dependencies": {
-        "underscore": "^1.12.0",
-        "@sofie-package-manager/input-api": "1.41.1",
-        "winston": "^3.5.1",
-        "ws": "^8.12.0",
-        "yargs": "^16.2.0"
-    },
+    "dependencies": {},
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
         "node": ">=14.18.0"

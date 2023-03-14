@@ -13,14 +13,8 @@ import {
 	AccessorHandlerCheckHandleWriteResult,
 	AccessorHandlerRunCronJobResult,
 } from './genericHandle'
-import {
-	Accessor,
-	AccessorOnPackage,
-	Expectation,
-	literal,
-	Reason,
-	INNER_ACTION_TIMEOUT,
-} from '@sofie-package-manager/api'
+import { Expectation, literal, Reason, INNER_ACTION_TIMEOUT } from '@sofie-package-manager/api'
+import { Accessor, AccessorOnPackage } from '@sofie-package-manager/input-api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { joinUrls } from './lib/pathJoin'

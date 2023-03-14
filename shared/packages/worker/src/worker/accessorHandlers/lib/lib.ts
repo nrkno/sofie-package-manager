@@ -1,4 +1,4 @@
-import { AccessorOnPackage } from '@sofie-package-manager/api'
+import { AccessorOnPackage } from '@sofie-package-manager/input-api'
 import { AccessorHandlerCheckHandleReadResult, AccessorHandlerCheckHandleWriteResult } from '../genericHandle'
 
 export function defaultCheckHandleRead(

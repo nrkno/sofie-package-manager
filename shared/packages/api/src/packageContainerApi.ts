@@ -1,4 +1,4 @@
-import { PackageContainer } from './inputApi'
+import { PackageContainer } from '@sofie-package-manager/input-api'
 
 /*
  * This file contains definitions for Package Container Expectations, an internal datastructure upon which the Package Manager operates.
