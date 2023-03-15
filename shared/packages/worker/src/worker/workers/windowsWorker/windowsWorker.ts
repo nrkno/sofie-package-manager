@@ -48,7 +48,7 @@ export class WindowsWorker extends GenericWorker {
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
 		super(logger.category('WindowsWorker'), agentAPI, sendMessageToManager, WindowsWorker.type)
-		if (process.platform !== 'win32') {
+		if (process.platform !== 'win32' && process.env.JEST_WORKER_ID === undefined) {
 			throw new Error('The Worker is a Windows-only application')
 		}
 		this.logger.debug(`Worker started`)

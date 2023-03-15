@@ -1,17 +1,17 @@
 {
     "name": "@worker/generic",
-    "version": "1.40.1",
+    "version": "1.41.1",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.40.1",
-        "@sofie-package-manager/worker": "1.40.1"
+        "@sofie-package-manager/api": "1.41.1",
+        "@sofie-package-manager/worker": "1.41.1"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
@@ -24,7 +24,5 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
-    },
-    "devDependencies": {},
-    "peerDependencies": {}
+    }
 }

@@ -1,8 +1,13 @@
 import {
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerRunCronJobResult,
+	AccessorHandlerTryPackageReadResult,
 	GenericAccessorHandle,
 	PackageReadInfo,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
 import { Accessor, AccessorOnPackage, hashObj, Expectation, Reason } from '@sofie-package-manager/api'
@@ -33,15 +38,15 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	static doYouSupportAccess(): boolean {
 		return true // always has access
 	}
-	checkHandleRead(): AccessorHandlerResult {
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		// Note: We assume that we always have write access here, no need to check this.accessor.allowRead
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		// Note: We assume that we always have write access here, no need to check this.accessor.allowWrite
 		return this.checkAccessor()
 	}
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
 		if (this.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO) {
 			return {
 				success: false,
@@ -53,15 +58,15 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		}
 		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		// todo: add a check here?
 		return { success: true }
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		// not needed
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		// todo: add a check here?
 		return { success: true }
 	}
@@ -108,7 +113,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	async removeMetadata(): Promise<void> {
 		// Not applicable
 	}
-	async runCronJob(): Promise<AccessorHandlerResult> {
+	async runCronJob(): Promise<AccessorHandlerRunCronJobResult> {
 		return {
 			success: true,
 		} // not applicable

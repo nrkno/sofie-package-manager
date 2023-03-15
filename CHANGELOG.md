@@ -3,6 +3,74 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.41.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0...v1.41.1) (2023-02-22)
+
+
+### Bug Fixes
+
+* add packageExists property to tryPackageRead() method, in order to return better sourceExists from isFileReadyToStartWorkingOn() ([ddccbbe](https://github.com/nrkno/tv-automation-package-manager/commit/ddccbbef9d7c00340cb746ad8e2645e143ea6de9))
+* adjust MESSAGE_TIMEOUT during unit tests ([2411472](https://github.com/nrkno/tv-automation-package-manager/commit/2411472811f39835985d3d86c7950d12be077b5c))
+* bug in joinUrls where it incorrectly joined the paths ("asdf/package", "//nas/folder/path") ([72b837a](https://github.com/nrkno/tv-automation-package-manager/commit/72b837acebae1eb3140400226fdcc58d91169d15))
+* check if prerelease tag or full release ([46952cd](https://github.com/nrkno/tv-automation-package-manager/commit/46952cda167156214135d845a71455b914d8b8ff))
+* packageExists value ([fc7e5c6](https://github.com/nrkno/tv-automation-package-manager/commit/fc7e5c6275eefcca86c9c4c124d9fc5bd7b809fa))
+
+
+
+
+
+# [1.41.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.1...v1.41.0) (2023-02-03)
+
+**Note:** Version bump only for package package-manager-monorepo
+
+
+
+
+
+# [1.41.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.0...v1.41.0-alpha.1) (2023-02-03)
+
+
+### Bug Fixes
+
+* add a self-check function to ensure that coreHandler._getVersions() work ([a94c0d3](https://github.com/nrkno/tv-automation-package-manager/commit/a94c0d3ede14903dc7a031447b74d6540b35e51c))
+* bug with logLevels ([115651b](https://github.com/nrkno/tv-automation-package-manager/commit/115651b5a4a1b2b33de3887a2971f76e2b2abe11))
+* bugs after refactoring ([8b3f19e](https://github.com/nrkno/tv-automation-package-manager/commit/8b3f19e347a432ddec3cb7d73d03b22d08e1330a))
+* change how process version is exposed ([0f7f80f](https://github.com/nrkno/tv-automation-package-manager/commit/0f7f80f2ebe58e0b28a93982b0064937572228ba))
+
+
+
+
+
+# [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
+
+
+### Bug Fixes
+
+* CachedQuantelGateway: ([6597efe](https://github.com/nrkno/tv-automation-package-manager/commit/6597efe7b990b8152b3468a1842deadc168e621f))
+* increase WORKER_SUPPORT_TIME ([bccf20e](https://github.com/nrkno/tv-automation-package-manager/commit/bccf20ecf00962ab9b575b72fe82b551eb015a87))
+* possible race-condition when receiving new data ([ba17cb1](https://github.com/nrkno/tv-automation-package-manager/commit/ba17cb18573016a99fdbd115d30f66da2a88f798))
+* rework CachedQuantelGateway ([216ac06](https://github.com/nrkno/tv-automation-package-manager/commit/216ac062114d464e89270e5ce0ead6e9bddeb367))
+
+
+### Features
+
+* **lib:** add ensureValidValue ([e7e19af](https://github.com/nrkno/tv-automation-package-manager/commit/e7e19af65333ac0a4ecb72011a5960f0e41ba1a4))
+* enforce a default delay removal package ([53387b8](https://github.com/nrkno/tv-automation-package-manager/commit/53387b8dd51051f2c8398c55807e793ce740b5e7))
+
+
+
+
+
+## [1.40.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.1...v1.40.2) (2023-01-26)
+
+
+### Bug Fixes
+
+* app version is not reported to Core ([5f0917c](https://github.com/nrkno/tv-automation-package-manager/commit/5f0917c64942eae4eab18a1f7c8c4bc8c208e995))
+
+
+
+
+
 ## [1.40.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
 
 **Note:** Version bump only for package package-manager-monorepo

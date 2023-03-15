@@ -20,6 +20,7 @@ import { protectString, unprotectString } from '@sofie-automation/shared-lib/dis
 import { DeviceConfig } from './connector'
 
 import fs from 'fs'
+import path from 'path'
 import {
 	LoggerInstance,
 	PackageManagerConfig,
@@ -30,9 +31,21 @@ import {
 	hashObj,
 	setLogLevel,
 	getLogLevel,
+	ensureValidValue,
 } from '@sofie-package-manager/api'
-import { PACKAGE_MANAGER_DEVICE_CONFIG } from './configManifest'
+import {
+	DEFAULT_DELAY_REMOVAL_PACKAGE,
+	DEFAULT_DELAY_REMOVAL_PACKAGE_INFO,
+	PACKAGE_MANAGER_DEVICE_CONFIG,
+} from './configManifest'
 import { PackageManagerHandler } from './packageManager'
+
+let packageJson: any
+try {
+	packageJson = require('../package.json')
+} catch {
+	packageJson = null
+}
 
 export interface CoreConfig {
 	host: string
@@ -214,7 +227,7 @@ export class CoreHandler {
 
 			configManifest: PACKAGE_MANAGER_DEVICE_CONFIG,
 
-			versions: this._getVersions(),
+			versions: this._getVersions().versions,
 		}
 		return options
 	}
@@ -253,10 +266,18 @@ export class CoreHandler {
 			}
 
 			if (this.deviceSettings['delayRemoval'] !== this.delayRemoval) {
-				this.delayRemoval = this.deviceSettings['delayRemoval']
+				this.delayRemoval = ensureValidValue<number>(
+					Number(this.deviceSettings['delayRemoval']),
+					(input: any) => Number(input) >= 0,
+					DEFAULT_DELAY_REMOVAL_PACKAGE
+				)
 			}
 			if (this.deviceSettings['delayRemovalPackageInfo'] !== this.delayRemovalPackageInfo) {
-				this.delayRemovalPackageInfo = this.deviceSettings['delayRemovalPackageInfo']
+				this.delayRemovalPackageInfo = ensureValidValue<number>(
+					Number(this.deviceSettings['delayRemovalPackageInfo']),
+					(input: any) => Number(input) >= 0,
+					DEFAULT_DELAY_REMOVAL_PACKAGE_INFO
+				)
 			}
 			if (this.deviceSettings['useTemporaryFilePath'] !== this.useTemporaryFilePath) {
 				this.useTemporaryFilePath = this.deviceSettings['useTemporaryFilePath']
@@ -288,7 +309,11 @@ export class CoreHandler {
 						// nothing
 					})
 					.catch((e) => {
-						this.logger.error(`Error when calling method functionReply: ${stringifyError(e)}`)
+						this.logger.error(
+							`(Replying to ${
+								cmd.functionName
+							}) Error when calling method functionReply: ${stringifyError(e)}`
+						)
 					})
 			}
 			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -393,6 +418,10 @@ export class CoreHandler {
 		this.statuses = statuses
 		await this.updateCoreStatus()
 	}
+	/** Do a self-test. Throws if something is not working as it should */
+	public checkIfWorking(): void {
+		if (this._getVersions().hadError) throw new Error('Error in getVersions()')
+	}
 	private async updateCoreStatus(): Promise<any> {
 		let statusCode = SofieStatusCode.GOOD
 		const messages: Array<string> = []
@@ -425,32 +454,38 @@ export class CoreHandler {
 			})
 		}
 	}
-	private _getVersions() {
+	private _getVersions(): {
+		hadError: boolean
+		versions: { [packageName: string]: string }
+	} {
+		let hadError = false
 		const versions: { [packageName: string]: string } = {}
 
-		if (process.env.npm_package_version) {
-			versions['_process'] = process.env.npm_package_version
-		}
+		const entrypointDir = path.dirname((require as any).main.filename)
+
+		versions['_process'] = process.env.npm_package_version || packageJson?.version || 'N/A'
 
 		const dirNames = ['@sofie-automation/server-core-integration']
 		try {
-			const nodeModulesDirectories = fs.readdirSync('node_modules')
+			const nodeModulesDirectories = fs.readdirSync(path.join(entrypointDir, '../node_modules'))
 			for (const dir of nodeModulesDirectories) {
 				try {
-					if (dirNames.indexOf(dir) !== -1) {
-						let file = 'node_modules/' + dir + '/package.json'
+					if (dirNames.includes(dir)) {
+						let file = path.join(entrypointDir, '../node_modules', dir, 'package.json')
 						file = fs.readFileSync(file, 'utf8')
 						const json = JSON.parse(file)
 						versions[dir] = json.version || 'N/A'
 					}
 				} catch (e) {
 					this.logger.error(`Error in _getVersions, dir "${dir}": ${stringifyError(e)}`)
+					hadError = true
 				}
 			}
 		} catch (e) {
 			this.logger.error(`Error in _getVersions: ${stringifyError(e)}`)
+			hadError = true
 		}
-		return versions
+		return { hadError, versions }
 	}
 
 	restartExpectation(workId: string): void {

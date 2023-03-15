@@ -22,7 +22,7 @@
         "lintfix": "yarn lint --fix",
         "lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
         "test": "lerna run test --stream",
-        "test:ci": "lerna run test --stream --ignore=@tests/**",
+        "test:ci": "lerna run test --stream",
         "test:changed": "lerna run --since origin/master --include-dependents test",
         "test:update": "lerna run test -- -u",
         "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
@@ -48,7 +48,7 @@
         "@types/jest": "^29.2.5",
         "deep-extend": "^0.6.0",
         "find": "^0.3.0",
-        "fs-extra": "^9.1.0",
+        "fs-extra": "^11.1.0",
         "glob": "^8.1.0",
         "jest": "^29.3.1",
         "lerna": "^3.22.1",
@@ -63,7 +63,7 @@
         "node": ">=12.11.0"
     },
     "dependencies": {
-        "@sofie-automation/server-core-integration": "1.44.1"
+        "@sofie-automation/server-core-integration": "1.44.2"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {

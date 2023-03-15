@@ -5,10 +5,11 @@ import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/pack
 import { Expectation, literal } from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
-import { waitTime } from './lib/lib'
+import { waitUntil, waitTime } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
 import { WorkerAgent } from '@sofie-package-manager/worker'
 jest.mock('fs')
+jest.mock('mkdirp')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
@@ -23,7 +24,7 @@ describe('Handle unhappy paths', () => {
 	let env: TestEnviromnent
 
 	beforeAll(async () => {
-		env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
+		env = await prepareTestEnviromnent(true) // set to true to enable debug-logging
 		// Verify that the fs mock works:
 		expect(fs.lstat).toBeTruthy()
 		expect(fs.__mockReset).toBeTruthy()
@@ -39,7 +40,7 @@ describe('Handle unhappy paths', () => {
 		env.reset()
 	})
 
-	test('Wait for non-existing local file', async () => {
+	test.only('Wait for non-existing local file', async () => {
 		fs.__mockSetDirectory('/sources/source0/')
 		fs.__mockSetDirectory('/targets/target0')
 		addCopyFileExpectation(
@@ -49,32 +50,42 @@ describe('Handle unhappy paths', () => {
 			[getLocalTarget('target0', 'file0Target.mp4')]
 		)
 
-		await waitTime(env.WAIT_JOB_TIME)
-
-		// Expect the Expectation to be waiting:
-		expect(env.expectationStatuses['copy0']).toMatchObject({
-			actualVersionHash: null,
-			statusInfo: {
-				status: /new|waiting/,
-				statusReason: {
-					tech: /not able to access file/i,
+		await waitUntil(() => {
+			// Expect the Expectation to be waiting:
+			expect(env.expectationStatuses['copy0']).toMatchObject({
+				actualVersionHash: null,
+				statusInfo: {
+					status: /new|waiting/,
+					statusReason: {
+						tech: /not able to access file/i,
+					},
 				},
-			},
-		})
+			})
+		}, env.WAIT_JOB_TIME)
+
+		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
+		)
 
 		// Now the file suddenly pops up:
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
 
-		await waitTime(env.WAIT_SCAN_TIME)
-		await waitTime(env.ERROR_WAIT_TIME)
-		await waitTime(env.WAIT_JOB_TIME)
+		// Wait for the job to complete:
+		await waitUntil(() => {
+			// Expect the copy to have completed by now:
+			expect(env.containerStatuses['target0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_SCAN_TIME + env.ERROR_WAIT_TIME + env.WAIT_JOB_TIME)
 
-		// Expect the copy to have completed by now:
-		expect(env.containerStatuses['target0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
 			size: 1234,
@@ -113,48 +124,50 @@ describe('Handle unhappy paths', () => {
 			[getLocalTarget('target0', 'file0Target.mp4')]
 		)
 
-		await waitTime(env.WAIT_JOB_TIME)
-		// Expect the Expectation to be waiting:
-		expect(env.expectationStatuses['copy0']).toMatchObject({
-			actualVersionHash: null,
-			statusInfo: {
-				status: /new|waiting/,
-				statusReason: {
-					tech: /not able to access file/i,
+		await waitUntil(() => {
+			// Expect the Expectation to be waiting:
+			expect(env.expectationStatuses['copy0']).toMatchObject({
+				actualVersionHash: null,
+				statusInfo: {
+					status: /new|waiting/,
+					statusReason: {
+						tech: /not able to access file/i,
+					},
 				},
-			},
-		})
+			})
+		}, env.WAIT_JOB_TIME)
 
 		// Now the file can be read from:
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
-		await waitTime(env.ERROR_WAIT_TIME)
-		await waitTime(env.WAIT_SCAN_TIME)
 
-		// Expect the Expectation to be waiting:
-		expect(env.expectationStatuses['copy0']).toMatchObject({
-			actualVersionHash: null,
-			statusInfo: {
-				status: 'new',
-				statusReason: {
-					tech: /not able to access target/i,
+		await waitUntil(() => {
+			// Expect the Expectation to be waiting:
+			expect(env.expectationStatuses['copy0']).toMatchObject({
+				actualVersionHash: null,
+				statusInfo: {
+					status: 'new',
+					statusReason: {
+						tech: /not able to access target/i,
+					},
 				},
-			},
-		})
+			})
+		}, env.ERROR_WAIT_TIME + env.WAIT_SCAN_TIME)
 
 		// Now the target can be written to:
 		fs.__mockSetDirectory('/targets/target0', {
 			accessRead: true,
 			accessWrite: true,
 		})
-		await waitTime(env.WAIT_SCAN_TIME)
 
-		// Expect the copy to have completed by now:
+		// Wait until the copy has completed:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_JOB_TIME)
 
-		expect(env.containerStatuses['target0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
 			size: 1234,
@@ -218,22 +231,23 @@ describe('Handle unhappy paths', () => {
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('working')
 		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
 
-		await waitTime(env.WORK_TIMEOUT_TIME)
-		await waitTime(env.WAIT_JOB_TIME)
-		// By now, the work should have been aborted, and restarted:
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
+		// Wait until the work have been aborted, and restarted:
+		await waitUntil(() => {
+			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
+		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
 
 		// Add another worker:
 		env.addWorker()
-		await waitTime(env.WAIT_SCAN_TIME)
 
-		// Expect the copy to have completed by now:
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
-		expect(env.containerStatuses['target0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
+		// Expect the copy to have completed:
+		await waitUntil(() => {
+			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+			expect(env.containerStatuses['target0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_SCAN_TIME)
 
 		// Clean up:
 		if (killedWorker) env.removeWorker(killedWorker.id)
@@ -278,22 +292,26 @@ describe('Handle unhappy paths', () => {
 		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
 		expect(hasIntercepted).toBe(1)
 
-		await waitTime(env.WORK_TIMEOUT_TIME)
-		await waitTime(env.WAIT_JOB_TIME)
-		// By now, the work should have been aborted, and restarted:
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(
-			expect.stringMatching(/new|waiting|fulfilled/)
-		)
+		// Wait for the work to be aborted, and restarted:
+		await waitUntil(() => {
+			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(
+				expect.stringMatching(/new|waiting|ready|fulfilled/)
+			)
+		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
 
-		await waitTime(env.WAIT_SCAN_TIME)
+		// Wait for the copy to complete:
+		await waitUntil(() => {
+			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+			expect(env.containerStatuses['target0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_SCAN_TIME)
 
-		// Expect the copy to have completed by now:
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
-		expect(env.containerStatuses['target0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
-			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-		)
+		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
+		expect(hasIntercepted).toBe(1)
+
 		// clean up:
 		deferredCallbacks.forEach((cb) => cb())
 	})

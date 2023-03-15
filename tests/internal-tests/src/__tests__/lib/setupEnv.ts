@@ -15,6 +15,7 @@ import {
 	Hook,
 	DataStore,
 	LoggerInstance,
+	Statuses,
 } from '@sofie-package-manager/api'
 import {
 	ExpectationManager,
@@ -111,7 +112,7 @@ export async function setupExpectationManager(
 		callbacks,
 		options
 	)
-	expectationManager.on('error', console.error)
+	// expectationManager.on('error', console.error)
 
 	// Initializing HTTP proxy Server:
 	// const httpServer = new HTTPServer.PackageProxyServer(logger, config)
@@ -175,6 +176,7 @@ export async function setupExpectationManager(
 }
 
 export async function prepareTestEnviromnent(debugLogging: boolean): Promise<TestEnviromnent> {
+	const managerStatuses: Statuses = {}
 	const expectationStatuses: ExpectationStatuses = {}
 	const containerStatuses: ContainerStatuses = {}
 	const coreApi = new CoreMockAPI()
@@ -198,6 +200,13 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		debugLogging,
 		1,
 		{
+			reportManagerStatus: (statuses: Statuses) => {
+				if (debugLogging) console.log('reportManagerStatus', statuses)
+
+				for (const [key, status] of Object.entries(statuses)) {
+					managerStatuses[key] = status
+				}
+			},
 			reportExpectationStatus: (
 				expectationId: string,
 				_expectaction: Expectation.Any | null,

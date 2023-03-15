@@ -98,7 +98,7 @@ export function setupLogger(
 		logger.info('Logging to', logPath)
 	} else {
 		const transportConsole = new Winston.transports.Console({
-			level: 'silly',
+			level: logLevel,
 			handleExceptions: handleProcess,
 			handleRejections: handleProcess,
 		})
@@ -128,8 +128,8 @@ export function setupLogger(
 				transports: [transportConsole],
 			})
 		}
+		if (handleProcess) logger.info('Logging to Console')
 		if (initialLogLevel) setLogLevel(initialLogLevel, true)
-		logger.info('Logging to Console')
 	}
 	// Somewhat of a hack, inject the category method:
 	const loggerInstance = logger as LoggerInstance

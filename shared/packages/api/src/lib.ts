@@ -311,3 +311,18 @@ export function ensureArray<T>(v: T | (T | undefined)[]): T[] {
 export function first<T>(v: T | (T | undefined)[]): T | undefined {
 	return ensureArray(v)[0]
 }
+/** Shallowly remove undefined properties from an object */
+export function removeUndefinedProperties<T extends { [key: string]: unknown } | undefined>(o: T): T {
+	if (!o) return o
+	if (typeof o !== 'object') return o
+
+	const o2: { [key: string]: unknown } = {}
+	for (const [key, value] of Object.entries(o)) {
+		if (value !== undefined) o2[key] = value
+	}
+	return o2 as T
+}
+export function ensureValidValue<T>(value: T, check: (value: any) => boolean, defaultValue: T): T {
+	if (check(value)) return value
+	return defaultValue
+}

@@ -64,7 +64,9 @@ export async function startSingleApp(): Promise<void> {
 		await quantelHTTPTransformerProxy.init()
 	}
 
-	logger.info('Initializing Package Manager (and Expectation Manager)')
+	connector.checkIfWorking()
+
+	logger.info('Initializing Package Manager (and Expectation Manager)') // If this log line is changed, make sure that verify-build-win32.mjs is updated too.
 	expectationManager.hookToWorkforce(workforce.getExpectationManagerHook())
 	await connector.init()
 

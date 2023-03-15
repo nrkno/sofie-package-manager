@@ -65,8 +65,9 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
-		const tryResult = await lookupSource.handle.tryPackageRead()
-		if (!tryResult.success) return { ready: false, reason: tryResult.reason }
+		const tryReading = await lookupSource.handle.tryPackageRead()
+		if (!tryReading.success)
+			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
 
 		// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail:
 		const thumbnailURL = await getThumbnailURL(exp, lookupSource)
@@ -78,11 +79,11 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, thumbnailURL)
 
 		const tryReadingHTTP = await sourceHTTPHandle.tryPackageRead()
-		if (!tryReadingHTTP.success) return { ready: false, reason: tryReadingHTTP.reason }
+		if (!tryReadingHTTP.success)
+			return { ready: false, sourceExists: tryReadingHTTP.packageExists, reason: tryReadingHTTP.reason }
 
 		return {
 			ready: true,
-			sourceExists: true,
 		}
 	},
 	isExpectationFullfilled: async (

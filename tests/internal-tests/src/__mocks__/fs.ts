@@ -1,6 +1,7 @@
 // eslint-disable-next-line node/no-unpublished-import
 import fsMockType from 'windows-network-drive' // Note: this is a mocked module
 import { EventEmitter } from 'events' // Note: this is a mocked module
+import { Readable, Writable } from 'stream'
 // import * as Path from 'path'
 
 /* eslint-disable no-console */
@@ -40,6 +41,8 @@ let fdId = 0
 const fsMockEmitter = new EventEmitter()
 
 function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
+	path = path.replace(/\/\//g, '/') // remove double slashes
+
 	dir = dir || mockRoot
 	orgPath = orgPath || path
 
@@ -55,7 +58,7 @@ function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 			if (nextDir.isDirectory) {
 				return getMock(nextPath, orgPath, nextDir)
 			} else {
-				throw Object.assign(new Error(`ENOTDIR: not a directory ${orgPath}`), {
+				throw Object.assign(new Error(`ENOTDIR: getMock: not a directory ${orgPath}`), {
 					errno: -4058,
 					code: 'ENOTDIR',
 					syscall: 'mock',
@@ -70,7 +73,8 @@ function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 			return file
 		}
 	}
-	throw Object.assign(new Error(`ENOENT: no such file or directory ${orgPath}`), {
+
+	throw Object.assign(new Error(`ENOENT: getMock: no such file or directory ${orgPath}`), {
 		errno: -4058,
 		code: 'ENOENT',
 		syscall: 'mock',
@@ -95,7 +99,7 @@ function setMock(path: string, create: MockAny, autoCreateTree: boolean, force =
 					content: {},
 				}
 			} else {
-				throw Object.assign(new Error(`ENOENT: no such file or directory ${path}`), {
+				throw Object.assign(new Error(`ENOENT: setMock: no such file or directory ${path}`), {
 					errno: -4058,
 					code: 'ENOENT',
 					syscall: 'mock',
@@ -105,7 +109,7 @@ function setMock(path: string, create: MockAny, autoCreateTree: boolean, force =
 		}
 		const nextDir = dir.content[dirName]
 		if (!nextDir.accessWrite) {
-			throw Object.assign(new Error(`EACCESS: Not able to write ${path}`), {
+			throw Object.assign(new Error(`EACCESS: setMock: Not able to write ${path}`), {
 				errno: 0,
 				code: 'EACCESS',
 				syscall: 'mock',
@@ -113,7 +117,7 @@ function setMock(path: string, create: MockAny, autoCreateTree: boolean, force =
 			})
 		}
 		if (!nextDir.isDirectory) {
-			throw Object.assign(new Error(`ENOTDIR: not a directory ${path}`), {
+			throw Object.assign(new Error(`ENOTDIR: setMock: not a directory ${path}`), {
 				errno: -4058,
 				code: 'ENOTDIR',
 				syscall: 'mock',
@@ -495,6 +499,81 @@ export function rename(source: string, destination: string, callback: (error: an
 	})
 }
 fs.rename = rename
+
+export function createReadStream(path: string, _options?: BufferEncoding | undefined): FSReadStream {
+	return new FSReadStream(path)
+}
+
+fs.createReadStream = createReadStream
+
+export function createWriteStream(path: string, _options?: BufferEncoding | undefined): FSWriteStream {
+	return new FSWriteStream(path)
+}
+fs.createWriteStream = createWriteStream
+
+const DEBUG_STREAMS = true
+class FSReadStream extends Readable {
+	constructor(public path: string) {
+		if (DEBUG_STREAMS) console.log('READ created')
+		super()
+	}
+	_construct(callback: () => void) {
+		if (!this.path) this.emit('error', 'MOCK: path is not set!')
+		callback()
+		this.emit('open')
+	}
+
+	private readI = 0
+	_read(_size: number): void {
+		if (DEBUG_STREAMS) console.log('READ read')
+		if (this.readI === 0) {
+			this.push(JSON.stringify({ sourcePath: this.path }))
+		} else {
+			this.push(null)
+		}
+		this.readI++
+	}
+	pipe<T extends NodeJS.WritableStream>(destination: T, options?: { end?: boolean | undefined } | undefined): T {
+		if (DEBUG_STREAMS) console.log('READ pipe')
+		return super.pipe(destination, options)
+	}
+}
+class FSWriteStream extends Writable {
+	constructor(public path: string) {
+		if (DEBUG_STREAMS) console.log('WRITE created')
+		super()
+	}
+	_construct(callback: () => void) {
+		if (!this.path) this.emit('error', 'MOCK: path is not set!')
+		callback()
+	}
+
+	_write(chunk: any, _encoding: any, callback: (err?: any) => void) {
+		const chunkStr = String(chunk)
+
+		if (DEBUG_STREAMS) console.log('WRITE write', chunkStr)
+		const obj = JSON.parse(chunkStr)
+
+		if (obj.sourcePath) {
+			console.log('COPY', obj.sourcePath, this.path)
+			copyFile(obj.sourcePath, this.path, (error, _result) => {
+				if (error) {
+					// this.emit('error', error)
+					callback(error)
+				} else {
+					// this.emit('close')
+					callback()
+				}
+			})
+		} else {
+			callback()
+		}
+	}
+	_final(callback: () => void) {
+		if (DEBUG_STREAMS) console.log('WRITE final')
+		callback()
+	}
+}
 
 interface FileAccess {
 	accessRead: boolean

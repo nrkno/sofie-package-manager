@@ -1,10 +1,10 @@
 {
     "name": "@appcontainer-node/app",
-    "version": "1.40.1",
+    "version": "1.41.1",
     "description": "AppContainer-Node.js",
     "private": true,
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs appContainer-node.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
@@ -14,7 +14,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@appcontainer-node/generic": "1.40.1"
+        "@appcontainer-node/generic": "1.41.1"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
@@ -27,6 +27,5 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
-    },
-    "peerDependencies": {}
+    }
 }
