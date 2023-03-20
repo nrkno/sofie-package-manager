@@ -146,34 +146,37 @@ export namespace ExpectationManagerWorkerAgent {
 		export interface FetchPackageInfoMetadata extends Base {
 			type: 'fetchPackageInfoMetadata'
 			arguments: [
-				string, // type
-				string[] // packageIds
+				//
+				type: string,
+				packageIds: string[]
 			]
 		}
 		export interface UpdatePackageInfo extends Base {
 			type: 'updatePackageInfo'
 			arguments: [
-				string, // type
-				string, // packageId
-				string, // expectedContentVersionHash
-				string, // actualContentVersionHash
-				any // payload
+				type: string,
+				packageId: string,
+				expectedContentVersionHash: string,
+				actualContentVersionHash: string,
+				payload: any
 			]
 		}
 		export interface RemovePackageInfo extends Base {
 			type: 'removePackageInfo'
 			arguments: [
-				string, // type
-				string, // packageId
-				number | undefined // removeDelay
+				//
+				type: string,
+				packageId: string,
+				removeDelay: number | undefined
 			]
 		}
 		export interface ReportFromMonitorPackages extends Base {
 			type: 'reportFromMonitorPackages'
 			arguments: [
-				string, // containerId
-				string, // monitorId
-				ExpectedPackage.Any[] // expectedPackages
+				//
+				containerId: string,
+				monitorId: string,
+				expectedPackages: ExpectedPackage.Any[]
 			]
 		}
 	}

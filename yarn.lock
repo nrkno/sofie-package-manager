@@ -1607,27 +1607,26 @@
     semver "^7.3.8"
     shelljs "^0.8.5"
 
-"@sofie-automation/server-core-integration@1.44.2":
-  version "1.44.2"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.44.2.tgz#b14f2b06dd977d25fca2aefd123494a3e900f358"
-  integrity sha512-7rY2lZ0Y89oarZ5pvL2Y53eS07fuK+Df0popJr14YjTGaGz9RQoDKaRqt2ojOwlbMVHfGdTZXJfV4FOfek50kw==
+"@sofie-automation/server-core-integration@1.49.0-nightly-release49-20221216-175820-6d17a49.0":
+  version "1.49.0-nightly-release49-20221216-175820-6d17a49.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.49.0-nightly-release49-20221216-175820-6d17a49.0.tgz#1bcff4386d3ae92d944c40f954400acf26de3eee"
+  integrity sha512-BMQKgR3pqqdY92Hpsk8IVtCz6lHUng+kQv1Ml0LGfr0GJLKhUKEB6q8XKhV5AbWfIJjqvueuPG9RShvbDnROQA==
   dependencies:
-    "@sofie-automation/shared-lib" "1.44.2"
-    data-store "^4.0.3"
-    ejson "^2.2.2"
+    "@sofie-automation/shared-lib" "1.49.0-nightly-release49-20221216-175820-6d17a49.0"
+    ejson "^2.2.3"
     eventemitter3 "^4.0.7"
     faye-websocket "^0.11.4"
     got "^11.8.5"
     tslib "^2.4.0"
-    underscore "^1.13.3"
+    underscore "^1.13.4"
 
-"@sofie-automation/shared-lib@1.44.2":
-  version "1.44.2"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.44.2.tgz#91bb4a439b860b86d58ad7a9d3d04ad3b4540e8e"
-  integrity sha512-WG1HDM5cP55qjXeyeSCJyF6h7dKJpkOgIga51Ex9chV13S/Q5TyjJLhwEpJLpjanNLMQcEyVflGVjgigDqL0Ow==
+"@sofie-automation/shared-lib@1.49.0-nightly-release49-20221216-175820-6d17a49.0":
+  version "1.49.0-nightly-release49-20221216-175820-6d17a49.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.49.0-nightly-release49-20221216-175820-6d17a49.0.tgz#933761fcd3cb14bdb2d4c27135fa01e112e90cfd"
+  integrity sha512-mX3WPjiy4yL5H5Do/JU6PWJERmahfxRk2yHnbncrMuNX7wojtwCYsWgBhuPeu8leT1rzKcj4Ha09Io9AUlHXew==
   dependencies:
     tslib "^2.4.0"
-    type-fest "^2.12.2"
+    type-fest "^2.19.0"
 
 "@supercharge/promise-pool@^1.7.0":
   version "1.9.0"
@@ -3936,7 +3935,7 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==
 
-ejson@^2.2.2:
+ejson@^2.2.3:
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/ejson/-/ejson-2.2.3.tgz#2b18c2d8f5d61a5cfc6e3eab72c3343909e7afd2"
   integrity sha512-hsFvJp6OpGxFRQfBR3PSxFpaPALdHDY+SB3TRbMpLWNhvu8GzLiZutof5+/DFd2QekZo3KyXau75ngdJqQUSrw==
@@ -5914,6 +5913,11 @@ is-plain-object@^5.0.0:
   resolved "https://registry.yarnpkg.com/is-plain-object/-/is-plain-object-5.0.0.tgz#4427f50ab3429e9025ea7d52e9043a9ef4159344"
   integrity sha512-VRSzKkbMm5jMDoKLbltAkFQ5Qr7VDiTFGXxYFXXowVj387GeGNOCsOH6Msy00SGZ3Fp84b1Naa1psqgcCIEP5Q==
 
+is-primitive@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/is-primitive/-/is-primitive-3.0.1.tgz#98c4db1abff185485a657fc2905052b940524d05"
+  integrity sha512-GljRxhWvlCNRfZyORiH77FwdFwGcMO620o37EOYC0ORWdq+WYNVqW0w2Juzew4M+L81l6/QS3t5gkkihyRqv9w==
+
 is-regex@^1.1.4:
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/is-regex/-/is-regex-1.1.4.tgz#eef5663cd59fa4c0ae339505323df6854bb15958"
@@ -7465,6 +7469,11 @@ mz@^2.5.0:
     any-promise "^1.0.0"
     object-assign "^4.0.1"
     thenify-all "^1.0.0"
+
+nanoid@^3.3.4:
+  version "3.3.4"
+  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.4.tgz#730b67e3cd09e2deacf03c027c81c9d9dbc5e8ab"
+  integrity sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw==
 
 nanomatch@^1.2.9:
   version "1.2.13"
@@ -9143,12 +9152,13 @@ set-value@^2.0.0, set-value@^2.0.1:
     is-plain-object "^2.0.3"
     split-string "^3.0.1"
 
-set-value@^3.0.1:
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/set-value/-/set-value-3.0.2.tgz#74e8ecd023c33d0f77199d415409a40f21e61b90"
-  integrity sha512-npjkVoz+ank0zjlV9F47Fdbjfj/PfXyVhZvGALWsyIYU/qrMzpi6avjKW3/7KeSU2Df3I46BrN1xOI1+6vW0hA==
+set-value@^3.0.1, set-value@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/set-value/-/set-value-4.1.0.tgz#aa433662d87081b75ad88a4743bd450f044e7d09"
+  integrity sha512-zTEg4HL0RwVrqcWs3ztF+x1vkxfm0lP+MQQFPiMJTKVceBwEV0A569Ou8l9IYQG8jOZdMVI1hGsc0tmeD2o/Lw==
   dependencies:
     is-plain-object "^2.0.4"
+    is-primitive "^3.0.1"
 
 setprototypeof@1.2.0:
   version "1.2.0"
@@ -10214,7 +10224,7 @@ type-fest@^0.8.1:
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-0.8.1.tgz#09e249ebde851d3b1e48d27c105444667f17b83d"
   integrity sha512-4dbzIzqvjtgiM5rw1k5rEHtBANKmdudhGyBEajN01fEyhaAIhsoKNy6y7+IN93IfpFtwY9iqi7kD+xwKhQsNJA==
 
-type-fest@^2.0.0, type-fest@^2.12.2, type-fest@^2.13.0, type-fest@^2.5.0:
+type-fest@^2.0.0, type-fest@^2.13.0, type-fest@^2.19.0, type-fest@^2.5.0:
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-2.19.0.tgz#88068015bb33036a598b952e55e9311a60fd3a9b"
   integrity sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==
@@ -10280,7 +10290,7 @@ unbzip2-stream@^1.0.9:
     buffer "^5.2.1"
     through "^2.3.8"
 
-underscore@^1.12.0, underscore@^1.13.3, underscore@^1.13.6:
+underscore@^1.12.0, underscore@^1.13.4, underscore@^1.13.6:
   version "1.13.6"
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.6.tgz#04786a1f589dc6c09f761fc5f45b89e935136441"
   integrity sha512-+A5Sja4HP1M08MaXya7p5LvjuM7K6q/2EaC0+iovj/wOcMsTzMvDFbasi/oSapiwOlt252IqsKqPjCl7huKS0A==
