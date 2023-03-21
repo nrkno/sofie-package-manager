@@ -8,7 +8,6 @@ import { CTX, CTXPost } from '../lib'
 import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage'
 import { Readable } from 'stream'
-import { makeFileNameUrlSafe } from '@sofie-package-manager/api'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
 const fsStat = promisify(fs.stat)
@@ -135,8 +134,7 @@ export class FileStorage extends Storage {
 		return true
 	}
 	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
-		const uriEncodedParamPath = makeFileNameUrlSafe(paramPath)
-		const fileInfo = await this.getFileInfo(uriEncodedParamPath)
+		const fileInfo = await this.getFileInfo(paramPath)
 
 		if (!fileInfo.found) {
 			return { code: 404, reason: 'Package not found' }
