@@ -266,10 +266,10 @@ describe('Quantel', () => {
 			expect(env.containerStatuses['target1']).toBeTruthy()
 			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
 			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.statusReason.user).toEqual(
-				`Reserved clip`
+				`Reserved clip, not yet ready for playout`
 			)
 			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
-				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.PLACEHOLDER
 			)
 		}, env.WAIT_JOB_TIME)
 
