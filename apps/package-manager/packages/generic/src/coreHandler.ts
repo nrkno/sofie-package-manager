@@ -3,7 +3,6 @@ import {
 	CoreConnection,
 	CoreOptions,
 	DDPConnectorOptions,
-	CollectionObj,
 	Observer,
 	Collection,
 	CoreCredentials,
@@ -13,9 +12,10 @@ import {
 	PeripheralDeviceType,
 	PERIPHERAL_SUBTYPE_PROCESS,
 } from '@sofie-automation/shared-lib/dist/peripheralDevice/peripheralDeviceAPI'
-import { PeripheralDeviceAPIMethods } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
 import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
-import { protectString, unprotectString } from '@sofie-automation/shared-lib/dist/lib/protectedString'
+import { protectString, unprotectString, ProtectedString } from '@sofie-automation/shared-lib/dist/lib/protectedString'
+import { PeripheralDevicePublic } from '@sofie-automation/shared-lib/dist/core/model/peripheralDevice'
+import { PeripheralDeviceId } from '@sofie-automation/shared-lib/dist/core/model/Ids'
 
 import { DeviceConfig } from './connector'
 
@@ -39,6 +39,9 @@ import {
 	PACKAGE_MANAGER_DEVICE_CONFIG,
 } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
+import { ExternalPeripheralDeviceAPI } from '@sofie-automation/server-core-integration/dist/lib/methods'
+import { PeripheralDeviceCommand } from '@sofie-automation/shared-lib/dist/core/model/PeripheralDeviceCommand'
+import { getCredentials } from './credentials'
 
 let packageJson: any
 try {
@@ -51,19 +54,6 @@ export interface CoreConfig {
 	host: string
 	port: number
 	watchdog: boolean
-}
-export interface PeripheralDeviceCommand {
-	_id: string
-
-	deviceId: string
-	functionName: string
-	args: Array<any>
-
-	hasReply: boolean
-	reply?: any
-	replyError?: any
-
-	time: number // time
 }
 
 /**
@@ -182,11 +172,11 @@ export class CoreHandler {
 		}
 		// setup observers
 		const observer = this.core.observe('peripheralDevices')
-		observer.added = (id: string) => this.onDeviceChanged(id)
-		observer.changed = (id: string) => this.onDeviceChanged(id)
+		observer.added = (id: string) => this.onDeviceChanged(protectString(id))
+		observer.changed = (id: string) => this.onDeviceChanged(protectString(id))
 		this.setupObserverForPeripheralDeviceCommands()
 
-		const peripheralDevices = this.core.getCollection('peripheralDevices')
+		const peripheralDevices = this.core.getCollection<PeripheralDevicePublic>('peripheralDevices')
 		if (peripheralDevices) {
 			peripheralDevices.find({}).forEach((device) => {
 				this.onDeviceChanged(device._id)
@@ -213,7 +203,7 @@ export class CoreHandler {
 				deviceToken: 'unsecureToken',
 			}
 		} else {
-			credentials = CoreConnection.getCredentials(subDeviceId)
+			credentials = getCredentials(subDeviceId)
 		}
 		const options: CoreOptions = {
 			...credentials,
@@ -234,9 +224,9 @@ export class CoreHandler {
 	onConnected(fcn: () => any): void {
 		this._onConnected = fcn
 	}
-	onDeviceChanged(id: string): void {
-		if (id === unprotectString(this.core.deviceId)) {
-			const col = this.core.getCollection('peripheralDevices')
+	onDeviceChanged(id: PeripheralDeviceId): void {
+		if (id === this.core.deviceId) {
+			const col = this.core.getCollection<PeripheralDevicePublic>('peripheralDevices')
 			if (!col) throw new Error('collection "peripheralDevices" not found!')
 
 			const device = col.findOne(id)
@@ -291,20 +281,20 @@ export class CoreHandler {
 
 	executeFunction(cmd: PeripheralDeviceCommand): void {
 		if (cmd) {
-			if (this._executedFunctions[cmd._id]) return // prevent it from running multiple times
+			if (this._executedFunctions[unprotectString(cmd._id)]) return // prevent it from running multiple times
 
 			// Ignore specific commands, to reduce noise:
 			if (cmd.functionName !== 'getExpetationManagerStatus') {
 				this.logger.debug(`Executing function "${cmd.functionName}", args: ${JSON.stringify(cmd.args)}`)
 			}
 
-			this._executedFunctions[cmd._id] = true
+			this._executedFunctions[unprotectString(cmd._id)] = true
 			const cb = (err: any, res?: any) => {
 				if (err) {
 					this.logger.error(`executeFunction error: ${stringifyError(err)}`)
 				}
-				this.core
-					.callMethod(PeripheralDeviceAPIMethods.functionReply, [cmd._id, err, res])
+				this.core.coreMethods
+					.functionReply(cmd._id, err, res)
 					.then(() => {
 						// nothing
 					})
@@ -343,15 +333,20 @@ export class CoreHandler {
 		if (!this.core) throw new Error('Core not initialized!')
 		return this.core.observe(collectionName)
 	}
-	getCollection(collectionName: string): Collection {
+	getCollection<
+		DBObj extends {
+			_id: ProtectedString<any> | string
+		} = never
+	>(collectionName: string): Collection<DBObj> {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
 		if (!this.core) throw new Error('Core not initialized!')
 		return this.core.getCollection(collectionName)
 	}
-	async callMethod(methodName: string, attrs?: any[]): Promise<any> {
+
+	get coreMethods(): ExternalPeripheralDeviceAPI {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
 		if (!this.core) throw new Error('Core not initialized!')
-		return this.core.callMethod(methodName, attrs)
+		return this.core.coreMethods
 	}
 	get coreConnected(): boolean {
 		return this.core?.connected || false
@@ -362,13 +357,13 @@ export class CoreHandler {
 		this._observers.push(observer)
 
 		const addedChangedCommand = (id: string) => {
-			const cmds = this.core.getCollection('peripheralDeviceCommands')
+			const cmds = this.core.getCollection<PeripheralDeviceCommand>('peripheralDeviceCommands')
 			if (!cmds) throw Error('"peripheralDeviceCommands" collection not found!')
 
-			const cmd = cmds.findOne(id) as PeripheralDeviceCommand
+			const cmd = cmds.findOne(protectString(id))
 			if (!cmd) throw Error('PeripheralCommand "' + id + '" not found!')
 
-			if (cmd.deviceId === unprotectString(this.core.deviceId)) {
+			if (cmd.deviceId === this.core.deviceId) {
 				this.executeFunction(cmd)
 			}
 		}
@@ -381,12 +376,11 @@ export class CoreHandler {
 		observer.removed = (id: string) => {
 			this.retireExecuteFunction(id)
 		}
-		const cmds = this.core.getCollection('peripheralDeviceCommands')
+		const cmds = this.core.getCollection<PeripheralDeviceCommand>('peripheralDeviceCommands')
 		if (!cmds) throw Error('"peripheralDeviceCommands" collection not found!')
 
-		cmds.find({}).forEach((cmd0: CollectionObj) => {
-			const cmd = cmd0 as PeripheralDeviceCommand
-			if (cmd.deviceId === unprotectString(this.core.deviceId)) {
+		cmds.find({}).forEach((cmd) => {
+			if (cmd.deviceId === this.core.deviceId) {
 				this.executeFunction(cmd)
 			}
 		})

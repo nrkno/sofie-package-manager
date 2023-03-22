@@ -160,6 +160,8 @@ export type AccessorHandlerTryPackageReadResult =
 	| (AccessorHandlerResultBad & {
 			/** If true, indicates that the package exists at all */
 			packageExists: boolean
+			/** If true, indicates that the package is a placeholder */
+			sourceIsPlaceholder?: boolean
 	  })
 export type AccessorHandlerCheckPackageContainerWriteAccessResult = AccessorHandlerResultGeneric
 export type AccessorHandlerRunCronJobResult = Promise<AccessorHandlerResultGeneric>

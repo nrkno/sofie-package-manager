@@ -45,9 +45,13 @@ export class TrackedPackageContainerPackageAPI {
 				? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_READY
 				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.TRANSFERRING_NOT_READY
 		} else {
-			return trackedExp.status.sourceExists
-				? ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY
-				: ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
+			if (trackedExp.status.sourceIsPlaceholder) {
+				return ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.PLACEHOLDER
+			} else if (trackedExp.status.sourceExists) {
+				return ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_READY
+			} else {
+				return ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
+			}
 		}
 	}
 }

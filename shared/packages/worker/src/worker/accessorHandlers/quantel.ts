@@ -160,23 +160,25 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			return {
 				success: false,
 				packageExists: true,
+				sourceIsPlaceholder: true,
 				reason: {
-					user: `Reserved clip`,
+					user: `Reserved clip, not yet ready for playout`,
 					tech: `Clip "${clipSummary.ClipGUID}" has no frames`,
 				},
 			}
 		}
 
 		// If the clip is less than XX frames long, it is considered to be unplayable.
-		// This concept is called a "Reserved clip".
+		// This concept is called a "Placeholder" or "Reserved clip".
 		// The intention with this is that the clip is expected to show up "soon".
 		if (RESERVED_CLIP_MINIMUM_FRAMES && parseInt(clipSummary.Frames, 10) < RESERVED_CLIP_MINIMUM_FRAMES) {
 			// Check that it is meaningfully playable
 			return {
 				success: false,
 				packageExists: true,
+				sourceIsPlaceholder: true,
 				reason: {
-					user: `Reserved clip`,
+					user: `Reserved clip, not yet ready for playout`,
 					tech: `Clip "${clipSummary.ClipGUID}" hasn't received enough frames (${clipSummary.Frames})`,
 				},
 			}
