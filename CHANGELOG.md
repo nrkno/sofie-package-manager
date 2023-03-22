@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.42.0-0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.1...v1.42.0-0) (2023-03-22)
+
+
+### Bug Fixes
+
+* bug fix: sourceIsPlaceholder wasn't passed through properly ([14fa4ef](https://github.com/nrkno/tv-automation-package-manager/commit/14fa4ef7587eed41e8caf1caba013ebb71770916))
+* ensure that target file paths exists before writing to file ([2d5381d](https://github.com/nrkno/tv-automation-package-manager/commit/2d5381db576de694b14a3a94c26f525f75ddfd9b))
+* statusReport returning bad data ([3e7d72e](https://github.com/nrkno/tv-automation-package-manager/commit/3e7d72eb90483099634b0dcd908054e5d3e05eea))
+
+
+### Features
+
+* Package manager placeholder ([47d2e1f](https://github.com/nrkno/tv-automation-package-manager/commit/47d2e1f64ffe90fe7a5fe967e83bca0befb66471))
+* update server-core-integration to r49 ([08971cd](https://github.com/nrkno/tv-automation-package-manager/commit/08971cdfdec18550afc06d0c5f043b7dd3af3e0f))
+
+
+
+
+
 ## [1.41.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0...v1.41.1) (2023-02-22)
 
 
