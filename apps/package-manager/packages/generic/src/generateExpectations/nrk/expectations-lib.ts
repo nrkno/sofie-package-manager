@@ -1,6 +1,13 @@
 import { ExpectedPackageWrap, PackageManagerSettings } from '../../packageManager'
-import { Expectation, hashObj, literal, assertNever } from '@sofie-package-manager/api'
-import { Accessor, ExpectedPackage, PackageContainer } from '@sofie-package-manager/input-api'
+import {
+	Accessor,
+	ExpectedPackage,
+	PackageContainer,
+	Expectation,
+	hashObj,
+	literal,
+	assertNever,
+} from '@sofie-package-manager/api'
 import {
 	ExpectedPackageWrapJSONData,
 	ExpectedPackageWrapMediaFile,

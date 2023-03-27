@@ -1,5 +1,4 @@
-import { Accessor, Expectation, literal, LoggerInstance } from '@sofie-package-manager/api'
-import { ExpectedPackage } from '@sofie-package-manager/input-api'
+import { Accessor, Expectation, ExpectedPackage, literal, LoggerInstance } from '@sofie-package-manager/api'
 import * as NRK from '..'
 import {
 	ActivePlaylist,

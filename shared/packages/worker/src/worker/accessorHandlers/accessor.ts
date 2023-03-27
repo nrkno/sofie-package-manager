@@ -1,5 +1,4 @@
-import { assertNever } from '@sofie-package-manager/api'
-import { Accessor, AccessorOnPackage } from '@sofie-package-manager/input-api'
+import { assertNever, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'

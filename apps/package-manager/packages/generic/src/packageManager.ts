@@ -10,6 +10,9 @@ import {
 	ExpectationManagerServerOptions,
 } from '@sofie-package-manager/expectation-manager'
 import {
+	ExpectedPackage,
+	PackageContainer,
+	PackageContainerOnPackage,
 	StatusCode,
 	ClientConnectionOptions,
 	Expectation,
@@ -21,15 +24,10 @@ import {
 	Reason,
 	deepEqual,
 	stringifyError,
-	Statuses,
-} from '@sofie-package-manager/api'
-import {
 	Accessor,
 	AccessorOnPackage,
-	ExpectedPackage,
-	PackageContainer,
-	PackageContainerOnPackage,
-} from '@sofie-package-manager/input-api'
+	Statuses,
+} from '@sofie-package-manager/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
 import {
@@ -991,7 +989,7 @@ export function wrapExpectedPackage(
 			)
 
 			for (const accessorId of accessorIds) {
-				const sourceAccessor = lookedUpSource.accessors[accessorId]
+				const sourceAccessor = lookedUpSource.accessors[accessorId] as Accessor.Any | undefined
 
 				const packageAccessor = packageSource.accessors[accessorId] as AccessorOnPackage.Any | undefined
 

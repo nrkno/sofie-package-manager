@@ -1,6 +1,5 @@
 import { ExpectedPackageWrap } from '../../packageManager'
-import { LoggerInstance } from '@sofie-package-manager/api'
-import { ExpectedPackage } from '@sofie-package-manager/input-api'
+import { ExpectedPackage, LoggerInstance } from '@sofie-package-manager/api'
 import { ExpectedPackageWrapMediaFile, PriorityMagnitude } from './types'
 import { SMARTBULL_STORAGE_ID } from './lib'
 

@@ -2,6 +2,7 @@ import { GenericWorker } from '../../../worker'
 import { UniversalVersion, getStandardCost, compareActualExpectVersions } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
 	Expectation,
 	hashObj,
 	ReturnTypeDoYouSupportExpectation,
@@ -10,7 +11,6 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@sofie-package-manager/api'
-import { Accessor } from '@sofie-package-manager/input-api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,

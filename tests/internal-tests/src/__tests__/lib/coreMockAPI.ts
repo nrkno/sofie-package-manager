@@ -1,4 +1,4 @@
-import { ExpectedPackage } from '@sofie-package-manager/input-api'
+import { ExpectedPackage } from '@sofie-package-manager/api'
 
 export class CoreMockAPI {
 	packageInfos: {

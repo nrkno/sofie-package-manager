@@ -2,13 +2,13 @@ import { GenericWorker } from '../../../../worker'
 import { roboCopyFile } from '../../lib/robocopy'
 import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, compareResourceIds } from '../../lib/lib'
 import {
+	Accessor,
 	hashObj,
 	waitTime,
 	Expectation,
 	ReturnTypeIsExpectationFullfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 } from '@sofie-package-manager/api'
-import { Accessor } from '@sofie-package-manager/input-api'
 import {
 	isATEMAccessorHandle,
 	isFileShareAccessorHandle,

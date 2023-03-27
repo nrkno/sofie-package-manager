@@ -13,13 +13,14 @@ import {
 	AccessorHandlerTryPackageReadResult,
 } from './genericHandle'
 import {
+	Accessor,
+	AccessorOnPackage,
 	Expectation,
 	PackageContainerExpectation,
 	assertNever,
 	Reason,
 	stringifyError,
 } from '@sofie-package-manager/api'
-import { Accessor, AccessorOnPackage } from '@sofie-package-manager/input-api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'

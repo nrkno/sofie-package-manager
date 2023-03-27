@@ -2,6 +2,9 @@ import { GenericWorker } from '../../../worker'
 import { UniversalVersion, makeUniversalVersion, getStandardCost } from '../lib/lib'
 import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
+	Accessor,
+	AccessorOnPackage,
+	PackageContainerOnPackage,
 	hashObj,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
@@ -12,7 +15,6 @@ import {
 	Reason,
 	stringifyError,
 } from '@sofie-package-manager/api'
-import { Accessor, AccessorOnPackage, PackageContainerOnPackage } from '@sofie-package-manager/input-api'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
