@@ -25,6 +25,7 @@ import { MonitorInProgress } from '../lib/monitorInProgress'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
 import { joinUrls } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
+import { makeFileNameUrlSafe } from '@sofie-package-manager/api'
 
 /** Accessor handle for accessing files in HTTP- */
 export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -210,7 +211,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
-		return joinUrls(this.baseUrl, this.filePath)
+		return joinUrls(this.baseUrl, makeFileNameUrlSafe(this.filePath))
 	}
 
 	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
@@ -340,7 +341,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove the package:
-				const fullUrl: string = joinUrls(this.baseUrl, entry.filePath)
+				const fullUrl: string = joinUrls(this.baseUrl, makeFileNameUrlSafe(entry.filePath))
 
 				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)

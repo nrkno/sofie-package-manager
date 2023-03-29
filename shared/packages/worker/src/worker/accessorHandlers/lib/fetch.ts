@@ -71,8 +71,6 @@ export function fetchWithController(
 ): { response: Promise<Response>; controller: AbortController } {
 	const controller = new AbortController()
 
-	// encode, to avoid issues with special characters such as åäöØÅÖÆÅ
-	url = encodeURI(url)
 	return {
 		response: new Promise((resolve, reject) => {
 			const refreshTimeout = () => {
