@@ -15,6 +15,14 @@ import {
 	PriorityAdditions,
 } from './types'
 
+type SomeClipCopyExpectation =
+	| Expectation.FileCopy
+	| Expectation.FileCopyProxy
+	| Expectation.FileVerify
+	| Expectation.QuantelClipCopy
+
+type SomeClipFileOnDiskCopyExpectation = Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify
+
 export function generateMediaFileCopy(
 	managerId: string,
 	expWrap: ExpectedPackageWrap,
@@ -171,11 +179,7 @@ export function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageW
 	return exp
 }
 export function generatePackageScan(
-	expectation:
-		| Expectation.FileCopy
-		| Expectation.FileCopyProxy
-		| Expectation.FileVerify
-		| Expectation.QuantelClipCopy,
+	expectation: SomeClipCopyExpectation,
 	settings: PackageManagerSettings
 ): Expectation.PackageScan {
 	let priority = expectation.priority + PriorityAdditions.SCAN
@@ -230,11 +234,7 @@ export function generatePackageScan(
 	})
 }
 export function generatePackageDeepScan(
-	expectation:
-		| Expectation.FileCopy
-		| Expectation.FileCopyProxy
-		| Expectation.FileVerify
-		| Expectation.QuantelClipCopy,
+	expectation: SomeClipCopyExpectation,
 	settings: PackageManagerSettings
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
@@ -289,11 +289,7 @@ export function generatePackageDeepScan(
 }
 
 export function generatePackageLoudness(
-	expectation:
-		| Expectation.FileCopy
-		| Expectation.FileCopyProxy
-		| Expectation.FileVerify
-		| Expectation.QuantelClipCopy,
+	expectation: SomeClipCopyExpectation,
 	packageSettings: ExpectedPackage.SideEffectLoudnessSettings,
 	settings: PackageManagerSettings
 ): Expectation.PackageLoudnessScan {
@@ -346,7 +342,7 @@ export function generatePackageLoudness(
 }
 
 export function generateMediaFileThumbnail(
-	expectation: Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify,
+	expectation: SomeClipFileOnDiskCopyExpectation,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
@@ -399,7 +395,7 @@ export function generateMediaFileThumbnail(
 	})
 }
 export function generateMediaFilePreview(
-	expectation: Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify,
+	expectation: SomeClipFileOnDiskCopyExpectation,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
