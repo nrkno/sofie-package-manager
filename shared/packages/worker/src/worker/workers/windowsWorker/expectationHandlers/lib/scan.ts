@@ -507,7 +507,7 @@ function scanLoudnessStream(
 				const LayoutRegex = /Output #0, null[\S\s]+Stream #0:0: Audio: [\w]+, [\d]+ Hz, (?<layout>\w+),/
 
 				const LoudnessRegex =
-					/Integrated loudness:\s+I:\s+(?<integrated>[\d-.,]+)\s+LUFS\s+Threshold:\s+(?<threshold>[\d-.,]+)\s+LUFS\s+Loudness range:\s+LRA:\s+(?<lra>[\d-.,]+)\s+LU\s+Threshold:\s+(?<rangeThreshold>[\d-.,]+)\s+LUFS\s+LRA low:\s+(?<lraLow>[\d-.,]+)\s+LUFS\s+LRA high:\s+(?<lraHigh>[\d-.,]+)\s+LUFS/i
+					/Integrated loudness:\s+I:\s+(?<integrated>[\d-.,]+)\s+LUFS\s+Threshold:\s+(?<threshold>[\d-.,]+)\s+LUFS\s+Loudness range:\s+LRA:\s+(?<lra>[\d-.,]+)\s+LU\s+Threshold:\s+(?<rangeThreshold>[\d-.,]+)\s+LUFS\s+LRA low:\s+(?<lraLow>[\d-.,]+)\s+LUFS\s+LRA high:\s+(?<lraHigh>[\d-.,]+)\s+LUFS\s*$/i
 
 				const loudnessRes = LoudnessRegex.exec(stderr)
 				const layoutRes = LayoutRegex.exec(stderr)
