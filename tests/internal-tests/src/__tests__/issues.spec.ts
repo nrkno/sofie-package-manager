@@ -20,6 +20,9 @@ const fsStat = promisify(fs.stat)
 
 // const fsStat = promisify(fs.stat)
 
+// this test can be a bit slower in CI sometimes
+jest.setTimeout(10000)
+
 describe('Handle unhappy paths', () => {
 	let env: TestEnviromnent
 
@@ -40,7 +43,7 @@ describe('Handle unhappy paths', () => {
 		env.reset()
 	})
 
-	test.only('Wait for non-existing local file', async () => {
+	test('Wait for non-existing local file', async () => {
 		fs.__mockSetDirectory('/sources/source0/')
 		fs.__mockSetDirectory('/targets/target0')
 		addCopyFileExpectation(

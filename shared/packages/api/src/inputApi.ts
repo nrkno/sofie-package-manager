@@ -86,6 +86,9 @@ export namespace ExpectedPackage {
 			/** Which container thumbnails are to be put into */
 			thumbnailContainerId?: string | null
 			thumbnailPackageSettings?: SideEffectThumbnailSettings | null
+
+			/** Should the package be scanned for loudness */
+			loudnessPackageSettings?: SideEffectLoudnessSettings
 		}
 	}
 	export interface SideEffectPreviewSettings {
@@ -98,6 +101,20 @@ export namespace ExpectedPackage {
 		/** What time to pick the thumbnail from [ms] */
 		seekTime?: number
 	}
+
+	export interface SideEffectLoudnessSettings {
+		/** Which channels should be scanned. Use a single 0-indexed number, or two numbers with a plus sign ("0+1") for stereo pairs.
+		 * You can specify multiple channels and channel pairs to be scanned, as separate entries in the array. This can be useful
+		 * when the streams contain different language versions or audio that will be played jointly, but processed separately
+		 * in the production chain (f.g. a stereo mix of a speaker and a stereo ambient sound mix)
+		 *
+		 * When expecting varied channel arrangements within the clip, it can be useful to specify multiple combinations,
+		 * f.g. ["0", "0+1"] (for single stream stereo and discreet channel stereo) and then select the correct measurement in the
+		 * blueprints based on the context */
+		channelSpec: SideEffectLoudnessSettingsChannelSpec[]
+	}
+
+	export type SideEffectLoudnessSettingsChannelSpec = `${number}` | `${number}+${number}`
 
 	export interface ExpectedPackageMediaFile extends Base {
 		type: PackageType.MEDIA_FILE

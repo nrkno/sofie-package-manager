@@ -12,19 +12,19 @@ import {
 	ReturnTypeRemoveExpectation,
 	stringifyError,
 } from '@sofie-package-manager/api'
-import {
-	isCorePackageInfoAccessorHandle,
-	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
-	isHTTPProxyAccessorHandle,
-	isLocalFolderAccessorHandle,
-	isQuantelClipAccessorHandle,
-} from '../../../accessorHandlers/accessor'
+import { isCorePackageInfoAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { DeepScanResult, FieldOrder, ScanAnomaly } from './lib/coreApi'
+import { DeepScanResult, FieldOrder, PackageInfoType, ScanAnomaly } from './lib/coreApi'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
-import { FFProbeScanResult, scanFieldOrder, scanMoreInfo, scanWithFFProbe } from './lib/scan'
+import {
+	FFProbeScanResult,
+	isAnFFMpegSupportedSourceAccessor,
+	isAnFFMpegSupportedSourceAccessorHandle,
+	scanFieldOrder,
+	scanMoreInfo,
+	scanWithFFProbe,
+} from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
 
 /**
@@ -107,7 +107,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
-			'deepScan',
+			PackageInfoType.DeepScan,
 			exp,
 			exp.startRequirement.content,
 			actualSourceVersion,
@@ -116,7 +116,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		if (packageInfoSynced.needsUpdate) {
 			if (wasFullfilled) {
 				// Remove the outdated scan result:
-				await lookupTarget.handle.removePackageInfo('deepScan', exp)
+				await lookupTarget.handle.removePackageInfo(PackageInfoType.DeepScan, exp)
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
@@ -142,98 +142,86 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			const sourceHandle = lookupSource.handle
 			const targetHandle = lookupTarget.handle
 			if (
-				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-					lookupSource.accessor.type === Accessor.AccessType.HTTP ||
-					lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY ||
-					lookupSource.accessor.type === Accessor.AccessType.QUANTEL) &&
-				lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
-			) {
-				if (
-					!isLocalFolderAccessorHandle(sourceHandle) &&
-					!isFileShareAccessorHandle(sourceHandle) &&
-					!isHTTPAccessorHandle(sourceHandle) &&
-					!isHTTPProxyAccessorHandle(sourceHandle) &&
-					!isQuantelClipAccessorHandle(sourceHandle)
-				)
-					throw new Error(`Source AccessHandler type is wrong`)
-
-				if (!isCorePackageInfoAccessorHandle(targetHandle))
-					throw new Error(`Target AccessHandler type is wrong`)
-
-				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
-				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
-
-				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
-				const sourceVersionHash = hashObj(actualSourceVersion)
-
-				workInProgress._reportProgress(sourceVersionHash, 0.01)
-
-				// Scan with FFProbe:
-				currentProcess = scanWithFFProbe(sourceHandle)
-				const ffProbeScan: FFProbeScanResult = await currentProcess
-				const hasVideoStream =
-					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
-				workInProgress._reportProgress(sourceVersionHash, 0.1)
-				currentProcess = undefined
-
-				// Scan field order:
-				let resultFieldOrder = FieldOrder.Unknown
-				if (hasVideoStream) {
-					currentProcess = scanFieldOrder(sourceHandle, exp.endRequirement.version)
-					resultFieldOrder = await currentProcess
-					currentProcess = undefined
-				}
-				workInProgress._reportProgress(sourceVersionHash, 0.2)
-
-				// Scan more info:
-				let resultBlacks: ScanAnomaly[] = []
-				let resultFreezes: ScanAnomaly[] = []
-				let resultScenes: number[] = []
-				if (hasVideoStream) {
-					currentProcess = scanMoreInfo(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
-						workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
-					})
-					const result = await currentProcess
-					resultBlacks = result.blacks
-					resultFreezes = result.freezes
-					resultScenes = result.scenes
-					currentProcess = undefined
-				}
-				workInProgress._reportProgress(sourceVersionHash, 0.99)
-
-				const deepScan: DeepScanResult = {
-					field_order: resultFieldOrder,
-					blacks: resultBlacks,
-					freezes: resultFreezes,
-					scenes: resultScenes,
-				}
-
-				// all done:
-				await targetHandle.packageIsInPlace()
-				await targetHandle.updatePackageInfo(
-					'deepScan',
-					exp,
-					exp.startRequirement.content,
-					actualSourceVersion,
-					exp.endRequirement.version,
-					deepScan
-				)
-
-				const duration = Date.now() - startTime
-				workInProgress._reportComplete(
-					sourceVersionHash,
-					{
-						user: `Scan completed in ${Math.round(duration / 100) / 10}s`,
-						tech: `Completed at ${Date.now()}`,
-					},
-					undefined
-				)
-			} else {
+				!isAnFFMpegSupportedSourceAccessor(lookupSource.accessor) ||
+				lookupTarget.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO
+			)
 				throw new Error(
-					`MediaFileScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+					`PackageDeepScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
 				)
+
+			if (!isAnFFMpegSupportedSourceAccessorHandle(sourceHandle))
+				throw new Error(`Source AccessHandler type is wrong`)
+
+			if (!isCorePackageInfoAccessorHandle(targetHandle)) throw new Error(`Target AccessHandler type is wrong`)
+
+			const tryReadPackage = await sourceHandle.checkPackageReadAccess()
+			if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
+
+			const actualSourceVersion = await sourceHandle.getPackageActualVersion()
+			const sourceVersionHash = hashObj(actualSourceVersion)
+
+			workInProgress._reportProgress(sourceVersionHash, 0.01)
+
+			// Scan with FFProbe:
+			currentProcess = scanWithFFProbe(sourceHandle)
+			const ffProbeScan: FFProbeScanResult = await currentProcess
+			const hasVideoStream =
+				ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
+			workInProgress._reportProgress(sourceVersionHash, 0.1)
+			currentProcess = undefined
+
+			// Scan field order:
+			let resultFieldOrder = FieldOrder.Unknown
+			if (hasVideoStream) {
+				currentProcess = scanFieldOrder(sourceHandle, exp.endRequirement.version)
+				resultFieldOrder = await currentProcess
+				currentProcess = undefined
 			}
+			workInProgress._reportProgress(sourceVersionHash, 0.2)
+
+			// Scan more info:
+			let resultBlacks: ScanAnomaly[] = []
+			let resultFreezes: ScanAnomaly[] = []
+			let resultScenes: number[] = []
+			if (hasVideoStream) {
+				currentProcess = scanMoreInfo(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
+					workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+				})
+				const result = await currentProcess
+				resultBlacks = result.blacks
+				resultFreezes = result.freezes
+				resultScenes = result.scenes
+				currentProcess = undefined
+			}
+			workInProgress._reportProgress(sourceVersionHash, 0.99)
+
+			const deepScan: DeepScanResult = {
+				field_order: resultFieldOrder,
+				blacks: resultBlacks,
+				freezes: resultFreezes,
+				scenes: resultScenes,
+			}
+
+			// all done:
+			await targetHandle.packageIsInPlace()
+			await targetHandle.updatePackageInfo(
+				PackageInfoType.DeepScan,
+				exp,
+				exp.startRequirement.content,
+				actualSourceVersion,
+				exp.endRequirement.version,
+				deepScan
+			)
+
+			const duration = Date.now() - startTime
+			workInProgress._reportComplete(
+				sourceVersionHash,
+				{
+					user: `Scan completed in ${Math.round(duration / 100) / 10}s`,
+					tech: `Completed at ${Date.now()}`,
+				},
+				undefined
+			)
 		})
 
 		return workInProgress
@@ -252,7 +240,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		try {
-			await lookupTarget.handle.removePackageInfo('deepScan', exp)
+			await lookupTarget.handle.removePackageInfo(PackageInfoType.DeepScan, exp)
 		} catch (err) {
 			return {
 				removed: false,

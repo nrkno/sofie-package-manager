@@ -1,5 +1,5 @@
 import { execFile, ChildProcess, spawn } from 'child_process'
-import { Expectation, assertNever } from '@sofie-package-manager/api'
+import { Expectation, assertNever, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -10,12 +10,14 @@ import {
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { QuantelAccessorHandle } from '../../../../accessorHandlers/quantel'
 import { CancelablePromise } from '../../../../lib/cancelablePromise'
-import { FieldOrder, ScanAnomaly } from './coreApi'
+import { FieldOrder, LoudnessScanResult, LoudnessScanResultForStream, ScanAnomaly } from './coreApi'
 import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
 import { MAX_EXEC_BUFFER } from '../../../../lib/lib'
+import { getFFMpegExecutable } from './ffmpeg'
+import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'
 
 export interface FFProbeScanResultStream {
 	index: number
@@ -159,7 +161,7 @@ export function scanFieldOrder(
 			return
 		}
 
-		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		const file = getFFMpegExecutable()
 		const args = [
 			'-hide_banner',
 			'-filter:v idet',
@@ -171,25 +173,7 @@ export function scanFieldOrder(
 			process.platform === 'win32' ? 'NUL' : '/dev/null',
 		]
 
-		if (isLocalFolderAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isFileShareAccessorHandle(sourceHandle)) {
-			await sourceHandle.prepareFileAccess()
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isHTTPAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
-			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
-
-			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
-
-			args.push('-seekable 0')
-			args.push(`-i "${httpStreamURL.fullURL}"`)
-		} else {
-			assertNever(sourceHandle)
-		}
+		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
 
 		let ffmpegProcess: ChildProcess | undefined = undefined
 		onCancel(() => {
@@ -282,25 +266,8 @@ export function scanMoreInfo(
 
 		const args = ['-hide_banner']
 
-		if (isLocalFolderAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isFileShareAccessorHandle(sourceHandle)) {
-			await sourceHandle.prepareFileAccess()
-			args.push(`-i "${sourceHandle.fullPath}"`)
-		} else if (isHTTPAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-			args.push(`-i "${sourceHandle.fullUrl}"`)
-		} else if (isQuantelClipAccessorHandle(sourceHandle)) {
-			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
+		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
 
-			if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
-
-			args.push('-seekable 0')
-			args.push(`-i "${httpStreamURL.fullURL}"`)
-		} else {
-			assertNever(sourceHandle)
-		}
 		args.push('-filter:v', filterString)
 		args.push('-an')
 		args.push('-f null')
@@ -323,7 +290,7 @@ export function scanMoreInfo(
 			reject('Cancelled')
 		})
 
-		ffMpegProcess = spawn(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg', args, {
+		ffMpegProcess = spawn(getFFMpegExecutable(), args, {
 			windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
 		})
 
@@ -471,4 +438,217 @@ export function scanMoreInfo(
 			onClose(code)
 		})
 	})
+}
+
+function scanLoudnessStream(
+	sourceHandle:
+		| LocalFolderAccessorHandle<any>
+		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
+		| QuantelAccessorHandle<any>,
+	_previouslyScanned: FFProbeScanResult,
+	channelSpec: string
+): CancelablePromise<LoudnessScanResultForStream> {
+	return new CancelablePromise<LoudnessScanResultForStream>(async (resolve, reject, onCancel) => {
+		const stereoPairMatch = channelSpec.match(/^(\d+)\+(\d+)$/)
+		const singleChannel = Number.parseInt(channelSpec)
+		if (!stereoPairMatch && !Number.isInteger(singleChannel)) {
+			reject(`Invalid channel specification: ${channelSpec}`)
+			return
+		}
+
+		let filterString: string
+
+		if (stereoPairMatch) {
+			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128[out]`
+		} else {
+			filterString = `[0:a:${singleChannel}]ebur128[out]`
+		}
+
+		const file = getFFMpegExecutable()
+		const args = [
+			'-nostats',
+			'-filter_complex',
+			JSON.stringify(filterString),
+			'-map',
+			JSON.stringify('[out]'),
+			'-f',
+			'null',
+			'-',
+		]
+
+		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
+
+		let ffmpegProcess: ChildProcess | undefined = undefined
+		onCancel(() => {
+			ffmpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+			ffmpegProcess?.kill()
+			reject('Cancelled')
+		})
+
+		ffmpegProcess = execFile(
+			file,
+			args,
+			{
+				maxBuffer: MAX_EXEC_BUFFER,
+				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+			},
+			(err, _stdout, stderr) => {
+				// this.logger.debug(`Worker: metadata generate: output (stdout, stderr)`, stdout, stderr)
+				ffmpegProcess = undefined
+				if (err) {
+					reject(err)
+					return
+				}
+
+				const StreamNotFoundRegex = /Stream specifier [\S\s]+ matches no streams./
+
+				const LayoutRegex = /Output #0, null[\S\s]+Stream #0:0: Audio: [\w]+, [\d]+ Hz, (?<layout>\w+),/
+
+				const LoudnessRegex =
+					/Integrated loudness:\s+I:\s+(?<integrated>[\d-.,]+)\s+LUFS\s+Threshold:\s+(?<threshold>[\d-.,]+)\s+LUFS\s+Loudness range:\s+LRA:\s+(?<lra>[\d-.,]+)\s+LU\s+Threshold:\s+(?<rangeThreshold>[\d-.,]+)\s+LUFS\s+LRA low:\s+(?<lraLow>[\d-.,]+)\s+LUFS\s+LRA high:\s+(?<lraHigh>[\d-.,]+)\s+LUFS\s*$/i
+
+				const loudnessRes = LoudnessRegex.exec(stderr)
+				const layoutRes = LayoutRegex.exec(stderr)
+				const streamNotFound = StreamNotFoundRegex.exec(stderr)
+
+				if (streamNotFound) {
+					return resolve({
+						success: false,
+						reason: 'Specified Audio stream not found',
+					})
+				}
+
+				if (loudnessRes === null) {
+					reject(`ffmpeg output unreadable`)
+				} else {
+					resolve({
+						success: true,
+						layout: layoutRes?.groups?.['layout'] ?? 'unknown',
+						integrated: Number.parseFloat(loudnessRes.groups?.['integrated'] ?? ''),
+						integratedThreshold: Number.parseFloat(loudnessRes.groups?.['threshold'] ?? ''),
+						range: Number.parseFloat(loudnessRes.groups?.['lra'] ?? ''),
+						rangeThreshold: Number.parseFloat(loudnessRes.groups?.['rangeThreshold'] ?? ''),
+						rangeHigh: Number.parseFloat(loudnessRes.groups?.['lraHigh'] ?? ''),
+						rangeLow: Number.parseFloat(loudnessRes.groups?.['lraLow'] ?? ''),
+					})
+				}
+			}
+		)
+	})
+}
+
+export function scanLoudness(
+	sourceHandle:
+		| LocalFolderAccessorHandle<any>
+		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
+		| QuantelAccessorHandle<any>,
+	previouslyScanned: FFProbeScanResult,
+	targetVersion: Expectation.PackageLoudnessScan['endRequirement']['version'],
+	/** Callback which is called when there is some new progress */
+	onProgress: (
+		/** Progress, goes from 0 to 1 */
+		progress: number
+	) => void
+): CancelablePromise<LoudnessScanResult> {
+	return new CancelablePromise<LoudnessScanResult>(async (resolve, _reject, onCancel) => {
+		if (!targetVersion.channels.length) {
+			resolve({
+				channels: {},
+			})
+			return
+		}
+
+		const step = 1 / targetVersion.channels.length
+
+		let progress = 0
+
+		const packageScanResult: Record<string, LoudnessScanResultForStream> = {}
+
+		for (const channelSpec of targetVersion.channels) {
+			try {
+				const resultPromise = scanLoudnessStream(sourceHandle, previouslyScanned, channelSpec)
+				onCancel(() => {
+					resultPromise.cancel()
+				})
+				const result = await resultPromise
+				packageScanResult[channelSpec] = result
+			} catch (e) {
+				packageScanResult[channelSpec] = {
+					success: false,
+					reason: String(e),
+				}
+			}
+			progress += step
+			onProgress(progress)
+		}
+
+		resolve({
+			channels: packageScanResult,
+		})
+	})
+}
+
+async function getFFMpegInputArgsFromAccessorHandle(
+	sourceHandle:
+		| LocalFolderAccessorHandle<any>
+		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
+		| QuantelAccessorHandle<any>
+): Promise<string[]> {
+	const args: string[] = []
+	if (isLocalFolderAccessorHandle(sourceHandle)) {
+		args.push(`-i "${sourceHandle.fullPath}"`)
+	} else if (isFileShareAccessorHandle(sourceHandle)) {
+		await sourceHandle.prepareFileAccess()
+		args.push(`-i "${sourceHandle.fullPath}"`)
+	} else if (isHTTPAccessorHandle(sourceHandle)) {
+		args.push(`-i "${sourceHandle.fullUrl}"`)
+	} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
+		args.push(`-i "${sourceHandle.fullUrl}"`)
+	} else if (isQuantelClipAccessorHandle(sourceHandle)) {
+		const httpStreamURL = await sourceHandle.getTransformerStreamURL()
+
+		if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
+
+		args.push('-seekable 0')
+		args.push(`-i "${httpStreamURL.fullURL}"`)
+	} else {
+		assertNever(sourceHandle)
+	}
+
+	return args
+}
+
+const FFMPEG_SUPPORTED_SOURCE_ACCESSORS: Set<Accessor.AccessType | undefined> = new Set([
+	Accessor.AccessType.LOCAL_FOLDER,
+	Accessor.AccessType.FILE_SHARE,
+	Accessor.AccessType.HTTP,
+	Accessor.AccessType.HTTP_PROXY,
+	Accessor.AccessType.QUANTEL,
+])
+
+export function isAnFFMpegSupportedSourceAccessor(sourceAccessorOnPackage: AccessorOnPackage.Any): boolean {
+	return FFMPEG_SUPPORTED_SOURCE_ACCESSORS.has(sourceAccessorOnPackage.type)
+}
+
+export function isAnFFMpegSupportedSourceAccessorHandle(
+	sourceHandle: GenericAccessorHandle<any>
+): sourceHandle is
+	| LocalFolderAccessorHandle<any>
+	| FileShareAccessorHandle<any>
+	| HTTPAccessorHandle<any>
+	| HTTPProxyAccessorHandle<any>
+	| QuantelAccessorHandle<any> {
+	return (
+		isLocalFolderAccessorHandle(sourceHandle) ||
+		isFileShareAccessorHandle(sourceHandle) ||
+		isHTTPAccessorHandle(sourceHandle) ||
+		isHTTPProxyAccessorHandle(sourceHandle) ||
+		isQuantelClipAccessorHandle(sourceHandle)
+	)
 }

@@ -60,12 +60,13 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(5) // copy, scan, deep-scan, thumbnail, preview
+		expect(Object.keys(expectations)).toHaveLength(6) // copy, scan, deep-scan, thumbnail, preview, loudness
 		// expect(expectations).toMatchSnapshot()
 
 		const eCopy = Object.values(expectations).find((e) => e.type === Expectation.Type.FILE_COPY)
 		const eScan = Object.values(expectations).find((e) => e.type === Expectation.Type.PACKAGE_SCAN)
 		const eDeepScan = Object.values(expectations).find((e) => e.type === Expectation.Type.PACKAGE_DEEP_SCAN)
+		const eLoudness = Object.values(expectations).find((e) => e.type === Expectation.Type.PACKAGE_LOUDNESS_SCAN)
 		const eThumbnail = Object.values(expectations).find((e) => e.type === Expectation.Type.MEDIA_FILE_THUMBNAIL)
 		const ePreview = Object.values(expectations).find((e) => e.type === Expectation.Type.MEDIA_FILE_PREVIEW)
 
@@ -74,6 +75,7 @@ describe('Generate expectations - NRK', () => {
 		expect(eDeepScan).toBeTruthy()
 		expect(eThumbnail).toBeTruthy()
 		expect(ePreview).toBeTruthy()
+		expect(eLoudness).toBeTruthy()
 	})
 	test('Duplicated packages', () => {
 		const o = setup()
@@ -108,7 +110,7 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(5) // copy, scan, deep-scan, thumbnail, preview
+		expect(Object.keys(expectations)).toHaveLength(6) // copy, scan, deep-scan, thumbnail, preview, loudness
 
 		const eCopy = Object.values(expectations).find((e) => e.type === Expectation.Type.FILE_COPY)
 		expect(eCopy).toBeTruthy()
@@ -151,7 +153,7 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(10) // 2x (copy, scan, deep-scan, thumbnail, preview)
+		expect(Object.keys(expectations)).toHaveLength(12) // 2x (copy, scan, deep-scan, thumbnail, preview, loudness)
 
 		const sorted = Object.values(expectations).sort((a, b) => {
 			// Lowest first: (lower is better)
@@ -165,13 +167,15 @@ describe('Generate expectations - NRK', () => {
 			Expectation.Type.FILE_COPY,
 			Expectation.Type.PACKAGE_SCAN,
 			Expectation.Type.PACKAGE_SCAN,
-			// The rest aren't as important
+			// The order of the rest aren't as important:
 			Expectation.Type.MEDIA_FILE_THUMBNAIL,
 			Expectation.Type.MEDIA_FILE_PREVIEW,
 			Expectation.Type.MEDIA_FILE_THUMBNAIL,
 			Expectation.Type.PACKAGE_DEEP_SCAN,
 			Expectation.Type.MEDIA_FILE_PREVIEW,
 			Expectation.Type.PACKAGE_DEEP_SCAN,
+			Expectation.Type.PACKAGE_LOUDNESS_SCAN,
+			Expectation.Type.PACKAGE_LOUDNESS_SCAN,
 		])
 	})
 })
@@ -289,6 +293,9 @@ function setup() {
 				thumbnailPackageSettings: {
 					path: 'simpleMedia-thumbnail.webm',
 				},
+				loudnessPackageSettings: {
+					channelSpec: ['0+1'],
+				},
 			},
 		}),
 		simpleMedia2: literal<ExpectedPackage.ExpectedPackageMediaFile>({
@@ -314,6 +321,9 @@ function setup() {
 				thumbnailContainerId: 'thumbnails',
 				thumbnailPackageSettings: {
 					path: 'simpleMedia2-thumbnail.webm',
+				},
+				loudnessPackageSettings: {
+					channelSpec: ['0+1'],
 				},
 			},
 		}),
