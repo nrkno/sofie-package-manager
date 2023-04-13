@@ -53,6 +53,19 @@ export class ExpectationManager {
 	): void {
 		this.internalManager.workforceConnection.workforceAPI.hook(hook)
 	}
+	/** Returns a Hook used to hook up a WorkerAgent to our API-methods. */
+	getWorkerAgentHook(): Hook<
+		ExpectationManagerWorkerAgent.ExpectationManager,
+		ExpectationManagerWorkerAgent.WorkerAgent
+	> {
+		return this.internalManager.getWorkerAgentHook()
+	}
+	removeWorkerAgentHook(clientId: string): void {
+		return this.internalManager.removeWorkerAgentHook(clientId)
+	}
+	resetWork(): void {
+		this.internalManager.resetWork()
+	}
 	get managerId(): string {
 		return this.internalManager.managerId
 	}
@@ -105,7 +118,7 @@ export class ExpectationManager {
 			workforce: this.internalManager.workforceConnection.workforceAPI.connected
 				? await this.internalManager.workforceConnection.workforceAPI.getStatusReport()
 				: {},
-			expectationManager: this.internalManager.statusReport,
+			expectationManager: this.internalManager.statusReport.get(),
 		}
 	}
 	async debugKillApp(appId: string): Promise<void> {

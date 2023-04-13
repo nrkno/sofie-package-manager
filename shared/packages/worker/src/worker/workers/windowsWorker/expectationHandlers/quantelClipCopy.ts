@@ -60,12 +60,16 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 
 		// Also check if we actually can read from the package:
 		const tryReading = await lookupSource.handle.tryPackageRead()
-		if (!tryReading.success) return { ready: false, reason: tryReading.reason }
+		if (!tryReading.success)
+			return {
+				ready: false,
+				sourceExists: tryReading.packageExists,
+				isPlaceholder: tryReading.sourceIsPlaceholder,
+				reason: tryReading.reason,
+			}
 
 		return {
 			ready: true,
-			sourceExists: true,
-			// reason: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
 		}
 	},
 	isExpectationFullfilled: async (

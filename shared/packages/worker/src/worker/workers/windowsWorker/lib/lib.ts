@@ -8,12 +8,12 @@ import {
 	ReturnTypeGetCostFortExpectation,
 } from '@sofie-package-manager/api'
 import { prioritizeAccessors } from '../../../lib/lib'
-import { AccessorHandlerResult } from '../../../accessorHandlers/genericHandle'
+import { AccessorHandlerResultGeneric } from '../../../accessorHandlers/genericHandle'
 
 export function compareActualExpectVersions(
 	actualVersion: Expectation.Version.Any,
 	expectVersion: Expectation.Version.ExpectAny
-): AccessorHandlerResult {
+): AccessorHandlerResultGeneric {
 	const expectProperties = makeUniversalVersion(expectVersion)
 	const actualProperties = makeUniversalVersion(actualVersion)
 
@@ -37,7 +37,7 @@ export function compareActualExpectVersions(
 export function compareUniversalVersions(
 	sourceVersion: UniversalVersion,
 	targetVersion: UniversalVersion
-): AccessorHandlerResult {
+): AccessorHandlerResultGeneric {
 	for (const key of Object.keys(sourceVersion)) {
 		const source = sourceVersion[key]
 		const target = targetVersion[key]

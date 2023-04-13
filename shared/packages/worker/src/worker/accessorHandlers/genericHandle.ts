@@ -29,30 +29,30 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 * Checks if there are any issues with the properties in the accessor or content for being able to read
 	 * @returns undefined if all is OK / string with error message
 	 */
-	abstract checkHandleRead(): AccessorHandlerResult
+	abstract checkHandleRead(): AccessorHandlerCheckHandleReadResult
 	/**
 	 * Checks if there are any issues with the properties in the accessor or content for being able to write
 	 * @returns undefined if all is OK / string with error message
 	 */
-	abstract checkHandleWrite(): AccessorHandlerResult
+	abstract checkHandleWrite(): AccessorHandlerCheckHandleWriteResult
 	/**
 	 * Checks if Accesor has access to the Package, for reading.
 	 * Errors from this method are related to access/permission issues, or that the package doesn't exist.
 	 * @returns undefined if all is OK / string with error message
 	 */
-	abstract checkPackageReadAccess(): Promise<AccessorHandlerResult>
+	abstract checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult>
 
 	/**
 	 * Do a check if it actually is possible to access the package.
 	 * Errors from this method are related to the actual access of the package (such as resource is busy).
 	 * @returns undefined if all is OK / string with error message
 	 */
-	abstract tryPackageRead(): Promise<AccessorHandlerResult>
+	abstract tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult>
 	/**
 	 * Checks if the PackageContainer can be written to
 	 * @returns undefined if all is OK / string with error message
 	 */
-	abstract checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult>
+	abstract checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult>
 	/**
 	 * Extracts and returns the version from the package
 	 * @returns the vesion of the package
@@ -103,7 +103,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 * Performs a cronjob on the Package container
 	 * @returns undefined if all is OK / string with error message
 	 */
-	abstract runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult>
+	abstract runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerRunCronJobResult>
 	/**
 	 * Setup monitors on the Package container
 	 * @returns undefined if all is OK / string with error message
@@ -137,28 +137,39 @@ export abstract class GenericAccessorHandle<Metadata> {
 	}
 }
 
+/** Default result returned from most accessorHandler-methods when the result was a success */
+type AccessorHandlerResultSuccess = {
+	/** Whether the action was successful or not */
+	success: true
+}
+/** Default result returned from most accessorHandler-methods when the result was NOT a success */
+type AccessorHandlerResultBad = {
+	/** Whether the action was successful or not */
+	success: false
+	/** The reason why the action wasn't successful*/
+	reason: Reason
+}
 /** Default result returned from most accessorHandler-methods */
-export type AccessorHandlerResult =
-	| {
-			/** Whether the action was successful or not */
-			success: true
-	  }
-	| {
-			/** Whether the action was successful or not */
-			success: false
-			/** If the action isn't successful, the reason why */
-			reason: Reason
-	  }
+export type AccessorHandlerResultGeneric = AccessorHandlerResultSuccess | AccessorHandlerResultBad
 
+export type AccessorHandlerCheckHandleReadResult = AccessorHandlerResultGeneric
+export type AccessorHandlerCheckHandleWriteResult = AccessorHandlerCheckHandleReadResult
+export type AccessorHandlerCheckPackageReadAccessResult = AccessorHandlerResultGeneric
+export type AccessorHandlerTryPackageReadResult =
+	| AccessorHandlerResultSuccess
+	| (AccessorHandlerResultBad & {
+			/** If true, indicates that the package exists at all */
+			packageExists: boolean
+			/** If true, indicates that the package is a placeholder */
+			sourceIsPlaceholder?: boolean
+	  })
+export type AccessorHandlerCheckPackageContainerWriteAccessResult = AccessorHandlerResultGeneric
+export type AccessorHandlerRunCronJobResult = Promise<AccessorHandlerResultGeneric>
 export type SetupPackageContainerMonitorsResult =
-	| {
-			success: true
+	| (AccessorHandlerResultSuccess & {
 			monitors: { [monitorId: string]: MonitorInProgress }
-	  }
-	| {
-			success: false
-			reason: Reason
-	  }
+	  })
+	| AccessorHandlerResultBad
 /**
  * A class emitted from putPackageStream() and putPackageInfo(), used to signal the progression of an ongoing write operation.
  * Users of this class are required to emit the events 'error' on error and 'close' upon completion

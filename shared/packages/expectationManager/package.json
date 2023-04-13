@@ -1,11 +1,11 @@
 {
     "name": "@sofie-package-manager/expectation-manager",
-    "version": "1.41.0-alpha.1",
+    "version": "1.42.0-0",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest"
     },
@@ -13,8 +13,8 @@
         "node": ">=14.18.0"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.41.0-alpha.1",
-        "@sofie-package-manager/worker": "1.41.0-alpha.1",
+        "@sofie-package-manager/api": "1.42.0-0",
+        "@sofie-package-manager/worker": "1.42.0-0",
         "@supercharge/promise-pool": "^1.7.0",
         "underscore": "^1.12.0"
     },

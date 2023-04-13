@@ -18,6 +18,7 @@ import { FileCopy } from './expectationHandlers/fileCopy'
 import { FileCopyProxy } from './expectationHandlers/fileCopyProxy'
 import { PackageScan } from './expectationHandlers/packageScan'
 import { PackageDeepScan } from './expectationHandlers/packageDeepScan'
+import { PackageLoudnessScan } from './expectationHandlers/packageLoudnessScan'
 import { MediaFileThumbnail } from './expectationHandlers/mediaFileThumbnail'
 import { ExpectationHandler } from '../../lib/expectationHandler'
 import { IWorkInProgress } from '../../lib/workInProgress'
@@ -48,7 +49,7 @@ export class WindowsWorker extends GenericWorker {
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
 		super(logger.category('WindowsWorker'), agentAPI, sendMessageToManager, WindowsWorker.type)
-		if (process.platform !== 'win32') {
+		if (process.platform !== 'win32' && process.env.JEST_WORKER_ID === undefined) {
 			throw new Error('The Worker is a Windows-only application')
 		}
 		this.logger.debug(`Worker started`)
@@ -108,6 +109,8 @@ export class WindowsWorker extends GenericWorker {
 				return PackageScan
 			case Expectation.Type.PACKAGE_DEEP_SCAN:
 				return PackageDeepScan
+			case Expectation.Type.PACKAGE_LOUDNESS_SCAN:
+				return PackageLoudnessScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
 				return MediaFileThumbnail
 			case Expectation.Type.MEDIA_FILE_PREVIEW:

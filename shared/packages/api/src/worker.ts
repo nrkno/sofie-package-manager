@@ -19,11 +19,16 @@ export type ReturnTypeGetCostFortExpectation = {
 export type ReturnTypeIsExpectationReadyToStartWorkingOn =
 	| {
 			ready: true
-			sourceExists?: boolean
 	  }
 	| {
 			ready: false
+			/**
+			 * true indicates that a source exists,
+			 * false indicates that a source does not exist,
+			 * undefined means unknown
+			 */
 			sourceExists?: boolean
+			isPlaceholder?: boolean
 			isWaitingForAnother?: boolean
 			reason: Reason
 	  }

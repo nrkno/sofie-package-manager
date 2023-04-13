@@ -1,9 +1,11 @@
 import _ from 'underscore'
 import { CoreHandler } from './coreHandler'
 // eslint-disable-next-line node/no-extraneous-import
-import { PeripheralDeviceAPIMethods } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
-// eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
+// eslint-disable-next-line node/no-extraneous-import
+import { protectString, protectStringArray } from '@sofie-automation/shared-lib/dist/lib/protectedString'
+// eslint-disable-next-line node/no-extraneous-import
+import { UpdateExpectedPackageWorkStatusesChanges } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
 import {
 	ExpectationManager,
 	ExpectationManagerCallbacks,
@@ -30,11 +32,6 @@ import {
 } from '@sofie-package-manager/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
-import {
-	UpdateExpectedPackageWorkStatusesChanges,
-	UpdatePackageContainerPackageStatusesChanges,
-	UpdatePackageContainerStatusesChanges,
-} from './api'
 import { GenerateExpectationApi } from './generateExpectations/api'
 
 import * as NRK from './generateExpectations/nrk'
@@ -212,7 +209,7 @@ export class PackageManagerHandler {
 			}
 
 			if (!this.coreHandler.notUsingCore) {
-				const objs = this.coreHandler.getCollection('deviceExpectedPackages').find(() => true)
+				const objs = this.coreHandler.getCollection<any>('deviceExpectedPackages').find(() => true)
 
 				const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
 				if (!activePlaylistObj) {
@@ -591,23 +588,27 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		switch (message.type) {
 			case 'fetchPackageInfoMetadata': {
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
-				return this.packageManager.coreHandler.callMethod(
-					PeripheralDeviceAPIMethods.fetchPackageInfoMetadata,
-					message.arguments
+				return this.packageManager.coreHandler.coreMethods.fetchPackageInfoMetadata(
+					message.arguments[0],
+					protectStringArray(message.arguments[1])
 				)
 			}
 			case 'updatePackageInfo': {
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
-				return this.packageManager.coreHandler.callMethod(
-					PeripheralDeviceAPIMethods.updatePackageInfo,
-					message.arguments
+				return this.packageManager.coreHandler.coreMethods.updatePackageInfo(
+					message.arguments[0],
+					protectString(message.arguments[1]),
+					message.arguments[2],
+					message.arguments[3],
+					message.arguments[4]
 				)
 			}
 			case 'removePackageInfo': {
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
-				return this.packageManager.coreHandler.callMethod(
-					PeripheralDeviceAPIMethods.removePackageInfo,
-					message.arguments
+				return this.packageManager.coreHandler.coreMethods.removePackageInfo(
+					message.arguments[0],
+					protectString(message.arguments[1]),
+					message.arguments[2]
 				)
 			}
 			case 'reportFromMonitorPackages':
@@ -625,22 +626,13 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 
 		this.reportedExpectationStatuses = {}
-		await this.packageManager.coreHandler.callMethod(
-			PeripheralDeviceAPIMethods.removeAllExpectedPackageWorkStatusOfDevice,
-			[]
-		)
+		await this.packageManager.coreHandler.coreMethods.removeAllExpectedPackageWorkStatusOfDevice()
 
 		this.reportedPackageContainerStatuses = {}
-		await this.packageManager.coreHandler.callMethod(
-			PeripheralDeviceAPIMethods.removeAllPackageContainerPackageStatusesOfDevice,
-			[]
-		)
+		await this.packageManager.coreHandler.coreMethods.removeAllPackageContainerPackageStatusesOfDevice()
 
 		this.reportedPackageStatuses = {}
-		await this.packageManager.coreHandler.callMethod(
-			PeripheralDeviceAPIMethods.removeAllPackageContainerStatusesOfDevice,
-			[]
-		)
+		await this.packageManager.coreHandler.coreMethods.removeAllPackageContainerStatusesOfDevice()
 	}
 	public onCoreConnected() {
 		this.triggerReportUpdatedStatuses()
@@ -725,7 +717,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			async (changesToSend) => {
 				// Send the changes to Core:
 
-				const sendToCore: UpdateExpectedPackageWorkStatusesChanges = []
+				const sendToCore: UpdateExpectedPackageWorkStatusesChanges[] = []
 
 				for (const change of changesToSend) {
 					const expectationId = change.key
@@ -733,12 +725,12 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					if (change.type === 'delete') {
 						sendToCore.push({
 							type: 'delete',
-							id: expectationId,
+							id: protectString(expectationId),
 						})
 					} else if (change.type === 'insert') {
 						sendToCore.push({
 							type: 'insert',
-							id: expectationId,
+							id: protectString(expectationId),
 							status: change.status,
 						})
 					} else {
@@ -759,7 +751,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 						if (!_.isEmpty(mod)) {
 							sendToCore.push({
 								type: 'update',
-								id: expectationId,
+								id: protectString(expectationId),
 								status: mod,
 							})
 						} else {
@@ -769,10 +761,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				}
 
 				try {
-					await this.packageManager.coreHandler.callMethod(
-						PeripheralDeviceAPIMethods.updateExpectedPackageWorkStatuses,
-						[sendToCore]
-					)
+					await this.packageManager.coreHandler.coreMethods.updateExpectedPackageWorkStatuses(sendToCore)
 				} catch (err) {
 					// Ignore some errors:
 					if (`${err}`.match(/ExpectedPackages ".*" not found/)) {
@@ -788,29 +777,24 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	private async reportUpdatePackageContainerPackageStatus(): Promise<void> {
 		await this.reportStatus(this.toReportPackageStatus, this.reportedPackageStatuses, async (changesToSend) => {
 			// Send the changes to Core:
-			await this.packageManager.coreHandler.callMethod(
-				PeripheralDeviceAPIMethods.updatePackageContainerPackageStatuses,
-				[
-					literal<UpdatePackageContainerPackageStatusesChanges>(
-						changesToSend.map((change) => {
-							if (change.type === 'delete') {
-								return {
-									type: 'delete',
-									containerId: change.ids.containerId,
-									packageId: change.ids.packageId,
-								}
-							} else {
-								// Inserted / Updated
-								return {
-									type: 'update',
-									containerId: change.ids.containerId,
-									packageId: change.ids.packageId,
-									status: change.status,
-								}
-							}
-						})
-					),
-				]
+			await this.packageManager.coreHandler.coreMethods.updatePackageContainerPackageStatuses(
+				changesToSend.map((change) => {
+					if (change.type === 'delete') {
+						return {
+							type: 'delete',
+							containerId: change.ids.containerId,
+							packageId: change.ids.packageId,
+						}
+					} else {
+						// Inserted / Updated
+						return {
+							type: 'update',
+							containerId: change.ids.containerId,
+							packageId: change.ids.packageId,
+							status: change.status,
+						}
+					}
+				})
 			)
 		})
 	}
@@ -820,27 +804,22 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			this.reportedPackageContainerStatuses,
 			async (changesToSend) => {
 				// Send the changes to Core:
-				literal<UpdatePackageContainerStatusesChanges>(
-					await this.packageManager.coreHandler.callMethod(
-						PeripheralDeviceAPIMethods.updatePackageContainerStatuses,
-						[
-							changesToSend.map((change) => {
-								if (change.type === 'delete') {
-									return {
-										type: 'delete',
-										containerId: change.key,
-									}
-								} else {
-									// Inserted / Updated
-									return {
-										type: 'update',
-										containerId: change.key,
-										status: change.status,
-									}
-								}
-							}),
-						]
-					)
+				await this.packageManager.coreHandler.coreMethods.updatePackageContainerStatuses(
+					changesToSend.map((change) => {
+						if (change.type === 'delete') {
+							return {
+								type: 'delete',
+								containerId: change.key,
+							}
+						} else {
+							// Inserted / Updated
+							return {
+								type: 'update',
+								containerId: change.key,
+								status: change.status,
+							}
+						}
+					})
 				)
 			}
 		)

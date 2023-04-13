@@ -1,10 +1,10 @@
 {
     "name": "@workforce/app",
-    "version": "1.41.0-alpha.1",
+    "version": "1.42.0-0",
     "description": "Boilerplace",
     "private": true,
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs workforce.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
@@ -14,7 +14,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@workforce/generic": "1.41.0-alpha.1"
+        "@workforce/generic": "1.42.0-0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

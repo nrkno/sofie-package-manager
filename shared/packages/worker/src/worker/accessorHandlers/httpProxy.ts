@@ -3,8 +3,13 @@ import {
 	PackageReadInfo,
 	PackageReadStream,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
+	AccessorHandlerRunCronJobResult,
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerTryPackageReadResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -19,6 +24,8 @@ import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
 import { joinUrls } from './lib/pathJoin'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
+import { makeFileNameUrlSafe } from '@sofie-package-manager/api'
 
 /** Accessor handle for accessing files in HTTP- */
 export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -52,31 +59,17 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		const accessor = accessor0 as AccessorOnPackage.HTTP
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): AccessorHandlerResult {
-		if (!this.accessor.allowRead) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to read`,
-					tech: `Not allowed to read`,
-				},
-			}
-		}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
-		if (!this.accessor.allowWrite) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to write`,
-					tech: `Not allowed to write`,
-				},
-			}
-		}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const header = await this.fetchHeader()
 
 		if (header.status >= 400) {
@@ -90,11 +83,11 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 		return { success: true }
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		// TODO: how to do this?
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		// todo: how to check this?
 		return { success: true }
 	}
@@ -177,7 +170,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		await this.deletePackageIfExists(this.getMetadataPath(this.fullUrl))
 	}
 
-	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerResult> {
+	async runCronJob(packageContainerExp: PackageContainerExpectation): Promise<AccessorHandlerRunCronJobResult> {
 		let badReason: Reason | null = null
 		const cronjobs = Object.keys(packageContainerExp.cronjobs) as (keyof PackageContainerExpectation['cronjobs'])[]
 		for (const cronjob of cronjobs) {
@@ -218,10 +211,10 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
-		return joinUrls(this.baseUrl, this.filePath)
+		return joinUrls(this.baseUrl, makeFileNameUrlSafe(this.filePath))
 	}
 
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
 		if (this.accessor.type !== Accessor.AccessType.HTTP_PROXY) {
 			return {
 				success: false,
@@ -348,7 +341,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove the package:
-				const fullUrl: string = joinUrls(this.baseUrl, entry.filePath)
+				const fullUrl: string = joinUrls(this.baseUrl, makeFileNameUrlSafe(entry.filePath))
 
 				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)

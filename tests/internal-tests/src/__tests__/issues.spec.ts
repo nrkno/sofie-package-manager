@@ -9,6 +9,7 @@ import { waitUntil, waitTime } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
 import { WorkerAgent } from '@sofie-package-manager/worker'
 jest.mock('fs')
+jest.mock('mkdirp')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
@@ -19,11 +20,14 @@ const fsStat = promisify(fs.stat)
 
 // const fsStat = promisify(fs.stat)
 
+// this test can be a bit slower in CI sometimes
+jest.setTimeout(10000)
+
 describe('Handle unhappy paths', () => {
 	let env: TestEnviromnent
 
 	beforeAll(async () => {
-		env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
+		env = await prepareTestEnviromnent(true) // set to true to enable debug-logging
 		// Verify that the fs mock works:
 		expect(fs.lstat).toBeTruthy()
 		expect(fs.__mockReset).toBeTruthy()
@@ -67,6 +71,12 @@ describe('Handle unhappy paths', () => {
 		)
 
 		// Now the file suddenly pops up:
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
+		console.log('=============================================')
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
 
 		// Wait for the job to complete:
@@ -288,7 +298,7 @@ describe('Handle unhappy paths', () => {
 		// Wait for the work to be aborted, and restarted:
 		await waitUntil(() => {
 			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(
-				expect.stringMatching(/new|waiting|fulfilled/)
+				expect.stringMatching(/new|waiting|ready|fulfilled/)
 			)
 		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
 

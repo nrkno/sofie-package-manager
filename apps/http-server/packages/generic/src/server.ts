@@ -99,10 +99,20 @@ export class PackageProxyServer {
 			const { files, fields } = await parseFormData(ctx.req, {
 				maxFileByteLength: MAX_UPLOAD_FILE_SIZE,
 			})
-			const { value: file } = await files.next()
-			await this.handleStorage(ctx, async () =>
-				this.storage.postPackage(ctx.params.path, ctx, file?.stream ?? fields?.text)
-			)
+			if (fields.text) {
+				// A string in the "text"-field, store that as a file:
+				await this.handleStorage(ctx, async () => this.storage.postPackage(ctx.params.path, ctx, fields.text))
+			} else {
+				// Handle uploaded files:
+				let fileCount = 0
+				for await (const file of files) {
+					fileCount++
+					if (fileCount !== 1) throw new Error('HTTP-server: POST only support uploading of one (1) file!')
+					await this.handleStorage(ctx, async () =>
+						this.storage.postPackage(ctx.params.path, ctx, file?.stream)
+					)
+				}
+			}
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
 			this.logger.debug(`DELETE ${ctx.request.URL}`)

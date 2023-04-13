@@ -1,17 +1,17 @@
 {
     "name": "@workforce/generic",
-    "version": "1.41.0-alpha.1",
+    "version": "1.42.0-0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.41.0-alpha.1",
-        "@sofie-package-manager/workforce": "1.41.0-alpha.1"
+        "@sofie-package-manager/api": "1.42.0-0",
+        "@sofie-package-manager/workforce": "1.42.0-0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

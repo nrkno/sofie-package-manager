@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.42.0-0](https://github.com/nrkno/sofie-package-manager/compare/v1.41.1...v1.42.0-0) (2023-03-22)
+
+
+### Features
+
+* update server-core-integration to r49 ([08971cd](https://github.com/nrkno/sofie-package-manager/commit/08971cdfdec18550afc06d0c5f043b7dd3af3e0f))
+
+
+
+
+
+## [1.41.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0...v1.41.1) (2023-02-22)
+
+**Note:** Version bump only for package @package-manager/generic
+
+
+
+
+
+# [1.41.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.1...v1.41.0) (2023-02-03)
+
+**Note:** Version bump only for package @package-manager/generic
+
+
+
+
+
 # [1.41.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.0...v1.41.0-alpha.1) (2023-02-03)
 
 

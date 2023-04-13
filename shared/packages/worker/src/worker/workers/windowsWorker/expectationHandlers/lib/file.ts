@@ -78,15 +78,10 @@ export async function isFileReadyToStartWorkingOn(
 	// Also check if we actually can read from the package,
 	// this might help in some cases if the file is currently transferring
 	const tryReading = await lookupSource.handle.tryPackageRead()
-	if (!tryReading.success) return { ready: false, reason: tryReading.reason }
+	if (!tryReading.success) return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
 
 	return {
 		ready: true,
-		sourceExists: true,
-		// reason: {
-		// 	user: 'Ready to start copying',
-		// 	tech: `${lookupSource.reason.user}, ${lookupTarget.reason.tech}`,
-		// },
 	}
 }
 export async function isFileFulfilled(

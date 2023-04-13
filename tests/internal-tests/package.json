@@ -1,10 +1,10 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.41.0-alpha.1",
+    "version": "1.42.0-0",
     "description": "Internal tests",
     "private": true,
     "scripts": {
-        "__build": "rimraf dist && yarn build:main",
+        "__build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest --runInBand --forceExit"
     },
@@ -15,12 +15,12 @@
         "windows-network-drive": "^3.0.1"
     },
     "dependencies": {
-        "@http-server/generic": "1.41.0-alpha.1",
-        "@package-manager/generic": "1.41.0-alpha.1",
-        "@sofie-package-manager/api": "1.41.0-alpha.1",
-        "@sofie-package-manager/expectation-manager": "1.41.0-alpha.1",
-        "@sofie-package-manager/worker": "1.41.0-alpha.1",
-        "@sofie-package-manager/workforce": "1.41.0-alpha.1",
+        "@http-server/generic": "1.42.0-0",
+        "@package-manager/generic": "1.42.0-0",
+        "@sofie-package-manager/api": "1.42.0-0",
+        "@sofie-package-manager/expectation-manager": "1.42.0-0",
+        "@sofie-package-manager/worker": "1.42.0-0",
+        "@sofie-package-manager/workforce": "1.42.0-0",
         "underscore": "^1.12.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",

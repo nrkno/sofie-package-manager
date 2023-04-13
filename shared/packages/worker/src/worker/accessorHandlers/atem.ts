@@ -3,8 +3,13 @@ import {
 	PackageReadInfo,
 	PackageReadStream,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerTryPackageReadResult,
+	AccessorHandlerRunCronJobResult,
 } from './genericHandle'
 import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
@@ -18,6 +23,8 @@ import * as path from 'path'
 import { promisify } from 'util'
 import { UniversalVersion } from '../workers/windowsWorker/lib/lib'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
+import { getFFMpegExecutable, getFFProbeExecutable } from '../workers/windowsWorker/expectationHandlers/lib/ffmpeg'
 
 const fsReadFile = promisify(fs.readFile)
 
@@ -60,31 +67,17 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 		return this.worker.accessorCache['atem'] as Atem
 	}
-	checkHandleRead(): AccessorHandlerResult {
-		if (!this.accessor.allowRead) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to read`,
-					tech: `Not allowed to read`,
-				},
-			}
-		}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
-		if (!this.accessor.allowWrite) {
-			return {
-				success: false,
-				reason: {
-					user: `Not allowed to write`,
-					tech: `Not allowed to write`,
-				},
-			}
-		}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		// Check if the package exists:
 		const atem = await this.getAtem()
 		if (!atem.state) {
@@ -118,11 +111,12 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			},
 		}
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		const atem = await this.getAtem()
 		if (!atem.state?.media.clipPool || !atem.state?.media.stillPool) {
 			return {
 				success: false,
+				packageExists: false,
 				reason: {
 					user: `ATEM media pools are inaccessible`,
 					tech: `ATEM media pools are inaccessible`,
@@ -132,7 +126,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		const atem = await this.getAtem()
 		if (atem.status === AtemConnectionStatus.CONNECTED && atem.state) {
 			return { success: true }
@@ -382,7 +376,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async removeMetadata(): Promise<void> {
 		// Not supported
 	}
-	async runCronJob(): Promise<AccessorHandlerResult> {
+	async runCronJob(): Promise<AccessorHandlerRunCronJobResult> {
 		return {
 			success: true,
 		} // not applicable
@@ -397,7 +391,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		} // not applicable
 	}
 
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
 		if (this.accessor.type !== Accessor.AccessType.ATEM_MEDIA_STORE) {
 			return {
 				success: false,
@@ -551,7 +545,7 @@ async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Pr
 
 async function ffprobe(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
+		const file = getFFProbeExecutable()
 		execFile(
 			file,
 			args,
@@ -572,7 +566,7 @@ async function ffprobe(args: string[]): Promise<string> {
 
 async function ffmpeg(args: string[]): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const file = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		const file = getFFMpegExecutable()
 		execFile(
 			file,
 			['-v error', ...args],

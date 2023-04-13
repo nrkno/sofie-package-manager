@@ -340,7 +340,6 @@ interface ThumbnailMetadata {
 /** Returns arguments for FFMpeg to generate a thumbnail image file */
 export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
 	return [
-		// process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
 		'-hide_banner',
 		seekTimeCode ? `-ss ${seekTimeCode}` : undefined,
 		`-i "${input}"`,

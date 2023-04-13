@@ -5,8 +5,13 @@ import {
 	PackageReadInfoBaseType,
 	PackageReadInfoQuantelClip,
 	PutPackageHandler,
-	AccessorHandlerResult,
 	SetupPackageContainerMonitorsResult,
+	AccessorHandlerTryPackageReadResult,
+	AccessorHandlerCheckPackageReadAccessResult,
+	AccessorHandlerCheckPackageContainerWriteAccessResult,
+	AccessorHandlerCheckHandleReadResult,
+	AccessorHandlerCheckHandleWriteResult,
+	AccessorHandlerRunCronJobResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -19,11 +24,13 @@ import {
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { joinUrls } from './lib/pathJoin'
+import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** The minimum amount of frames where a clip is minimumly playable */
-const MINIMUM_FRAMES = 10
+const RESERVED_CLIP_MINIMUM_FRAMES = 10
 /** How long to wait for a response from Quantel Gateway before failing */
 const QUANTEL_TIMEOUT = INNER_ACTION_TIMEOUT - 500
+if (QUANTEL_TIMEOUT < 0) throw new Error('QUANTEL_TIMEOUT < 0')
 
 /** Accessor handle for handling clips in a Quantel system */
 export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -60,16 +67,14 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		const accessor = accessor0 as AccessorOnPackage.Quantel
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
-	checkHandleRead(): AccessorHandlerResult {
-		if (!this.accessor.allowRead) {
-			return { success: false, reason: { user: `Not allowed to read`, tech: `Not allowed to read` } }
-		}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
 		return this.checkAccessor()
 	}
-	checkHandleWrite(): AccessorHandlerResult {
-		if (!this.accessor.allowWrite) {
-			return { success: false, reason: { user: `Not allowed to write`, tech: `Not allowed to write` } }
-		}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		if (!this.accessor.serverId) {
 			return {
 				success: false,
@@ -81,7 +86,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		}
 		return this.checkAccessor()
 	}
-	private checkAccessor(): AccessorHandlerResult {
+	private checkAccessor(): AccessorHandlerCheckHandleReadResult {
 		if (this.accessor.type !== Accessor.AccessType.QUANTEL) {
 			return {
 				success: false,
@@ -117,7 +122,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		return { success: true }
 	}
-	async checkPackageReadAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const quantel = await this.getQuantelGateway()
 
 		// Search for a clip that match:
@@ -137,28 +142,43 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			}
 		}
 	}
-	async tryPackageRead(): Promise<AccessorHandlerResult> {
+	async tryPackageRead(): Promise<AccessorHandlerTryPackageReadResult> {
 		const quantel = await this.getQuantelGateway()
 
 		const clipSummary = await this.searchForLatestClip(quantel)
 
-		if (!clipSummary) return { success: false, reason: { user: `No clip found`, tech: `No clip found` } }
+		if (!clipSummary) {
+			const content = this.getContent()
+			return {
+				success: false,
+				packageExists: false,
+				reason: { user: `Clip not found`, tech: `Clip "${content.guid || content.title}" not found` },
+			}
+		}
 
 		if (!parseInt(clipSummary.Frames, 10)) {
 			return {
 				success: false,
+				packageExists: true,
+				sourceIsPlaceholder: true,
 				reason: {
-					user: `The clip has no frames`,
+					user: `Reserved clip, not yet ready for playout`,
 					tech: `Clip "${clipSummary.ClipGUID}" has no frames`,
 				},
 			}
 		}
-		if (parseInt(clipSummary.Frames, 10) < MINIMUM_FRAMES) {
+
+		// If the clip is less than XX frames long, it is considered to be unplayable.
+		// This concept is called a "Placeholder" or "Reserved clip".
+		// The intention with this is that the clip is expected to show up "soon".
+		if (RESERVED_CLIP_MINIMUM_FRAMES && parseInt(clipSummary.Frames, 10) < RESERVED_CLIP_MINIMUM_FRAMES) {
 			// Check that it is meaningfully playable
 			return {
 				success: false,
+				packageExists: true,
+				sourceIsPlaceholder: true,
 				reason: {
-					user: `The clip hasn't received enough frames`,
+					user: `Reserved clip, not yet ready for playout`,
 					tech: `Clip "${clipSummary.ClipGUID}" hasn't received enough frames (${clipSummary.Frames})`,
 				},
 			}
@@ -171,7 +191,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		return { success: true }
 	}
-	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerResult> {
+	async checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult> {
 		const quantel = await this.getQuantelGateway()
 
 		const server = await quantel.getServer()
@@ -332,7 +352,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	async removeMetadata(): Promise<void> {
 		// Not supported, do nothing
 	}
-	async runCronJob(): Promise<AccessorHandlerResult> {
+	async runCronJob(): Promise<AccessorHandlerRunCronJobResult> {
 		return {
 			success: true,
 		} // not applicable

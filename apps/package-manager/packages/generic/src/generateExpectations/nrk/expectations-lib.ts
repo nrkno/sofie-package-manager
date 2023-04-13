@@ -15,6 +15,14 @@ import {
 	PriorityAdditions,
 } from './types'
 
+type SomeClipCopyExpectation =
+	| Expectation.FileCopy
+	| Expectation.FileCopyProxy
+	| Expectation.FileVerify
+	| Expectation.QuantelClipCopy
+
+type SomeClipFileOnDiskCopyExpectation = Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify
+
 export function generateMediaFileCopy(
 	managerId: string,
 	expWrap: ExpectedPackageWrap,
@@ -171,11 +179,7 @@ export function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageW
 	return exp
 }
 export function generatePackageScan(
-	expectation:
-		| Expectation.FileCopy
-		| Expectation.FileCopyProxy
-		| Expectation.FileVerify
-		| Expectation.QuantelClipCopy,
+	expectation: SomeClipCopyExpectation,
 	settings: PackageManagerSettings
 ): Expectation.PackageScan {
 	let priority = expectation.priority + PriorityAdditions.SCAN
@@ -230,11 +234,7 @@ export function generatePackageScan(
 	})
 }
 export function generatePackageDeepScan(
-	expectation:
-		| Expectation.FileCopy
-		| Expectation.FileCopyProxy
-		| Expectation.FileVerify
-		| Expectation.QuantelClipCopy,
+	expectation: SomeClipCopyExpectation,
 	settings: PackageManagerSettings
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
@@ -288,8 +288,61 @@ export function generatePackageDeepScan(
 	})
 }
 
+export function generatePackageLoudness(
+	expectation: SomeClipCopyExpectation,
+	packageSettings: ExpectedPackage.SideEffectLoudnessSettings,
+	settings: PackageManagerSettings
+): Expectation.PackageLoudnessScan {
+	return literal<Expectation.PackageLoudnessScan>({
+		id: expectation.id + '_loudness',
+		priority: expectation.priority + PriorityAdditions.LOUDNESS_SCAN,
+		managerId: expectation.managerId,
+		type: Expectation.Type.PACKAGE_LOUDNESS_SCAN,
+		fromPackages: expectation.fromPackages,
+
+		statusReport: {
+			label: `Loudness Scan`,
+			description: `Measure clip loudness, using channels ${packageSettings.channelSpec.join(', ')}`,
+			requiredForPlayout: false,
+			displayRank: 14,
+			sendReport: expectation.statusReport.sendReport,
+		},
+
+		startRequirement: {
+			sources: expectation.endRequirement.targets,
+			content: expectation.endRequirement.content,
+			version: expectation.endRequirement.version,
+		},
+		endRequirement: {
+			targets: [
+				{
+					containerId: '__corePackageInfo',
+					label: 'Core package info',
+					accessors: {
+						coreCollection: {
+							type: Accessor.AccessType.CORE_PACKAGE_INFO,
+						},
+					},
+				},
+			],
+			content: null,
+			version: {
+				channels: packageSettings.channelSpec,
+			},
+		},
+		workOptions: {
+			...expectation.workOptions,
+			allowWaitForCPU: true,
+			usesCPUCount: 1,
+			removeDelay: settings.delayRemovalPackageInfo,
+		},
+		dependsOnFullfilled: [expectation.id],
+		triggerByFullfilledIds: [expectation.id],
+	})
+}
+
 export function generateMediaFileThumbnail(
-	expectation: Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify,
+	expectation: SomeClipFileOnDiskCopyExpectation,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
@@ -342,7 +395,7 @@ export function generateMediaFileThumbnail(
 	})
 }
 export function generateMediaFilePreview(
-	expectation: Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify,
+	expectation: SomeClipFileOnDiskCopyExpectation,
 	packageContainerId: string,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
