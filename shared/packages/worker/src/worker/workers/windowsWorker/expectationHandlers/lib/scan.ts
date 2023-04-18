@@ -461,9 +461,9 @@ function scanLoudnessStream(
 		let filterString: string
 
 		if (stereoPairMatch) {
-			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128[out]`
+			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128=peak=true[out]`
 		} else {
-			filterString = `[0:a:${singleChannel}]ebur128[out]`
+			filterString = `[0:a:${singleChannel}]ebur128=peak=true[out]`
 		}
 
 		const file = getFFMpegExecutable()
@@ -507,7 +507,7 @@ function scanLoudnessStream(
 				const LayoutRegex = /Output #0, null[\S\s]+Stream #0:0: Audio: [\w]+, [\d]+ Hz, (?<layout>\w+),/
 
 				const LoudnessRegex =
-					/Integrated loudness:\s+I:\s+(?<integrated>[\d-.,]+)\s+LUFS\s+Threshold:\s+(?<threshold>[\d-.,]+)\s+LUFS\s+Loudness range:\s+LRA:\s+(?<lra>[\d-.,]+)\s+LU\s+Threshold:\s+(?<rangeThreshold>[\d-.,]+)\s+LUFS\s+LRA low:\s+(?<lraLow>[\d-.,]+)\s+LUFS\s+LRA high:\s+(?<lraHigh>[\d-.,]+)\s+LUFS\s*$/i
+					/Integrated loudness:\s+I:\s+(?<integrated>[\d-.,]+)\s+LUFS\s+Threshold:\s+(?<threshold>[\d-.,]+)\s+LUFS\s+Loudness range:\s+LRA:\s+(?<lra>[\d-.,]+)\s+LU\s+Threshold:\s+(?<rangeThreshold>[\d-.,]+)\s+LUFS\s+LRA low:\s+(?<lraLow>[\d-.,]+)\s+LUFS\s+LRA high:\s+(?<lraHigh>[\d-.,]+)\s+LUFS\s+True peak:\s+Peak:\s+(?<truePeak>[\d-.,]+)\s+dBFS\s*$/i
 
 				const loudnessRes = LoudnessRegex.exec(stderr)
 				const layoutRes = LayoutRegex.exec(stderr)
@@ -532,6 +532,7 @@ function scanLoudnessStream(
 						rangeThreshold: Number.parseFloat(loudnessRes.groups?.['rangeThreshold'] ?? ''),
 						rangeHigh: Number.parseFloat(loudnessRes.groups?.['lraHigh'] ?? ''),
 						rangeLow: Number.parseFloat(loudnessRes.groups?.['lraLow'] ?? ''),
+						truePeak: Number.parseFloat(loudnessRes.groups?.['truePeak'] ?? ''),
 					})
 				}
 			}

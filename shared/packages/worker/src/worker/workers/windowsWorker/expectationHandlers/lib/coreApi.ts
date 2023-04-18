@@ -51,4 +51,6 @@ export type LoudnessScanResultForStream =
 			rangeLow: number
 			/** Unit: LUFS */
 			rangeHigh: number
+			/** Unit: dBFS */
+			truePeak: number
 	  }
