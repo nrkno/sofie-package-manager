@@ -391,7 +391,12 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					if (lStat.isDirectory()) {
 						await cleanUpDirectory(filePath, true)
 					} else {
-						const age = Math.floor((now - lStat.mtimeMs) / 1000) // in seconds
+						const lastModified = Math.max(
+							lStat.mtimeMs, // modified
+							lStat.ctimeMs, // created
+							lStat.birthtimeMs // birthtime (when a file is copied, this changes but the others are kept from the original file)
+						)
+						const age = Math.floor((now - lastModified) / 1000) // in seconds
 
 						if (age > cleanFileAge) {
 							await fsUnlink(fullPath)
