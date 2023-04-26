@@ -332,7 +332,7 @@ describe('Handle unhappy paths', () => {
 		// To be written
 		expect(1).toEqual(1)
 	})
-	test.only('When original work step fails, subsequent steps should do so too', async () => {
+	test('When original work step fails, subsequent steps should do so too', async () => {
 		// Step 1: Copy from A to B
 		// Step 2: Copy from B to C
 
