@@ -35,7 +35,6 @@ const fsClose = promisify(fs.close)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 const fsRename = promisify(fs.rename)
-const fsUnlink = promisify(fs.unlink)
 
 /** Accessor handle for accessing files in a local folder */
 export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
@@ -177,7 +176,8 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
-			await this.unlinkIfExists(this.fullPath)
+			if (await this.unlinkIfExists(this.fullPath))
+				this.worker.logger.verbose(`Remove package: Removed file "${this.fullPath}"`)
 		}
 	}
 	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
@@ -203,15 +203,8 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		await mkdirp(path.dirname(fullPath)) // Create folder if it doesn't exist
 
 		// Remove the file if it exists:
-		let exists = false
-		try {
-			await fsAccess(fullPath, fs.constants.R_OK)
-			// The file exists
-			exists = true
-		} catch (err) {
-			// Ignore
-		}
-		if (exists) await fsUnlink(fullPath)
+		if (await this.unlinkIfExists(fullPath))
+			this.worker.logger.verbose(`Put package stream: Remove file "${fullPath}"`)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(fullPath))
 
@@ -235,8 +228,12 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 
 	async finalizePackage(): Promise<void> {
 		if (this.workOptions.useTemporaryFilePath) {
-			await this.unlinkIfExists(this.fullPath)
+			if (await this.unlinkIfExists(this.fullPath))
+				this.worker.logger.verbose(`Finalize package: Remove file "${this.fullPath}"`)
 			await fsRename(this.temporaryFilePath, this.fullPath)
+			this.worker.logger.verbose(
+				`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`
+			)
 		}
 	}
 
