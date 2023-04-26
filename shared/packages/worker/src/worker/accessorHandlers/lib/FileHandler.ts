@@ -103,7 +103,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 				const fullPath = this.getFullPath(entry.filePath)
 				const metadataPath = this.getMetadataPath(entry.filePath)
 
-				await this.unlinkIfExists(fullPath)
+				if (await this.unlinkIfExists(fullPath))
+					this.worker.logger.verbose(`Remove due packages: Removed file "${fullPath}"`)
 				await this.unlinkIfExists(metadataPath)
 
 				removedFilePaths.push(entry.filePath)
@@ -127,8 +128,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 		return null
 	}
-	/** Unlink (remove) a file, if it exists. */
-	async unlinkIfExists(filePath: string): Promise<void> {
+	/** Unlink (remove) a file, if it exists. Returns true if it did exist */
+	async unlinkIfExists(filePath: string): Promise<boolean> {
 		let exists = false
 		try {
 			await fsAccess(filePath, fs.constants.R_OK)
@@ -138,6 +139,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			// Ignore
 		}
 		if (exists) await fsUnlink(filePath)
+		return exists
 	}
 	getFullPath(filePath: string): string {
 		filePath = removeBasePath(this.orgFolderPath, filePath)
@@ -389,10 +391,16 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					if (lStat.isDirectory()) {
 						await cleanUpDirectory(filePath, true)
 					} else {
-						const age = Math.floor((now - lStat.mtimeMs) / 1000) // in seconds
+						const lastModified = Math.max(
+							lStat.mtimeMs, // modified
+							lStat.ctimeMs, // created
+							lStat.birthtimeMs // birthtime (when a file is copied, this changes but the others are kept from the original file)
+						)
+						const age = Math.floor((now - lastModified) / 1000) // in seconds
 
 						if (age > cleanFileAge) {
 							await fsUnlink(fullPath)
+							this.worker.logger.verbose(`Clean up old files: Remove file "${fullPath}" (age: ${age})`)
 						}
 					}
 				}

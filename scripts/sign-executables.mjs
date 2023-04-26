@@ -80,3 +80,4 @@ if (signedAny) {
 } else {
 	console.log(`Done, but didn't sign any executables.`)
 }
+process.exit()

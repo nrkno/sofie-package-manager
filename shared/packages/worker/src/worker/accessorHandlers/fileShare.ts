@@ -39,7 +39,6 @@ const fsClose = promisify(fs.close)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 const fsRename = promisify(fs.rename)
-const fsUnlink = promisify(fs.unlink)
 const pExec = promisify(exec)
 
 const PREPARE_FILE_ACCESS_TIMEOUT = 1000
@@ -226,7 +225,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
-			await this.unlinkIfExists(this.fullPath)
+			if (await this.unlinkIfExists(this.fullPath))
+				this.worker.logger.verbose(`Remove package: Removed file "${this.fullPath}"`)
 		}
 	}
 
@@ -254,16 +254,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		await mkdirp(path.dirname(fullPath)) // Create folder if it doesn't exist
 
-		// Remove the file if it exists:
-		let exists = false
-		try {
-			await fsAccess(fullPath, fs.constants.R_OK)
-			// The file exists
-			exists = true
-		} catch (err) {
-			// Ignore
-		}
-		if (exists) await fsUnlink(fullPath)
+		// Remove the file if it already exists:
+		if (await this.unlinkIfExists(fullPath))
+			this.worker.logger.verbose(`Put package stream: Remove file "${fullPath}"`)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
@@ -287,8 +280,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 	async finalizePackage(): Promise<void> {
 		if (this.workOptions.useTemporaryFilePath) {
-			await this.unlinkIfExists(this.fullPath)
+			if (await this.unlinkIfExists(this.fullPath))
+				this.worker.logger.verbose(`Finalize package: Removed file "${this.fullPath}"`)
 			await fsRename(this.temporaryFilePath, this.fullPath)
+			this.worker.logger.verbose(
+				`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`
+			)
 		}
 	}
 
