@@ -85,7 +85,8 @@ export namespace Expectation {
 		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
 		workOptions: WorkOptions.Base
 		/** Reference to another expectation.
-		 * Won't start until ALL other expectations are fullfilled
+		 * Won't start until ALL other expectations are fullfilled.
+		 * If any of the other expectations are not fulfilled, this wont be fulfilled either.
 		 */
 		dependsOnFullfilled?: string[]
 		/** Reference to another expectation.
