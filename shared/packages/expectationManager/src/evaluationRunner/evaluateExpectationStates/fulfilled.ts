@@ -51,6 +51,14 @@ export async function evaluateExpectationStateFulfilled({
 
 				if (notFulfilledReason) {
 					// If is not fulfilled anymore
+
+					if (trackedExp.exp.workOptions.removePackageOnUnFulfill) {
+						const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+						if (!removed.removed) {
+							runner.logger.warn(`Unable to remove expectation, reason: ${removed.reason.tech}`)
+						}
+					}
+
 					trackedExp.status.actualVersionHash = undefined
 					trackedExp.status.workProgress = undefined
 					tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {

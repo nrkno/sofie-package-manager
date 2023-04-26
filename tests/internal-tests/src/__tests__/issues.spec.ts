@@ -16,7 +16,21 @@ jest.mock('tv-automation-quantel-gateway-client')
 
 const fs = fsOrg as any as typeof fsMockType
 
+const fsAccess = promisify(fs.access)
 const fsStat = promisify(fs.stat)
+
+const fsExists = async (filePath: string) => {
+	let exists = false
+	try {
+		await fsAccess(filePath, undefined)
+		// The file exists
+		exists = true
+	} catch (err) {
+		// Ignore
+	}
+
+	return exists
+}
 
 // const fsStat = promisify(fs.stat)
 
@@ -318,7 +332,7 @@ describe('Handle unhappy paths', () => {
 		// To be written
 		expect(1).toEqual(1)
 	})
-	test('When original work step fails, subsequent steps should do so too', async () => {
+	test.only('When original work step fails, subsequent steps should do so too', async () => {
 		// Step 1: Copy from A to B
 		// Step 2: Copy from B to C
 
@@ -373,7 +387,9 @@ describe('Handle unhappy paths', () => {
 					},
 					version: { type: Expectation.Version.Type.FILE_ON_DISK },
 				},
-				workOptions: {},
+				workOptions: {
+					removePackageOnUnFulfill: true,
+				},
 			}),
 		})
 
@@ -420,6 +436,11 @@ describe('Handle unhappy paths', () => {
 			expect(env.expectationStatuses['step1'].statusInfo.status).toMatch(/waiting|new/)
 			expect(env.expectationStatuses['step2'].statusInfo.status).toMatch(/waiting|new/)
 		}, env.WAIT_JOB_TIME)
+
+		// The step1-copied file should remain, since removePackageOnUnFulfill is not set
+		expect(await fsExists('/targets/target0/myFolder/file0Target.mp4')).toBe(true)
+		// The step2-copied file should be removed, since removePackageOnUnFulfill is true
+		expect(await fsExists('/targets/target1/myFolder/file0Target.mp4')).toBe(false)
 
 		// Source file shows up again:
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)

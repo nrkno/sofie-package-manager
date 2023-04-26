@@ -369,6 +369,8 @@ export namespace Expectation {
 			allowWaitForCPU?: boolean
 			/** If set, specifies how many CPU cores the work is using. */
 			usesCPUCount?: number
+			/** If set, removes the target package if the expectation becomes unfulfilled. */
+			removePackageOnUnFulfill?: boolean
 		}
 		export interface RemoveDelay {
 			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */
