@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.42.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-0...v1.42.0-alpha.0) (2023-04-26)
+
+
+### Bug Fixes
+
+* a bug where file uploads where aborted ([88f2b42](https://github.com/nrkno/tv-automation-package-manager/commit/88f2b426eadaf0d57c122071b92f631a91e5c4a0))
+
+
+
+
+
 # [1.42.0-0](https://github.com/nrkno/sofie-package-manager/compare/v1.41.1...v1.42.0-0) (2023-03-22)
 
 **Note:** Version bump only for package @http-server/generic

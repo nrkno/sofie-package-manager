@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.42.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-0...v1.42.0-alpha.0) (2023-04-26)
+
+
+### Bug Fixes
+
+* **Loudness:** match only last scan result output ([c678c0b](https://github.com/nrkno/tv-automation-package-manager/commit/c678c0bce0dd75c7674502369730011d8cf480f0))
+* a bug where file uploads where aborted ([88f2b42](https://github.com/nrkno/tv-automation-package-manager/commit/88f2b426eadaf0d57c122071b92f631a91e5c4a0))
+* another instance of double-escaping ([9f6476f](https://github.com/nrkno/tv-automation-package-manager/commit/9f6476f49b8f87e86d5a35c6e7d711126e88f0df))
+* don't double-escape URLs ([a1a4089](https://github.com/nrkno/tv-automation-package-manager/commit/a1a40895a8efa8e04d8896264e80770395e132eb))
+* handle # in filenames and urls (%23, when URI encoded) ([c9ad9c8](https://github.com/nrkno/tv-automation-package-manager/commit/c9ad9c8d42d6ab865f3ac0b81891e1a02cbe985f))
+
+
+### Features
+
+* implement test ([afcd0b5](https://github.com/nrkno/tv-automation-package-manager/commit/afcd0b552f6bb66079c64162fc6f40c7f702b139))
+* support failure in ffmpeg due to referencing a non-existant channel ([bf4888d](https://github.com/nrkno/tv-automation-package-manager/commit/bf4888d1d5525b3a4ee28f8b7e60e54c16c439a7))
+* **Loudness:** Generate loduness scan of packages ([6e990d7](https://github.com/nrkno/tv-automation-package-manager/commit/6e990d7d8910cfd887317d69feb48a3a7e151589))
+
+
+### Reverts
+
+* Revert "chore: split out "@sofie-package-manager/input-api" to a separate package" ([8df7c18](https://github.com/nrkno/tv-automation-package-manager/commit/8df7c183d86436540b4e4b5489446d6340188b24))
+
+
+
+
+
 # [1.42.0-0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.1...v1.42.0-0) (2023-03-22)
 
 
