@@ -6,6 +6,7 @@ import {
 	AccessorHandlerRunCronJobResult,
 	AccessorHandlerTryPackageReadResult,
 	GenericAccessorHandle,
+	PackageOperation,
 	PackageReadInfo,
 	PutPackageHandler,
 	SetupPackageContainerMonitorsResult,
@@ -37,6 +38,9 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	}
 	static doYouSupportAccess(): boolean {
 		return true // always has access
+	}
+	get packageName(): string {
+		return 'PackageInfo' // Not really supported for this type of accessor
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		// Note: We assume that we always have write access here, no need to check this.accessor.allowRead
@@ -73,12 +77,12 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	async getPackageActualVersion(): Promise<Expectation.Version.CorePackageInfo> {
 		throw new Error('getPackageActualVersion not applicable for CorePackageInfo')
 	}
-	async removePackage(): Promise<void> {
+	async removePackage(_reason: string): Promise<void> {
 		await this.removeMetadata()
-		throw new Error('removePackage not applicable for CorePackageInfo')
 
 		// todo: implement
 		// await this.removePackageInfo(this.content.infoType, 1234)
+		// if (removed) this.worker.logOperation(`Remove package: Removed packageInfo "${this.packageName}", ${reason}`)
 	}
 
 	async getPackageReadStream(): Promise<{
@@ -97,11 +101,16 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('CorePackageInfo.putPackageInfo: Not supported')
 	}
-	async packageIsInPlace(): Promise<void> {
+	async prepareForOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>
+	): Promise<PackageOperation> {
 		// do nothing
+		return this.worker.logWorkOperation(operationName, source, this.packageName)
 	}
-	async finalizePackage(): Promise<void> {
+	async finalizePackage(operation: PackageOperation): Promise<void> {
 		// do nothing
+		operation.logDone()
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {
@@ -199,6 +208,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 
 		const ps: Promise<any>[] = []
 		for (const fromPackage of exp.fromPackages) {
+			this.worker.logOperation(`Update package info "${fromPackage.id}"`)
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'updatePackageInfo',
@@ -216,7 +226,9 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	}
 	public async removePackageInfo(infoType: string, exp: Expectation.Any): Promise<void> {
 		const ps: Promise<any>[] = []
+
 		for (const fromPackage of exp.fromPackages) {
+			this.worker.logOperation(`Remove package info "${fromPackage.id}"`)
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'removePackageInfo',

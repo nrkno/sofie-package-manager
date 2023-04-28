@@ -172,9 +172,12 @@ export async function doFileCopyExpectation(
 			await waitTime(1000)
 
 			// Remove target files
-			await targetHandle.removePackage()
+			await targetHandle.removePackage('Copy file, using Robocopy, cancelled')
 		}).do(async () => {
-			await targetHandle.packageIsInPlace()
+			const fileOperation = await targetHandle.prepareForOperation(
+				'Copy file, using Robocopy',
+				lookupSource.handle
+			)
 
 			const sourcePath = sourceHandle.fullPath
 			const targetPath = exp.workOptions.useTemporaryFilePath
@@ -191,7 +194,7 @@ export async function doFileCopyExpectation(
 			copying = undefined
 			if (wasCancelled) return // ignore
 
-			await targetHandle.finalizePackage()
+			await targetHandle.finalizePackage(fileOperation)
 			await targetHandle.updateMetadata(actualSourceUVersion)
 
 			const duration = Date.now() - startTime
@@ -241,7 +244,7 @@ export async function doFileCopyExpectation(
 			await new Promise<void>((resolve, reject) => {
 				writeStream?.once('close', () => {
 					targetHandle
-						.removePackage()
+						.removePackage('Copy file, using streams, cancelled')
 						.then(() => resolve())
 						.catch((err) => reject(err))
 				})
@@ -265,7 +268,10 @@ export async function doFileCopyExpectation(
 
 			if (wasCancelled) return
 
-			await targetHandle.packageIsInPlace()
+			const fileOperation = await targetHandle.prepareForOperation(
+				'Copy file, using streams',
+				lookupSource.handle
+			)
 
 			sourceStream = await lookupSource.handle.getPackageReadStream()
 			writeStream = await targetHandle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
@@ -286,7 +292,7 @@ export async function doFileCopyExpectation(
 				setImmediate(() => {
 					// Copying is done
 					;(async () => {
-						await targetHandle.finalizePackage()
+						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(actualSourceUVersion)
 
 						const duration = Date.now() - startTime
@@ -347,9 +353,12 @@ export async function doFileCopyExpectation(
 			await waitTime(1000)
 
 			// Remove target files
-			await targetHandle.removePackage()
+			await targetHandle.removePackage('Copy file, using Fileflow, cancelled')
 		}).do(async () => {
-			await targetHandle.packageIsInPlace()
+			const fileOperation = await targetHandle.prepareForOperation(
+				'Copy file, using Fileflow',
+				lookupSource.handle
+			)
 
 			const sourceClip = await sourceHandle.getClip()
 			if (!sourceClip) {
@@ -360,10 +369,11 @@ export async function doFileCopyExpectation(
 				? targetHandle.temporaryFilePath
 				: targetHandle.fullPath
 
+			const sourceClipId = sourceClip.ClipID.toString()
 			copying = quantelFileflowCopy(
 				fileflowURL,
 				profile,
-				sourceClip.ClipID.toString(),
+				sourceClipId,
 				zoneId,
 				targetPath,
 				(progress: number) => {
@@ -377,7 +387,7 @@ export async function doFileCopyExpectation(
 			copying = undefined
 			if (wasCancelled) return // ignore
 
-			await targetHandle.finalizePackage()
+			await targetHandle.finalizePackage(fileOperation)
 			await targetHandle.updateMetadata(actualSourceUVersion)
 
 			const duration = Date.now() - startTime

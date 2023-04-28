@@ -10,6 +10,7 @@ import {
 	AccessorHandlerCheckPackageContainerWriteAccessResult,
 	AccessorHandlerCheckPackageReadAccessResult,
 	AccessorHandlerTryPackageReadResult,
+	PackageOperation,
 } from './genericHandle'
 import {
 	Accessor,
@@ -58,6 +59,9 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.HTTP
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
+	}
+	get packageName(): string {
+		return this.fullUrl
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		const defaultResult = defaultCheckHandleRead(this.accessor)
@@ -153,11 +157,16 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('HTTP.putPackageInfo: Not supported')
 	}
-	async packageIsInPlace(): Promise<void> {
+	async prepareForOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>
+	): Promise<PackageOperation> {
 		await this.clearPackageRemoval()
+		return this.worker.logWorkOperation(operationName, source, this.packageName)
 	}
-	async finalizePackage(): Promise<void> {
+	async finalizePackage(operation: PackageOperation): Promise<void> {
 		// do nothing
+		operation.logDone()
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {

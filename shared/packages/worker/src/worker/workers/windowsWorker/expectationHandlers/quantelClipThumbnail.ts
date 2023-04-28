@@ -188,7 +188,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 				await new Promise<void>((resolve, reject) => {
 					writeStream?.once('close', () => {
 						lookupTarget.handle
-							.removePackage()
+							.removePackage('Generate thumbnail cancelled')
 							.then(() => resolve())
 							.catch((err) => reject(err))
 					})
@@ -199,11 +199,11 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
 				const targetMetadata: Metadata = getMetadata(exp, actualSourceVersion)
 
-				await lookupTarget.handle.removePackage()
+				await lookupTarget.handle.removePackage('Prepare for thumbnail generation')
 
 				// Stream the thumbnail from the Quantel-HTTP-transformer and into the target:
 
-				await targetHandle.packageIsInPlace()
+				const quantelOperation = await targetHandle.prepareForOperation('Generate thumbnail', sourceHandle)
 				sourceStream = await sourceHTTPHandle.getPackageReadStream()
 				writeStream = await lookupTarget.handle.putPackageStream(sourceStream.readStream)
 
@@ -219,7 +219,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 						// Copying is done
 
 						;(async () => {
-							await lookupTarget.handle.finalizePackage()
+							await lookupTarget.handle.finalizePackage(quantelOperation)
 							await lookupTarget.handle.updateMetadata(targetMetadata)
 
 							const duration = Date.now() - startTime
@@ -259,7 +259,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

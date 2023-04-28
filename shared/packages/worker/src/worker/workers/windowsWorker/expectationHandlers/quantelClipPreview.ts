@@ -206,10 +206,11 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 					},
 				}
 
-				await targetHandle.removePackage()
+				await targetHandle.removePackage('Prepare for preview generation')
 
 				const args = previewFFMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
-				await targetHandle.packageIsInPlace()
+				const quantelOperation = await targetHandle.prepareForOperation('Generate preview', lookupSource.handle)
+
 				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
@@ -217,7 +218,8 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 						// Called when ffmpeg has finished
 						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
-						await targetHandle.finalizePackage()
+
+						await targetHandle.finalizePackage(quantelOperation)
 						await targetHandle.updateMetadata(metadata)
 
 						const duration = Date.now() - startTime
@@ -268,7 +270,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

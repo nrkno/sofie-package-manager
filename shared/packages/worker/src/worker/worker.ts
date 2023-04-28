@@ -12,7 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	WorkerAgentConfig,
 } from '@sofie-package-manager/api'
-import { SetupPackageContainerMonitorsResult } from './accessorHandlers/genericHandle'
+import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from './accessorHandlers/genericHandle'
 import { IWorkInProgress } from './lib/workInProgress'
 
 export interface GenericWorkerAgentAPI {
@@ -108,6 +108,36 @@ export abstract class GenericWorker {
 	abstract setupPackageContainerMonitors(
 		packageContainer: PackageContainerExpectation
 	): Promise<SetupPackageContainerMonitorsResult>
+
+	/**
+	 * Log a message when doing an operation
+	 */
+	logOperation(message: string): void {
+		this.logger.verbose(message)
+	}
+	/**
+	 * Log when an operation with a source and a target is performed
+	 * @param operationName Name of the operation, eg: Copy file
+	 * @param source Name of the source
+	 * @param target Name of the target
+	 * @returns
+	 */
+	logWorkOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>,
+		target: string | GenericAccessorHandle<any>
+	): { logDone: () => void } {
+		const msg = `${operationName} from "${typeof source === 'string' ? source : source.packageName}" to "${
+			typeof target === 'string' ? target : target.packageName
+		}"`
+
+		this.logger.verbose(`${msg}...`)
+		return {
+			logDone: () => {
+				this.logger.verbose(`${msg}, done!`)
+			},
+		}
+	}
 }
 export interface WorkerLocation {
 	/** The name/identifier of the computer that this runs on */

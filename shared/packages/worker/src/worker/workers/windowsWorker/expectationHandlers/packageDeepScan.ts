@@ -203,7 +203,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			}
 
 			// all done:
-			await targetHandle.packageIsInPlace()
+			const scanOperation = await targetHandle.prepareForOperation('Deep scan', sourceHandle)
 			await targetHandle.updatePackageInfo(
 				PackageInfoType.DeepScan,
 				exp,
@@ -212,6 +212,8 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 				exp.endRequirement.version,
 				deepScan
 			)
+
+			await targetHandle.finalizePackage(scanOperation)
 
 			const duration = Date.now() - startTime
 			workInProgress._reportComplete(

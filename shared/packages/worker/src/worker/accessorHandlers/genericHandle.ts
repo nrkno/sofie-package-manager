@@ -20,6 +20,12 @@ export abstract class GenericAccessorHandle<Metadata> {
 		public readonly type: string
 	) {}
 
+	/**
+	 * A string that can identify the package.
+	 * For example, for a file, this could be the filepath.
+	 */
+	abstract get packageName(): string
+
 	// Note: abstract static methods aren't currently supported by typescript: https://github.com/microsoft/TypeScript/issues/34516
 	// But it's still the type of thing we want to have here:
 	/** @returns true if the accessor is (statically) able to support access the PackageContainer */
@@ -62,8 +68,9 @@ export abstract class GenericAccessorHandle<Metadata> {
 	/**
 	 * Removes the package from the PackageContainer (if the package exists)
 	 * Also removes any Metadata associated with the package
+	 * @param logReason string describing why the package is removed (for logging)
 	 */
-	abstract removePackage(): Promise<void>
+	abstract removePackage(logReason: string): Promise<void>
 
 	/**
 	 * Fetch the custom Metadata for a Package
@@ -89,15 +96,25 @@ export abstract class GenericAccessorHandle<Metadata> {
 	/** For accessors that supports readInfo: Pipe info about a package source (obtained from getPackageReadInfo()) */
 	abstract putPackageInfo(readInfo: PackageReadInfo): Promise<PutPackageHandler>
 
-	/** Called when the package is supposed to be in place (or is about to be put in place very soon) */
-	abstract packageIsInPlace(): Promise<void>
+	/**
+	 * Called when a package-operation (like a copy etc) is about to start.
+	 * This is a signal that a package is about to be put in place very soon.
+	 * @param operationName Name of the operation, eg: Copy file
+	 * @param source Name of the source
+	 * @returns A reference to the start of an operation. This reference is passed to finalizePackage() when the operation is complete.
+	 */
+	abstract prepareForOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>
+	): Promise<PackageOperation>
 
 	/**
 	 * Finalize the package.
 	 * To be called after a .putPackageStream(), putPackageInfo() or other file operation
 	 * (like a write or copy) has completed.
+	 * @param operation Reference to the start of an operation. Obtained from calling handle.prepareForOperation()
 	 */
-	abstract finalizePackage(): Promise<void>
+	abstract finalizePackage(operation: PackageOperation): Promise<void>
 
 	/**
 	 * Performs a cronjob on the Package container
@@ -207,4 +224,7 @@ export interface PackageReadStream {
 export interface PackageReadInfoWrap {
 	readInfo: PackageReadInfo
 	cancel: () => void
+}
+export interface PackageOperation {
+	logDone: () => void
 }
