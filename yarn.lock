@@ -1635,10 +1635,10 @@
     tslib "^2.4.0"
     type-fest "^2.19.0"
 
-"@supercharge/promise-pool@^1.7.0":
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/@supercharge/promise-pool/-/promise-pool-1.9.0.tgz#7630c760535919db93711ca35716ada59d86feb7"
-  integrity sha512-UqQrree8uGTCEDKAnGJci1B7NGIZ1xepXHjUEqbH16Wgvr/j5+54hxebkpTpDcz5t2SrzY6J6USSlmgQeo66/g==
+"@supercharge/promise-pool@^2.4.0":
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/@supercharge/promise-pool/-/promise-pool-2.4.0.tgz#6050eea8c2d7f92ddd4ddc582ee328b15c034ad3"
+  integrity sha512-O9CMipBlq5OObdt1uKJGIzm9cdjpPWfj+a+Zw9EgWKxaMNHKC7EU7X9taj3H0EGQNLOSq2jAcOa3EzxlfHsD6w==
 
 "@szmarczak/http-timer@^1.1.2":
   version "1.1.2"
