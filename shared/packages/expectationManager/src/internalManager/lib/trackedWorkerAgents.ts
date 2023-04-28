@@ -1,4 +1,4 @@
-import PromisePool from '@supercharge/promise-pool'
+import { PromisePool } from '@supercharge/promise-pool'
 import { LoggerInstance, Reason, stringifyError } from '@sofie-package-manager/api'
 import { ExpectationStateHandlerSession, WorkerAgentAssignment } from '../../lib/types'
 import { WorkerAgentAPI } from '../../workerAgentApi'
