@@ -1,5 +1,5 @@
 import { DeviceConfigManifest, ConfigManifestEntryType } from '@sofie-automation/server-core-integration'
-import { LogLevel } from '@sofie-package-manager/api'
+import { LogLevel, DEFAULT_LOG_LEVEL } from '@sofie-package-manager/api'
 
 export const DEFAULT_DELAY_REMOVAL_PACKAGE = 21600000
 export const DEFAULT_DELAY_REMOVAL_PACKAGE_INFO = 21600000
@@ -11,7 +11,7 @@ export const PACKAGE_MANAGER_DEVICE_CONFIG: DeviceConfigManifest = {
 			name: 'Log level',
 			type: ConfigManifestEntryType.ENUM,
 			values: LogLevel,
-			defaultVal: 'info',
+			defaultVal: DEFAULT_LOG_LEVEL,
 		},
 		{
 			id: 'delayRemoval',

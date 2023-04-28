@@ -21,8 +21,10 @@ export enum LogLevel {
 	SILLY = 'silly',
 }
 
+export const DEFAULT_LOG_LEVEL = LogLevel.VERBOSE
+
 let loggerContainer: Winston.Container | undefined = undefined
-let logLevel: LogLevel = LogLevel.SILLY
+let logLevel: LogLevel = DEFAULT_LOG_LEVEL
 const allLoggers = new Map<string, LoggerInstance>()
 /** Sets up logging for a process. Intended to be run once when a new process is started. */
 export function initializeLogger(config: { process: ProcessConfig }): void {
@@ -81,12 +83,12 @@ export function setupLogger(
 			format: combine(label({ label: categoryLabel }), json()),
 			transports: [
 				new Winston.transports.Console({
-					level: 'verbose',
+					level: LogLevel.VERBOSE,
 					handleExceptions: handleProcess, // Handle uncaught Exceptions
 					handleRejections: handleProcess, // Handle uncaught Promise Rejections
 				}),
 				new Winston.transports.File({
-					level: 'silly',
+					level: LogLevel.SILLY,
 					handleExceptions: handleProcess,
 					handleRejections: handleProcess,
 					filename: logPath,

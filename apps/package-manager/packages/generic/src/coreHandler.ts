@@ -32,6 +32,7 @@ import {
 	setLogLevel,
 	getLogLevel,
 	ensureValidValue,
+	DEFAULT_LOG_LEVEL,
 } from '@sofie-package-manager/api'
 import {
 	DEFAULT_DELAY_REMOVAL_PACKAGE,
@@ -236,7 +237,7 @@ export class CoreHandler {
 				this.deviceSettings = {}
 			}
 
-			const logLevel = this.deviceSettings['logLevel'] ?? 'info'
+			const logLevel = this.deviceSettings['logLevel'] ?? DEFAULT_LOG_LEVEL
 			if (logLevel !== getLogLevel()) {
 				setLogLevel(logLevel)
 
