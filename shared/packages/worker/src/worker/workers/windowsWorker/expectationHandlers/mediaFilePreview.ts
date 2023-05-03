@@ -203,7 +203,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					},
 				}
 
-				await targetHandle.removePackage()
+				await targetHandle.removePackage('Prepare for preview generation')
 
 				let inputPath: string
 				if (isLocalFolderAccessorHandle(sourceHandle)) {
@@ -222,7 +222,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 				const args = previewFFMpegArguments(inputPath, true, metadata)
 
-				await targetHandle.packageIsInPlace()
+				const fileOperation = await targetHandle.prepareForOperation('Generate preview', lookupSource.handle)
 
 				ffMpegProcess = await spawnFFMpeg(
 					args,
@@ -232,7 +232,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 						// Called when ffmpeg has finished
 						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
-						await targetHandle.finalizePackage()
+						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(metadata)
 
 						const duration = Date.now() - startTime
@@ -283,7 +283,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

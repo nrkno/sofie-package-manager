@@ -104,7 +104,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 				const metadataPath = this.getMetadataPath(entry.filePath)
 
 				if (await this.unlinkIfExists(fullPath))
-					this.worker.logger.verbose(`Remove due packages: Removed file "${fullPath}"`)
+					this.worker.logOperation(`Remove due packages: Removed file "${fullPath}"`)
 				await this.unlinkIfExists(metadataPath)
 
 				removedFilePaths.push(entry.filePath)
@@ -381,7 +381,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 			if (files.length === 0) {
 				if (removeEmptyDir) {
-					await fsRmDir(path.join(this.folderPath, dirPath))
+					const dirFullPath = path.join(this.folderPath, dirPath)
+					this.worker.logOperation(`Clean up old files: Remove empty dir "${dirFullPath}"`)
+					await fsRmDir(dirFullPath)
 				}
 			} else {
 				for (const fileName of files) {
@@ -400,7 +402,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 						if (age > cleanFileAge) {
 							await fsUnlink(fullPath)
-							this.worker.logger.verbose(`Clean up old files: Remove file "${fullPath}" (age: ${age})`)
+							this.worker.logOperation(`Clean up old files: Remove file "${fullPath}" (age: ${age})`)
 						}
 					}
 				}

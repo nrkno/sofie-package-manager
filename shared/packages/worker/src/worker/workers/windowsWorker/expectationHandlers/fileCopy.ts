@@ -68,6 +68,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
+		worker.logger
 		const workInProgress = await doFileCopyExpectation(exp, lookupSource, lookupTarget)
 		if (workInProgress === null) {
 			throw new Error(
@@ -93,7 +94,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

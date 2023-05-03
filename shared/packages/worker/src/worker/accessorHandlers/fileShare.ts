@@ -7,6 +7,8 @@ import {
 	AccessorHandlerCheckPackageReadAccessResult,
 	AccessorHandlerRunCronJobResult,
 	AccessorHandlerTryPackageReadResult,
+	GenericAccessorHandle,
+	PackageOperation,
 	PackageReadInfo,
 	PutPackageHandler,
 	SetupPackageContainerMonitorsResult,
@@ -102,6 +104,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.FileShare
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
+	}
+	get packageName(): string {
+		return this.fullPath
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		const defaultResult = defaultCheckHandleRead(this.accessor)
@@ -219,14 +224,14 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		const stat = await fsStat(this.fullPath)
 		return this.convertStatToVersion(stat)
 	}
-	async removePackage(): Promise<void> {
+	async removePackage(reason: string): Promise<void> {
 		await this.prepareFileAccess()
 		if (this.workOptions.removeDelay) {
 			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
 			if (await this.unlinkIfExists(this.fullPath))
-				this.worker.logger.verbose(`Remove package: Removed file "${this.fullPath}"`)
+				this.worker.logOperation(`Remove package: Removed file "${this.packageName}", ${reason}`)
 		}
 	}
 
@@ -256,7 +261,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		// Remove the file if it already exists:
 		if (await this.unlinkIfExists(fullPath))
-			this.worker.logger.verbose(`Put package stream: Remove file "${fullPath}"`)
+			this.worker.logOperation(`Put package stream: Remove file "${fullPath}"`)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(this.fullPath))
 
@@ -278,14 +283,16 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		throw new Error('FileShare.putPackageInfo: Not supported')
 	}
 
-	async finalizePackage(): Promise<void> {
+	async finalizePackage(operation: PackageOperation): Promise<void> {
+		operation.logDone()
+
 		if (this.workOptions.useTemporaryFilePath) {
-			if (await this.unlinkIfExists(this.fullPath))
-				this.worker.logger.verbose(`Finalize package: Removed file "${this.fullPath}"`)
+			if (await this.unlinkIfExists(this.fullPath)) {
+				this.worker.logOperation(`Finalize package: Removed file "${this.fullPath}"`)
+			}
+
 			await fsRename(this.temporaryFilePath, this.fullPath)
-			this.worker.logger.verbose(
-				`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`
-			)
+			this.worker.logOperation(`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`)
 		}
 	}
 
@@ -360,8 +367,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		return { success: true, monitors: resultingMonitors }
 	}
 	/** Called when the package is supposed to be in place (or is about to be put in place very soon) */
-	async packageIsInPlace(): Promise<void> {
+	async prepareForOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>
+	): Promise<PackageOperation> {
 		await this.clearPackageRemoval(this.filePath)
+		return this.worker.logWorkOperation(operationName, source, this.packageName)
 	}
 
 	/** Local path to the Package, ie the File */

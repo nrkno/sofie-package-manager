@@ -124,9 +124,9 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 					const actualSourceVersionHash = hashObj(actualSourceVersion)
 					const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
-					await targetHandle.removePackage()
+					await targetHandle.removePackage('Prepare for copy')
 
-					await targetHandle.packageIsInPlace()
+					const fileOperation = await targetHandle.prepareForOperation('Copy proxy', sourceHTTPHandle)
 
 					const args = proxyFFMpegArguments(sourceHTTPHandle.fullUrl, false, targetHandle)
 
@@ -137,7 +137,8 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 							// Called when ffmpeg has finished
 							worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 							ffMpegProcess = undefined
-							await targetHandle.finalizePackage()
+
+							await targetHandle.finalizePackage(fileOperation)
 							await targetHandle.updateMetadata(actualSourceUVersion)
 
 							const duration = Date.now() - startTime
@@ -196,7 +197,7 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

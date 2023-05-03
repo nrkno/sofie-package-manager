@@ -10,6 +10,7 @@ import {
 	AccessorHandlerCheckPackageReadAccessResult,
 	AccessorHandlerTryPackageReadResult,
 	AccessorHandlerRunCronJobResult,
+	PackageOperation,
 } from './genericHandle'
 import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
@@ -53,6 +54,9 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.AtemMediaStore
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
+	}
+	get packageName(): string {
+		return this.getAtemClipName()
 	}
 	private async getAtem(): Promise<Atem> {
 		if (!this.worker.accessorCache['atem']) {
@@ -355,11 +359,16 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async putPackageInfo(_readInfo: PackageReadInfo): Promise<PutPackageHandler> {
 		throw new Error('ATEM.putPackageInfo: Not supported')
 	}
-	async packageIsInPlace(): Promise<void> {
+	async prepareForOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>
+	): Promise<PackageOperation> {
 		// do nothing
+		return this.worker.logWorkOperation(operationName, source, this.packageName)
 	}
-	async finalizePackage(): Promise<void> {
+	async finalizePackage(operation: PackageOperation): Promise<void> {
 		// do nothing
+		operation.logDone()
 	}
 
 	async fetchMetadata(): Promise<Metadata | undefined> {

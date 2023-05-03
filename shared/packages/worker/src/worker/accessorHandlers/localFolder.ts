@@ -11,6 +11,8 @@ import {
 	AccessorHandlerCheckPackageContainerWriteAccessResult,
 	AccessorHandlerCheckPackageReadAccessResult,
 	AccessorHandlerTryPackageReadResult,
+	GenericAccessorHandle,
+	PackageOperation,
 } from './genericHandle'
 import {
 	Accessor,
@@ -71,6 +73,9 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.LocalFolder
 		return compareResourceIds(accessor.resourceId, worker.agentAPI.location.localComputerId)
+	}
+	get packageName(): string {
+		return this.fullPath
 	}
 	/** Full path to the package */
 	get fullPath(): string {
@@ -171,13 +176,13 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		const stat = await fsStat(this.fullPath)
 		return this.convertStatToVersion(stat)
 	}
-	async removePackage(): Promise<void> {
+	async removePackage(reason: string): Promise<void> {
 		if (this.workOptions.removeDelay) {
 			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
 			if (await this.unlinkIfExists(this.fullPath))
-				this.worker.logger.verbose(`Remove package: Removed file "${this.fullPath}"`)
+				this.worker.logOperation(`Remove package: Removed file "${this.fullPath}" (${reason})`)
 		}
 	}
 	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {
@@ -204,7 +209,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 
 		// Remove the file if it exists:
 		if (await this.unlinkIfExists(fullPath))
-			this.worker.logger.verbose(`Put package stream: Remove file "${fullPath}"`)
+			this.worker.logOperation(`Put package stream: Remove file "${fullPath}"`)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(fullPath))
 
@@ -226,14 +231,16 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		throw new Error('LocalFolder.putPackageInfo: Not supported')
 	}
 
-	async finalizePackage(): Promise<void> {
+	async finalizePackage(operation: PackageOperation): Promise<void> {
+		operation.logDone()
+
 		if (this.workOptions.useTemporaryFilePath) {
-			if (await this.unlinkIfExists(this.fullPath))
-				this.worker.logger.verbose(`Finalize package: Remove file "${this.fullPath}"`)
+			if (await this.unlinkIfExists(this.fullPath)) {
+				this.worker.logOperation(`Finalize package: Remove file "${this.fullPath}"`)
+			}
+
 			await fsRename(this.temporaryFilePath, this.fullPath)
-			this.worker.logger.verbose(
-				`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`
-			)
+			this.worker.logOperation(`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`)
 		}
 	}
 
@@ -309,8 +316,12 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 
 	/** Called when the package is supposed to be in place */
-	async packageIsInPlace(): Promise<void> {
+	async prepareForOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>
+	): Promise<PackageOperation> {
 		await this.clearPackageRemoval(this.filePath)
+		return this.worker.logWorkOperation(operationName, source, this.packageName)
 	}
 
 	/** Path to the PackageContainer, ie the folder */

@@ -149,7 +149,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 				await new Promise<void>((resolve, reject) => {
 					writeStream?.once('close', () => {
 						targetHandle
-							.removePackage()
+							.removePackage('work cancelled')
 							.then(() => resolve())
 							.catch((err) => reject(err))
 					})
@@ -160,7 +160,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 				workInProgress._reportProgress(actualSourceVersionHash, 0.1)
 
 				if (wasCancelled) return
-				await targetHandle.packageIsInPlace()
+				const fileOperation = await targetHandle.prepareForOperation('Copy JSON.Data', lookupSource.handle)
 				sourceStream = await lookupSource.handle.getPackageReadStream()
 				writeStream = await targetHandle.putPackageStream(sourceStream.readStream)
 
@@ -177,7 +177,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 					setImmediate(() => {
 						// Copying is done
 						;(async () => {
-							await targetHandle.finalizePackage()
+							await targetHandle.finalizePackage(fileOperation)
 							// await targetHandle.updateMetadata()
 
 							const duration = Date.now() - startTime
@@ -219,7 +219,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

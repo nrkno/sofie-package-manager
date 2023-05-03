@@ -34,7 +34,7 @@ export class EvaluationRunner {
 		this.logger = logger.category(`Runner_${this.instanceId}`)
 	}
 	public async run(): Promise<EvaluationResult> {
-		this.logger.verbose(Date.now() / 1000 + ' _evaluateExpectations ----------')
+		this.logger.debug(Date.now() / 1000 + ' _evaluateExpectations ----------')
 
 		let startTime = Date.now()
 		const times: { [key: string]: number } = {}
@@ -303,7 +303,7 @@ export class EvaluationRunner {
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
 
 			if (trackedWithState.length) {
-				this.logger.verbose(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
+				this.logger.debug(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
 			}
 
 			if (trackedWithState.length) {
@@ -333,12 +333,12 @@ export class EvaluationRunner {
 			trackedExp.session = null
 		}
 
-		this.logger.verbose(`Handle other states..`)
+		this.logger.debug(`Handle other states..`)
 		handleStatesSerial.forEach((handleState) => {
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
-			this.logger.verbose(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
+			this.logger.debug(`Handle state ${handleState}, ${trackedWithState.length} expectations..`)
 		})
-		this.logger.verbose(`Worker count: ${this.manager.workerAgents.list().length}`)
+		this.logger.debug(`Worker count: ${this.manager.workerAgents.list().length}`)
 
 		const startTime = Date.now()
 		// Step 2: Evaluate the expectations, now one by one:
@@ -352,7 +352,7 @@ export class EvaluationRunner {
 
 			if (runAgainASAP && Date.now() - startTime > this.tracker.constants.ALLOW_SKIPPING_QUEUE_TIME) {
 				// Skip the rest of the queue, so that we don't get stuck on evaluating low-prio expectations.
-				this.logger.verbose(
+				this.logger.debug(
 					`Skipping the rest of the queue (after ${this.tracker.constants.ALLOW_SKIPPING_QUEUE_TIME})`
 				)
 				break
@@ -360,7 +360,7 @@ export class EvaluationRunner {
 			if (this.tracker.receivedUpdates.expectationsHasBeenUpdated) {
 				// We have received new expectations. We should abort the evaluation-loop and restart from the beginning.
 				// So that we don't miss any high-prio Expectations.
-				this.logger.verbose(`Skipping the rest of the queue, due to expectations has been updated`)
+				this.logger.debug(`Skipping the rest of the queue, due to expectations has been updated`)
 				runAgainASAP = true
 				break
 			}
@@ -514,7 +514,7 @@ export class EvaluationRunner {
 							)
 							if (!disposeMonitorResult.success) {
 								badStatus = true
-								this.logger.verbose(
+								this.logger.debug(
 									`_evaluateAllTrackedPackageContainers: disposePackageContainerMonitors did not succeed: ${JSON.stringify(
 										disposeMonitorResult.reason
 									)}`
@@ -586,7 +586,7 @@ export class EvaluationRunner {
 
 					if (notSupportReason) {
 						badStatus = true
-						this.logger.verbose(
+						this.logger.debug(
 							`_evaluateAllTrackedPackageContainers: doYouSupportPackageContainer could not find a supportive worker: ${JSON.stringify(
 								notSupportReason
 							)}`
@@ -644,7 +644,7 @@ export class EvaluationRunner {
 								}
 							} else {
 								badStatus = true
-								this.logger.verbose(
+								this.logger.debug(
 									`_evaluateAllTrackedPackageContainers: setupPackageContainerMonitors did not suceed: ${JSON.stringify(
 										monitorSetup.reason
 									)}`

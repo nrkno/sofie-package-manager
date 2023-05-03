@@ -166,7 +166,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				await new Promise<void>((resolve, reject) => {
 					putPackageHandler.once('close', () => {
 						targetHandle
-							.removePackage()
+							.removePackage('work cancelled')
 							.then(() => resolve())
 							.catch((err) => reject(err))
 					})
@@ -220,7 +220,8 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				})
 			}, 100)
 			const sourceReadInfo = await sourceHandle.getPackageReadInfo()
-			await targetHandle.packageIsInPlace()
+			const quantelOperation = await targetHandle.prepareForOperation('Copy clip', lookupSource.handle)
+
 			const putPackageHandler = await targetHandle.putPackageInfo(sourceReadInfo.readInfo)
 
 			putPackageHandler.on('error', (err) => {
@@ -232,7 +233,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 				setImmediate(() => {
 					// Copying is done
 					;(async () => {
-						await targetHandle.finalizePackage()
+						await targetHandle.finalizePackage(quantelOperation)
 						await targetHandle.updateMetadata(actualSourceUVersion)
 
 						const duration = Date.now() - startTime
@@ -273,7 +274,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

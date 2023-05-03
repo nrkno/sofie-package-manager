@@ -12,6 +12,7 @@ import {
 	AccessorHandlerCheckHandleReadResult,
 	AccessorHandlerCheckHandleWriteResult,
 	AccessorHandlerRunCronJobResult,
+	PackageOperation,
 } from './genericHandle'
 import {
 	Accessor,
@@ -66,6 +67,10 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.Quantel
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
+	}
+	get packageName(): string {
+		const content = this.getContent()
+		return content.guid || content.title || 'unknown'
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		const defaultResult = defaultCheckHandleRead(this.accessor)
@@ -213,10 +218,13 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			return this.convertClipSummaryToVersion(clipSummary)
 		} else throw new Error(`Clip not found`)
 	}
-	async removePackage(): Promise<void> {
+	async removePackage(reason: string): Promise<void> {
 		await this.removeMetadata()
 		// We don't really do this, instead we let the quantel management delete old clip.
 		// Perhaps in the future, we could have an opt-in feature to remove clips?
+		const content = this.getContent()
+
+		this.worker.logOperation(`(Not) removing quantel clip "${content.guid || content.title}" (${reason})`)
 		return undefined // that's ok
 	}
 
@@ -312,11 +320,16 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		return streamHandler
 	}
-	async packageIsInPlace(): Promise<void> {
+	async prepareForOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>
+	): Promise<PackageOperation> {
 		// do nothing
+		return this.worker.logWorkOperation(operationName, source, this.packageName)
 	}
-	async finalizePackage(): Promise<void> {
+	async finalizePackage(operation: PackageOperation): Promise<void> {
 		// do nothing
+		operation.logDone()
 
 		// Since this is called after a "file operation" has completed,
 		// this is a good time to purge the cache so that a later call to searchClip()

@@ -162,7 +162,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 			currentProcess = undefined
 
 			// all done:
-			await targetHandle.packageIsInPlace()
+			const scanOperation = await targetHandle.prepareForOperation('Scan', sourceHandle)
 			await targetHandle.updatePackageInfo(
 				PackageInfoType.Scan,
 				exp,
@@ -171,6 +171,8 @@ export const PackageScan: ExpectationWindowsHandler = {
 				exp.endRequirement.version,
 				scanResult
 			)
+
+			await targetHandle.finalizePackage(scanOperation)
 
 			const duration = Date.now() - startTime
 			workInProgress._reportComplete(

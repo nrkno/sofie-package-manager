@@ -199,7 +199,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 					},
 				}
 
-				await targetHandle.removePackage()
+				await targetHandle.removePackage('Prepare for thumbnail generation')
 
 				const seekTime = exp.endRequirement.version.seekTime
 
@@ -223,7 +223,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				// Use FFMpeg to generate the thumbnail:
 				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode)
 
-				await targetHandle.packageIsInPlace()
+				const fileOperation = await targetHandle.prepareForOperation('Generate thumbnail', lookupSource.handle)
 
 				ffMpegProcess = await spawnFFMpeg(
 					args,
@@ -232,7 +232,8 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 						// Called when ffmpeg has finished
 						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
-						await targetHandle.finalizePackage()
+
+						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(metadata)
 
 						const duration = Date.now() - startTime
@@ -281,7 +282,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage()
+			await lookupTarget.handle.removePackage('expectation removed')
 		} catch (err) {
 			return {
 				removed: false,

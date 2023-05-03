@@ -179,7 +179,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 			workInProgress._reportProgress(sourceVersionHash, 0.2)
 
 			// all done:
-			await targetHandle.packageIsInPlace()
+			const scanOperation = await targetHandle.prepareForOperation('Loudness scan', sourceHandle)
 			await targetHandle.updatePackageInfo(
 				PackageInfoType.Loudness,
 				exp,
@@ -188,6 +188,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 				exp.endRequirement.version,
 				result
 			)
+			await targetHandle.finalizePackage(scanOperation)
 
 			const duration = Date.now() - startTime
 			workInProgress._reportComplete(
