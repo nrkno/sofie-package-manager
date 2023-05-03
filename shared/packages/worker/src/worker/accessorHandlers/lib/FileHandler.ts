@@ -381,7 +381,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 			if (files.length === 0) {
 				if (removeEmptyDir) {
-					await fsRmDir(path.join(this.folderPath, dirPath))
+					const dirFullPath = path.join(this.folderPath, dirPath)
+					this.worker.logOperation(`Clean up old files: Remove empty dir "${dirFullPath}"`)
+					await fsRmDir(dirFullPath)
 				}
 			} else {
 				for (const fileName of files) {
