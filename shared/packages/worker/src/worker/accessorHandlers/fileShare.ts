@@ -464,12 +464,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 						}
 						if (!handlingDone) {
 							// Update our cache of mounted drive letters:
-							for (const [driveLetter, mountedPath] of Object.entries(
+							for (const [driveLetter, mount] of Object.entries(
 								await this.getMountedDriveLetters(`new network path: "${folderPath}")`)
 							)) {
-								mappedDriveLetters[driveLetter] = mountedPath
+								mappedDriveLetters[driveLetter] = mount.path
 								// If the mounted path is the one we want, we don't have to mount a new one:
-								if (mountedPath === folderPath) {
+								if (mount.path === folderPath) {
 									foundMappedDriveLetter = driveLetter
 								}
 							}
@@ -515,7 +515,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 											`Handle error "${errStr}" when trying to mount "${folderPath}", new network path: "${folderPath}")`
 										)
 
-										if (mappedDrives[freeDriveLetter] === folderPath) {
+										if (mappedDrives[freeDriveLetter]?.path === folderPath) {
 											this.worker.logger.warn(`Supressed error: ${errStr}`)
 
 											this.worker.logger.warn(
@@ -580,13 +580,13 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			handlingDone = true
 		}
 	}
-	private async getMountedDriveLetters(reason: string): Promise<{ [driveLetter: string]: string }> {
-		let usedDriveLetters: { [driveLetter: string]: string } = {}
+	private async getMountedDriveLetters(reason: string): Promise<{ [driveLetter: string]: networkDrive.DriveInfo }> {
+		let usedDriveLetters: { [driveLetter: string]: networkDrive.DriveInfo } = {}
 
 		try {
 			// usedDriveLetters = (await networkDrive.list()) as { [driveLetter: string]: string }
 			usedDriveLetters = await promiseTimeout(
-				listNetworkDrives(),
+				networkDrive.list(),
 				PREPARE_FILE_ACCESS_TIMEOUT_INNER,
 				(timeoutDuration) =>
 					`networkDrive.listNetworkDrives: Timeout after ${timeoutDuration}ms, reason: ${reason}`
@@ -621,72 +621,4 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 }
 interface MappedDriveLetters {
 	[driveLetter: string]: string
-}
-
-async function listNetworkDrives(): Promise<{ [driveLetter: string]: string }> {
-	const netUse = await pExec('net use')
-
-	const drives: { [driveLetter: string]: string } = {}
-	for (const d of parseNetUse(netUse.stdout)) {
-		drives[d.local] = d.network
-	}
-	return drives
-}
-export function parseNetUse(
-	str: string
-): { status: string; statusOK: boolean; local: string; remote: string; network: string }[] {
-	// "net use" returns:
-	/*
-	Nye tilkoblinger vil bli lagret.
-
-
-	Status       Lokalt    Eksternt                  Nettverk
-
-	-------------------------------------------------------------------------------
-	Ikke tilgjen U:        \\my\very-very-very-very-very-very-very-long-path
-													 Microsoft Windows Network
-	Ikke tilgjen V:        \\my\path2                Microsoft Windows Network
-	OK           Z:        \\my\path3                Microsoft Windows Network
-	Kommandoen er fullført.
-	*/
-
-	const lines = `${str}`
-		.replace(/^(-+)$/gm, '') // // remove "-----------------------------"-line
-		.split('\n')
-		.map((l) => l.replace(/[\r\n]/g, '')) // Trim line endings
-		.filter(Boolean) // Remove empty lines
-		.slice(1, -1) // Remove the first and last line, so that only the table remains
-
-	// Fix an issue where the lines are split in multiple lines, because of a long path:
-	let str3 = ''
-	for (const line of lines) {
-		if (line[0] === ' ') {
-			// The line is a line-break of the previous line:
-			str3 += ' ' + line.trim()
-		} else {
-			str3 += '\n' + line.trim()
-		}
-	}
-	const data: {
-		status: string
-		statusOK: boolean
-		local: string
-		remote: string
-		network: string
-	}[] = []
-
-	for (const line of str3.split('\n').slice(1)) {
-		const m = line.match(/^(.+) +(\w): +([^ ]+) +(.+)$/)
-		if (m) {
-			const status = m[1].trim()
-			data.push({
-				status: status,
-				statusOK: status === 'OK',
-				local: m[2].trim(),
-				remote: m[3].trim(),
-				network: m[4].trim(),
-			})
-		}
-	}
-	return data
 }
