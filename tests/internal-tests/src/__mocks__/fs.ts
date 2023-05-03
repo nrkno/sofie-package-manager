@@ -1,8 +1,12 @@
 // eslint-disable-next-line node/no-unpublished-import
-import fsMockType from 'windows-network-drive' // Note: this is a mocked module
+import wndMock0 from 'windows-network-drive' // Note: this is a mocked module
 import { EventEmitter } from 'events' // Note: this is a mocked module
 import { Readable, Writable } from 'stream'
 // import * as Path from 'path'
+
+import type { WNDMockType } from './windows-network-drive'
+
+const wndMock = wndMock0 as any as WNDMockType
 
 /* eslint-disable no-console */
 const DEBUG_LOG = false
@@ -73,7 +77,6 @@ function getMock(path: string, orgPath?: string, dir?: MockDirectory): MockAny {
 			return file
 		}
 	}
-
 	throw Object.assign(new Error(`ENOENT: getMock: no such file or directory ${orgPath}`), {
 		errno: -4058,
 		code: 'ENOENT',
@@ -228,10 +231,9 @@ const errors = {
 	ENOTDIR: (args: ErrorArguments) => Object.assign(new Error(`ENOTDIR: not a directory ${args.path}`), args),
 }
 function fixPath(path: string) {
-	// @ts-expect-error mock
-	const mountedDrives: { [key: string]: string } = fsMockType.__mountedDrives
+	const mountedDrives = wndMock.__mountedDrives
 	for (const [driveLetter, mountedPath] of Object.entries(mountedDrives)) {
-		path = path.replace(new RegExp(`^${driveLetter}:`), mountedPath)
+		path = path.replace(new RegExp(`^${driveLetter}:`), mountedPath.path)
 	}
 
 	return path.replace(/^\\\\/, '\\').replace(/\\/g, '/').replace(/\/\//g, '/')

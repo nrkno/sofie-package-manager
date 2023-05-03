@@ -138,7 +138,12 @@ describe('Basic', () => {
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 
 		expect(await WND.list()).toEqual({
-			X: '\\\\networkShare\\sources\\source1\\',
+			X: {
+				driveLetter: 'X',
+				path: '\\\\networkShare\\sources\\source1\\',
+				status: true,
+				statusMessage: 'Mock',
+			},
 		})
 
 		expect(await fsStat('/targets/target1/subFolder0/file0Target.mp4')).toMatchObject({
