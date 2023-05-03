@@ -9,7 +9,7 @@ import {
 	StatusCode,
 	stringifyError,
 } from '@sofie-package-manager/api'
-import PromisePool from '@supercharge/promise-pool'
+import { PromisePool } from '@supercharge/promise-pool'
 import _ from 'underscore'
 import { evaluateExpectationState } from './evaluateExpectationState'
 import { InternalManager } from '../internalManager/internalManager'
