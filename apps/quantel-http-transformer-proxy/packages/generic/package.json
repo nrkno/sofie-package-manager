@@ -1,6 +1,6 @@
 {
     "name": "@quantel-http-transformer-proxy/generic",
-    "version": "1.42.0-alpha.3",
+    "version": "1.42.0-alpha.4",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
     "dependencies": {
         "@koa/cors": "^3.0.0",
         "@koa/multer": "3.0.0",
-        "@sofie-package-manager/api": "1.42.0-alpha.3",
+        "@sofie-package-manager/api": "1.42.0-alpha.4",
         "got": "^11.8.6",
         "koa": "^2.14.1",
         "koa-bodyparser": "^4.3.0",
