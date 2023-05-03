@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.42.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.1...v1.42.0-alpha.2) (2023-05-03)
+
+
+### Bug Fixes
+
+* add `removePackageOnUnFulfill` workOption. Used to remove the package upon an unfulfillment of expectation ([fbc9be5](https://github.com/nrkno/tv-automation-package-manager/commit/fbc9be53897a88e054265e690daf5f069f41e161))
+* change default log-level to be 'verbose' ([3255e75](https://github.com/nrkno/tv-automation-package-manager/commit/3255e755c10a246d14ffcec0f34622fa52e73900))
+* unfullfill dependent expectations when the expectation-dependee unfullfills ([b5f7dda](https://github.com/nrkno/tv-automation-package-manager/commit/b5f7dda2dd1df8ccf0b2ca47adb3ebe3c921e40c))
+
+
+
+
+
 # [1.42.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-0...v1.42.0-alpha.0) (2023-04-26)
 
 

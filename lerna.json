@@ -1,10 +1,10 @@
 {
-    "packages": [
-        "shared/**",
-        "apps/**",
-        "tests/**"
-    ],
-    "version": "1.42.0-alpha.1",
-    "npmClient": "yarn",
-    "useWorkspaces": true
+  "packages": [
+    "shared/**",
+    "apps/**",
+    "tests/**"
+  ],
+  "version": "1.42.0-alpha.2",
+  "npmClient": "yarn",
+  "useWorkspaces": true
 }
