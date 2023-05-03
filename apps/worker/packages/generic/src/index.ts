@@ -2,7 +2,7 @@ import { getWorkerConfig, ProcessHandler, setupLogger, initializeLogger } from '
 import { WorkerAgent } from '@sofie-package-manager/worker'
 
 export async function startProcess(): Promise<void> {
-	const config = getWorkerConfig()
+	const config = await getWorkerConfig()
 
 	initializeLogger(config)
 	const logger = setupLogger(config, '')

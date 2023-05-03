@@ -9,8 +9,10 @@ import {
 } from '@sofie-package-manager/api'
 
 export { Connector, Config }
-export function startProcess(startInInternalMode?: boolean): { logger: LoggerInstance; connector: Connector } {
-	const config = getPackageManagerConfig()
+export async function startProcess(
+	startInInternalMode?: boolean
+): Promise<{ logger: LoggerInstance; connector: Connector }> {
+	const config = await getPackageManagerConfig()
 
 	initializeLogger(config)
 	const logger = setupLogger(config, '')

@@ -6,7 +6,7 @@ import * as AppConatainerNode from '@appcontainer-node/generic'
 import { getSingleAppConfig, ProcessHandler, setupLogger, initializeLogger } from '@sofie-package-manager/api'
 
 export async function startSingleApp(): Promise<void> {
-	const config = getSingleAppConfig()
+	const config = await getSingleAppConfig()
 	initializeLogger(config)
 	const logger = setupLogger(config, 'single-app')
 	const baseLogger = setupLogger(config, '')

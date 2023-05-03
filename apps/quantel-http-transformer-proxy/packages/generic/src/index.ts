@@ -9,7 +9,7 @@ import {
 
 export { QuantelHTTPTransformerProxy }
 export async function startProcess(): Promise<void> {
-	const config = getQuantelHTTPTransformerProxyConfig()
+	const config = await getQuantelHTTPTransformerProxyConfig()
 
 	initializeLogger(config)
 	const logger = setupLogger(config, '')

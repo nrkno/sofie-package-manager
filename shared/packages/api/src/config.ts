@@ -294,11 +294,14 @@ export interface WorkforceConfig {
 		port: number | null
 	}
 }
-export function getWorkforceConfig(): WorkforceConfig {
-	const argv = yargs(process.argv.slice(2)).options({
-		...workforceArguments,
-		...processOptions,
-	}).argv
+
+export async function getWorkforceConfig(): Promise<WorkforceConfig> {
+	const argv = await Promise.resolve(
+		yargs(process.argv.slice(2)).options({
+			...workforceArguments,
+			...processOptions,
+		}).argv
+	)
 
 	return {
 		process: getProcessConfig(argv),
@@ -320,11 +323,13 @@ export interface HTTPServerConfig {
 		cleanFileAge: number
 	}
 }
-export function getHTTPServerConfig(): HTTPServerConfig {
-	const argv = yargs(process.argv.slice(2)).options({
-		...httpServerArguments,
-		...processOptions,
-	}).argv
+export async function getHTTPServerConfig(): Promise<HTTPServerConfig> {
+	const argv = await Promise.resolve(
+		yargs(process.argv.slice(2)).options({
+			...httpServerArguments,
+			...processOptions,
+		}).argv
+	)
 
 	if (!argv.apiKeyWrite && argv.apiKeyRead) {
 		throw new Error(`Error: When apiKeyRead is given, apiKeyWrite is required!`)
@@ -361,11 +366,13 @@ export interface PackageManagerConfig {
 		concurrency?: number
 	}
 }
-export function getPackageManagerConfig(): PackageManagerConfig {
-	const argv = yargs(process.argv.slice(2)).options({
-		...packageManagerArguments,
-		...processOptions,
-	}).argv
+export async function getPackageManagerConfig(): Promise<PackageManagerConfig> {
+	const argv = await Promise.resolve(
+		yargs(process.argv.slice(2)).options({
+			...packageManagerArguments,
+			...processOptions,
+		}).argv
+	)
 
 	return {
 		process: getProcessConfig(argv),
@@ -400,11 +407,13 @@ export interface WorkerConfig {
 		considerCPULoad: number | null
 	} & WorkerAgentConfig
 }
-export function getWorkerConfig(): WorkerConfig {
-	const argv = yargs(process.argv.slice(2)).options({
-		...workerArguments,
-		...processOptions,
-	}).argv
+export async function getWorkerConfig(): Promise<WorkerConfig> {
+	const argv = await Promise.resolve(
+		yargs(process.argv.slice(2)).options({
+			...workerArguments,
+			...processOptions,
+		}).argv
+	)
 
 	return {
 		process: getProcessConfig(argv),
@@ -418,7 +427,9 @@ export function getWorkerConfig(): WorkerConfig {
 			windowsDriveLetters: argv.windowsDriveLetters ? argv.windowsDriveLetters.split(';') : [],
 			costMultiplier:
 				(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) || 1,
-			considerCPULoad: parseFloat(argv.considerCPULoad) || null,
+			considerCPULoad:
+				(typeof argv.considerCPULoad === 'string' ? parseFloat(argv.considerCPULoad) : argv.considerCPULoad) ||
+				null,
 		},
 	}
 }
@@ -427,11 +438,13 @@ export interface AppContainerProcessConfig {
 	process: ProcessConfig
 	appContainer: AppContainerConfig
 }
-export function getAppContainerConfig(): AppContainerProcessConfig {
-	const argv = yargs(process.argv.slice(2)).options({
-		...appContainerArguments,
-		...processOptions,
-	}).argv
+export async function getAppContainerConfig(): Promise<AppContainerProcessConfig> {
+	const argv = await Promise.resolve(
+		yargs(process.argv.slice(2)).options({
+			...appContainerArguments,
+			...processOptions,
+		}).argv
+	)
 
 	return {
 		process: getProcessConfig(argv),
@@ -451,7 +464,10 @@ export function getAppContainerConfig(): AppContainerProcessConfig {
 				costMultiplier:
 					(typeof argv.costMultiplier === 'string' ? parseFloat(argv.costMultiplier) : argv.costMultiplier) ||
 					1,
-				considerCPULoad: parseFloat(argv.considerCPULoad) || null,
+				considerCPULoad:
+					(typeof argv.considerCPULoad === 'string'
+						? parseFloat(argv.considerCPULoad)
+						: argv.considerCPULoad) || null,
 			},
 		},
 	}
@@ -472,7 +488,7 @@ export interface SingleAppConfig
 	}
 }
 
-export function getSingleAppConfig(): SingleAppConfig {
+export async function getSingleAppConfig(): Promise<SingleAppConfig> {
 	const options = {
 		...workforceArguments,
 		...httpServerArguments,
@@ -494,21 +510,21 @@ export function getSingleAppConfig(): SingleAppConfig {
 	// @ts-expect-error not optional
 	delete options.port
 
-	const argv = yargs(process.argv.slice(2)).options(options).argv
+	const argv = await Promise.resolve(yargs(process.argv.slice(2)).options(options).argv)
 
 	return {
 		process: getProcessConfig(argv),
-		workforce: getWorkforceConfig().workforce,
-		httpServer: getHTTPServerConfig().httpServer,
-		packageManager: getPackageManagerConfig().packageManager,
-		worker: getWorkerConfig().worker,
+		workforce: (await getWorkforceConfig()).workforce,
+		httpServer: (await getHTTPServerConfig()).httpServer,
+		packageManager: (await getPackageManagerConfig()).packageManager,
+		worker: (await getWorkerConfig()).worker,
 		singleApp: {
 			noHTTPServers: argv.noHTTPServers ?? false,
 			workerCount: argv.workerCount || 1,
 			workforcePort: argv.workforcePort,
 		},
-		appContainer: getAppContainerConfig().appContainer,
-		quantelHTTPTransformerProxy: getQuantelHTTPTransformerProxyConfig().quantelHTTPTransformerProxy,
+		appContainer: (await getAppContainerConfig()).appContainer,
+		quantelHTTPTransformerProxy: (await getQuantelHTTPTransformerProxyConfig()).quantelHTTPTransformerProxy,
 	}
 }
 // Configuration for the HTTP server Application: ----------------------------------
@@ -523,11 +539,13 @@ export interface QuantelHTTPTransformerProxyConfig {
 		rateLimitMax?: number
 	}
 }
-export function getQuantelHTTPTransformerProxyConfig(): QuantelHTTPTransformerProxyConfig {
-	const argv = yargs(process.argv.slice(2)).options({
-		...quantelHTTPTransformerProxyConfigArguments,
-		...processOptions,
-	}).argv
+export async function getQuantelHTTPTransformerProxyConfig(): Promise<QuantelHTTPTransformerProxyConfig> {
+	const argv = await Promise.resolve(
+		yargs(process.argv.slice(2)).options({
+			...quantelHTTPTransformerProxyConfigArguments,
+			...processOptions,
+		}).argv
+	)
 
 	return {
 		process: getProcessConfig(argv),

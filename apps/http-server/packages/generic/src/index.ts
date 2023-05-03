@@ -9,7 +9,7 @@ import {
 
 export { PackageProxyServer }
 export async function startProcess(): Promise<void> {
-	const config = getHTTPServerConfig()
+	const config = await getHTTPServerConfig()
 
 	initializeLogger(config)
 	const logger = setupLogger(config, '')

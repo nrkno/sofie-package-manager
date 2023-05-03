@@ -2,7 +2,7 @@ import { Workforce } from '@sofie-package-manager/workforce'
 import { getWorkforceConfig, setupLogger, initializeLogger } from '@sofie-package-manager/api'
 
 export async function startProcess(): Promise<void> {
-	const config = getWorkforceConfig()
+	const config = await getWorkforceConfig()
 
 	initializeLogger(config)
 	const logger = setupLogger(config, '')
