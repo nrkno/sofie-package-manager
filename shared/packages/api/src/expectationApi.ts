@@ -85,7 +85,8 @@ export namespace Expectation {
 		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
 		workOptions: WorkOptions.Base
 		/** Reference to another expectation.
-		 * Won't start until ALL other expectations are fullfilled
+		 * Won't start until ALL other expectations are fullfilled.
+		 * If any of the other expectations are not fulfilled, this wont be fulfilled either.
 		 */
 		dependsOnFullfilled?: string[]
 		/** Reference to another expectation.
@@ -368,6 +369,8 @@ export namespace Expectation {
 			allowWaitForCPU?: boolean
 			/** If set, specifies how many CPU cores the work is using. */
 			usesCPUCount?: number
+			/** If set, removes the target package if the expectation becomes unfulfilled. */
+			removePackageOnUnFulfill?: boolean
 		}
 		export interface RemoveDelay {
 			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */

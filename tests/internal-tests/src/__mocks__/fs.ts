@@ -260,6 +260,11 @@ export function __mockSetFile(path: string, size: number, accessOptions?: FileAc
 	)
 }
 fs.__mockSetFile = __mockSetFile
+export function __mockDeleteFile(path: string): void {
+	path = fixPath(path)
+	deleteMock(path)
+}
+fs.__mockDeleteFile = __mockDeleteFile
 export function __mockSetDirectory(path: string, accessOptions?: FileAccess): void {
 	path = fixPath(path)
 	setMock(

@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { stringifyError } from '@sofie-package-manager/api'
+import { Reason, stringifyError } from '@sofie-package-manager/api'
 import { assertState, EvaluateContext } from '../lib'
 
 /**
@@ -24,23 +24,51 @@ export async function evaluateExpectationStateFulfilled({
 		await manager.workerAgents.assignWorkerToSession(trackedExp)
 		if (trackedExp.session.assignedWorker) {
 			try {
-				// Check if it is still fulfilled:
-				const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
-					trackedExp.exp,
-					true
-				)
-				if (fulfilled.fulfilled) {
-					// Yes it is still fullfiled
-					// No need to update the tracked state, since it's already fullfilled:
-					// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
-				} else {
-					// It appears like it's not fullfilled anymore
+				let notFulfilledReason: Reason | null = null
+
+				if (!notFulfilledReason) {
+					const waitingFor = tracker.trackedExpectationAPI.isExpectationWaitingForOther(trackedExp)
+					if (waitingFor) {
+						// Since a dependant is not fulfilled, this one isn't either.
+						notFulfilledReason = {
+							user: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+							tech: `Waiting for "${waitingFor.exp.statusReport.label}"`,
+						}
+					}
+				}
+
+				if (!notFulfilledReason) {
+					// Check if it is still fulfilled:
+					const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
+						trackedExp.exp,
+						true
+					)
+					if (!fulfilled.fulfilled) {
+						// It appears like it's not fullfilled anymore
+						notFulfilledReason = fulfilled.reason
+					}
+				}
+
+				if (notFulfilledReason) {
+					// If is not fulfilled anymore
+
+					if (trackedExp.exp.workOptions.removePackageOnUnFulfill) {
+						const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+						if (!removed.removed) {
+							runner.logger.warn(`Unable to remove expectation, reason: ${removed.reason.tech}`)
+						}
+					}
+
 					trackedExp.status.actualVersionHash = undefined
 					trackedExp.status.workProgress = undefined
 					tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
-						reason: fulfilled.reason,
+						reason: notFulfilledReason,
 					})
+				} else {
+					// Yes it is still fullfiled
+					// No need to update the tracked state, since it's already fullfilled:
+					// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
 				}
 			} catch (error) {
 				runner.logger.warn(`Error in FULFILLED: ${stringifyError(error)}`)

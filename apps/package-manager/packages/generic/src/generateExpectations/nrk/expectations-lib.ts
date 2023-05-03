@@ -388,7 +388,8 @@ export function generateMediaFileThumbnail(
 			...expectation.workOptions,
 			allowWaitForCPU: true,
 			usesCPUCount: 1,
-			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+			removeDelay: 0, // The removal of the thumnail shouldn't be delayed
+			removePackageOnUnFulfill: true,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -440,7 +441,8 @@ export function generateMediaFilePreview(
 			...expectation.workOptions,
 			allowWaitForCPU: true,
 			usesCPUCount: 1,
-			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+			removeDelay: 0, // The removal of the preview shouldn't be delayed
+			removePackageOnUnFulfill: true,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -493,7 +495,8 @@ export function generateQuantelClipThumbnail(
 			...expectation.workOptions,
 			allowWaitForCPU: true,
 			usesCPUCount: 1,
-			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+			removeDelay: 0, // The removal of the thumbnail shouldn't be delayed
+			removePackageOnUnFulfill: true,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
@@ -547,7 +550,8 @@ export function generateQuantelClipPreview(
 			...expectation.workOptions,
 			allowWaitForCPU: true,
 			usesCPUCount: 1,
-			removeDelay: 0, // The removal of the scan itself shouldn't be delayed
+			removeDelay: 0, // The removal of the preview shouldn't be delayed
+			removePackageOnUnFulfill: true,
 		},
 		dependsOnFullfilled: [expectation.id],
 		triggerByFullfilledIds: [expectation.id],
