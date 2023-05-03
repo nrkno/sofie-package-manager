@@ -28,9 +28,19 @@ if (!executableName) {
 	log(`Collecting dependencies for ${packageJson.name}...`)
 	// List all Lerna packages:
 	const list = await exec('yarn lerna list -a --json')
-	const str = list.stdout.replace(/^\$.*$/gm, '').replace(/^Done in.*$/gm, '')
 
-	const packages = JSON.parse(str)
+	// Extract the JSON:
+	const m = list.stdout.match(/\[\n[\w\W]*\]/g)
+	const str = m[0]
+
+
+	let packages
+	try {
+		packages = JSON.parse(str)
+	} catch (err) {
+		console.log(str)
+		throw err
+	}
 
 	await fse.mkdirp(path.join(basePath, 'node_modules'))
 

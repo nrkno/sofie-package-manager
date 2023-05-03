@@ -13,7 +13,7 @@ log('Copying native dependencies...')
 const basePath = process.cwd()
 
 const dirName = path.join(basePath, '../../..')
-log(`Running in directory ${dirName} for patform "${prebuildType}"`)
+log(`Running in directory ${dirName} for platform "${prebuildType}"`)
 
 // log(process.argv[2])
 
@@ -22,8 +22,14 @@ find.file(/\.node$/, path.join(dirName, 'node_modules'), (files) => {
 		if (fullPath.indexOf(dirName) === 0) {
 			const file = fullPath.substr(dirName.length + 1)
 			if (isFileForPlatform(file)) {
-				log('Copy prebuild binary:', file)
-				fs.copySync(file, path.join('deploy', file))
+				const filePath = path.join(dirName, file)
+				log('Copy prebuild binary:', filePath)
+				try {
+					fs.copySync(filePath, path.join('deploy', file))
+				} catch (err) {
+					console.log(filePath)
+					throw err
+				}
 			}
 		}
 	})
