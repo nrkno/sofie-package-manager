@@ -149,14 +149,15 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 			actualSourceVersion,
 			expectTargetVersion
 		)
-		const packageInfos = (await this.worker.sendMessageToManager(exp.managerId, {
-			type: 'fetchPackageInfoMetadata',
-			arguments: [infoType, exp.fromPackages.map((p) => p.id)],
-		})) as {
+		const packageInfos: {
 			packageId: string
 			expectedContentVersionHash: string
 			actualContentVersionHash: string
-		}[]
+		}[] =
+			(await this.worker.sendMessageToManager(exp.managerId, {
+				type: 'fetchPackageInfoMetadata',
+				arguments: [infoType, exp.fromPackages.map((p) => p.id)],
+			})) || []
 
 		for (const fromPackage of exp.fromPackages) {
 			const packageInfo = packageInfos.find((p) => p.packageId === fromPackage.id)
