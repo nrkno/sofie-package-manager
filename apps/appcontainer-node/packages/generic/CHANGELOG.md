@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.42.0-alpha.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.4...v1.42.0-alpha.5) (2023-05-10)
+
+
+### Bug Fixes
+
+* an issue where worker's log-levels wheren't respected ([a780b0a](https://github.com/nrkno/tv-automation-package-manager/commit/a780b0a5ba31baa4bf3f28260925f44398d52763))
+
+
+
+
+
 # [1.42.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.3...v1.42.0-alpha.4) (2023-05-03)
 
 **Note:** Version bump only for package @appcontainer-node/generic

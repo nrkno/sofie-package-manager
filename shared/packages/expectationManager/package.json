@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/expectation-manager",
-    "version": "1.42.0-alpha.4",
+    "version": "1.42.0-alpha.5",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
@@ -14,7 +14,7 @@
     },
     "dependencies": {
         "@sofie-package-manager/api": "1.42.0-alpha.4",
-        "@sofie-package-manager/worker": "1.42.0-alpha.4",
+        "@sofie-package-manager/worker": "1.42.0-alpha.5",
         "@supercharge/promise-pool": "^2.4.0",
         "underscore": "^1.12.0"
     },
