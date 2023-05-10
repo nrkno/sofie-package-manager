@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/generic",
-    "version": "1.42.0",
+    "version": "1.50.0-alpha.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -13,9 +13,9 @@
         "@sofie-automation/server-core-integration": "*"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.42.0",
-        "@sofie-package-manager/expectation-manager": "1.42.0",
-        "@sofie-package-manager/worker": "1.42.0",
+        "@sofie-package-manager/api": "1.50.0-alpha.0",
+        "@sofie-package-manager/expectation-manager": "1.50.0-alpha.0",
+        "@sofie-package-manager/worker": "1.50.0-alpha.0",
         "chokidar": "^3.5.1",
         "data-store": "^4.0.3",
         "deep-extend": "^0.6.0",

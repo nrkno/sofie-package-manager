@@ -1,6 +1,6 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.42.0",
+    "version": "1.50.0-alpha.0",
     "description": "Internal tests",
     "private": true,
     "scripts": {
@@ -14,12 +14,12 @@
         "tv-automation-quantel-gateway-client": "^3.1.7"
     },
     "dependencies": {
-        "@http-server/generic": "1.42.0",
-        "@package-manager/generic": "1.42.0",
-        "@sofie-package-manager/api": "1.42.0",
-        "@sofie-package-manager/expectation-manager": "1.42.0",
-        "@sofie-package-manager/worker": "1.42.0",
-        "@sofie-package-manager/workforce": "1.42.0",
+        "@http-server/generic": "1.50.0-alpha.0",
+        "@package-manager/generic": "1.50.0-alpha.0",
+        "@sofie-package-manager/api": "1.50.0-alpha.0",
+        "@sofie-package-manager/expectation-manager": "1.50.0-alpha.0",
+        "@sofie-package-manager/worker": "1.50.0-alpha.0",
+        "@sofie-package-manager/workforce": "1.50.0-alpha.0",
         "underscore": "^1.12.0",
         "windows-network-drive": "^4.0.1"
     },
