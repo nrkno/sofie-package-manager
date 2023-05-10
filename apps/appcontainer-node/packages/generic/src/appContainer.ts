@@ -335,6 +335,7 @@ export class AppContainer {
 		// kill child processes
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
+		this.logger.info(`Seting log level to "${logLevel}"`)
 		setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {
@@ -665,9 +666,8 @@ export class AppContainer {
 		const messages = `${data}`.split('\n')
 
 		for (const message of messages) {
+			if (!message?.length) continue
 			try {
-				if (!message?.length) continue
-
 				// Ignore some messages:
 				if (message.indexOf('NODE_TLS_REJECT_UNAUTHORIZED') !== -1) {
 					continue
@@ -680,28 +680,61 @@ export class AppContainer {
 					this.busyPorts.add(busyPort)
 				}
 
-				const json = JSON.parse(`${message}`)
-
-				if (typeof json === 'object') {
-					const logFcn =
-						json.level === 'error'
-							? this.logger.error
-							: json.level === 'warn'
-							? this.logger.warn
-							: json.level === 'info'
-							? this.logger.info
-							: defaultLog
-
-					const messageData = _.omit(json, ['message', 'localTimestamp', 'level'])
-
-					logFcn(
-						`App "${appId}" (${appType}): ${json.message}`,
-						_.isEmpty(messageData) ? undefined : messageData
-					)
+				let parsedMessage: string | undefined = undefined
+				let logLevel = ''
+				let messageData: any = {}
+				try {
+					const json = JSON.parse(`${message}`)
+					if (typeof json === 'object') {
+						logLevel = json.level
+						parsedMessage = `[${json.label}] ${json.message}`
+						messageData = _.omit(json, ['message', 'localTimestamp', 'level'])
+					}
+				} catch {
+					// There was an error parsing the message (the probably message wasn't JSON).
 				}
-			} catch (err) {
-				// There was an error parsing the message (the probably message wasn't JSON).
 
+				if (parsedMessage === undefined) {
+					// [logLevel] [category] message
+					const m = message.match(/^\[([^\]]+)\]\W\[([^\]]+)\]\W(.*)/)
+					if (m) {
+						logLevel = m[1]
+						parsedMessage = `[${m[2]}] ${m[3]}`
+					}
+				}
+
+				if (parsedMessage === undefined) {
+					// Fall back to just just log the whole message:
+					parsedMessage = `${message}`
+				}
+
+				const logLevels: { [key: string]: LeveledLogMethod } = {
+					error: this.logger.error,
+					warn: this.logger.warn,
+					help: this.logger.help,
+					data: this.logger.data,
+					info: this.logger.info,
+					debug: this.logger.debug,
+					prompt: this.logger.prompt,
+					http: this.logger.http,
+					verbose: this.logger.verbose,
+					input: this.logger.input,
+					silly: this.logger.silly,
+
+					emerg: this.logger.emerg,
+					alert: this.logger.alert,
+					crit: this.logger.crit,
+					warning: this.logger.warning,
+					notice: this.logger.notice,
+				}
+				const logFcn = logLevels[logLevel] || defaultLog
+				logFcn(
+					`App "${appId}" (${appType}): ${parsedMessage}`,
+					_.isEmpty(messageData) ? undefined : messageData
+				)
+			} catch (err) {
+				this.logger.error(err)
+				// Fallback:
 				defaultLog(`${appId} stdout: ${message}`)
 			}
 		}
