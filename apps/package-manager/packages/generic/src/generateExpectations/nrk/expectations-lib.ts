@@ -1,4 +1,5 @@
-import { ExpectedPackageWrap, PackageManagerSettings } from '../../packageManager'
+import { ExpectedPackageWrap } from '../../packageManager'
+import { PackageManagerSettings } from '../../generated/options'
 import {
 	Accessor,
 	ExpectedPackage,

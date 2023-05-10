@@ -6,16 +6,16 @@ import {
 	Observer,
 	Collection,
 	CoreCredentials,
+	StatusCode as SofieStatusCode,
+	protectString,
+	unprotectString,
+	ProtectedString,
+	PeripheralDevicePublic,
+	PeripheralDeviceId,
+	PeripheralDeviceCommand,
+	ExternalPeripheralDeviceAPI,
+	PeripheralDeviceAPI,
 } from '@sofie-automation/server-core-integration'
-import {
-	PeripheralDeviceCategory,
-	PeripheralDeviceType,
-	PERIPHERAL_SUBTYPE_PROCESS,
-} from '@sofie-automation/shared-lib/dist/peripheralDevice/peripheralDeviceAPI'
-import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
-import { protectString, unprotectString, ProtectedString } from '@sofie-automation/shared-lib/dist/lib/protectedString'
-import { PeripheralDevicePublic } from '@sofie-automation/shared-lib/dist/core/model/peripheralDevice'
-import { PeripheralDeviceId } from '@sofie-automation/shared-lib/dist/core/model/Ids'
 
 import { DeviceConfig } from './connector'
 
@@ -40,8 +40,6 @@ import {
 	PACKAGE_MANAGER_DEVICE_CONFIG,
 } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
-import { ExternalPeripheralDeviceAPI } from '@sofie-automation/server-core-integration/dist/lib/methods'
-import { PeripheralDeviceCommand } from '@sofie-automation/shared-lib/dist/core/model/PeripheralDeviceCommand'
 import { getCredentials } from './credentials'
 
 let packageJson: any
@@ -209,9 +207,9 @@ export class CoreHandler {
 		const options: CoreOptions = {
 			...credentials,
 
-			deviceCategory: PeripheralDeviceCategory.PACKAGE_MANAGER,
-			deviceType: PeripheralDeviceType.PACKAGE_MANAGER,
-			deviceSubType: PERIPHERAL_SUBTYPE_PROCESS,
+			deviceCategory: PeripheralDeviceAPI.PeripheralDeviceCategory.PACKAGE_MANAGER,
+			deviceType: PeripheralDeviceAPI.PeripheralDeviceType.PACKAGE_MANAGER,
+			deviceSubType: PeripheralDeviceAPI.PERIPHERAL_SUBTYPE_PROCESS,
 
 			deviceName: name,
 			watchDog: this._coreConfig ? this._coreConfig.watchdog : true,

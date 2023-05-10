@@ -2,8 +2,7 @@ import _ from 'underscore'
 import { CoreHandler } from './coreHandler'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-// eslint-disable-next-line node/no-extraneous-import
-import { protectString, protectStringArray } from '@sofie-automation/shared-lib/dist/lib/protectedString'
+import { protectString, protectStringArray } from '@sofie-automation/server-core-integration'
 // eslint-disable-next-line node/no-extraneous-import
 import { UpdateExpectedPackageWorkStatusesChanges } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
 import {
@@ -33,6 +32,7 @@ import {
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
 import { GenerateExpectationApi } from './generateExpectations/api'
+import { PackageManagerSettings } from './generated/options'
 
 import * as NRK from './generateExpectations/nrk'
 
@@ -1066,11 +1066,6 @@ export interface ActivePlaylist {
 export interface ActiveRundown {
 	_id: string
 	_rank: number
-}
-export interface PackageManagerSettings {
-	delayRemoval: number
-	delayRemovalPackageInfo?: number
-	useTemporaryFilePath: boolean
 }
 
 type ReportStatuses<Status, Ids> = {

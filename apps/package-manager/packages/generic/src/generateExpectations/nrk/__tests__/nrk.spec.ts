@@ -5,9 +5,9 @@ import {
 	ActiveRundown,
 	ExpectedPackageWrap,
 	PackageContainers,
-	PackageManagerSettings,
 	wrapExpectedPackage,
 } from '../../../packageManager'
+import { PackageManagerSettings } from '../../../generated/options'
 
 describe('Generate expectations - NRK', () => {
 	test('Wrap package', () => {
