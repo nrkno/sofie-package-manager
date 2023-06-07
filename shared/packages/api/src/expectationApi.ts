@@ -204,6 +204,12 @@ export namespace Expectation {
 			version: {
 				/** List of channels or stereo channel pairs to be inspected for loudness, 0-indexed. Use channel number as string (e.g. "0") or two numbers with a plus sign for stereo pairs (e.g. "0+1") */
 				channels: (`${number}` | `${number}+${number}`)[]
+
+				/** Calculate phase difference between stereo channels in the tracks */
+				inPhaseDifference: boolean
+
+				/** Calculate balance difference between stereo channels in the tracks */
+				balanceDifference: boolean
 			}
 		}
 		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay

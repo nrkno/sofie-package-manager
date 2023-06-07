@@ -53,10 +53,10 @@
     "expectedPackages": [
         {
             "type": "media_file",
-            "_id": "test",
+            "_id": "test9902",
             "contentVersionHash": "abc1234",
             "content": {
-                "filePath": "amb.mp4"
+                "filePath": "test2.mxf"
             },
             "version": {},
             "sources": [
@@ -65,7 +65,7 @@
                     "accessors": {
                         "local": {
                             "type": "local_folder",
-                            "filePath": "amb.mp4"
+                            "filePath": "test2.mxf"
                         }
                     }
                 }
@@ -78,12 +78,15 @@
                 "previewPackageSettings": null,
                 "thumbnailContainerId": "thumbnails0_local",
                 "thumbnailPackageSettings": {
-                    "path": "thumbnail.png"
+                    "path": "test2.png"
                 },
                 "loudnessPackageSettings": {
                     "channelSpec": [
-                        "0"
-                    ]
+                        "0",
+                        "0+1"
+                    ],
+                    "inPhaseDifference": true,
+                    "balanceDifference": true
                 }
             }
         }

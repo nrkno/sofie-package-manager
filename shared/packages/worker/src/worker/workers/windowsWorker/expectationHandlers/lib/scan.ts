@@ -448,12 +448,13 @@ function scanLoudnessStream(
 		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>,
 	_previouslyScanned: FFProbeScanResult,
-	channelSpec: string
+	channelSpec: string,
+	filter?: string
 ): CancelablePromise<LoudnessScanResultForStream> {
 	return new CancelablePromise<LoudnessScanResultForStream>(async (resolve, reject, onCancel) => {
 		const stereoPairMatch = channelSpec.match(/^(\d+)\+(\d+)$/)
-		const singleChannel = Number.parseInt(channelSpec)
-		if (!stereoPairMatch && !Number.isInteger(singleChannel)) {
+		const singleTrack = Number.parseInt(channelSpec)
+		if (!stereoPairMatch && !Number.isInteger(singleTrack)) {
 			reject(`Invalid channel specification: ${channelSpec}`)
 			return
 		}
@@ -461,10 +462,16 @@ function scanLoudnessStream(
 		let filterString: string
 
 		if (stereoPairMatch) {
-			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128=peak=true[out]`
+			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,`
 		} else {
-			filterString = `[0:a:${singleChannel}]ebur128=peak=true[out]`
+			filterString = `[0:a:${singleTrack}]`
 		}
+
+		if (filter) {
+			filterString += filter + ','
+		}
+
+		filterString += 'ebur128=peak=true[out]'
 
 		const file = getFFMpegExecutable()
 		const args = [
@@ -556,6 +563,15 @@ export function scanLoudness(
 	) => void
 ): CancelablePromise<LoudnessScanResult> {
 	return new CancelablePromise<LoudnessScanResult>(async (resolve, _reject, onCancel) => {
+		async function getStreamIntegratedLoudness(channelSpec: `${number}` | `${number}+${number}`, filter: string) {
+			const resultPromise = scanLoudnessStream(sourceHandle, previouslyScanned, channelSpec, filter)
+			onCancel(() => {
+				resultPromise.cancel()
+			})
+			const result = await resultPromise
+			return result.success ? result.integrated : undefined
+		}
+
 		if (!targetVersion.channels.length) {
 			resolve({
 				channels: {},
@@ -575,7 +591,40 @@ export function scanLoudness(
 				onCancel(() => {
 					resultPromise.cancel()
 				})
-				const result = await resultPromise
+				let result = await resultPromise
+
+				if (result.success && result.layout === 'stereo') {
+					let leftLoudness: number | undefined
+					if (targetVersion.inPhaseDifference) {
+						/** Measure loudness of only left channel and measure loudness of left+right mix and subtract */
+						leftLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=1*c0')
+						const sumLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=0.5*c0+0.5*c1')
+
+						if (leftLoudness !== undefined && sumLoudness !== undefined) {
+							const inPhaseDifference = sumLoudness - leftLoudness
+							result = {
+								...result,
+								inPhaseDifference,
+							}
+						}
+					}
+
+					if (targetVersion.balanceDifference) {
+						if (leftLoudness === undefined) {
+							leftLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=1*c0')
+						}
+						const rightLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=1*c1')
+
+						if (leftLoudness !== undefined && rightLoudness !== undefined) {
+							const balanceDifference = rightLoudness - leftLoudness
+							result = {
+								...result,
+								balanceDifference,
+							}
+						}
+					}
+				}
+
 				packageScanResult[channelSpec] = result
 			} catch (e) {
 				packageScanResult[channelSpec] = {

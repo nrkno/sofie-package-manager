@@ -53,4 +53,24 @@ export type LoudnessScanResultForStream =
 			rangeHigh: number
 			/** Unit: dBFS */
 			truePeak: number
+
+			/**
+			 * If a sum of the stereo channels has lower loudness than one of the channels, then the pair is not in phase.
+			 * This is the loudness of one of the channels, subtracted from the integrated loudness of the sum
+			 *
+			 * Unit: LU
+			 *
+			 * This will only be calculated if "layout" is "stereo"
+			 */
+			inPhaseDifference?: number
+
+			/**
+			 * If one of the channels is louder than the other, then the pair is not balanced.
+			 * This is the loudness of one of the channels, subtracted from the integrated loudness of the other.
+			 *
+			 * Unit: LU
+			 *
+			 * This will only be calculated if "layout" is "stereo"
+			 * */
+			balanceDifference?: number
 	  }
