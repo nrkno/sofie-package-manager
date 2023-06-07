@@ -22,6 +22,7 @@ import {
 	Reason,
 	stringifyError,
 	promiseTimeout,
+	INNER_ACTION_TIMEOUT,
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
@@ -43,7 +44,7 @@ const fsWriteFile = promisify(fs.writeFile)
 const fsRename = promisify(fs.rename)
 const pExec = promisify(exec)
 
-const PREPARE_FILE_ACCESS_TIMEOUT = 1000
+const PREPARE_FILE_ACCESS_TIMEOUT = INNER_ACTION_TIMEOUT * 0.5
 const PREPARE_FILE_ACCESS_TIMEOUT_INNER = PREPARE_FILE_ACCESS_TIMEOUT * 0.8
 
 /** Accessor handle for accessing files on a network share */

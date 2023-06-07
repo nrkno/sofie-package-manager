@@ -8,7 +8,7 @@ export const PING_TIME = 10 * 1000
  * If the sender doesn't recieve a reply after this time,
  * the message is considered lost.
  */
-export const MESSAGE_TIMEOUT = process.env.JEST_WORKER_ID !== undefined ? 3000 : 10000
+export const MESSAGE_TIMEOUT = process.env.JEST_WORKER_ID !== undefined ? 5000 : 10000
 // Note: JEST_WORKER_ID is set when running in unit tests
 
 /**
