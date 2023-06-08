@@ -1,11 +1,11 @@
-import { joinUrls } from '../pathJoin'
-test('joinUrls', () => {
-	expect(joinUrls('a', 'b')).toBe('a/b')
-	expect(joinUrls('a/', 'b')).toBe('a/b')
-	expect(joinUrls('a/', '/b')).toBe('a/b')
-	expect(joinUrls('a/', '/b/')).toBe('a/b/')
-	expect(joinUrls('//a/b/', 'c')).toBe('/a/b/c')
-	expect(joinUrls('a/', '//b/')).toBe('a/b/')
+import { rebaseUrl } from '../pathJoin'
+test('rebaseUrl', () => {
+	expect(rebaseUrl('https://a', 'b')).toBe('https://a/b')
+	expect(rebaseUrl('https://a/', 'b')).toBe('https://a/b')
+	expect(rebaseUrl('https://a/', '/b')).toBe('https://a/b')
+	expect(rebaseUrl('file://a/', '/b/')).toBe('file://a/b/')
+	expect(rebaseUrl('https:////a/b/', 'c')).toBe('https://a/b/c')
+	expect(rebaseUrl('https://a/', '//b/')).toBe('https://a/b/')
 
-	expect(joinUrls('a/b//c/', '/d/e//f/')).toBe('a/b/c/d/e/f/')
+	expect(rebaseUrl('https://a/b//c/', '/d/e//f/')).toBe('https://a/b/c/d/e/f/')
 })
