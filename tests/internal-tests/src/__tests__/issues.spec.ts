@@ -35,7 +35,7 @@ const fsExists = async (filePath: string) => {
 // const fsStat = promisify(fs.stat)
 
 // this test can be a bit slower in CI sometimes
-jest.setTimeout(10000)
+jest.setTimeout(30000)
 
 describe('Handle unhappy paths', () => {
 	let env: TestEnviromnent
