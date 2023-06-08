@@ -112,6 +112,12 @@ export namespace ExpectedPackage {
 		 * f.g. ["0", "0+1"] (for single stream stereo and discreet channel stereo) and then select the correct measurement in the
 		 * blueprints based on the context */
 		channelSpec: SideEffectLoudnessSettingsChannelSpec[]
+
+		/** Calculate phase difference between stereo channels in the tracks */
+		inPhaseDifference?: boolean
+
+		/** Calculate balance difference between stereo channels in the tracks */
+		balanceDifference?: boolean
 	}
 
 	export type SideEffectLoudnessSettingsChannelSpec = `${number}` | `${number}+${number}`

@@ -329,6 +329,8 @@ export function generatePackageLoudness(
 			content: null,
 			version: {
 				channels: packageSettings.channelSpec,
+				balanceDifference: packageSettings.balanceDifference ?? false,
+				inPhaseDifference: packageSettings.inPhaseDifference ?? false,
 			},
 		},
 		workOptions: {
