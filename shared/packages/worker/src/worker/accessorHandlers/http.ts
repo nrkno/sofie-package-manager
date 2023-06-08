@@ -24,9 +24,8 @@ import { GenericWorker } from '../worker'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
 import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
-import { joinUrls } from './lib/pathJoin'
+import { rebaseUrl } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
-import { makeFileNameUrlSafe } from '@sofie-package-manager/api'
 
 /** Accessor handle for accessing files in a local folder */
 export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
@@ -194,7 +193,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true, monitors: resultingMonitors }
 	}
 	get fullUrl(): string {
-		return joinUrls(this.baseUrl, makeFileNameUrlSafe(this.path))
+		return rebaseUrl(this.baseUrl, this.path)
 	}
 
 	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
@@ -324,7 +323,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			// Check if it is time to remove the package:
 			if (entry.removeTime < Date.now()) {
 				// it is time to remove the package:
-				const fullUrl: string = joinUrls(this.baseUrl, makeFileNameUrlSafe(entry.filePath))
+				const fullUrl: string = rebaseUrl(this.baseUrl, entry.filePath)
 
 				await this.deletePackageIfExists(this.getMetadataPath(fullUrl))
 				await this.deletePackageIfExists(fullUrl)
@@ -363,7 +362,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	/** Full path to the file containing deferred removals */
 	private get deferRemovePackagesPath(): string {
-		return joinUrls(this.baseUrl, '__removePackages.json')
+		return rebaseUrl(this.baseUrl, '__removePackages.json')
 	}
 	/** */
 	private async getPackagesToRemove(): Promise<DelayPackageRemovalEntry[]> {

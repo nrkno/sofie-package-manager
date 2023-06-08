@@ -24,7 +24,7 @@ import {
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
-import { joinUrls } from './lib/pathJoin'
+import { rebaseUrl } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** The minimum amount of frames where a clip is minimumly playable */
@@ -430,7 +430,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				success: true,
 				baseURL,
 				url,
-				fullURL: joinUrls(baseURL, url),
+				fullURL: rebaseUrl(baseURL, url),
 			}
 		} else {
 			return {
