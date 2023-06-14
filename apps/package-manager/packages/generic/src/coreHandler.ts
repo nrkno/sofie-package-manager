@@ -19,8 +19,6 @@ import {
 
 import { DeviceConfig } from './connector'
 
-import fs from 'fs'
-import path from 'path'
 import {
 	LoggerInstance,
 	PackageManagerConfig,
@@ -98,7 +96,7 @@ export class CoreHandler {
 
 		this.processHandler = processHandler
 
-		this.core = new CoreConnection(this.getCoreConnectionOptions('Package manager', 'PackageManager'))
+		this.core = new CoreConnection(this.getCoreConnectionOptions())
 
 		this.core.onConnected(() => {
 			this.logger.info('Core Connected!')
@@ -150,9 +148,7 @@ export class CoreHandler {
 		this.logger.info('DeviceId: ' + this.core.deviceId)
 		await Promise.all([
 			this.core.autoSubscribe('peripheralDeviceForDevice', this.core.deviceId),
-			this.core.autoSubscribe('studioOfDevice', this.core.deviceId),
 			this.core.autoSubscribe('expectedPackagesForDevice', this.core.deviceId, undefined),
-			// this.core.autoSubscribe('timelineForDevice', this.core.deviceId),
 			this.core.autoSubscribe('peripheralDeviceCommands', this.core.deviceId),
 		])
 
@@ -184,7 +180,8 @@ export class CoreHandler {
 		await this.updateCoreStatus()
 		await this.core.destroy()
 	}
-	getCoreConnectionOptions(name: string, subDeviceId: string): CoreOptions {
+	getCoreConnectionOptions(): CoreOptions {
+		const subDeviceId = 'PackageManager'
 		let credentials: CoreCredentials
 
 		if (this._deviceOptions.deviceId && this._deviceOptions.deviceToken) {
@@ -207,14 +204,14 @@ export class CoreHandler {
 			deviceCategory: PeripheralDeviceAPI.PeripheralDeviceCategory.PACKAGE_MANAGER,
 			deviceType: PeripheralDeviceAPI.PeripheralDeviceType.PACKAGE_MANAGER,
 
-			deviceName: name,
+			deviceName: 'Package manager',
 			watchDog: this._coreConfig ? this._coreConfig.watchdog : true,
 
 			configManifest: PACKAGE_MANAGER_DEVICE_CONFIG,
 
 			documentationUrl: 'https://github.com/nrkno/sofie-package-manager',
 
-			versions: this._getVersions().versions,
+			versions: this._getVersions(),
 		}
 		return options
 	}
@@ -346,7 +343,6 @@ export class CoreHandler {
 	}
 	private setupObserverForPeripheralDeviceCommands(): void {
 		const observer = this.core.observe('peripheralDeviceCommands')
-		this.killProcess(0)
 		this._observers.push(observer)
 
 		const addedChangedCommand = (id: string) => {
@@ -378,16 +374,12 @@ export class CoreHandler {
 			}
 		})
 	}
-	killProcess(actually: number): boolean {
-		if (actually === 1) {
-			this.logger.info('KillProcess command received, shutting down in 1000ms!')
-			setTimeout(() => {
-				// eslint-disable-next-line no-process-exit
-				process.exit(0)
-			}, 1000)
-			return true
-		}
-		return false
+	killProcess(): void {
+		this.logger.info('KillProcess command received, shutting down in 1000ms!')
+		setTimeout(() => {
+			// eslint-disable-next-line no-process-exit
+			process.exit(0)
+		}, 1000)
 	}
 	pingResponse(message: string): void {
 		this.core.setPingResponse(message)
@@ -404,10 +396,6 @@ export class CoreHandler {
 	async setStatus(statuses: Statuses): Promise<any> {
 		this.statuses = statuses
 		await this.updateCoreStatus()
-	}
-	/** Do a self-test. Throws if something is not working as it should */
-	public checkIfWorking(): void {
-		if (this._getVersions().hadError) throw new Error('Error in getVersions()')
 	}
 	private async updateCoreStatus(): Promise<any> {
 		let statusCode = SofieStatusCode.GOOD
@@ -441,38 +429,12 @@ export class CoreHandler {
 			})
 		}
 	}
-	private _getVersions(): {
-		hadError: boolean
-		versions: { [packageName: string]: string }
-	} {
-		let hadError = false
+	private _getVersions(): { [packageName: string]: string } {
 		const versions: { [packageName: string]: string } = {}
-
-		const entrypointDir = path.dirname((require as any).main.filename)
 
 		versions['_process'] = process.env.npm_package_version || packageJson?.version || 'N/A'
 
-		const dirNames = ['@sofie-automation/server-core-integration']
-		try {
-			const nodeModulesDirectories = fs.readdirSync(path.join(entrypointDir, '../node_modules'))
-			for (const dir of nodeModulesDirectories) {
-				try {
-					if (dirNames.includes(dir)) {
-						let file = path.join(entrypointDir, '../node_modules', dir, 'package.json')
-						file = fs.readFileSync(file, 'utf8')
-						const json = JSON.parse(file)
-						versions[dir] = json.version || 'N/A'
-					}
-				} catch (e) {
-					this.logger.error(`Error in _getVersions, dir "${dir}": ${stringifyError(e)}`)
-					hadError = true
-				}
-			}
-		} catch (e) {
-			this.logger.error(`Error in _getVersions: ${stringifyError(e)}`)
-			hadError = true
-		}
-		return { hadError, versions }
+		return versions
 	}
 
 	restartExpectation(workId: string): void {

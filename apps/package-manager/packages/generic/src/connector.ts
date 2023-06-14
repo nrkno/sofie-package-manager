@@ -119,10 +119,6 @@ export class Connector {
 			return
 		}
 	}
-	/** Do a self-test. Throws if something is not working as it should */
-	public checkIfWorking(): void {
-		this.coreHandler.checkIfWorking()
-	}
 
 	private async initFileWatcher(packageManagerHandler: PackageManagerHandler): Promise<void> {
 		const fileName = path.join(process.cwd(), './expectedPackages.json')
