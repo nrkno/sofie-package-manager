@@ -367,18 +367,28 @@ export function previewFFMpegArguments(input: string, seekableSource: boolean, m
 	return [
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
-		seekableSource ? undefined : '-seekable 0',
-		`-i "${input}"`, // Input file path
-		'-f webm', // format: webm
+		seekableSource ? undefined : '-seekable',
+		seekableSource ? undefined : '0',
+		`-i`,
+		input, // Input file path
+		'-f',
+		'webm', // format: webm
 		'-an', // blocks all audio streams
-		'-c:v libvpx-vp9', // encoder for video (use VP9)
-		`-b:v ${metadata.version.bitrate || '40k'}`,
-		'-auto-alt-ref 1',
-		`-vf scale=${metadata.version.width || 320}:${metadata.version.height || -1}`, // Scale to resolution
+		'-c:v',
+		'libvpx-vp9', // encoder for video (use VP9)
+		`-b:v`,
+		`${metadata.version.bitrate || '40k'}`,
+		'-auto-alt-ref',
+		'1',
+		`-vf`,
+		`scale=${metadata.version.width || 320}:${metadata.version.height || -1}`, // Scale to resolution
 
-		'-threads 1', // Number of threads to use
-		'-cpu-used 5', // Sacrifice quality for speed, used in combination with -deadline realtime
-		'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
+		'-threads',
+		'1', // Number of threads to use
+		'-cpu-used',
+		'5', // Sacrifice quality for speed, used in combination with -deadline realtime
+		'-deadline',
+		'realtime', // Encoder speed/quality and cpu use (best, good, realtime)
 	].filter(Boolean) as string[] // remove undefined values
 }
 
@@ -397,15 +407,26 @@ export function thumbnailFFMpegArguments(
 ): string[] {
 	return [
 		'-hide_banner',
-		hasVideoStream && seekTimeCode ? `-ss ${seekTimeCode}` : undefined,
-		`-i "${input}"`,
-		`-f image2`,
-		'-frames:v 1',
-		hasVideoStream
-			? `-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}` // Creates a thumbnail of the video.
-			: '-filter_complex "showwavespic=s=640x240:split_channels=1:colors=white"', // Creates an image of the audio waveform.
-		'-threads 1',
-	].filter(Boolean) as string[] // remove undefined values
+		...(hasVideoStream && seekTimeCode ? [`-ss`, `${seekTimeCode}`] : []),
+		`-i`,
+		input,
+		`-f`,
+		`image2`,
+		'-frames:v',
+		'1',
+		...(hasVideoStream
+			? [
+					`-vf`,
+					`${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}`, // Creates a thumbnail of the video.
+			  ]
+			: [
+					'-filter_complex',
+					'showwavespic=s=640x240:split_channels=1:colors=white', // Creates an image of the audio waveform.
+			  ]),
+
+		'-threads',
+		'1',
+	]
 }
 
 /** Returns arguments for FFMpeg to generate a proxy video file */
@@ -418,10 +439,13 @@ export function proxyFFMpegArguments(
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
 		seekableSource ? undefined : '-seekable 0',
-		`-i "${input}"`, // Input file path
+		`-i`,
+		input, // Input file path
 
-		'-c copy', // Stream copy, no transcoding
-		'-threads 1', // Number of threads to use
+		'-c',
+		'copy', // Stream copy, no transcoding
+		'-threads',
+		'1', // Number of threads to use
 	]
 
 	// Check target to see if we should tell ffmpeg which format to use:

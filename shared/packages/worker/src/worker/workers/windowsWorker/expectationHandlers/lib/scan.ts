@@ -68,7 +68,7 @@ export function scanWithFFProbe(
 			}
 			const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
 			// Use FFProbe to scan the file:
-			const args = ['-hide_banner', `-i "${inputPath}"`, '-show_streams', '-show_format', '-print_format', 'json']
+			const args = ['-hide_banner', `-i`, inputPath, '-show_streams', '-show_format', '-print_format', 'json']
 			let ffProbeProcess: ChildProcess | undefined = undefined
 			onCancel(() => {
 				ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
@@ -164,8 +164,10 @@ export function scanFieldOrder(
 		const file = getFFMpegExecutable()
 		const args = [
 			'-hide_banner',
-			'-filter:v idet',
-			`-frames:v ${targetVersion.fieldOrderScanDuration || 200}`,
+			'-filter:v',
+			'idet',
+			`-frames:v`,
+			`${targetVersion.fieldOrderScanDuration || 200}`,
 			'-an',
 			'-f',
 			'rawvideo',
@@ -263,7 +265,7 @@ export function scanMoreInfo(
 			if (filterString) {
 				filterString += ','
 			}
-			filterString += `"select='gt(scene,${targetVersion.sceneThreshold || 0.4})',showinfo"`
+			filterString += `select='gt(scene,${targetVersion.sceneThreshold || 0.4})',showinfo`
 		}
 
 		const args = ['-hide_banner']
@@ -272,8 +274,8 @@ export function scanMoreInfo(
 
 		args.push('-filter:v', filterString)
 		args.push('-an')
-		args.push('-f null')
-		args.push('-threads 1')
+		args.push('-f', 'null')
+		args.push('-threads', '1')
 		args.push('-')
 
 		let ffMpegProcess: ChildProcess | undefined = undefined
@@ -660,21 +662,21 @@ async function getFFMpegInputArgsFromAccessorHandle(
 ): Promise<string[]> {
 	const args: string[] = []
 	if (isLocalFolderAccessorHandle(sourceHandle)) {
-		args.push(`-i "${sourceHandle.fullPath}"`)
+		args.push(`-i`, sourceHandle.fullPath)
 	} else if (isFileShareAccessorHandle(sourceHandle)) {
 		await sourceHandle.prepareFileAccess()
-		args.push(`-i "${sourceHandle.fullPath}"`)
+		args.push(`-i`, sourceHandle.fullPath)
 	} else if (isHTTPAccessorHandle(sourceHandle)) {
-		args.push(`-i "${sourceHandle.fullUrl}"`)
+		args.push(`-i`, sourceHandle.fullUrl)
 	} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-		args.push(`-i "${sourceHandle.fullUrl}"`)
+		args.push(`-i`, sourceHandle.fullUrl)
 	} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 		const httpStreamURL = await sourceHandle.getTransformerStreamURL()
 
 		if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
 
-		args.push('-seekable 0')
-		args.push(`-i "${httpStreamURL.fullURL}"`)
+		args.push('-seekable', '0')
+		args.push(`-i`, httpStreamURL.fullURL)
 	} else {
 		assertNever(sourceHandle)
 	}

@@ -35,6 +35,7 @@ export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {
 	} else if (accessor.type === Accessor.AccessType.HTTP_PROXY) {
 		return HTTPProxyAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.FILE_SHARE) {
+		if (process.platform !== 'win32') throw new Error(`FileShareAccessor: not supported on ${process.platform}`)
 		return FileShareAccessorHandle
 	} else if (accessor.type === Accessor.AccessType.QUANTEL) {
 		return QuantelAccessorHandle
