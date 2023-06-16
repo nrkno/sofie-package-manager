@@ -60,7 +60,7 @@ export interface CoreConfig {
  */
 export class CoreHandler {
 	private logger: LoggerInstance
-	public _observers: Array<any> = []
+	public _observers: Array<Observer> = []
 	public deviceSettings: { [key: string]: any } = {}
 
 	public delayRemoval = 0
@@ -102,9 +102,6 @@ export class CoreHandler {
 
 		this.core.onConnected(() => {
 			this.logger.info('Core Connected!')
-			this.setupObserversAndSubscriptions().catch((e) => {
-				this.logger.error('Core Error during setupObserversAndSubscriptions:', e)
-			})
 			if (this._onConnected) this._onConnected()
 		})
 		this.core.onDisconnected(() => {
@@ -160,13 +157,7 @@ export class CoreHandler {
 		])
 
 		this.logger.info('Core: Subscriptions are set up!')
-		if (this._observers.length) {
-			this.logger.info('CoreMos: Clearing observers..')
-			this._observers.forEach((obs) => {
-				obs.stop()
-			})
-			this._observers = []
-		}
+
 		// setup observers
 		const observer = this.core.observe('peripheralDeviceForDevice')
 		observer.added = (id: string) => this.onDeviceChanged(protectString(id))
@@ -181,6 +172,14 @@ export class CoreHandler {
 		}
 	}
 	async destroy(): Promise<void> {
+		if (this._observers.length) {
+			this.logger.info('CoreMos: Clearing observers..')
+			this._observers.forEach((obs) => {
+				obs.stop()
+			})
+			this._observers = []
+		}
+
 		this._statusDestroyed = true
 		await this.updateCoreStatus()
 		await this.core.destroy()
@@ -345,7 +344,7 @@ export class CoreHandler {
 	get coreConnected(): boolean {
 		return this.core?.connected || false
 	}
-	setupObserverForPeripheralDeviceCommands(): void {
+	private setupObserverForPeripheralDeviceCommands(): void {
 		const observer = this.core.observe('peripheralDeviceCommands')
 		this.killProcess(0)
 		this._observers.push(observer)
