@@ -2,9 +2,24 @@ import _ from 'underscore'
 import { CoreHandler } from './coreHandler'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { protectString, protectStringArray } from '@sofie-automation/server-core-integration'
+import {
+	PackageManagerActivePlaylist,
+	PackageManagerActiveRundown,
+	PackageManagerExpectedPackage,
+	PackageManagerExpectedPackageBase,
+	PackageManagerPackageContainers,
+	PackageManagerPlayoutContext,
+	// eslint-disable-next-line node/no-extraneous-import
+} from '@sofie-automation/shared-lib/dist/package-manager/publications'
+import {
+	Observer,
+	PeripheralDeviceId,
+	protectString,
+	protectStringArray,
+} from '@sofie-automation/server-core-integration'
 // eslint-disable-next-line node/no-extraneous-import
 import { UpdateExpectedPackageWorkStatusesChanges } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
+// eslint-disable-next-line node/no-extraneous-import
 import {
 	ExpectationManager,
 	ExpectationManagerCallbacks,
@@ -51,7 +66,7 @@ export class PackageManagerHandler {
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
 	public monitoredPackages: {
-		[monitorId: string]: ResultingExpectedPackage[]
+		[monitorId: string]: ExpectedPackageWrap[]
 	} = {}
 	settings: PackageManagerSettings = {
 		delayRemoval: 0,
@@ -61,7 +76,7 @@ export class PackageManagerHandler {
 
 	private dataSnapshot: {
 		updated: number
-		expectedPackages: ResultingExpectedPackage[]
+		expectedPackages: ExpectedPackageWrap[]
 		packageContainers: PackageContainers
 		expectations: {
 			[id: string]: Expectation.Any
@@ -169,17 +184,25 @@ export class PackageManagerHandler {
 		if (this.coreHandler.notUsingCore) return // Abort if we are not using core
 		this.logger.debug('Renewing observers')
 
+		const triggerUpdateOnAnyChange = (observer: Observer) => {
+			observer.added = () => {
+				this.triggerUpdatedExpectedPackages()
+			}
+			observer.changed = () => {
+				this.triggerUpdatedExpectedPackages()
+			}
+			observer.removed = () => {
+				this.triggerUpdatedExpectedPackages()
+			}
+			this._observers.push(observer)
+		}
+
 		const expectedPackagesObserver = this.coreHandler.observe('deviceExpectedPackages')
-		expectedPackagesObserver.added = () => {
-			this.triggerUpdatedExpectedPackages()
-		}
-		expectedPackagesObserver.changed = () => {
-			this.triggerUpdatedExpectedPackages()
-		}
-		expectedPackagesObserver.removed = () => {
-			this.triggerUpdatedExpectedPackages()
-		}
-		this._observers.push(expectedPackagesObserver)
+		triggerUpdateOnAnyChange(expectedPackagesObserver)
+
+		triggerUpdateOnAnyChange(this.coreHandler.observe('packageManagerPlayoutContext'))
+		triggerUpdateOnAnyChange(this.coreHandler.observe('packageManagerPackageContainers'))
+		triggerUpdateOnAnyChange(this.coreHandler.observe('packageManagerExpectedPackages'))
 	}
 	public triggerUpdatedExpectedPackages(): void {
 		if (this._triggerUpdatedExpectedPackagesTimeout) {
@@ -193,12 +216,8 @@ export class PackageManagerHandler {
 			const expectedPackages: ExpectedPackageWrap[] = []
 			const packageContainers: PackageContainers = {}
 
-			let activePlaylist: ActivePlaylist = {
-				_id: '',
-				active: false,
-				rehearsal: false,
-			}
-			let activeRundowns: ActiveRundown[] = []
+			let activePlaylist: PackageManagerActivePlaylist | null = null
+			let activeRundowns: PackageManagerActiveRundown[] = []
 
 			// Add from external data:
 			{
@@ -209,41 +228,32 @@ export class PackageManagerHandler {
 			}
 
 			if (!this.coreHandler.notUsingCore) {
-				const objs = this.coreHandler.getCollection<any>('deviceExpectedPackages').find(() => true)
-
-				const activePlaylistObj = objs.find((o) => o.type === 'active_playlist')
-				if (!activePlaylistObj) {
-					this.logger.warn(`Collection objects active_playlist not found`)
-					this.logger.info(`objs in deviceExpectedPackages:`, objs)
+				const playoutContextObj = this.coreHandler
+					.getCollection<PackageManagerPlayoutContext>('packageManagerPlayoutContext')
+					.find()[0]
+				if (playoutContextObj) {
+					activePlaylist = playoutContextObj.activePlaylist
+					activeRundowns = playoutContextObj.activeRundowns
+				} else {
+					this.logger.warn(`packageManagerPlayoutContext collection object not found`)
 					return
 				}
-				activePlaylist = activePlaylistObj.activeplaylist as ActivePlaylist
-				activeRundowns = activePlaylistObj.activeRundowns as ActiveRundown[]
+
+				const packageContainersObj = this.coreHandler
+					.getCollection<PackageManagerPackageContainers>('packageManagerPackageContainers')
+					.find()[0]
+				if (packageContainersObj) {
+					Object.assign(packageContainers, packageContainersObj.packageContainers)
+				} else {
+					this.logger.warn(`packageManagerPackageContainers collection object not found`)
+					return
+				}
 
 				// Add from Core collections:
-				{
-					const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
-
-					if (!expectedPackageObjs.length) {
-						this.logger.warn(`Collection objects expected_packages not found`)
-						this.logger.info(`objs in deviceExpectedPackages:`, objs)
-						return
-					}
-					for (const expectedPackageObj of expectedPackageObjs) {
-						for (const expectedPackage of expectedPackageObj.expectedPackages) {
-							// Note: There might be duplicates of packages here, to be deduplicated later
-							expectedPackages.push(expectedPackage)
-						}
-					}
-
-					const packageContainerObj = objs.find((o) => o.type === 'package_containers')
-					if (!packageContainerObj) {
-						this.logger.warn(`Collection objects package_containers not found`)
-						this.logger.info(`objs in deviceExpectedPackages:`, objs)
-						return
-					}
-					Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
-				}
+				const expectedPackagesObjs = this.coreHandler
+					.getCollection<PackageManagerExpectedPackage>('packageManagerExpectedPackages')
+					.find()
+				expectedPackages.push(...expectedPackagesObjs)
 			}
 
 			// Add from Monitors:
@@ -261,8 +271,8 @@ export class PackageManagerHandler {
 
 	private handleExpectedPackages(
 		packageContainers: PackageContainers,
-		activePlaylist: ActivePlaylist,
-		activeRundowns: ActiveRundown[],
+		activePlaylist: PackageManagerActivePlaylist | null,
+		activeRundowns: PackageManagerActiveRundown[],
 
 		expectedPackages: ExpectedPackageWrap[]
 	) {
@@ -1011,7 +1021,7 @@ export function wrapExpectedPackage(
 				priority: 999, // Default: lowest priority
 				sources: combinedSources,
 				targets: combinedTargets,
-				playoutDeviceId: '',
+				playoutDeviceId: null,
 				external: true,
 			}
 		}
@@ -1041,32 +1051,19 @@ export function deleteAllUndefinedProperties<T extends { [key: string]: any }>(o
 	}
 }
 
-interface ResultingExpectedPackage {
-	// This interface is copied from Core
-
-	expectedPackage: ExpectedPackage.Base & { rundownId?: string }
+export interface ExpectedPackageWrap {
+	expectedPackage: PackageManagerExpectedPackageBase
 	/** Lower should be done first */
 	priority: number
 	sources: PackageContainerOnPackage[]
 	targets: PackageContainerOnPackage[]
-	playoutDeviceId: string
+	playoutDeviceId: PeripheralDeviceId | null
 	/** If set to true, this doesn't come from Core */
 	external?: boolean
 	// playoutLocation: any // todo?
 }
-export type ExpectedPackageWrap = ResultingExpectedPackage
 
 export type PackageContainers = { [containerId: string]: PackageContainer }
-
-export interface ActivePlaylist {
-	_id: string
-	active: boolean
-	rehearsal: boolean
-}
-export interface ActiveRundown {
-	_id: string
-	_rank: number
-}
 
 type ReportStatuses<Status, Ids> = {
 	[key: string]: ReportStatus<Status, Ids>
