@@ -1,4 +1,4 @@
-import { ActivePlaylist, ActiveRundown, ExpectedPackageWrap, PackageContainers } from '../../packageManager'
+import { ExpectedPackageWrap, PackageContainers } from '../../packageManager'
 import { PackageManagerSettings } from '../../generated/options'
 import { ExpectedPackage, PackageContainer, Expectation, hashObj, LoggerInstance } from '@sofie-package-manager/api'
 import { GenerateExpectation, PriorityMagnitude } from './types'
@@ -19,14 +19,21 @@ import {
 } from './expectations-lib'
 import { getSmartbullExpectedPackages, shouldBeIgnored } from './smartbull'
 import { TEMPORARY_STORAGE_ID } from './lib'
+import {
+	PackageManagerActivePlaylist,
+	PackageManagerActiveRundown,
+	// eslint-disable-next-line node/no-extraneous-import
+} from '@sofie-automation/shared-lib/dist/package-manager/publications'
+// eslint-disable-next-line node/no-extraneous-import
+import { RundownId } from '@sofie-automation/shared-lib/dist/core/model/Ids'
 
 /** Generate and return the appropriate Expectations based on the provided expectedPackages */
 export function getExpectations(
 	logger: LoggerInstance,
 	managerId: string,
 	packageContainers: PackageContainers,
-	_activePlaylist: ActivePlaylist,
-	activeRundowns: ActiveRundown[],
+	_activePlaylist: PackageManagerActivePlaylist | null,
+	activeRundowns: PackageManagerActiveRundown[],
 	expectedPackages: ExpectedPackageWrap[],
 	settings: PackageManagerSettings
 ): { [id: string]: Expectation.Any } {
@@ -46,7 +53,7 @@ export function getExpectations(
 		return 0
 	})
 	// Prepare:
-	const activeRundownMap = new Map<string, ActiveRundown>()
+	const activeRundownMap = new Map<RundownId, PackageManagerActiveRundown>()
 	for (const activeRundown of activeRundowns) {
 		activeRundownMap.set(activeRundown._id, activeRundown)
 	}
@@ -353,7 +360,7 @@ function getCopyToTemporaryStorage(
 
 function addExpectation(
 	logger: LoggerInstance,
-	activeRundownMap: Map<string, ActiveRundown>,
+	activeRundownMap: Map<RundownId, PackageManagerActiveRundown>,
 	expectations: ExpectationCollection,
 	packageWrap: ExpectedPackageWrap,
 	exp: Expectation.Any
@@ -391,13 +398,13 @@ function addExpectation(
 }
 /** Returns a priority for an expectation. */
 function getPriority(
-	activeRundownMap: Map<string, ActiveRundown>,
+	activeRundownMap: Map<RundownId, PackageManagerActiveRundown>,
 	packageWrap: ExpectedPackageWrap,
 	exp: Expectation.Any
 ): number {
 	// Returns the initial priority, based on the expectedPackage
 
-	const activeRundown: ActiveRundown | undefined = packageWrap.expectedPackage.rundownId
+	const activeRundown: PackageManagerActiveRundown | undefined = packageWrap.expectedPackage.rundownId
 		? activeRundownMap.get(packageWrap.expectedPackage.rundownId)
 		: undefined
 

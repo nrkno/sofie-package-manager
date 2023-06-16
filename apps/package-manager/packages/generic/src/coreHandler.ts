@@ -148,8 +148,10 @@ export class CoreHandler {
 		this.logger.info('DeviceId: ' + this.core.deviceId)
 		await Promise.all([
 			this.core.autoSubscribe('peripheralDeviceForDevice', this.core.deviceId),
-			this.core.autoSubscribe('expectedPackagesForDevice', this.core.deviceId, undefined),
 			this.core.autoSubscribe('peripheralDeviceCommands', this.core.deviceId),
+			this.core.autoSubscribe('packageManagerPlayoutContext', this.core.deviceId),
+			this.core.autoSubscribe('packageManagerPackageContainers', this.core.deviceId),
+			this.core.autoSubscribe('packageManagerExpectedPackages', this.core.deviceId, undefined),
 		])
 
 		this.logger.info('Core: Subscriptions are set up!')
