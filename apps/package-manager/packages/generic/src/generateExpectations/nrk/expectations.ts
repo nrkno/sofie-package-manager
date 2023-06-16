@@ -92,11 +92,11 @@ function getBasicExpectations(
 		if (shouldBeIgnored(packageWrap)) continue
 
 		// Verify that the expectedPackage has any source and target accessors:
-		const hasAnySourceAccessors = !!packageWrap.sources.find((source) => source.accessors.length > 0)
-		const hasAnyTargetAccessors = !!packageWrap.targets.find((target) => target.accessors.length > 0)
+		const hasAnySourceAccessors = !!packageWrap.sources.find((source) => Object.keys(source.accessors).length > 0)
+		const hasAnyTargetAccessors = !!packageWrap.targets.find((target) => Object.keys(target.accessors).length > 0)
 
 		// No need to generate an expectation if there are no accessors:
-		if (!hasAnySourceAccessors || !hasAnyTargetAccessors) {
+		if (hasAnySourceAccessors || hasAnyTargetAccessors) {
 			if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
 				if (packageWrap.sources.length === 0) {
 					// If there are no sources defined, just verify that the file exists on the target:
