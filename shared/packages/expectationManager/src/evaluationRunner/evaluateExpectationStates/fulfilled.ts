@@ -79,8 +79,7 @@ export async function evaluateExpectationStateFulfilled({
 						user: `Can't check if fulfilled, due to an error`,
 						tech: `Error from worker ${trackedExp.session.assignedWorker.id}: ${stringifyError(error)}`,
 					},
-					// Should we se this here?
-					// dontUpdatePackage: true,
+					dontUpdatePackage: true,
 				})
 			}
 		} else {
