@@ -10,7 +10,7 @@ import {
 	protectString,
 	unprotectString,
 	ProtectedString,
-	PeripheralDevicePublic,
+	PeripheralDeviceForDevice,
 	PeripheralDeviceId,
 	PeripheralDeviceCommand,
 	ExternalPeripheralDeviceAPI,
@@ -152,9 +152,7 @@ export class CoreHandler {
 		this.logger.info('Core: Setting up subscriptions..')
 		this.logger.info('DeviceId: ' + this.core.deviceId)
 		await Promise.all([
-			this.core.autoSubscribe('peripheralDevices', {
-				_id: this.core.deviceId,
-			}),
+			this.core.autoSubscribe('peripheralDeviceForDevice', this.core.deviceId),
 			this.core.autoSubscribe('studioOfDevice', this.core.deviceId),
 			this.core.autoSubscribe('expectedPackagesForDevice', this.core.deviceId, undefined),
 			// this.core.autoSubscribe('timelineForDevice', this.core.deviceId),
@@ -170,12 +168,12 @@ export class CoreHandler {
 			this._observers = []
 		}
 		// setup observers
-		const observer = this.core.observe('peripheralDevices')
+		const observer = this.core.observe('peripheralDeviceForDevice')
 		observer.added = (id: string) => this.onDeviceChanged(protectString(id))
 		observer.changed = (id: string) => this.onDeviceChanged(protectString(id))
 		this.setupObserverForPeripheralDeviceCommands()
 
-		const peripheralDevices = this.core.getCollection<PeripheralDevicePublic>('peripheralDevices')
+		const peripheralDevices = this.core.getCollection<PeripheralDeviceForDevice>('peripheralDeviceForDevice')
 		if (peripheralDevices) {
 			peripheralDevices.find({}).forEach((device) => {
 				this.onDeviceChanged(device._id)
@@ -209,12 +207,13 @@ export class CoreHandler {
 
 			deviceCategory: PeripheralDeviceAPI.PeripheralDeviceCategory.PACKAGE_MANAGER,
 			deviceType: PeripheralDeviceAPI.PeripheralDeviceType.PACKAGE_MANAGER,
-			deviceSubType: PeripheralDeviceAPI.PERIPHERAL_SUBTYPE_PROCESS,
 
 			deviceName: name,
 			watchDog: this._coreConfig ? this._coreConfig.watchdog : true,
 
 			configManifest: PACKAGE_MANAGER_DEVICE_CONFIG,
+
+			documentationUrl: 'https://github.com/nrkno/sofie-package-manager',
 
 			versions: this._getVersions().versions,
 		}
@@ -225,15 +224,11 @@ export class CoreHandler {
 	}
 	onDeviceChanged(id: PeripheralDeviceId): void {
 		if (id === this.core.deviceId) {
-			const col = this.core.getCollection<PeripheralDevicePublic>('peripheralDevices')
-			if (!col) throw new Error('collection "peripheralDevices" not found!')
+			const col = this.core.getCollection<PeripheralDeviceForDevice>('peripheralDeviceForDevice')
+			if (!col) throw new Error('collection "peripheralDeviceForDevice" not found!')
 
 			const device = col.findOne(id)
-			if (device) {
-				this.deviceSettings = device.settings || {}
-			} else {
-				this.deviceSettings = {}
-			}
+			this.deviceSettings = device?.deviceSettings || {}
 
 			const logLevel = this.deviceSettings['logLevel'] ?? DEFAULT_LOG_LEVEL
 			if (logLevel !== getLogLevel()) {
