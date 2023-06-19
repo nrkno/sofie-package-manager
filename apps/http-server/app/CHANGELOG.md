@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.1-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.2...v1.42.1-alpha.3) (2023-06-19)
+
+
+### Bug Fixes
+
+* package.json asset build in pkg ([c546b5f](https://github.com/nrkno/sofie-package-manager/commit/c546b5fd6457e7b30381f28e4f802b4f385a3348))
+
+
+
+
+
 ## [1.42.1-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.1...v1.42.1-alpha.2) (2023-06-19)
 
 
