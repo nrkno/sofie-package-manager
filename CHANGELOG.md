@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)
+
+
+### Bug Fixes
+
+* don't manually restart subscriptions when reconnecting to core SOFIE-2442 ([8d64216](https://github.com/nrkno/tv-automation-package-manager/commit/8d64216d452e92d8fb36152c0011149781822ea5))
+
+
+
+
+
 ## [1.42.1-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1-alpha.3...v1.42.1-alpha.4) (2023-06-19)
 
 
