@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.1-alpha.4](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.3...v1.42.1-alpha.4) (2023-06-19)
+
+
+### Bug Fixes
+
+* remove version reporting ([ac0cd46](https://github.com/nrkno/sofie-package-manager/commit/ac0cd4684a5709dfbb6e1eda268d42e446d67967))
+
+
+
+
+
 ## [1.42.1-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.2...v1.42.1-alpha.3) (2023-06-19)
 
 
