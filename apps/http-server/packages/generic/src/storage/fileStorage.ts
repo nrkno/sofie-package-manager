@@ -4,10 +4,10 @@ import { promisify } from 'util'
 import mime from 'mime-types'
 import mkdirp from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
-import { CTX, CTXPost } from '../lib'
+import { asyncPipe, CTX, CTXPost } from '../lib'
 import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage'
-import { Readable, Writable } from 'stream'
+import { Readable } from 'stream'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
 const fsStat = promisify(fs.stat)
@@ -17,15 +17,6 @@ const fsRmDir = promisify(fs.rmdir)
 const fsReaddir = promisify(fs.readdir)
 const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
-
-async function asyncPipe(readable: Readable, writable: Writable): Promise<void> {
-	return new Promise((resolve) => {
-		readable.pipe(writable)
-		readable.on('end', () => {
-			resolve()
-		})
-	})
-}
 
 type FileInfo = {
 	found: true
