@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.1](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)
+
+**Note:** Version bump only for package @appcontainer-node/app
+
+
+
+
+
+## [1.42.1-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.42.0...v1.42.1-alpha.0) (2023-06-09)
+
+**Note:** Version bump only for package @appcontainer-node/app
+
+
+
+
+
 # [1.42.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.5...v1.42.0) (2023-05-10)
 
 **Note:** Version bump only for package @appcontainer-node/app

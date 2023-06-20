@@ -98,6 +98,8 @@ export class PackageProxyServer {
 			this.logger.debug(`POST ${ctx.request.URL}`)
 			const { files, fields } = await parseFormData(ctx.req, {
 				maxFileByteLength: MAX_UPLOAD_FILE_SIZE,
+				abortOnFileByteLengthLimit: true,
+				maxTotalFileCount: 1,
 			})
 			if (fields.text) {
 				// A string in the "text"-field, store that as a file:
@@ -146,6 +148,10 @@ export class PackageProxyServer {
 		this.app.use((ctx) => {
 			ctx.body = 'Page not found'
 			ctx.response.status = 404
+		})
+
+		this.app.on('error', (err) => {
+			this.logger.error(`Server error: ${err}`)
 		})
 
 		return new Promise<void>((resolve, reject) => {

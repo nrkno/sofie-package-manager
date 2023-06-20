@@ -4,7 +4,7 @@ import { promisify } from 'util'
 import mime from 'mime-types'
 import mkdirp from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
-import { CTX, CTXPost } from '../lib'
+import { asyncPipe, CTX, CTXPost } from '../lib'
 import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage'
 import { Readable } from 'stream'
@@ -173,7 +173,7 @@ export class FileStorage extends Storage {
 			return true
 		} else if (fileStreamOrText && typeof fileStreamOrText !== 'string') {
 			const fileStream = fileStreamOrText
-			fileStream.pipe(fs.createWriteStream(fullPath))
+			await asyncPipe(fileStream, fs.createWriteStream(fullPath))
 
 			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
 			ctx.response.status = 201
