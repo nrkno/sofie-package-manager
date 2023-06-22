@@ -1,6 +1,6 @@
 {
     "name": "@http-server/generic",
-    "version": "1.50.0-alpha.1",
+    "version": "1.50.0-alpha.2",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
     },
     "dependencies": {
         "@koa/cors": "^4.0.0",
-        "@sofie-package-manager/api": "1.50.0-alpha.0",
+        "@sofie-package-manager/api": "1.50.0-alpha.2",
         "koa": "^2.14.1",
         "koa-bodyparser": "^4.3.0",
         "koa-range": "^0.3.0",

@@ -3,6 +3,41 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.50.0-alpha.2) (2023-06-22)
+
+
+### Bug Fixes
+
+* type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
+
+
+### Features
+
+* make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
+
+
+
+# [1.50.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.0...v1.50.0-alpha.1) (2023-05-10)
+
+
+
+# [1.50.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0...v1.50.0-alpha.0) (2023-05-10)
+
+
+### Bug Fixes
+
+* don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
+
+
+### Features
+
+* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+* r50 json config schema ([1a0d477](https://github.com/nrkno/tv-automation-package-manager/commit/1a0d47761746a25692862afa7c351147db29a790))
+
+
+
+
+
 # [1.50.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.0...v1.50.0-alpha.1) (2023-05-10)
 
 ## [1.42.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)
