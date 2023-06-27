@@ -1,13 +1,13 @@
 import { Accessor, Expectation, ExpectedPackage, literal, LoggerInstance } from '@sofie-package-manager/api'
-import * as NRK from '..'
 import {
-	ActivePlaylist,
-	ActiveRundown,
-	ExpectedPackageWrap,
-	PackageContainers,
-	wrapExpectedPackage,
-} from '../../../packageManager'
+	PackageManagerActivePlaylist,
+	PackageManagerActiveRundown,
+	// eslint-disable-next-line node/no-extraneous-import
+} from '@sofie-automation/shared-lib/dist/package-manager/publications'
+import * as NRK from '..'
+import { ExpectedPackageWrap, PackageContainers, wrapExpectedPackage } from '../../../packageManager'
 import { PackageManagerSettings } from '../../../generated/options'
+import { protectString } from '@sofie-automation/server-core-integration'
 
 describe('Generate expectations - NRK', () => {
 	test('Wrap package', () => {
@@ -195,22 +195,22 @@ function setup() {
 	} as any as LoggerInstance
 	const managerId = 'mockManager'
 	// const packageContainers: PackageContainers,
-	const activePlaylist: ActivePlaylist = {
-		_id: 'playlist',
+	const activePlaylist: PackageManagerActivePlaylist = {
+		_id: protectString('playlist'),
 		active: true,
 		rehearsal: false,
 	}
-	const activeRundowns: ActiveRundown[] = [
+	const activeRundowns: PackageManagerActiveRundown[] = [
 		{
-			_id: 'rundown0',
+			_id: protectString('rundown0'),
 			_rank: 0,
 		},
 		{
-			_id: 'rundown1',
+			_id: protectString('rundown1'),
 			_rank: 1,
 		},
 		{
-			_id: 'rundown2',
+			_id: protectString('rundown2'),
 			_rank: 2,
 		},
 	]
@@ -350,7 +350,7 @@ function wrap(
 	if (externalProps) {
 		// default:
 		wrapped.external = false
-		wrapped.playoutDeviceId = 'device0'
+		wrapped.playoutDeviceId = protectString('device0')
 
 		if (typeof externalProps === 'object') {
 			wrapped = {
