@@ -1283,12 +1283,12 @@
     semver "^7.3.8"
     shelljs "^0.8.5"
 
-"@sofie-automation/server-core-integration@1.50.0-nightly-release50-20230615-121624-0fe1787.0":
-  version "1.50.0-nightly-release50-20230615-121624-0fe1787.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.50.0-nightly-release50-20230615-121624-0fe1787.0.tgz#e0deaa2b5e1b925eb59fac4f01ac9e77e81980b6"
-  integrity sha512-dF5zZEeBbgsBZOLPkJQePgWsasi3OX/kPFI4PONtD5ixsg+jAOH/i6hQy7ywjeWtvQsiUK5H6E3uzUmBpEiSHA==
+"@sofie-automation/server-core-integration@1.50.0-nightly-release50-20230627-124025-83abcdc.0":
+  version "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.50.0-nightly-release50-20230627-124025-83abcdc.0.tgz#90cf6f79dfe5095cd6c0b6c4933462ad63ee6d0f"
+  integrity sha512-XkWnhtzwXpY1bO/ILxtgEm94BiYQI+q69kuHcGZ2rlA8MpE8gkYnEUpDEeokjpAMN2WDreYihAq/CQX8UMgvfg==
   dependencies:
-    "@sofie-automation/shared-lib" "1.50.0-nightly-release50-20230615-121624-0fe1787.0"
+    "@sofie-automation/shared-lib" "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
     ejson "^2.2.3"
     eventemitter3 "^4.0.7"
     faye-websocket "^0.11.4"
@@ -1296,10 +1296,10 @@
     tslib "^2.4.0"
     underscore "^1.13.4"
 
-"@sofie-automation/shared-lib@1.50.0-nightly-release50-20230615-121624-0fe1787.0":
-  version "1.50.0-nightly-release50-20230615-121624-0fe1787.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.50.0-nightly-release50-20230615-121624-0fe1787.0.tgz#b1559053d8ef8b56f120293ccb30adb37ecea313"
-  integrity sha512-/oYawa6y/3JIwNo+a+T/OG/6nV4x31wrfMCGrq4Ud4ZU1LGgaR0l2klJlto9K54cF8K/aIPHtP45li+sf9aDkQ==
+"@sofie-automation/shared-lib@1.50.0-nightly-release50-20230627-124025-83abcdc.0":
+  version "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.50.0-nightly-release50-20230627-124025-83abcdc.0.tgz#4c559dd0dce1d73a4795f9ccafbba6f0ece26e0a"
+  integrity sha512-lCVxvMnJyKZfMaj2cfwZUw7xMLVL5/maraTdWaiH075qL1minK/JLpWl9h77pouZsNASzU64L1ZD/mcHuZ/rqw==
   dependencies:
     "@mos-connection/model" "^3.0.4"
     timeline-state-resolver-types "8.0.0-nightly-release50-20230615-051635-c51460271.0"
