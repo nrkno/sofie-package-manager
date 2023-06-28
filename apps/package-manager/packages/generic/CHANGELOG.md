@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
+
+
+### Features
+
+* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/sofie-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
+
+
+
+
+
 # [1.50.0-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1...v1.50.0-alpha.2) (2023-06-22)
 
 
