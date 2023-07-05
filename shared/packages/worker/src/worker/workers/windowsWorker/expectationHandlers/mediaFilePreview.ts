@@ -28,8 +28,6 @@ import {
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
-import { scanWithFFProbe, FFProbeScanResult } from './lib/scan'
-import { CancelablePromise } from '../../../lib/cancelablePromise'
 
 /**
  * Generates a low-res preview video of a source video file, and stores the resulting file into the target PackageContainer
@@ -180,11 +178,9 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				throw new Error(`Target AccessHandler type is wrong`)
 
 			let ffMpegProcess: FFMpegProcess | undefined
-			let ffProbeProcess: CancelablePromise<any> | undefined
 			const workInProgress = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
 				// On cancel
 				ffMpegProcess?.cancel()
-				ffProbeProcess?.cancel()
 			}).do(async () => {
 				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
 				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
@@ -222,24 +218,6 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				} else {
 					assertNever(sourceHandle)
 					throw new Error(`Unsupported Target AccessHandler`)
-				}
-
-				// Scan with FFProbe:
-				ffProbeProcess = scanWithFFProbe(sourceHandle)
-				const ffProbeScan: FFProbeScanResult = await ffProbeProcess
-				ffProbeProcess = undefined
-				const hasVideoStream =
-					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
-				if (!hasVideoStream) {
-					workInProgress._reportComplete(
-						actualSourceVersionHash,
-						{
-							user: `Preview generation skipped due to file having no video streams`,
-							tech: `Completed at ${Date.now()}`,
-						},
-						undefined
-					)
-					return
 				}
 
 				const args = previewFFMpegArguments(inputPath, true, metadata)
