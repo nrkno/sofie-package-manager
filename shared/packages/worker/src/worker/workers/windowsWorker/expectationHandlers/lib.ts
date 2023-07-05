@@ -338,14 +338,21 @@ interface ThumbnailMetadata {
 	}
 }
 /** Returns arguments for FFMpeg to generate a thumbnail image file */
-export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
+export function thumbnailFFMpegArguments(
+	input: string,
+	metadata: ThumbnailMetadata,
+	seekTimeCode?: string,
+	hasVideoStream?: boolean
+): string[] {
 	return [
 		'-hide_banner',
-		seekTimeCode ? `-ss ${seekTimeCode}` : undefined,
+		hasVideoStream && seekTimeCode ? `-ss ${seekTimeCode}` : undefined,
 		`-i "${input}"`,
 		`-f image2`,
 		'-frames:v 1',
-		`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}`,
+		hasVideoStream
+			? `-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}` // Creates a thumbnail of the video.
+			: '-filter_complex "showwavespic=s=640x240:split_channels=1"', // Creates an image of the audio waveform.
 		'-threads 1',
 	].filter(Boolean) as string[] // remove undefined values
 }
