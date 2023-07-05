@@ -352,7 +352,7 @@ export function thumbnailFFMpegArguments(
 		'-frames:v 1',
 		hasVideoStream
 			? `-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}` // Creates a thumbnail of the video.
-			: '-filter_complex "showwavespic=s=640x240:split_channels=1"', // Creates an image of the audio waveform.
+			: '-filter_complex "showwavespic=s=640x240:split_channels=1:colors=white"', // Creates an image of the audio waveform.
 		'-threads 1',
 	].filter(Boolean) as string[] // remove undefined values
 }
