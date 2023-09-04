@@ -35,7 +35,6 @@ jobs:
 
       - name: Sign executables
         shell: bash
-        continue-on-error: true
         env:
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
         run: |
@@ -54,11 +53,13 @@ jobs:
           fi
 
       - name: Verify build
+        if: '!cancelled()'
         run: yarn verify:build-win32
         env:
           CI: true
 
       - name: Upload artifacts
+        if: '!cancelled()'
         uses: actions/upload-artifact@v3
         with:
           name: Windows
