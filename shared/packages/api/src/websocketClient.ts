@@ -1,10 +1,10 @@
 import WebSocket from 'ws'
 import { stringifyError } from './lib'
 import { LoggerInstance } from './logger'
-import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
+import { PartyId, MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
 
 /** A Class which handles a connection to a Websocket server */
-export class WebsocketClient extends WebsocketConnection {
+export class WebsocketClient<ID extends PartyId> extends WebsocketConnection {
 	private pingTimeout?: NodeJS.Timeout
 	private RETRY_CONNECT_TIME = 3000
 	private closed = false
@@ -16,7 +16,7 @@ export class WebsocketClient extends WebsocketConnection {
 	private logger: LoggerInstance
 	constructor(
 		logger: LoggerInstance,
-		private readonly id: string,
+		private readonly id: ID,
 		private readonly url: string,
 		private readonly clientType: MessageIdentifyClient['clientType'],
 		onMessage: (message: MessageBase) => Promise<any>
@@ -50,11 +50,12 @@ export class WebsocketClient extends WebsocketConnection {
 				ws.once('open', () => {
 					this.watchForHeartbeat()
 
-					const message: MessageIdentifyClient = {
+					const message = {
 						internalType: 'identify_client',
 						clientType: this.clientType,
 						id: this.id,
-					}
+					} as MessageIdentifyClient
+
 					ws.send(JSON.stringify(message))
 
 					this.emit('connected')

@@ -1,4 +1,4 @@
-import { ExpectationManagerWorkerAgent, Reason } from '@sofie-package-manager/api'
+import { ExpectationManagerWorkerAgent, Reason, WorkerAgentId } from '@sofie-package-manager/api'
 import { WorkerAgentAPI } from '../workerAgentApi'
 
 /** Contains some data which is persisted during an evaluation-session */
@@ -17,7 +17,7 @@ export interface ExpectationStateHandlerSession {
 }
 export interface WorkerAgentAssignment {
 	worker: WorkerAgentAPI
-	id: string
+	id: WorkerAgentId
 	cost: ExpectationManagerWorkerAgent.ExpectationCost
 	randomCost: number
 }

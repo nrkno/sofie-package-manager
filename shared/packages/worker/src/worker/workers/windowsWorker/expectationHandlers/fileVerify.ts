@@ -7,7 +7,7 @@ import {
 	hashObj,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@sofie-package-manager/api'
@@ -49,11 +49,11 @@ export const FileVerify: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		_wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isFileVerify(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupTargets(worker, exp)
@@ -98,7 +98,7 @@ export const FileVerify: ExpectationWindowsHandler = {
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
 		if (!isFileVerify(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		// Since we only verify the existence of the file (in isExpectationFullfilled), we don't need to do anything here.
+		// Since we only verify the existence of the file (in isExpectationFulfilled), we don't need to do anything here.
 
 		const lookupTarget = await lookupTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)

@@ -1,6 +1,7 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { AccessorOnPackage, PackageContainerOnPackage } from './inputApi'
+import { AccessorId, ExpectationId, ExpectationManagerId, ExpectedPackageId } from './ids'
 
 /*
  * This file contains definitions for Expectations, the internal datastructure upon which the Package Manager operates.
@@ -49,11 +50,11 @@ export namespace Expectation {
 
 	/** Common attributes of all Expectations */
 	export interface Base {
-		id: string
+		id: ExpectationId
 		type: Type
 
 		/** Id of the ExpectationManager the expectation was created from */
-		managerId: string
+		managerId: ExpectationManagerId
 
 		/** Expectation priority. Lower will be handled first. Note: This is not absolute, the actual execution order might vary. */
 		priority: number
@@ -61,7 +62,7 @@ export namespace Expectation {
 		/** A list of which expectedPackages that resultet in this expectation */
 		fromPackages: {
 			/** ExpectedPackage id */
-			id: string
+			id: ExpectedPackageId
 			/** Reference to the contentVersionHash of the ExpectedPackage, used to reference the expected content+version of the Package */
 			expectedContentVersionHash: string
 		}[]
@@ -85,14 +86,14 @@ export namespace Expectation {
 		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
 		workOptions: WorkOptions.Base
 		/** Reference to another expectation.
-		 * Won't start until ALL other expectations are fullfilled.
+		 * Won't start until ALL other expectations are fulfilled.
 		 * If any of the other expectations are not fulfilled, this wont be fulfilled either.
 		 */
-		dependsOnFullfilled?: string[]
+		dependsOnFulfilled?: ExpectationId[]
 		/** Reference to another expectation.
-		 * On fullfillement, this will be triggered immediately.
+		 * On fulfillement, this will be triggered immediately.
 		 */
-		triggerByFullfilledIds?: string[]
+		triggerByFulfilledIds?: ExpectationId[]
 	}
 
 	/** Defines a File Copy. A File is to be copied from one of the Sources, to the Target. */
@@ -337,7 +338,7 @@ export namespace Expectation {
 		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support reading files. */
 		export interface FileSource extends PackageContainerOnPackage {
 			accessors: {
-				[accessorId: string]:
+				[accessorId: AccessorId]:
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
@@ -348,7 +349,7 @@ export namespace Expectation {
 		/** Defines a PackageContainer for "Files" (ie the stuff stored on a hard drive or equivalent). Contains the various accessors that support writing files. */
 		export interface FileTarget extends PackageContainerOnPackage {
 			accessors: {
-				[accessorId: string]:
+				[accessorId: AccessorId]:
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTPProxy
@@ -357,13 +358,13 @@ export namespace Expectation {
 		/** Defines a PackageContainer for CorePackage (A collection in Sofie-Core accessible through an API). */
 		export interface CorePackage extends PackageContainerOnPackage {
 			accessors: {
-				[accessorId: string]: AccessorOnPackage.CorePackageCollection
+				[accessorId: AccessorId]: AccessorOnPackage.CorePackageCollection
 			}
 		}
 		/** Defines a PackageContainer for Quantel clips, stored on Quantel servers. */
 		export interface QuantelClip extends PackageContainerOnPackage {
 			accessors: {
-				[accessorId: string]: AccessorOnPackage.Quantel
+				[accessorId: AccessorId]: AccessorOnPackage.Quantel
 			}
 		}
 	}

@@ -1,4 +1,11 @@
-import { HelpfulEventEmitter, LoggerInstance, Reason, StatusCode } from '@sofie-package-manager/api'
+import {
+	HelpfulEventEmitter,
+	LoggerInstance,
+	Reason,
+	StatusCode,
+	PackageContainerId,
+	MonitorId,
+} from '@sofie-package-manager/api'
 import { EvaluationScheduler } from './lib/evaluationScheduler'
 import { ExpectationManagerCallbacks } from '../expectationManager'
 import { ListeningExpectationsStorage } from './lib/listeningExpectationsStorage'
@@ -83,7 +90,7 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 	}
 
 	/** Returns the appropriate time to wait before checking a fulfilled expectation again */
-	public getFullfilledWaitTime(): number {
+	public getFulfilledWaitTime(): number {
 		return (
 			// Default minimum time to wait:
 			this.constants.FULLFILLED_MONITOR_TIME +
@@ -93,8 +100,8 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 	}
 	/** Called when there is a monitor-status-update from a worker */
 	public async onMonitorStatus(
-		packageContainerId: string,
-		monitorId: string,
+		packageContainerId: PackageContainerId,
+		monitorId: MonitorId,
 		status: StatusCode,
 		reason: Reason
 	): Promise<void> {

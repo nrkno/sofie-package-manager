@@ -2,6 +2,10 @@ import WebSocket from 'ws'
 import { HelpfulEventEmitter } from './HelpfulEventEmitter'
 import { stringifyError } from './lib'
 
+import { AppContainerId, ExpectationManagerId, WorkerAgentId, WorkforceId } from './ids'
+import { MethodsInterfaceBase } from './methods'
+import { ProtectedString } from './ProtectedString'
+
 export const PING_TIME = 10 * 1000
 /**
  * Timeout of messages.
@@ -134,11 +138,49 @@ export interface MessageReply {
 	result?: any
 	error?: string
 }
-export interface MessageIdentifyClient {
+export type MessageIdentifyClient =
+	| MessageIdentifyClientNotAssigned
+	| MessageIdentifyClientWorkerAgent
+	| MessageIdentifyClientExpectationManager
+	| MessageIdentifyClientAppContainer
+
+export interface MessageIdentifyClientBase extends MessageBase {
 	internalType: 'identify_client'
-	clientType: 'N/A' | 'workerAgent' | 'expectationManager' | 'appContainer'
-	id: string
+}
+export interface MessageIdentifyClientNotAssigned extends MessageIdentifyClientBase {
+	clientType: 'N/A'
+	id: NotAssignedPartyId
+}
+export interface MessageIdentifyClientWorkerAgent extends MessageIdentifyClientBase {
+	clientType: 'workerAgent'
+	id: WorkerAgentId
+}
+export interface MessageIdentifyClientExpectationManager extends MessageIdentifyClientBase {
+	clientType: 'expectationManager'
+	id: ExpectationManagerId
+}
+export interface MessageIdentifyClientAppContainer extends MessageIdentifyClientBase {
+	clientType: 'appContainer'
+	id: AppContainerId
+}
+export function isMessageIdentifyClient(message: unknown): message is MessageIdentifyClient {
+	return Boolean(typeof message === 'object' && message && (message as any).internalType === 'identify_client')
 }
 
+export type NotAssignedPartyId = ProtectedString<'NotAssigned', string>
+
+/** Ids of any communicating parties */
+export type PartyId =
+	| NotAssignedPartyId
+	| WorkerAgentId
+	| ExpectationManagerId
+	| AppContainerId
+	| WorkforceId
+	| ExpectationManagerId
+	| AppContainerId
+
 /** A Hook defines */
-export type Hook<ServerMethods, ClientMethods> = (clientId: string, clientHook: ClientMethods) => ServerMethods
+export type Hook<ServerMethods extends MethodsInterfaceBase, ClientMethods extends MethodsInterfaceBase> = (
+	otherId: ServerMethods['id'],
+	clientHook: Omit<ClientMethods, 'id'>
+) => ServerMethods

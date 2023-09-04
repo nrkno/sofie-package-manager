@@ -10,6 +10,12 @@ import {
 	Statuses,
 	Hook,
 	WorkForceExpectationManager,
+	ExpectationManagerId,
+	PackageContainerId,
+	ExpectationId,
+	ExpectedPackageId,
+	AppId,
+	WorkerAgentId,
 } from '@sofie-package-manager/api'
 import { InternalManager } from './internalManager/internalManager'
 import { ExpectationTrackerConstants } from './lib/constants'
@@ -23,7 +29,7 @@ export class ExpectationManager {
 	private internalManager: InternalManager
 	constructor(
 		logger: LoggerInstance,
-		managerId: string,
+		managerId: ExpectationManagerId,
 		serverOptions: ExpectationManagerServerOptions,
 		serverAccessBaseUrl: string | undefined,
 		workForceConnectionOptions: ClientConnectionOptions,
@@ -60,32 +66,34 @@ export class ExpectationManager {
 	> {
 		return this.internalManager.getWorkerAgentHook()
 	}
-	removeWorkerAgentHook(clientId: string): void {
+	removeWorkerAgentHook(clientId: WorkerAgentId): void {
 		return this.internalManager.removeWorkerAgentHook(clientId)
 	}
 	resetWork(): void {
 		this.internalManager.resetWork()
 	}
-	get managerId(): string {
+	get managerId(): ExpectationManagerId {
 		return this.internalManager.managerId
 	}
 
 	/** Called when there is an updated set of PackageContainerExpectations. */
-	updatePackageContainerExpectations(packageContainers: { [id: string]: PackageContainerExpectation }): void {
+	updatePackageContainerExpectations(
+		packageContainers: Record<PackageContainerId, PackageContainerExpectation>
+	): void {
 		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
-		this.internalManager.tracker.receivedUpdates.packageContainers = packageContainers
+		this.internalManager.tracker.receivedUpdates.setPackageContainers(packageContainers)
 		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	/** Called when there is an updated set of Expectations. */
-	updateExpectations(expectations: { [id: string]: Expectation.Any }): void {
+	updateExpectations(expectations: Record<ExpectationId, Expectation.Any>): void {
 		// We store the incoming expectations here, so that we don't modify anything in the middle of the _evaluateExpectations() iteration loop.
-		this.internalManager.tracker.receivedUpdates.expectations = expectations
+		this.internalManager.tracker.receivedUpdates.setExpectations(expectations)
 
 		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	/** Request that an Expectation is restarted. This functions returns immediately, not waiting for a result. */
-	restartExpectation(expectationId: string): void {
-		this.internalManager.tracker.receivedUpdates.restartExpectations[expectationId] = true
+	restartExpectation(expectationId: ExpectationId): void {
+		this.internalManager.tracker.receivedUpdates.restartExpectations(expectationId)
 		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	/** Request that all Expectations are restarted. This functions returns immediately, not waiting for a result. */
@@ -98,12 +106,12 @@ export class ExpectationManager {
 	 * Any future attempts to check on the Expectation will be ignored.
 	 * To un-Abort, call this.restartExpectation().
 	 * This functions returns immediately, not waiting for a result. */
-	abortExpectation(expectationId: string): void {
-		this.internalManager.tracker.receivedUpdates.abortExpectations[expectationId] = true
+	abortExpectation(expectationId: ExpectationId): void {
+		this.internalManager.tracker.receivedUpdates.abortExpectations(expectationId)
 		this.internalManager.tracker.triggerEvaluationNow()
 	}
-	restartPackageContainer(containerId: string): void {
-		this.internalManager.tracker.receivedUpdates.restartPackageContainers[containerId] = true
+	restartPackageContainer(containerId: PackageContainerId): void {
+		this.internalManager.tracker.receivedUpdates.restartPackageContainers(containerId)
 
 		this.internalManager.tracker.triggerEvaluationNow()
 	}
@@ -121,7 +129,7 @@ export class ExpectationManager {
 			expectationManager: this.internalManager.statusReport.get(),
 		}
 	}
-	async debugKillApp(appId: string): Promise<void> {
+	async debugKillApp(appId: AppId): Promise<void> {
 		return this.internalManager.workforceConnection.workforceAPI._debugKillApp(appId)
 	}
 }
@@ -144,7 +152,7 @@ export type MessageFromWorker = (message: ExpectationManagerWorkerAgent.MessageF
 
 export interface ExpectationManagerCallbacks {
 	reportExpectationStatus: (
-		expectationId: string,
+		expectationId: ExpectationId,
 		expectaction: Expectation.Any | null,
 		actualVersionHash: string | null,
 		statusInfo: {
@@ -156,12 +164,12 @@ export interface ExpectationManagerCallbacks {
 		}
 	) => void
 	reportPackageContainerPackageStatus: (
-		containerId: string,
-		packageId: string,
+		containerId: PackageContainerId,
+		packageId: ExpectedPackageId,
 		packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 	) => void
 	reportPackageContainerExpectationStatus: (
-		containerId: string,
+		containerId: PackageContainerId,
 		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
 	) => void
 	messageFromWorker: MessageFromWorker

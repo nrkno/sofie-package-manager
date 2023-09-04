@@ -1,26 +1,34 @@
-import { ExpectedPackage } from '@sofie-package-manager/api'
+import {
+	ExpectedPackage,
+	ExpectedPackageId,
+	MonitorId,
+	PackageContainerId,
+	ProtectedString,
+	protectString,
+} from '@sofie-package-manager/api'
 
 export class CoreMockAPI {
-	packageInfos: {
-		[id: string]: any
-	} = {}
+	packageInfos: Map<PackageInfoId, PackageInfo> = new Map()
 
 	reset() {
-		Object.keys(this.packageInfos).forEach((id) => delete this.packageInfos[id])
+		this.packageInfos.clear()
 	}
 
 	async fetchPackageInfoMetadata(
 		type: string,
-		packageIds: string[]
-	): Promise<{ packageId: string; expectedContentVersionHash: string; actualContentVersionHash: string }[]> {
+		packageIds: ExpectedPackageId[]
+	): Promise<
+		{ packageId: ExpectedPackageId; expectedContentVersionHash: string; actualContentVersionHash: string }[]
+	> {
 		// This is a mock of the Sofie Core method "fetchPackageInfoMetadata"
 
 		const ids = packageIds.map((packageId) => this.getPackageInfoId(packageId, type))
 
-		const packageInfos: any[] = []
+		const packageInfos: PackageInfo[] = []
 		ids.forEach((id) => {
-			if (this.packageInfos[id]) {
-				packageInfos.push(this.packageInfos[id])
+			const o = this.packageInfos.get(id)
+			if (o) {
+				packageInfos.push(o)
 			}
 		})
 
@@ -32,7 +40,7 @@ export class CoreMockAPI {
 	}
 	async updatePackageInfo(
 		type: string,
-		packageId: string,
+		packageId: ExpectedPackageId,
 		expectedContentVersionHash: string,
 		actualContentVersionHash: string,
 		payload: any
@@ -41,8 +49,9 @@ export class CoreMockAPI {
 		const id = this.getPackageInfoId(packageId, type)
 
 		// upsert:
-		this.packageInfos[id] = {
-			...(this.packageInfos[id] || {}),
+
+		this.packageInfos.set(id, {
+			...(this.packageInfos.get(id) ?? {}),
 
 			packageId: packageId,
 			expectedContentVersionHash: expectedContentVersionHash,
@@ -50,21 +59,30 @@ export class CoreMockAPI {
 
 			type: type,
 			payload: payload,
-		}
+		})
 	}
-	async removePackageInfo(type: string, packageId: string, _removeDelay?: number): Promise<void> {
+	async removePackageInfo(type: string, packageId: ExpectedPackageId, _removeDelay?: number): Promise<void> {
 		// This is a mock of the Sofie Core method "removePackageInfo"
 		const id = this.getPackageInfoId(packageId, type)
-		delete this.packageInfos[id]
+		this.packageInfos.delete(id)
 	}
 	async reportFromMonitorPackages(
-		_containerId: string,
-		_monitorId: string,
+		_containerId: PackageContainerId,
+		_monitorId: MonitorId,
 		_filePaths: ExpectedPackage.Any[]
 	): Promise<void> {
 		// todo: implement this in the mock?
 	}
-	private getPackageInfoId(packageId: string, type: string): string {
-		return `${packageId}_${type}`
+	private getPackageInfoId(packageId: ExpectedPackageId, type: string): PackageInfoId {
+		return protectString<PackageInfoId>(`${packageId}_${type}`)
 	}
+}
+type PackageInfoId = ProtectedString<'PackageInfoId', string>
+interface PackageInfo {
+	packageId: ExpectedPackageId
+	expectedContentVersionHash: string
+	actualContentVersionHash: string
+
+	type: string
+	payload: any
 }

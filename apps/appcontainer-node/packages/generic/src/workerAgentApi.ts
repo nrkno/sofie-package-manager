@@ -6,6 +6,7 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	PackageContainerExpectation,
+	AppContainerId,
 } from '@sofie-package-manager/api'
 
 /**
@@ -18,6 +19,7 @@ export class WorkerAgentAPI
 	implements AppContainerWorkerAgent.WorkerAgent
 {
 	constructor(
+		public id: AppContainerId,
 		methods: AppContainerWorkerAgent.AppContainer,
 		options: AdapterServerOptions<AppContainerWorkerAgent.WorkerAgent>
 	) {

@@ -3,6 +3,8 @@ import yargs = require('yargs/yargs')
 import _ from 'underscore'
 import { WorkerAgentConfig } from './worker'
 import { AppContainerConfig } from './appContainer'
+import { protectString } from './ProtectedString'
+import { AppContainerId, WorkerAgentId } from './ids'
 
 /*
  * This file contains various CLI argument definitions, used by the various processes that together constitutes the Package Manager
@@ -418,7 +420,7 @@ export async function getWorkerConfig(): Promise<WorkerConfig> {
 	return {
 		process: getProcessConfig(argv),
 		worker: {
-			workerId: argv.workerId,
+			workerId: protectString<WorkerAgentId>(argv.workerId),
 			workforceURL: argv.workforceURL,
 			appContainerURL: argv.appContainerURL,
 
@@ -451,7 +453,7 @@ export async function getAppContainerConfig(): Promise<AppContainerProcessConfig
 		appContainer: {
 			workforceURL: argv.workforceURL,
 			port: argv.port,
-			appContainerId: argv.appContainerId,
+			appContainerId: protectString<AppContainerId>(argv.appContainerId),
 			maxRunningApps: argv.maxRunningApps,
 			minRunningApps: argv.minRunningApps,
 			maxAppKeepalive: argv.maxAppKeepalive,

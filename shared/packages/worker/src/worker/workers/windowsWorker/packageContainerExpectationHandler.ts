@@ -7,6 +7,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	Reason,
 	assertNever,
+	PackageContainerId,
 } from '@sofie-package-manager/api'
 
 import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
@@ -51,7 +52,7 @@ export async function setupPackageContainerMonitors(
 
 function checkWorkerHasAccessToPackageContainer(
 	genericWorker: GenericWorker,
-	containerId: string,
+	containerId: PackageContainerId,
 	packageContainer: PackageContainer
 ): ReturnTypeDoYouSupportPackageContainer {
 	// Check that we have access to the packageContainers

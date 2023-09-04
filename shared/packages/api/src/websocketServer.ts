@@ -1,9 +1,17 @@
 import WebSocket from 'ws'
 import { stringifyError } from './lib'
 
-import { MessageBase, MessageIdentifyClient, PING_TIME, WebsocketConnection } from './websocketConnection'
+import {
+	PartyId,
+	MessageBase,
+	MessageIdentifyClient,
+	PING_TIME,
+	WebsocketConnection,
+	isMessageIdentifyClient,
+} from './websocketConnection'
 import { HelpfulEventEmitter } from './HelpfulEventEmitter'
 import { LoggerInstance } from './logger'
+import { protectString } from './ProtectedString'
 
 export type OnMessageHandler = (message: MessageBase) => Promise<any>
 
@@ -72,8 +80,8 @@ export class ClientConnection extends WebsocketConnection {
 	private pingInterval: NodeJS.Timeout
 	private hasReceivedPingFromClient = true
 	private failedPingCount = 0
-	public clientType: ClientType = 'N/A'
-	public clientId = 'N/A'
+	public clientType: MessageIdentifyClient['clientType'] = 'N/A'
+	public clientId: PartyId = protectString<any>('N/A')
 	private isClosed = false
 	private logger: LoggerInstance
 
@@ -118,10 +126,9 @@ export class ClientConnection extends WebsocketConnection {
 		this.ws.on('message', (messageStr: string) => {
 			const message = JSON.parse(messageStr)
 
-			if (message.internalType === 'identify_client') {
-				const ident = message as unknown as MessageIdentifyClient
-				this.clientType = ident.clientType
-				this.clientId = ident.id
+			if (isMessageIdentifyClient(message)) {
+				this.clientType = message.clientType
+				this.clientId = message.id
 
 				this.emit('clientTypeReceived')
 			} else {
@@ -145,4 +152,3 @@ export class ClientConnection extends WebsocketConnection {
 		this._onLostConnection()
 	}
 }
-export type ClientType = MessageIdentifyClient['clientType']

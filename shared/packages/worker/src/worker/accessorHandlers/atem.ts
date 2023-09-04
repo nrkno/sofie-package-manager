@@ -12,7 +12,7 @@ import {
 	AccessorHandlerRunCronJobResult,
 	PackageOperation,
 } from './genericHandle'
-import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
+import { Expectation, Accessor, AccessorOnPackage, AccessorId } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'
@@ -39,7 +39,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	constructor(
 		worker: GenericWorker,
-		public readonly accessorId: string,
+		public readonly accessorId: AccessorId,
 		private accessor: AccessorOnPackage.AtemMediaStore,
 		content: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {

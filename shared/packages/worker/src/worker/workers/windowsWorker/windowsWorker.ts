@@ -6,7 +6,7 @@ import {
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
@@ -85,11 +85,11 @@ export class WindowsWorker extends GenericWorker {
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
 	}
-	async isExpectationFullfilled(
+	async isExpectationFulfilled(
 		exp: Expectation.Any,
-		wasFullfilled: boolean
-	): Promise<ReturnTypeIsExpectationFullfilled> {
-		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, wasFullfilled, this, this)
+		wasFulfilled: boolean
+	): Promise<ReturnTypeIsExpectationFulfilled> {
+		return this.getExpectationHandler(exp).isExpectationFulfilled(exp, wasFulfilled, this, this)
 	}
 	async workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
 		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this)

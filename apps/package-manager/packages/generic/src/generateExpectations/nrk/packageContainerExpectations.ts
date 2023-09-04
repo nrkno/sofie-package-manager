@@ -1,6 +1,11 @@
 import { PackageContainers } from '../../packageManager'
-import { PackageContainerExpectation } from '@sofie-package-manager/api'
-import { SMARTBULL_STORAGE_ID, TEMPORARY_STORAGE_ID } from './lib'
+import {
+	PackageContainerExpectation,
+	ExpectationManagerId,
+	PackageContainerId,
+	objectEntries,
+} from '@sofie-package-manager/api'
+import { SMARTBULL_STORAGE_ID, SOURCE_MONITOR_STORAGE_ID, TEMPORARY_STORAGE_ID } from './lib'
 // eslint-disable-next-line node/no-extraneous-import
 import { PackageManagerActivePlaylist } from '@sofie-automation/shared-lib/dist/package-manager/publications'
 
@@ -8,15 +13,15 @@ import { PackageManagerActivePlaylist } from '@sofie-automation/shared-lib/dist/
 const MAX_FILE_AGE = 30 * 24 * 3600 // 30 days
 
 export function getPackageContainerExpectations(
-	managerId: string,
+	managerId: ExpectationManagerId,
 	packageContainers: PackageContainers,
 	_activePlaylist: PackageManagerActivePlaylist | null
-): { [id: string]: PackageContainerExpectation } {
-	const o: { [id: string]: PackageContainerExpectation } = {}
+): Record<PackageContainerId, PackageContainerExpectation> {
+	const o: Record<PackageContainerId, PackageContainerExpectation> = {}
 
-	for (const [containerId, packageContainer] of Object.entries(packageContainers)) {
+	for (const [containerId, packageContainer] of objectEntries(packageContainers)) {
 		// This is temporary, to test/show how a monitor would work:
-		if (containerId === 'source_monitor') {
+		if (containerId === SOURCE_MONITOR_STORAGE_ID) {
 			o[containerId] = {
 				...packageContainer,
 				id: containerId,

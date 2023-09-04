@@ -6,6 +6,7 @@ import {
 	StatusCode,
 	stringifyError,
 	WebsocketServer,
+	WorkerAgentId,
 } from '@sofie-package-manager/api'
 import { ExpectationManagerServerOptions } from '../../expectationManager'
 import { WorkerAgentAPI } from '../../workerAgentApi'
@@ -40,23 +41,24 @@ export class ExpectationManagerServer {
 
 					switch (client.clientType) {
 						case 'workerAgent': {
-							const expectationManagerMethods = this.manager.getWorkerAgentAPI(client.clientId)
+							const clientId = client.clientId as WorkerAgentId
+							const expectationManagerMethods = this.manager.getWorkerAgentAPI(clientId)
 
-							const api = new WorkerAgentAPI(expectationManagerMethods, {
+							const api = new WorkerAgentAPI(this.manager.managerId, expectationManagerMethods, {
 								type: 'websocket',
 								clientConnection: client,
 							})
-							this.manager.workerAgents.upsert(client.clientId, { api, connected: true })
+							this.manager.workerAgents.upsert(clientId, { api, connected: true })
 							client.once('close', () => {
-								this.logger.warn(`Connection to Worker "${client.clientId}" closed`)
+								this.logger.warn(`Connection to Worker "${clientId}" closed`)
 
-								const workerAgent = this.manager.workerAgents.get(client.clientId)
+								const workerAgent = this.manager.workerAgents.get(clientId)
 								if (workerAgent) {
 									workerAgent.connected = false
-									this.manager.workerAgents.remove(client.clientId)
+									this.manager.workerAgents.remove(clientId)
 								}
 							})
-							this.logger.info(`Connection to Worker "${client.clientId}" established`)
+							this.logger.info(`Connection to Worker "${clientId}" established`)
 							this.manager.tracker.triggerEvaluationNow()
 							break
 						}

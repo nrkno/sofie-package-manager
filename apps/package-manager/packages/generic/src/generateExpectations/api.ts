@@ -1,6 +1,13 @@
 import { ExpectedPackageWrap, PackageContainers } from '../packageManager'
 import { PackageManagerSettings } from '../generated/options'
-import { Expectation, LoggerInstance, PackageContainerExpectation } from '@sofie-package-manager/api'
+import {
+	Expectation,
+	ExpectationId,
+	ExpectationManagerId,
+	LoggerInstance,
+	PackageContainerExpectation,
+	PackageContainerId,
+} from '@sofie-package-manager/api'
 import {
 	PackageManagerActivePlaylist,
 	PackageManagerActiveRundown,
@@ -10,17 +17,17 @@ import {
 export interface GenerateExpectationApi {
 	getExpectations: (
 		logger: LoggerInstance,
-		managerId: string,
+		managerId: ExpectationManagerId,
 		packageContainers: PackageContainers,
 		_activePlaylist: PackageManagerActivePlaylist | null,
 		activeRundowns: PackageManagerActiveRundown[],
 		expectedPackages: ExpectedPackageWrap[],
 		settings: PackageManagerSettings
-	) => { [id: string]: Expectation.Any }
+	) => { [id: ExpectationId]: Expectation.Any }
 
 	getPackageContainerExpectations: (
-		managerId: string,
+		managerId: ExpectationManagerId,
 		packageContainers: PackageContainers,
 		_activePlaylist: PackageManagerActivePlaylist | null
-	) => { [id: string]: PackageContainerExpectation }
+	) => { [id: PackageContainerId]: PackageContainerExpectation }
 }

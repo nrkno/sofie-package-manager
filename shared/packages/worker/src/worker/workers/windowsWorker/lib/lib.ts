@@ -6,6 +6,8 @@ import {
 	PackageContainerOnPackage,
 	Expectation,
 	ReturnTypeGetCostFortExpectation,
+	PackageContainerId,
+	AccessorId,
 } from '@sofie-package-manager/api'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { AccessorHandlerResultGeneric } from '../../../accessorHandlers/genericHandle'
@@ -122,7 +124,9 @@ export type VersionProperty = { name: string; value: string | number | undefined
 export function findBestPackageContainerWithAccessToPackage(
 	worker: GenericWorker,
 	packageContainers: PackageContainerOnPackage[]
-): { packageContainer: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: string } | undefined {
+):
+	| { packageContainer: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: AccessorId }
+	| undefined {
 	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
 		if (getAccessorStaticHandle(accessor).doYouSupportAccess(worker, accessor)) {
 			return { packageContainer, accessor, accessorId }
@@ -134,9 +138,9 @@ export function findBestPackageContainerWithAccessToPackage(
 /** Returns the best accessor for a packageContainer */
 export function findBestAccessorOnPackageContainer(
 	worker: GenericWorker,
-	containerId: string,
+	containerId: PackageContainerId,
 	packageContainer: PackageContainer
-): { packageContainer: PackageContainer; accessor: AccessorOnPackage.Any; accessorId: string } | undefined {
+): { packageContainer: PackageContainer; accessor: AccessorOnPackage.Any; accessorId: AccessorId } | undefined {
 	// Construct a fake PackageContainerOnPackage from the PackageContainer, so that we can use prioritizeAccessors() later:
 	const packageContainers: PackageContainerOnPackage[] = [
 		{

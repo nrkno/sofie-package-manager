@@ -2,6 +2,7 @@
  * This file contains API definitions for the Worker methods
  */
 
+import { MonitorId, WorkerAgentId } from './ids'
 import { Reason } from './methods'
 
 export type ReturnTypeDoYouSupportExpectation =
@@ -32,7 +33,7 @@ export type ReturnTypeIsExpectationReadyToStartWorkingOn =
 			isWaitingForAnother?: boolean
 			reason: Reason
 	  }
-export type ReturnTypeIsExpectationFullfilled =
+export type ReturnTypeIsExpectationFulfilled =
 	| {
 			fulfilled: true
 	  }
@@ -51,7 +52,7 @@ export type ReturnTypeRemoveExpectation =
 
 /** Configurations for any of the workers */
 export interface WorkerAgentConfig {
-	workerId: string
+	workerId: WorkerAgentId
 	/**
 	 * The time to wait when determining if the source package is stable or not (this is used to wait for growing files)
 	 * Set to 0 to disable the stability check.
@@ -93,7 +94,7 @@ export type ReturnTypeDisposePackageContainerMonitors =
 export type ReturnTypeSetupPackageContainerMonitors =
 	| {
 			success: true
-			monitors: { [monitorId: string]: MonitorProperties }
+			monitors: Record<MonitorId, MonitorProperties>
 	  }
 	| {
 			success: false

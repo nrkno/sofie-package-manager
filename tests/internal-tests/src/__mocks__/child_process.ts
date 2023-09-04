@@ -198,7 +198,7 @@ async function netUse(commandString: string): Promise<{ stdout: string; stderr: 
 		stdout += `Status       Local     Remote                    Network\r\n`
 		stdout += `-------------------------------------------------------------------------------\r\n`
 
-		for (const [driveLetter, path] of Object.entries(mappedDriveLetters)) {
+		for (const [driveLetter, path] of Object.entries<string>(mappedDriveLetters)) {
 			stdout += `OK    ${driveLetter}:     ${path} Microsoft Windows Network \r\n`
 		}
 		stdout += `The command completed successfully.\r\n`

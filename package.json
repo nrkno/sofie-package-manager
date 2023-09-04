@@ -45,7 +45,7 @@
         "generate-schema-types": "node scripts/schema-types.mjs"
     },
     "devDependencies": {
-        "@sofie-automation/code-standard-preset": "~2.3",
+        "@sofie-automation/code-standard-preset": "^2.5.1",
         "@types/jest": "^29.2.5",
         "deep-extend": "^0.6.0",
         "find": "^0.3.0",
@@ -68,7 +68,8 @@
         "node": ">=12.11.0"
     },
     "dependencies": {
-        "@sofie-automation/server-core-integration": "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
+        "@sofie-automation/server-core-integration": "1.50.0-nightly-release50-20230627-124025-83abcdc.0",
+        "@sofie-automation/shared-lib": "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {

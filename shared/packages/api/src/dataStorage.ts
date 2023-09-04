@@ -1,3 +1,4 @@
+import { ProtectedString, protectString } from './ProtectedString'
 import { LoggerInstance } from './logger'
 
 /**
@@ -5,11 +6,11 @@ import { LoggerInstance } from './logger'
  */
 export class DataStore {
 	private storage = new Map<
-		string, // dataId
+		DataId,
 		{
 			/** When this is set, prevents others from reading and writing */
 			accessLock: {
-				lockId: string
+				lockId: LockId
 				/** created time [timestamp] */
 				created: number
 				/** time to live [timestamp] */
@@ -23,7 +24,7 @@ export class DataStore {
 	>()
 	/** An Access Claim is basically a read-queue for accessing/reading a data-point. */
 	private accessClaims = new Map<
-		string,
+		DataId,
 		{
 			ttl: number
 			resolve: () => void
@@ -56,10 +57,10 @@ export class DataStore {
 
 	/** Request to aquire a write lock */
 	async getWriteLock(
-		dataId: string,
+		dataId: DataId,
 		customTimeout?: number,
 		tag?: string
-	): Promise<{ lockId: string; current: any | undefined }> {
+	): Promise<{ lockId: LockId; current: any | undefined }> {
 		// Wait for getting access to the data:
 		await this._waitForAccess(dataId)
 		// Set a write lock:
@@ -74,7 +75,7 @@ export class DataStore {
 		if (!data) throw new Error(`Internal error: No data for "${dataId}"`)
 
 		if (this.lockI >= Number.MAX_SAFE_INTEGER) this.lockI = 0
-		const lockId = `write_${this.lockI++}`
+		const lockId = protectString<LockId>(`write_${this.lockI++}`)
 		const timeoutDuration = customTimeout ?? this._timeoutTime
 		data.accessLock = {
 			lockId: lockId,
@@ -88,7 +89,7 @@ export class DataStore {
 
 		return { lockId, current: data.data }
 	}
-	releaseLock(dataId: string, lockId: string): void {
+	releaseLock(dataId: DataId, lockId: LockId): void {
 		const data = this.storage.get(dataId)
 		if (!data) return
 		if (!data.accessLock) return
@@ -107,7 +108,7 @@ export class DataStore {
 			}
 		})
 	}
-	write(dataId: string, lockId: string, writeData: string): void {
+	write(dataId: DataId, lockId: LockId, writeData: string): void {
 		const data = this.storage.get(dataId)
 		if (!data) throw new Error(`DataStorage: Error when trying to write data: "${dataId}" not found`)
 		if (!data.accessLock)
@@ -122,7 +123,7 @@ export class DataStore {
 		data.data = writeData
 		this.releaseLock(dataId, lockId)
 	}
-	async read(dataId: string): Promise<any> {
+	async read(dataId: DataId): Promise<any> {
 		// Wait for getting access to the data:
 		await this._waitForAccess(dataId)
 
@@ -131,7 +132,7 @@ export class DataStore {
 		return data.data
 	}
 
-	private async _waitForAccess(dataId: string): Promise<void> {
+	private async _waitForAccess(dataId: DataId): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			if (!this.accessClaims.has(dataId)) {
 				this.accessClaims.set(dataId, [])
@@ -224,3 +225,6 @@ export class DataStore {
 		this._triggerHandleClaims(runAgain)
 	}
 }
+
+export type DataId = ProtectedString<'DataId', string>
+export type LockId = ProtectedString<'LockId', string>

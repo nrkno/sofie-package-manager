@@ -17,6 +17,14 @@ import {
 	Statuses,
 	StatusCode,
 	setLogLevel,
+	mapEntries,
+	ExpectationManagerId,
+	AppContainerId,
+	WorkerAgentId,
+	WORKFORCE_ID,
+	AppType,
+	AppId,
+	AnyProtectedString,
 } from '@sofie-package-manager/api'
 import { AppContainerAPI } from './appContainerApi'
 import { ExpectationManagerAPI } from './expectationManagerApi'
@@ -28,40 +36,44 @@ import { WorkerHandler } from './workerHandler'
  * and mediates connections between the two.
  */
 export class Workforce {
-	public workerAgents: {
-		[workerId: string]: {
+	public workerAgents: Map<
+		WorkerAgentId,
+		{
 			api: WorkerAgentAPI
 		}
-	} = {}
+	> = new Map()
 
-	private expectationManagers: {
-		[id: string]: {
+	private expectationManagers: Map<
+		ExpectationManagerId,
+		{
 			api: ExpectationManagerAPI
 			url?: string
 		}
-	} = {}
-	public appContainers: {
-		[id: string]: {
+	> = new Map()
+	public appContainers: Map<
+		AppContainerId,
+		{
 			api: AppContainerAPI
 			initialized: boolean
 			runningApps: {
-				appId: string
-				appType: string
+				appId: AppId
+				appType: AppType
 			}[]
 			availableApps: {
-				appType: string
+				appType: AppType
 			}[]
 		}
-	} = {}
+	> = new Map()
 	private websocketServer?: WebsocketServer
 
 	private workerHandler: WorkerHandler
-	private _reportedStatuses: {
-		[expectationManagerId: string]: string // hash of status
-	} = {}
+	private _reportedStatuses: Map<ExpectationManagerId, string> = new Map() // contains hash of status
+
 	private evaluateStatusTimeout: NodeJS.Timeout | null = null
 
 	private logger: LoggerInstance
+	private id = WORKFORCE_ID // Since there only ever is one workforce, this is hardcoded
+
 	constructor(logger: LoggerInstance, config: WorkforceConfig) {
 		this.logger = logger.category('Workforce')
 		if (config.workforce.port !== null) {
@@ -75,59 +87,58 @@ export class Workforce {
 
 					switch (client.clientType) {
 						case 'workerAgent': {
-							const workForceMethods = this.getWorkerAgentAPI()
-							const api = new WorkerAgentAPI(workForceMethods, {
+							const clientId = client.clientId as WorkerAgentId
+							const workForceMethods = this.getWorkerAgentAPI(clientId)
+							const api = new WorkerAgentAPI(this.id, workForceMethods, {
 								type: 'websocket',
 								clientConnection: client,
 							})
-							this.workerAgents[client.clientId] = { api }
+							this.workerAgents.set(clientId, { api })
 							client.once('close', () => {
-								this.logger.warn(`Workforce: Connection to Worker "${client.clientId}" closed`)
-								delete this.workerAgents[client.clientId]
+								this.logger.warn(`Workforce: Connection to Worker "${clientId}" closed`)
+								this.workerAgents.delete(clientId)
 								this.triggerEvaluateStatus()
 							})
-							this.logger.info(`Workforce: Connection to Worker "${client.clientId}" established`)
+							this.logger.info(`Workforce: Connection to Worker "${clientId}" established`)
 							this.triggerEvaluateStatus()
 							break
 						}
 						case 'expectationManager': {
-							const workForceMethods = this.getExpectationManagerAPI()
-							const api = new ExpectationManagerAPI(workForceMethods, {
+							const clientId = client.clientId as ExpectationManagerId
+							const workForceMethods = this.getExpectationManagerAPI(clientId)
+							const api = new ExpectationManagerAPI(this.id, workForceMethods, {
 								type: 'websocket',
 								clientConnection: client,
 							})
-							this.expectationManagers[client.clientId] = { api }
+							this.expectationManagers.set(clientId, { api })
 							client.once('close', () => {
-								this.logger.warn(
-									`Workforce: Connection to ExpectationManager "${client.clientId}" closed`
-								)
+								this.logger.warn(`Workforce: Connection to ExpectationManager "${clientId}" closed`)
 								this.triggerEvaluateStatus()
-								delete this.expectationManagers[client.clientId]
+								this.expectationManagers.delete(clientId)
 							})
-							this.logger.info(
-								`Workforce: Connection to ExpectationManager "${client.clientId}" established`
-							)
+							this.logger.info(`Workforce: Connection to ExpectationManager "${clientId}" established`)
 							this.triggerEvaluateStatus()
 							break
 						}
 						case 'appContainer': {
-							const workForceMethods = this.getAppContainerAPI(client.clientId)
-							const api = new AppContainerAPI(workForceMethods, {
+							const clientId = client.clientId as AppContainerId
+							const workForceMethods = this.getAppContainerAPI(clientId)
+							const api = new AppContainerAPI(this.id, workForceMethods, {
 								type: 'websocket',
 								clientConnection: client,
 							})
-							this.appContainers[client.clientId] = {
+							this.appContainers.set(clientId, {
 								api,
 								availableApps: [],
 								runningApps: [],
 								initialized: false,
-							}
+							})
 							client.once('close', () => {
-								this.logger.warn(`Workforce: Connection to AppContainer "${client.clientId}" closed`)
-								delete this.appContainers[client.clientId]
+								this.logger.warn(`Workforce: Connection to AppContainer "${clientId}" closed`)
+								this.appContainers.delete(clientId)
 								this.triggerEvaluateStatus()
 							})
-							this.logger.info(`Workforce: Connection to AppContainer "${client.clientId}" established`)
+							this.logger.info(`Workforce: Connection to AppContainer "${clientId}" established`)
 							this.triggerEvaluateStatus()
 							break
 						}
@@ -158,33 +169,34 @@ export class Workforce {
 	terminate(): void {
 		this.websocketServer?.terminate()
 	}
+	/** Returns a Hook used to hook up a WorkerAgent to our API-methods. */
 	getWorkerAgentHook(): Hook<WorkForceWorkerAgent.WorkForce, WorkForceWorkerAgent.WorkerAgent> {
-		return (clientId: string, clientMethods: WorkForceWorkerAgent.WorkerAgent) => {
+		return (clientId: WorkerAgentId, clientMethods) => {
 			// On connection from a workerAgent
 
-			const workerAgentMethods = this.getWorkerAgentAPI()
-			const api = new WorkerAgentAPI(workerAgentMethods, {
+			const workForceMethods = this.getWorkerAgentAPI(clientId)
+			const api = new WorkerAgentAPI(this.id, workForceMethods, {
 				type: 'internal',
 				hookMethods: clientMethods,
 			})
-			this.workerAgents[clientId] = { api }
+			this.workerAgents.set(clientId, { api })
 
-			return workerAgentMethods
+			return workForceMethods
 		}
 	}
 	getExpectationManagerHook(): Hook<
 		WorkForceExpectationManager.WorkForce,
 		WorkForceExpectationManager.ExpectationManager
 	> {
-		return (clientId: string, clientMethods: WorkForceExpectationManager.ExpectationManager) => {
+		return (clientId: ExpectationManagerId, clientMethods) => {
 			// On connection from an ExpectationManager
 
-			const workForceMethods = this.getExpectationManagerAPI()
-			const api = new ExpectationManagerAPI(workForceMethods, {
+			const workForceMethods = this.getExpectationManagerAPI(clientId)
+			const api = new ExpectationManagerAPI(this.id, workForceMethods, {
 				type: 'internal',
 				hookMethods: clientMethods,
 			})
-			this.expectationManagers[clientId] = { api }
+			this.expectationManagers.set(clientId, { api })
 
 			return workForceMethods
 		}
@@ -204,7 +216,7 @@ export class Workforce {
 		const statuses: Statuses = {}
 
 		statuses['any-workers'] =
-			Object.keys(this.workerAgents).length === 0
+			this.workerAgents.size === 0
 				? {
 						statusCode: StatusCode.BAD,
 						message: 'No workers connected to workforce',
@@ -215,7 +227,7 @@ export class Workforce {
 				  }
 
 		statuses['any-appContainers'] =
-			Object.keys(this.appContainers).length === 0
+			this.appContainers.size === 0
 				? {
 						statusCode: StatusCode.BAD,
 						message: 'No appContainers connected to workforce',
@@ -228,9 +240,9 @@ export class Workforce {
 		const statusHash = hashObj(statuses)
 
 		// Report our status to each connected expectationManager:
-		for (const [id, expectationManager] of Object.entries(this.expectationManagers)) {
-			if (this._reportedStatuses[id] !== statusHash) {
-				this._reportedStatuses[id] = statusHash
+		for (const [id, expectationManager] of this.expectationManagers.entries()) {
+			if (this._reportedStatuses.get(id) !== statusHash) {
+				this._reportedStatuses.set(id, statusHash)
 
 				expectationManager.api
 					.onWorkForceStatus(statuses)
@@ -240,12 +252,14 @@ export class Workforce {
 	}
 
 	/** Return the API-methods that the Workforce exposes to the WorkerAgent */
-	private getWorkerAgentAPI(): WorkForceWorkerAgent.WorkForce {
+	private getWorkerAgentAPI(clientId: WorkerAgentId): WorkForceWorkerAgent.WorkForce {
 		return {
-			getExpectationManagerList: async (): Promise<{ id: string; url: string }[]> => {
-				const list: { id: string; url: string }[] = []
+			id: clientId,
 
-				for (const [id, entry] of Object.entries(this.expectationManagers)) {
+			getExpectationManagerList: async (): Promise<{ id: ExpectationManagerId; url: string }[]> => {
+				const list: { id: ExpectationManagerId; url: string }[] = []
+
+				for (const [id, entry] of this.expectationManagers.entries()) {
 					if (entry.url) {
 						list.push({
 							id: id,
@@ -258,15 +272,17 @@ export class Workforce {
 		}
 	}
 	/** Return the API-methods that the Workforce exposes to the ExpectationManager */
-	private getExpectationManagerAPI(): WorkForceExpectationManager.WorkForce {
+	private getExpectationManagerAPI(clientId: ExpectationManagerId): WorkForceExpectationManager.WorkForce {
 		return {
+			id: clientId,
+
 			setLogLevel: async (logLevel: LogLevel): Promise<void> => {
 				return this.setLogLevel(logLevel)
 			},
-			setLogLevelOfApp: async (appId: string, logLevel: LogLevel): Promise<void> => {
+			setLogLevelOfApp: async (appId: AnyProtectedString, logLevel: LogLevel): Promise<void> => {
 				return this.setLogLevelOfApp(appId, logLevel)
 			},
-			registerExpectationManager: async (managerId: string, url: string): Promise<void> => {
+			registerExpectationManager: async (managerId: ExpectationManagerId, url: string): Promise<void> => {
 				await this.registerExpectationManager(managerId, url)
 			},
 			requestResourcesForExpectation: async (exp: Expectation.Any): Promise<boolean> => {
@@ -281,7 +297,7 @@ export class Workforce {
 			getStatusReport: async (): Promise<WorkforceStatusReport> => {
 				return this.getStatusReport()
 			},
-			_debugKillApp: async (appId: string): Promise<void> => {
+			_debugKillApp: async (appId: AnyProtectedString): Promise<void> => {
 				return this._debugKillApp(appId)
 			},
 			_debugSendKillConnections: async (): Promise<void> => {
@@ -290,9 +306,10 @@ export class Workforce {
 		}
 	}
 	/** Return the API-methods that the Workforce exposes to the AppContainer */
-	private getAppContainerAPI(clientId: string): WorkForceAppContainer.WorkForce {
+	private getAppContainerAPI(clientId: AppContainerId): WorkForceAppContainer.WorkForce {
 		return {
-			registerAvailableApps: async (availableApps: { appType: string }[]): Promise<void> => {
+			id: clientId,
+			registerAvailableApps: async (availableApps: { appType: AppType }[]): Promise<void> => {
 				await this.registerAvailableApps(clientId, availableApps)
 			},
 		}
@@ -305,19 +322,23 @@ export class Workforce {
 		}, 1)
 	}
 
-	public async registerExpectationManager(managerId: string, url: string): Promise<void> {
-		const em = this.expectationManagers[managerId]
+	public async registerExpectationManager(managerId: ExpectationManagerId, url: string): Promise<void> {
+		let em = this.expectationManagers.get(managerId)
 		if (!em || em.url !== url) {
 			// Added/Changed
 
 			this.logger.info(`Workforce: Register ExpectationManager (${managerId}) at url "${url}"`)
 
 			// Announce the new expectation manager to the workerAgents:
-			for (const workerAgent of Object.values(this.workerAgents)) {
+			for (const workerAgent of this.workerAgents.values()) {
 				await workerAgent.api.expectationManagerAvailable(managerId, url)
 			}
+			em = this.expectationManagers.get(managerId)
 		}
-		this.expectationManagers[managerId].url = url
+		if (!em) {
+			throw new Error(`Internal Error: (registerExpectationManager) ExpectationManager "${managerId}" not found!`)
+		}
+		em.url = url
 	}
 	public async requestResourcesForExpectation(exp: Expectation.Any): Promise<boolean> {
 		return this.workerHandler.requestResourcesForExpectation(exp)
@@ -328,15 +349,15 @@ export class Workforce {
 	public async getStatusReport(): Promise<WorkforceStatusReport> {
 		return {
 			workerAgents: await Promise.all(
-				Object.values(this.workerAgents).map(async (workerAgent) => workerAgent.api.getStatusReport())
+				mapEntries(this.workerAgents, async (_, workerAgent) => workerAgent.api.getStatusReport())
 			),
-			expectationManagers: Object.entries(this.expectationManagers).map(([id, expMan]) => {
+			expectationManagers: mapEntries(this.expectationManagers, (id, expMan) => {
 				return {
 					id: id,
 					url: expMan.url,
 				}
 			}),
-			appContainers: Object.entries(this.appContainers).map(([id, appContainer]) => {
+			appContainers: mapEntries(this.appContainers, (id, appContainer) => {
 				return {
 					id: id,
 					initialized: appContainer.initialized,
@@ -353,65 +374,69 @@ export class Workforce {
 	public setLogLevel(logLevel: LogLevel): void {
 		setLogLevel(logLevel)
 	}
-	public async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
-		const workerAgent = this.workerAgents[appId]
+	public async setLogLevelOfApp(appId: AnyProtectedString, logLevel: LogLevel): Promise<void> {
+		const workerAgent = this.workerAgents.get(appId as WorkerAgentId)
 		if (workerAgent) return workerAgent.api.setLogLevel(logLevel)
 
-		const appContainer = this.appContainers[appId]
+		const appContainer = this.appContainers.get(appId as AppContainerId)
 		if (appContainer) return appContainer.api.setLogLevel(logLevel)
 
-		const expectationManager = this.expectationManagers[appId]
+		const expectationManager = this.expectationManagers.get(appId as ExpectationManagerId)
 		if (expectationManager) return expectationManager.api.setLogLevel(logLevel)
 
-		if (appId === 'workforce') return this.setLogLevel(logLevel)
+		if (appId === this.id) return this.setLogLevel(logLevel)
 		throw new Error(`App with id "${appId}" not found`)
 	}
-	public async _debugKillApp(appId: string): Promise<void> {
-		const workerAgent = this.workerAgents[appId]
+	public async _debugKillApp(appId: AnyProtectedString): Promise<void> {
+		const workerAgent = this.workerAgents.get(appId as WorkerAgentId)
 		if (workerAgent) return workerAgent.api._debugKill()
 
-		const appContainer = this.appContainers[appId]
+		const appContainer = this.appContainers.get(appId as AppContainerId)
 		if (appContainer) return appContainer.api._debugKill()
 
-		const expectationManager = this.expectationManagers[appId]
+		const expectationManager = this.expectationManagers.get(appId as ExpectationManagerId)
 		if (expectationManager) return expectationManager.api._debugKill()
 
-		if (appId === 'workforce') return this._debugKill()
+		if (appId === this.id) return this._debugKill()
 		throw new Error(`App with id "${appId}" not found`)
 	}
 	public async _debugSendKillConnections(): Promise<void> {
-		for (const workerAgent of Object.values(this.workerAgents)) {
+		for (const workerAgent of this.workerAgents.values()) {
 			await workerAgent.api._debugSendKillConnections()
 		}
 
-		for (const appContainer of Object.values(this.appContainers)) {
+		for (const appContainer of this.appContainers.values()) {
 			await appContainer.api._debugSendKillConnections()
 		}
 
-		for (const expectationManager of Object.values(this.expectationManagers)) {
+		for (const expectationManager of this.expectationManagers.values()) {
 			await expectationManager.api._debugSendKillConnections()
 		}
 	}
 
-	public async removeExpectationManager(managerId: string): Promise<void> {
-		const em = this.expectationManagers[managerId]
+	public async removeExpectationManager(managerId: ExpectationManagerId): Promise<void> {
+		const em = this.expectationManagers.get(managerId)
 		if (em) {
 			// Removed
 			// Announce the expectation manager removal to the workerAgents:
-			for (const workerAgent of Object.values(this.workerAgents)) {
+			for (const workerAgent of this.workerAgents.values()) {
 				await workerAgent.api.expectationManagerGone(managerId)
 			}
 		}
 	}
-	public async registerAvailableApps(clientId: string, availableApps: { appType: string }[]): Promise<void> {
-		this.appContainers[clientId].availableApps = availableApps
+	public async registerAvailableApps(clientId: AppContainerId, availableApps: { appType: AppType }[]): Promise<void> {
+		const appContainer = this.appContainers.get(clientId)
+		if (!appContainer) {
+			throw new Error(`Internal Error: (registerAvailableApps) AppContainer "${clientId}" not found!`)
+		}
+		appContainer.availableApps = availableApps
 
 		// Ask the AppContainer for a list of its running apps:
-		this.appContainers[clientId].api
+		appContainer.api
 			.getRunningApps()
 			.then((runningApps) => {
-				this.appContainers[clientId].runningApps = runningApps
-				this.appContainers[clientId].initialized = true
+				appContainer.runningApps = runningApps
+				appContainer.initialized = true
 				// this.workerHandler.triggerUpdate()
 			})
 			.catch((error) => {

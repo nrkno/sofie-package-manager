@@ -1,13 +1,13 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { Expectation, Reason } from '@sofie-package-manager/api'
+import { Expectation, ExpectationId, Reason, WorkerAgentId } from '@sofie-package-manager/api'
 import { ExpectationStateHandlerSession } from '../lib/types'
 import { ExpectationTrackerConstants } from './constants'
 
 /** Persistant data structure used to track the progress of an Expectation */
 export interface TrackedExpectation {
 	/** Unique ID of the tracked expectation */
-	id: string
+	id: ExpectationId
 	/** The Expectation */
 	exp: Expectation.Any
 
@@ -20,9 +20,9 @@ export interface TrackedExpectation {
 	prevStatusReasons: { [status: string]: Reason }
 
 	/** List of worker ids that have gotten the question wether they support this expectation */
-	queriedWorkers: { [workerId: string]: number }
+	queriedWorkers: Map<WorkerAgentId, number>
 	/** List of worker ids that supports this Expectation */
-	availableWorkers: { [workerId: string]: true }
+	availableWorkers: Set<WorkerAgentId>
 	/** Contains the latest reason why a worker refused to support an Expectation */
 	noAvailableWorkersReason: Reason
 	/** Timestamp of the last time the expectation was evaluated. */
@@ -68,10 +68,10 @@ export function expLabel(exp: TrackedExpectation): string {
 }
 
 export function sortTrackedExpectations(
-	trackedExpectations: { [id: string]: TrackedExpectation },
+	trackedExpectations: Map<ExpectationId, TrackedExpectation>,
 	constants: ExpectationTrackerConstants
 ): TrackedExpectation[] {
-	const tracked: TrackedExpectation[] = Object.values(trackedExpectations)
+	const tracked: TrackedExpectation[] = Array.from(trackedExpectations.values())
 	tracked.sort((a, b) => {
 		const aLastErrorTime: number = a.lastError?.time ?? 0
 		const bLastErrorTime: number = b.lastError?.time ?? 0
@@ -107,8 +107,8 @@ export function getDefaultTrackedExpectation(
 		id: exp.id,
 		exp: exp,
 		state: existingtrackedExp?.state || ExpectedPackageStatusAPI.WorkStatusState.NEW,
-		queriedWorkers: {},
-		availableWorkers: {},
+		queriedWorkers: new Map(),
+		availableWorkers: new Set(),
 		noAvailableWorkersReason: {
 			user: 'Unknown reason',
 			tech: 'N/A (init)',

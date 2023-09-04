@@ -1,4 +1,11 @@
-import { Accessor, AccessorOnPackage, PackageContainerOnPackage, assertNever } from '@sofie-package-manager/api'
+import {
+	Accessor,
+	AccessorId,
+	AccessorOnPackage,
+	PackageContainerOnPackage,
+	assertNever,
+	objectEntries,
+} from '@sofie-package-manager/api'
 
 // TODO: This should be changed at some point,
 // as the "cost" isn't really for a source or a target, but rather for the combination of the two as a pair.
@@ -37,7 +44,9 @@ export function prioritizeAccessors<T extends PackageContainerOnPackage>(
 ): AccessorWithPackageContainer<T>[] {
 	const accessors: AccessorWithPackageContainer<T>[] = []
 	for (const packageContainer of packageContainers) {
-		for (const [accessorId, accessor] of Object.entries(packageContainer.accessors)) {
+		for (const [accessorId, accessor] of objectEntries<AccessorId, AccessorOnPackage.Any>(
+			packageContainer.accessors
+		)) {
 			accessors.push({
 				packageContainer,
 				accessor,
@@ -66,7 +75,7 @@ export function prioritizeAccessors<T extends PackageContainerOnPackage>(
 export interface AccessorWithPackageContainer<T extends PackageContainerOnPackage> {
 	packageContainer: T
 	accessor: AccessorOnPackage.Any
-	accessorId: string
+	accessorId: AccessorId
 	prio: number
 }
 

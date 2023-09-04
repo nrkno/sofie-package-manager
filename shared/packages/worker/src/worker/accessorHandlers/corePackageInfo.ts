@@ -11,7 +11,16 @@ import {
 	PutPackageHandler,
 	SetupPackageContainerMonitorsResult,
 } from './genericHandle'
-import { Accessor, AccessorOnPackage, hashObj, Expectation, Reason } from '@sofie-package-manager/api'
+import {
+	Accessor,
+	AccessorOnPackage,
+	hashObj,
+	Expectation,
+	Reason,
+	AccessorId,
+	protectString,
+	ExpectedPackageId,
+} from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 
 /** Accessor handle for accessing data store in Core */
@@ -23,7 +32,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
 		worker: GenericWorker,
-		accessorId: string,
+		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.CorePackageCollection,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -150,17 +159,19 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 			expectTargetVersion
 		)
 		const packageInfos: {
-			packageId: string
+			packageId: ExpectedPackageId
 			expectedContentVersionHash: string
 			actualContentVersionHash: string
 		}[] =
 			(await this.worker.sendMessageToManager(exp.managerId, {
 				type: 'fetchPackageInfoMetadata',
-				arguments: [infoType, exp.fromPackages.map((p) => p.id)],
+				arguments: [infoType, exp.fromPackages.map((p) => protectString<ExpectedPackageId>(p.id))],
 			})) || []
 
 		for (const fromPackage of exp.fromPackages) {
-			const packageInfo = packageInfos.find((p) => p.packageId === fromPackage.id)
+			const packageInfo = packageInfos.find(
+				(p) => p.packageId === protectString<ExpectedPackageId>(fromPackage.id)
+			)
 
 			if (!packageInfo) {
 				return {

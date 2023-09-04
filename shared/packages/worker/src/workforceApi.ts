@@ -1,4 +1,10 @@
-import { AdapterClient, LoggerInstance, WorkForceWorkerAgent } from '@sofie-package-manager/api'
+import {
+	AdapterClient,
+	ExpectationManagerId,
+	LoggerInstance,
+	WorkForceWorkerAgent,
+	WorkerAgentId,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the WorkerAgent
@@ -9,10 +15,10 @@ export class WorkforceAPI
 	extends AdapterClient<WorkForceWorkerAgent.WorkerAgent, WorkForceWorkerAgent.WorkForce>
 	implements WorkForceWorkerAgent.WorkForce
 {
-	constructor(logger: LoggerInstance) {
-		super(logger.category('WorkforceAPI'), 'workerAgent')
+	constructor(public id: WorkerAgentId, logger: LoggerInstance) {
+		super(logger.category('WorkforceAPI'), id, 'workerAgent')
 	}
-	async getExpectationManagerList(): Promise<{ id: string; url: string }[]> {
+	async getExpectationManagerList(): Promise<{ id: ExpectationManagerId; url: string }[]> {
 		return this._sendMessage('getExpectationManagerList', undefined)
 	}
 }

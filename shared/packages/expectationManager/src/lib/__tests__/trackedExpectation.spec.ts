@@ -1,4 +1,4 @@
-import { Expectation } from '@sofie-package-manager/api'
+import { Expectation, ExpectationId, protectString } from '@sofie-package-manager/api'
 import { getDefaultConstants } from '../constants'
 import { TrackedExpectation, getDefaultTrackedExpectation, sortTrackedExpectations } from '../trackedExpectation'
 
@@ -6,9 +6,9 @@ test('sortTrackedExpectations', () => {
 	// ensure that sort order is correct
 
 	const exp: Expectation.FileCopy = {
-		id: 'N/A',
+		id: protectString('N/A'),
 		type: Expectation.Type.FILE_COPY,
-		managerId: '',
+		managerId: protectString(''),
 		priority: 0,
 		fromPackages: [],
 		statusReport: {
@@ -37,7 +37,7 @@ test('sortTrackedExpectations', () => {
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'highest-priority',
+				id: protectString('highest-priority'),
 				priority: 1,
 			}),
 			lastEvaluationTime: now - 10 * 1000, // 10 second ago
@@ -45,7 +45,7 @@ test('sortTrackedExpectations', () => {
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'highest-priority-recently-evaluated',
+				id: protectString('highest-priority-recently-evaluated'),
 				priority: 1,
 			}),
 			lastEvaluationTime: now - 1000, // 1 second ago
@@ -53,19 +53,19 @@ test('sortTrackedExpectations', () => {
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'highest-priority-never-evaluated',
+				id: protectString('highest-priority-never-evaluated'),
 				priority: 1,
 			}),
 		},
 		getDefaultTrackedExpectation({
 			...exp,
-			id: 'high-priority',
+			id: protectString('high-priority'),
 			priority: 10,
 		}),
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'high-prio-with-error',
+				id: protectString('high-prio-with-error'),
 				priority: 10,
 			}),
 			lastError: {
@@ -76,7 +76,7 @@ test('sortTrackedExpectations', () => {
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'high-prio-with-old-error',
+				id: protectString('high-prio-with-old-error'),
 				priority: 10,
 			}),
 			lastError: {
@@ -87,7 +87,7 @@ test('sortTrackedExpectations', () => {
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'high-prio-with-older-error',
+				id: protectString('high-prio-with-older-error'),
 				priority: 10,
 			}),
 			lastError: {
@@ -97,18 +97,18 @@ test('sortTrackedExpectations', () => {
 		},
 		getDefaultTrackedExpectation({
 			...exp,
-			id: 'medium-priority',
+			id: protectString('medium-priority'),
 			priority: 50,
 		}),
 		getDefaultTrackedExpectation({
 			...exp,
-			id: 'low-priority',
+			id: protectString('low-priority'),
 			priority: 100,
 		}),
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'low-prio-with-error',
+				id: protectString('low-prio-with-error'),
 				priority: 100,
 			}),
 			lastError: {
@@ -119,7 +119,7 @@ test('sortTrackedExpectations', () => {
 		{
 			...getDefaultTrackedExpectation({
 				...exp,
-				id: 'low-prio-with-most-recent-error',
+				id: protectString('low-prio-with-most-recent-error'),
 				priority: 100,
 			}),
 			lastError: {
@@ -129,14 +129,14 @@ test('sortTrackedExpectations', () => {
 		},
 		getDefaultTrackedExpectation({
 			...exp,
-			id: 'lowest-priority',
+			id: protectString('lowest-priority'),
 			priority: 999,
 		}),
 	]
 
-	const trackedExpectations: { [id: string]: TrackedExpectation } = {}
+	const trackedExpectations: Map<ExpectationId, TrackedExpectation> = new Map()
 	tracked.forEach((tracked) => {
-		trackedExpectations[tracked.id] = tracked
+		trackedExpectations.set(tracked.id, tracked)
 	})
 
 	const sorted = sortTrackedExpectations(trackedExpectations, getDefaultConstants())

@@ -13,6 +13,10 @@ import {
 	assertNever,
 	Reason,
 	stringifyError,
+	ExpectedPackageId,
+	protectString,
+	MonitorId,
+	AccessorId,
 } from '@sofie-package-manager/api'
 import chokidar from 'chokidar'
 import { GenericWorker } from '../../worker'
@@ -39,7 +43,7 @@ const fsLstat = promisify(fs.lstat)
 export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	constructor(
 		worker: GenericWorker,
-		accessorId: string,
+		accessorId: AccessorId,
 		accessor: AccessorOnPackage.Any,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		private _type: typeof LocalFolderAccessorHandleType | typeof FileShareAccessorHandleType
@@ -186,7 +190,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 		const watcher = chokidar.watch(this.folderPath, chokidarOptions)
 
-		const monitorId = `${this.worker.agentAPI.config.workerId}_${this.worker.uniqueId}_${Date.now()}`
+		const monitorId = protectString<MonitorId>(
+			`${this.worker.agentAPI.config.workerId}_${this.worker.uniqueId}_${Date.now()}`
+		)
 		const seenFiles = new Map<string, Expectation.Version.FileOnDisk | null>()
 
 		let triggerSendUpdateTimeout: NodeJS.Timeout | null = null
@@ -236,7 +242,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 						if (version) {
 							const expPackage: ExpectedPackage.ExpectedPackageMediaFile = {
-								_id: `${monitorId}_${filePath}`,
+								_id: protectString<ExpectedPackageId>(`${monitorId}_${filePath}`),
 								layers: options.targetLayers,
 								contentVersionHash: hashObj(version),
 								type: ExpectedPackage.PackageType.MEDIA_FILE,

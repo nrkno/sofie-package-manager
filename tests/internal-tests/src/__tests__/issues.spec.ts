@@ -2,7 +2,15 @@ import fsOrg from 'fs'
 import { promisify } from 'util'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { Expectation, literal } from '@sofie-package-manager/api'
+import {
+	Expectation,
+	ExpectationId,
+	ExpectationManagerId,
+	ExpectedPackageId,
+	PackageContainerId,
+	literal,
+	protectString,
+} from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
 import { waitUntil, waitTime } from './lib/lib'
@@ -37,6 +45,14 @@ const fsExists = async (filePath: string) => {
 // this test can be a bit slower in CI sometimes
 jest.setTimeout(30000)
 
+const MANAGER0 = protectString<ExpectationManagerId>('manager0')
+const EXP_copy0 = protectString<ExpectationId>('copy0')
+const PACKAGE0 = protectString<ExpectedPackageId>('package0')
+
+const SOURCE0 = protectString<PackageContainerId>('source0')
+const TARGET0 = protectString<PackageContainerId>('target0')
+const TARGET1 = protectString<PackageContainerId>('target1')
+
 describe('Handle unhappy paths', () => {
 	let env: TestEnviromnent
 
@@ -62,14 +78,14 @@ describe('Handle unhappy paths', () => {
 		fs.__mockSetDirectory('/targets/target0')
 		addCopyFileExpectation(
 			env,
-			'copy0',
-			[getLocalSource('source0', 'file0Source.mp4')],
-			[getLocalTarget('target0', 'file0Target.mp4')]
+			EXP_copy0,
+			[getLocalSource(SOURCE0, 'file0Source.mp4')],
+			[getLocalTarget(TARGET0, 'file0Target.mp4')]
 		)
 
 		await waitUntil(() => {
 			// Expect the Expectation to be waiting:
-			expect(env.expectationStatuses['copy0']).toMatchObject({
+			expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
 				actualVersionHash: null,
 				statusInfo: {
 					status: /new|waiting/,
@@ -80,7 +96,7 @@ describe('Handle unhappy paths', () => {
 			})
 		}, env.WAIT_JOB_TIME)
 
-		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+		expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 		)
 
@@ -90,14 +106,14 @@ describe('Handle unhappy paths', () => {
 		// Wait for the job to complete:
 		await waitUntil(() => {
 			// Expect the copy to have completed by now:
-			expect(env.containerStatuses['target0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_SCAN_TIME + env.ERROR_WAIT_TIME + env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
 			size: 1234,
 		})
@@ -130,14 +146,14 @@ describe('Handle unhappy paths', () => {
 
 		addCopyFileExpectation(
 			env,
-			'copy0',
-			[getLocalSource('source0', 'file0Source.mp4')],
-			[getLocalTarget('target0', 'file0Target.mp4')]
+			EXP_copy0,
+			[getLocalSource(SOURCE0, 'file0Source.mp4')],
+			[getLocalTarget(TARGET0, 'file0Target.mp4')]
 		)
 
 		await waitUntil(() => {
 			// Expect the Expectation to be waiting:
-			expect(env.expectationStatuses['copy0']).toMatchObject({
+			expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
 				actualVersionHash: null,
 				statusInfo: {
 					status: /new|waiting/,
@@ -153,7 +169,7 @@ describe('Handle unhappy paths', () => {
 
 		await waitUntil(() => {
 			// Expect the Expectation to be waiting:
-			expect(env.expectationStatuses['copy0']).toMatchObject({
+			expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
 				actualVersionHash: null,
 				statusInfo: {
 					status: 'new',
@@ -172,14 +188,14 @@ describe('Handle unhappy paths', () => {
 
 		// Wait until the copy has completed:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
 			size: 1234,
 		})
@@ -191,7 +207,7 @@ describe('Handle unhappy paths', () => {
 	test.skip('Expectation changed', async () => {
 		// Expectation is changed while waiting for a file
 		// Expectation is changed while work-in-progress
-		// Expectation is changed after fullfilled
+		// Expectation is changed after fulfilled
 
 		// To be written
 		expect(1).toEqual(1)
@@ -199,7 +215,7 @@ describe('Handle unhappy paths', () => {
 	test.skip('Aborting a job', async () => {
 		// Expectation is aborted while waiting for a file
 		// Expectation is aborted while work-in-progress
-		// Expectation is aborted after fullfilled
+		// Expectation is aborted after fulfilled
 
 		// To be written
 		expect(1).toEqual(1)
@@ -207,7 +223,7 @@ describe('Handle unhappy paths', () => {
 	test.skip('Restarting a job', async () => {
 		// Expectation is restarted while waiting for a file
 		// Expectation is restarted while work-in-progress
-		// Expectation is restarted after fullfilled
+		// Expectation is restarted after fulfilled
 
 		// To be written
 		expect(1).toEqual(1)
@@ -231,20 +247,20 @@ describe('Handle unhappy paths', () => {
 
 		addCopyFileExpectation(
 			env,
-			'copy0',
-			[getLocalSource('source0', 'file0Source.mp4')],
-			[getLocalTarget('target0', 'file0Target.mp4')]
+			EXP_copy0,
+			[getLocalSource(SOURCE0, 'file0Source.mp4')],
+			[getLocalTarget(TARGET0, 'file0Target.mp4')]
 		)
 
 		await waitTime(env.WAIT_JOB_TIME)
 		// Expect the Expectation to be still working
 		// (the worker has crashed, but expectationManger hasn't noticed yet)
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('working')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('working')
 		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
 
 		// Wait until the work have been aborted, and restarted:
 		await waitUntil(() => {
-			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
 		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
 
 		// Add another worker:
@@ -252,10 +268,10 @@ describe('Handle unhappy paths', () => {
 
 		// Expect the copy to have completed:
 		await waitUntil(() => {
-			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
-			expect(env.containerStatuses['target0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
+			expect(env.containerStatuses[TARGET0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_SCAN_TIME)
@@ -291,31 +307,31 @@ describe('Handle unhappy paths', () => {
 
 		addCopyFileExpectation(
 			env,
-			'copy0',
-			[getLocalSource('source0', 'file0Source.mp4')],
-			[getLocalTarget('target0', 'file0Target.mp4')]
+			EXP_copy0,
+			[getLocalSource(SOURCE0, 'file0Source.mp4')],
+			[getLocalTarget(TARGET0, 'file0Target.mp4')]
 		)
 
 		await waitTime(env.WAIT_JOB_TIME)
 		// Expect the Expectation to be still working
 		// (the job is timing out, but expectationManger hasn't noticed yet)
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('working')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('working')
 		expect(listenToCopyFile).toHaveBeenCalledTimes(1)
 		expect(hasIntercepted).toBe(1)
 
 		// Wait for the work to be aborted, and restarted:
 		await waitUntil(() => {
-			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(
 				expect.stringMatching(/new|waiting|ready|fulfilled/)
 			)
 		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
 
 		// Wait for the copy to complete:
 		await waitUntil(() => {
-			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
-			expect(env.containerStatuses['target0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
+			expect(env.containerStatuses[TARGET0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_SCAN_TIME)
@@ -341,12 +357,15 @@ describe('Handle unhappy paths', () => {
 		fs.__mockSetDirectory('/targets/target1')
 		// console.log(fs.__printAllFiles())
 
+		const STEP1 = protectString<ExpectationId>('step1')
+		const STEP2 = protectString<ExpectationId>('step2')
+
 		env.expectationManager.updateExpectations({
-			step1: literal<Expectation.FileCopy>({
-				id: 'step1',
+			[STEP1]: literal<Expectation.FileCopy>({
+				id: STEP1,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.FILE_COPY,
 				statusReport: {
 					label: `Copy file0`,
@@ -354,10 +373,10 @@ describe('Handle unhappy paths', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getLocalSource('source0', 'file0Source.mp4')],
+					sources: [getLocalSource(SOURCE0, 'file0Source.mp4')],
 				},
 				endRequirement: {
-					targets: [getLocalTarget('target0', 'myFolder/file0Target.mp4')],
+					targets: [getLocalTarget(TARGET0, 'myFolder/file0Target.mp4')],
 					content: {
 						filePath: 'file0Target.mp4',
 					},
@@ -365,12 +384,12 @@ describe('Handle unhappy paths', () => {
 				},
 				workOptions: {},
 			}),
-			step2: literal<Expectation.FileCopy>({
-				id: 'step2',
-				dependsOnFullfilled: ['step1'], // Depends on step 1
+			[STEP2]: literal<Expectation.FileCopy>({
+				id: STEP2,
+				dependsOnFulfilled: [STEP1], // Depends on step 1
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.FILE_COPY,
 				statusReport: {
 					label: `Copy file0`,
@@ -378,10 +397,10 @@ describe('Handle unhappy paths', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getLocalTarget('target0', 'myFolder/file0Target.mp4')],
+					sources: [getLocalTarget(TARGET0, 'myFolder/file0Target.mp4')],
 				},
 				endRequirement: {
-					targets: [getLocalTarget('target1', 'myFolder/file0Target.mp4')],
+					targets: [getLocalTarget(TARGET1, 'myFolder/file0Target.mp4')],
 					content: {
 						filePath: 'file0Target.mp4',
 					},
@@ -395,23 +414,23 @@ describe('Handle unhappy paths', () => {
 
 		// Wait for the job to complete:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 		await waitUntil(() => {
-			expect(env.containerStatuses['target1']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET1]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 
 		// Check that step 1 and 2 fullfills:
-		expect(env.expectationStatuses['step1'].statusInfo.status).toEqual('fulfilled')
-		expect(env.expectationStatuses['step2'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[STEP1].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[STEP2].statusInfo.status).toEqual('fulfilled')
 
 		expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
 			size: 1234,
@@ -420,21 +439,21 @@ describe('Handle unhappy paths', () => {
 			size: 1234,
 		})
 
-		// Now A is removed, so step 1 should be un-fullfilled
+		// Now A is removed, so step 1 should be un-fulfilled
 		fs.__mockDeleteFile('/sources/source0/file0Source.mp4')
 
 		// Wait for the step 1 to pick up on the change:
 		await waitUntil(() => {
-			expect(env.expectationStatuses['step1'].statusInfo.status).toMatch(/waiting|new/)
-			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.expectationStatuses[STEP1].statusInfo.status).toMatch(/waiting|new/)
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 			)
 		}, env.WAIT_JOB_TIME)
 
-		// Step 2 should be un-fullfilled, since it depends on step 1.
+		// Step 2 should be un-fulfilled, since it depends on step 1.
 		await waitUntil(() => {
-			expect(env.expectationStatuses['step1'].statusInfo.status).toMatch(/waiting|new/)
-			expect(env.expectationStatuses['step2'].statusInfo.status).toMatch(/waiting|new/)
+			expect(env.expectationStatuses[STEP1].statusInfo.status).toMatch(/waiting|new/)
+			expect(env.expectationStatuses[STEP2].statusInfo.status).toMatch(/waiting|new/)
 		}, env.WAIT_JOB_TIME)
 
 		// The step1-copied file should remain, since removePackageOnUnFulfill is not set
@@ -447,23 +466,24 @@ describe('Handle unhappy paths', () => {
 
 		// Now, both steps should fulfill again:
 		await waitUntil(() => {
-			expect(env.expectationStatuses['step1'].statusInfo.status).toBe('fulfilled')
-			expect(env.expectationStatuses['step2'].statusInfo.status).toBe('fulfilled')
+			expect(env.expectationStatuses[STEP1].statusInfo.status).toBe('fulfilled')
+			expect(env.expectationStatuses[STEP2].statusInfo.status).toBe('fulfilled')
 		}, env.WAIT_JOB_TIME)
 	})
 })
 function addCopyFileExpectation(
 	env: TestEnviromnent,
-	expectationId: string,
+	expectationId: ExpectationId,
 	sources: Expectation.SpecificPackageContainerOnPackage.FileSource[],
 	targets: [Expectation.SpecificPackageContainerOnPackage.FileTarget]
 ) {
+	const COPY0 = protectString<ExpectationId>('copy0')
 	env.expectationManager.updateExpectations({
-		copy0: literal<Expectation.FileCopy>({
+		[COPY0]: literal<Expectation.FileCopy>({
 			id: expectationId,
 			priority: 0,
-			managerId: 'manager0',
-			fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+			managerId: MANAGER0,
+			fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 			type: Expectation.Type.FILE_COPY,
 			statusReport: {
 				label: `Copy file0`,
