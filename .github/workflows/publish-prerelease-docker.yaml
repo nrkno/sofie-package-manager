@@ -164,3 +164,19 @@ jobs:
           provenance: false
           labels: ${{ steps.quantel-dockerhub-tag.outputs.labels }}
           tags: "${{ steps.quantel-dockerhub-tag.outputs.tags }}"
+
+  trivy-scanning:
+    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.0.0
+    with:
+      runs-on: "['ubuntu-latest']"
+      registry-url: ghcr.io
+      name: nrkno/sofie-package-manager
+      # Don't actually push any images, this is just for trivy scanning for now
+      push: false
+      trivy-severity: "CRITICAL"
+      trivy-summary-enabled: true
+      trivy-sbom-enabled: true
+    secrets:
+      registry-username: ${{ github.repository_owner }}
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+      token: ${{ secrets.GITHUB_TOKEN }}
