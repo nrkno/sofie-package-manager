@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.6](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.5...v1.50.0-alpha.6) (2023-09-04)
+
+
+### Bug Fixes
+
+* CI signtool.exe /debug ([44f344a](https://github.com/nrkno/tv-automation-package-manager/commit/44f344ad7303512e79bfec5dca67bb3f12e6a76a))
+
+
+
+
+
 # [1.50.0-alpha.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.4...v1.50.0-alpha.5) (2023-09-04)
 
 

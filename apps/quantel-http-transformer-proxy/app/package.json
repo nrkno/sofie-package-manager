@@ -1,6 +1,6 @@
 {
     "name": "@quantel-http-transformer-proxy/app",
-    "version": "1.50.0-alpha.4",
+    "version": "1.50.0-alpha.6",
     "description": "Proxy for a Quantel HTTP Transformer",
     "private": true,
     "scripts": {
@@ -13,7 +13,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@quantel-http-transformer-proxy/generic": "1.50.0-alpha.4"
+        "@quantel-http-transformer-proxy/generic": "1.50.0-alpha.6"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
