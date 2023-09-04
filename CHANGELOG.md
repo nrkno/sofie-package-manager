@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.4...v1.50.0-alpha.5) (2023-09-04)
+
+
+### Reverts
+
+* chore: lerna useWorkspaces ([c2f6432](https://github.com/nrkno/tv-automation-package-manager/commit/c2f6432eeae6c366a80ed7a412750a97374a321f))
+
+
+
+
+
 # [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
 
 
