@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
+
+
+### Bug Fixes
+
+* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
+* URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/tv-automation-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
+
+
+### Features
+
+* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
+
+
+
+
+
 # [1.50.0-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
 
 

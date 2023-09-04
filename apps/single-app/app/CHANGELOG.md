@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
+
+
+### Bug Fixes
+
+* package.json asset build in pkg ([c546b5f](https://github.com/nrkno/tv-automation-package-manager/commit/c546b5fd6457e7b30381f28e4f802b4f385a3348))
+* remove version reporting ([ac0cd46](https://github.com/nrkno/tv-automation-package-manager/commit/ac0cd4684a5709dfbb6e1eda268d42e446d67967))
+* version printout on start ([c4b11bd](https://github.com/nrkno/tv-automation-package-manager/commit/c4b11bd454442504442ec679c9fc709faa16b263))
+
+
+### Features
+
+* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+
+
+
+
+
 # [1.50.0-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
 
 **Note:** Version bump only for package @single-app/app

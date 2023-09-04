@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
+
+
+### Bug Fixes
+
+* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
+* URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/tv-automation-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
+
+
+### Features
+
+* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+* make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
+
+
+
+
+
 # [1.50.0-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
