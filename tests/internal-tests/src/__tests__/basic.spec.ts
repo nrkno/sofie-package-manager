@@ -17,7 +17,7 @@ import type * as fsMockType from '../__mocks__/fs'
 import type * as WNDType from '../__mocks__/windows-network-drive'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
-import { waitUntil } from './lib/lib'
+import { describeForAllPlatforms, waitUntil } from './lib/lib'
 import {
 	getFileShareSource,
 	getLocalSource,
@@ -46,198 +46,202 @@ const SOURCE1 = protectString<PackageContainerId>('source1')
 const TARGET0 = protectString<PackageContainerId>('target0')
 const TARGET1 = protectString<PackageContainerId>('target1')
 
-describe('Basic', () => {
-	let env: TestEnviromnent
+let env: TestEnviromnent
+describeForAllPlatforms(
+	'Basic',
+	() => {
+		beforeAll(async () => {
+			env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
+			// Verify that the fs mock works:
+			expect(fs.lstat).toBeTruthy()
+			expect(fs.__mockReset).toBeTruthy()
+		})
+		afterAll(() => {
+			env.terminate()
+		})
+		beforeEach(() => {
+			fs.__mockReset()
+			env.reset()
+			QGatewayClient.resetMock()
+		})
+	},
+	() => {
+		test('Be able to copy local file', async () => {
+			fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+			fs.__mockSetDirectory('/targets/target0')
+			// console.log(fs.__printAllFiles())
 
-	beforeAll(async () => {
-		env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
-		// Verify that the fs mock works:
-		expect(fs.lstat).toBeTruthy()
-		expect(fs.__mockReset).toBeTruthy()
-	})
-	afterAll(() => {
-		env.terminate()
-	})
-	beforeEach(() => {
-		fs.__mockReset()
-		env.reset()
-		QGatewayClient.resetMock()
-	})
-	test('Be able to copy local file', async () => {
-		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
-		fs.__mockSetDirectory('/targets/target0')
-		// console.log(fs.__printAllFiles())
-
-		env.expectationManager.updateExpectations({
-			[EXP_copy0]: literal<Expectation.FileCopy>({
-				id: EXP_copy0,
-				priority: 0,
-				managerId: MANAGER0,
-				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
-				type: Expectation.Type.FILE_COPY,
-				statusReport: {
-					label: `Copy file0`,
-					description: `Copy file0 because test`,
-					requiredForPlayout: true,
-					displayRank: 0,
-					sendReport: true,
-				},
-				startRequirement: {
-					sources: [getLocalSource(SOURCE0, 'file0Source.mp4')],
-				},
-				endRequirement: {
-					targets: [getLocalTarget(TARGET0, 'myFolder/file0Target.mp4')],
-					content: {
-						filePath: 'file0Target.mp4',
+			env.expectationManager.updateExpectations({
+				[EXP_copy0]: literal<Expectation.FileCopy>({
+					id: EXP_copy0,
+					priority: 0,
+					managerId: MANAGER0,
+					fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
+					type: Expectation.Type.FILE_COPY,
+					statusReport: {
+						label: `Copy file0`,
+						description: `Copy file0 because test`,
+						requiredForPlayout: true,
+						displayRank: 0,
+						sendReport: true,
 					},
-					version: { type: Expectation.Version.Type.FILE_ON_DISK },
-				},
-				workOptions: {},
-			}),
-		})
-
-		// Wait for the job to complete:
-		await waitUntil(() => {
-			expect(env.containerStatuses[TARGET0]).toBeTruthy()
-			expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
-			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
-				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-			)
-		}, env.WAIT_JOB_TIME)
-
-		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
-
-		expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
-			size: 1234,
-		})
-	})
-	test('Be able to copy Networked file to local', async () => {
-		fs.__mockSetFile('\\\\networkShare/sources/source1/file0Source.mp4', 1234)
-		fs.__mockSetDirectory('/targets/target1')
-
-		env.expectationManager.updateExpectations({
-			[EXP_copy0]: literal<Expectation.FileCopy>({
-				id: EXP_copy0,
-				priority: 0,
-				managerId: MANAGER0,
-				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
-				type: Expectation.Type.FILE_COPY,
-				statusReport: {
-					label: `Copy file0`,
-					description: `Copy file0 because test`,
-					requiredForPlayout: true,
-					displayRank: 0,
-					sendReport: true,
-				},
-				startRequirement: {
-					sources: [getFileShareSource(SOURCE1, 'file0Source.mp4')],
-				},
-				endRequirement: {
-					targets: [getLocalTarget(TARGET1, 'subFolder0/file0Target.mp4')],
-					content: {
-						filePath: 'subFolder0/file0Target.mp4',
+					startRequirement: {
+						sources: [getLocalSource(SOURCE0, 'file0Source.mp4')],
 					},
-					version: { type: Expectation.Version.Type.FILE_ON_DISK },
-				},
-				workOptions: {},
-			}),
-		})
-
-		// Wait for the job to complete:
-		await waitUntil(() => {
-			expect(env.containerStatuses[TARGET1]).toBeTruthy()
-			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
-			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
-				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-			)
-		}, env.WAIT_JOB_TIME)
-
-		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
-
-		expect(await WND.list()).toEqual({
-			X: {
-				driveLetter: 'X',
-				path: '\\\\networkShare\\sources\\source1\\',
-				status: true,
-				statusMessage: 'Mock',
-			},
-		})
-
-		expect(await fsStat('/targets/target1/subFolder0/file0Target.mp4')).toMatchObject({
-			size: 1234,
-		})
-	})
-	test('Be able to copy Quantel clips', async () => {
-		const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123')[0]
-
-		env.expectationManager.updateExpectations({
-			[EXP_copy0]: literal<Expectation.QuantelClipCopy>({
-				id: EXP_copy0,
-				priority: 0,
-				managerId: MANAGER0,
-				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
-				type: Expectation.Type.QUANTEL_CLIP_COPY,
-				statusReport: {
-					label: `Copy quantel clip0`,
-					description: `Copy clip0 because test`,
-					requiredForPlayout: true,
-					displayRank: 0,
-					sendReport: true,
-				},
-				startRequirement: {
-					sources: [getQuantelSource(SOURCE0)],
-				},
-				endRequirement: {
-					targets: [getQuantelTarget(TARGET1, 1001)],
-					content: {
-						guid: 'abc123',
+					endRequirement: {
+						targets: [getLocalTarget(TARGET0, 'myFolder/file0Target.mp4')],
+						content: {
+							filePath: 'file0Target.mp4',
+						},
+						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
-					version: { type: Expectation.Version.Type.QUANTEL_CLIP },
+					workOptions: {},
+				}),
+			})
+
+			// Wait for the job to complete:
+			await waitUntil(() => {
+				expect(env.containerStatuses[TARGET0]).toBeTruthy()
+				expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
+				expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
+					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+				)
+			}, env.WAIT_JOB_TIME)
+
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
+
+			expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
+				size: 1234,
+			})
+		})
+		test('Be able to copy Networked file to local', async () => {
+			fs.__mockSetFile('\\\\networkShare/sources/source1/file0Source.mp4', 1234)
+			fs.__mockSetDirectory('/targets/target1')
+
+			env.expectationManager.updateExpectations({
+				[EXP_copy0]: literal<Expectation.FileCopy>({
+					id: EXP_copy0,
+					priority: 0,
+					managerId: MANAGER0,
+					fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
+					type: Expectation.Type.FILE_COPY,
+					statusReport: {
+						label: `Copy file0`,
+						description: `Copy file0 because test`,
+						requiredForPlayout: true,
+						displayRank: 0,
+						sendReport: true,
+					},
+					startRequirement: {
+						sources: [getFileShareSource(SOURCE1, 'file0Source.mp4')],
+					},
+					endRequirement: {
+						targets: [getLocalTarget(TARGET1, 'subFolder0/file0Target.mp4')],
+						content: {
+							filePath: 'subFolder0/file0Target.mp4',
+						},
+						version: { type: Expectation.Version.Type.FILE_ON_DISK },
+					},
+					workOptions: {},
+				}),
+			})
+
+			// Wait for the job to complete:
+			await waitUntil(() => {
+				expect(env.containerStatuses[TARGET1]).toBeTruthy()
+				expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+				expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
+					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+				)
+			}, env.WAIT_JOB_TIME)
+
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
+
+			expect(await WND.list()).toEqual({
+				X: {
+					driveLetter: 'X',
+					path: '\\\\networkShare\\sources\\source1\\',
+					status: true,
+					statusMessage: 'Mock',
 				},
-				workOptions: {},
-			}),
+			})
+
+			expect(await fsStat('/targets/target1/subFolder0/file0Target.mp4')).toMatchObject({
+				size: 1234,
+			})
 		})
+		test('Be able to copy Quantel clips', async () => {
+			const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123')[0]
 
-		// Wait for the job to complete:
-		await waitUntil(() => {
-			expect(env.containerStatuses[TARGET1]).toBeTruthy()
-			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
-			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
-				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-			)
-		}, env.WAIT_JOB_TIME)
+			env.expectationManager.updateExpectations({
+				[EXP_copy0]: literal<Expectation.QuantelClipCopy>({
+					id: EXP_copy0,
+					priority: 0,
+					managerId: MANAGER0,
+					fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
+					type: Expectation.Type.QUANTEL_CLIP_COPY,
+					statusReport: {
+						label: `Copy quantel clip0`,
+						description: `Copy clip0 because test`,
+						requiredForPlayout: true,
+						displayRank: 0,
+						sendReport: true,
+					},
+					startRequirement: {
+						sources: [getQuantelSource(SOURCE0)],
+					},
+					endRequirement: {
+						targets: [getQuantelTarget(TARGET1, 1001)],
+						content: {
+							guid: 'abc123',
+						},
+						version: { type: Expectation.Version.Type.QUANTEL_CLIP },
+					},
+					workOptions: {},
+				}),
+			})
 
-		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
+			// Wait for the job to complete:
+			await waitUntil(() => {
+				expect(env.containerStatuses[TARGET1]).toBeTruthy()
+				expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+				expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
+					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+				)
+			}, env.WAIT_JOB_TIME)
 
-		const newClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123' && clip !== orgClip.clip)[0]
-		expect(newClip).toBeTruthy()
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
-		expect(newClip).toMatchObject({
-			server: {
-				ident: 1001,
-			},
-			clip: {
-				ClipGUID: 'abc123',
-				CloneId: orgClip.clip.ClipID,
-			},
+			const newClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123' && clip !== orgClip.clip)[0]
+			expect(newClip).toBeTruthy()
+
+			expect(newClip).toMatchObject({
+				server: {
+					ident: 1001,
+				},
+				clip: {
+					ClipGUID: 'abc123',
+					CloneId: orgClip.clip.ClipID,
+				},
+			})
 		})
-	})
-	test.skip('Be able to copy local file to http', async () => {
-		// To be written
-		expect(1).toEqual(1)
-	})
-	test.skip('Be able to handle 1000 expectations', async () => {
-		// To be written
-		expect(1).toEqual(1)
-	})
-	test.skip('Media file preview from local to file share', async () => {
-		// To be written
-		expect(1).toEqual(1)
-	})
-	test.skip('Media file preview from local to file share', async () => {
-		// To be written
-		expect(1).toEqual(1)
-	})
-})
+		test.skip('Be able to copy local file to http', async () => {
+			// To be written
+			expect(1).toEqual(1)
+		})
+		test.skip('Be able to handle 1000 expectations', async () => {
+			// To be written
+			expect(1).toEqual(1)
+		})
+		test.skip('Media file preview from local to file share', async () => {
+			// To be written
+			expect(1).toEqual(1)
+		})
+		test.skip('Media file preview from local to file share', async () => {
+			// To be written
+			expect(1).toEqual(1)
+		})
+	}
+)
 
 export {} // Just to get rid of a "not a module" warning
