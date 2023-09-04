@@ -1,20 +1,21 @@
+import { ExpectationId } from '@sofie-package-manager/api'
 import { sortTrackedExpectations, TrackedExpectation } from '../../lib/trackedExpectation'
 import { ExpectationTracker } from '../expectationTracker'
 
 /** Storage for Expectations */
 export class TrackedExpectationsStorage {
-	private trackedExpectations: { [id: string]: TrackedExpectation } = {}
+	private trackedExpectations: Map<ExpectationId, TrackedExpectation> = new Map()
 
 	private cacheIsDirty = true
-	private cacheIds: string[] = []
+	private cacheIds: ExpectationId[] = []
 	private cacheList: TrackedExpectation[] = []
 
 	constructor(private tracker: ExpectationTracker) {}
 
-	public get(id: string): TrackedExpectation | undefined {
-		return this.trackedExpectations[id]
+	public get(id: ExpectationId): TrackedExpectation | undefined {
+		return this.trackedExpectations.get(id)
 	}
-	public getIds(): string[] {
+	public getIds(): ExpectationId[] {
 		this.updateCache()
 		return this.cacheIds
 	}
@@ -26,18 +27,18 @@ export class TrackedExpectationsStorage {
 		return this.cacheList
 	}
 	/** Add or Update a tracked Expectation */
-	public upsert(id: string, trackedExp: TrackedExpectation): void {
+	public upsert(id: ExpectationId, trackedExp: TrackedExpectation): void {
 		if (trackedExp.id !== id) throw new Error(`Internal Error: upsert: id not matching trackedExpectation id!`)
 
-		this.trackedExpectations[id] = trackedExp
+		this.trackedExpectations.set(id, trackedExp)
 		this.cacheIsDirty = true
 	}
-	public remove(id: string): void {
-		delete this.trackedExpectations[id]
+	public remove(id: ExpectationId): void {
+		this.trackedExpectations.delete(id)
 		this.cacheIsDirty = true
 	}
 	public clear(): void {
-		this.trackedExpectations = {}
+		this.trackedExpectations.clear()
 		this.cacheIsDirty = true
 	}
 

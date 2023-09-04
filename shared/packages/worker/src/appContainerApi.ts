@@ -1,4 +1,11 @@
-import { AdapterClient, LoggerInstance, AppContainerWorkerAgent } from '@sofie-package-manager/api'
+import {
+	AdapterClient,
+	LoggerInstance,
+	AppContainerWorkerAgent,
+	WorkerAgentId,
+	DataId,
+	LockId,
+} from '@sofie-package-manager/api'
 
 /**
  * Exposes the API-methods of a Workforce, to be called from the WorkerAgent
@@ -9,8 +16,8 @@ export class AppContainerAPI
 	extends AdapterClient<AppContainerWorkerAgent.WorkerAgent, AppContainerWorkerAgent.AppContainer>
 	implements AppContainerWorkerAgent.AppContainer
 {
-	constructor(logger: LoggerInstance) {
-		super(logger.category('AppContainerAPI'), 'workerAgent')
+	constructor(public id: WorkerAgentId, logger: LoggerInstance) {
+		super(logger.category('AppContainerAPI'), id, 'workerAgent')
 	}
 	// Note: These calls are ultimately received at apps/appcontainer-node/packages/generic/src/appContainer.ts
 	async ping(): Promise<void> {
@@ -20,18 +27,18 @@ export class AppContainerAPI
 		return this._sendMessage('requestSpinDown')
 	}
 	async workerStorageWriteLock(
-		dataId: string,
+		dataId: DataId,
 		customTimeout?: number
-	): Promise<{ lockId: string; current: any | undefined }> {
+	): Promise<{ lockId: LockId; current: any | undefined }> {
 		return this._sendMessage('workerStorageWriteLock', dataId, customTimeout)
 	}
-	async workerStorageReleaseLock(dataId: string, lockId: string): Promise<void> {
+	async workerStorageReleaseLock(dataId: DataId, lockId: LockId): Promise<void> {
 		return this._sendMessage('workerStorageReleaseLock', dataId, lockId)
 	}
-	async workerStorageWrite(dataId: string, lockId: string, data: string): Promise<void> {
+	async workerStorageWrite(dataId: DataId, lockId: LockId, data: string): Promise<void> {
 		return this._sendMessage('workerStorageWrite', dataId, lockId, data)
 	}
-	async workerStorageRead(dataId: string): Promise<any> {
+	async workerStorageRead(dataId: DataId): Promise<any> {
 		return this._sendMessage('workerStorageRead', dataId)
 	}
 }

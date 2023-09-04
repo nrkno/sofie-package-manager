@@ -1,13 +1,15 @@
+import { ProtectedString, protectString } from '@sofie-package-manager/api'
 import { ClipSearchQuery, QuantelGateway } from 'tv-automation-quantel-gateway-client'
 import { ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
 const DEFAULT_CACHE_EXPIRE = 3000
 
+export type CacheKey = ProtectedString<'CacheKey', string>
 /**
  * This is a wrapper for the QuantelGateway class, adding a caching-layer to
  */
 export class CachedQuantelGateway extends QuantelGateway {
-	private readonly _cache: Map<string, CacheEntry> = new Map()
+	private readonly _cache: Map<CacheKey, CacheEntry> = new Map()
 	private cacheExpire: number
 	private purgeExpiredCacheTimeout: NodeJS.Timeout | null = null
 
@@ -37,8 +39,8 @@ export class CachedQuantelGateway extends QuantelGateway {
 	async getServer(disableCache?: boolean): Promise<ServerInfo | null> {
 		return this.ensureInCache('getServer', [disableCache], async () => super.getServer(disableCache))
 	}
-	private getCacheKey(method: string, args: any[]) {
-		return `${method}_${JSON.stringify(args)}`
+	private getCacheKey(method: string, args: any[]): CacheKey {
+		return protectString<CacheKey>(`${method}_${JSON.stringify(args)}`)
 	}
 	private async clearCache(method: string, args: any[]): Promise<any | undefined> {
 		const cacheKey = this.getCacheKey(method, args)
@@ -77,7 +79,7 @@ export class CachedQuantelGateway extends QuantelGateway {
 		}
 	}
 	private purgeExpiredFromCache() {
-		const expiredKeys: string[] = []
+		const expiredKeys: CacheKey[] = []
 		this._cache.forEach((value, key) => {
 			if (value.timestamp >= Date.now() - this.cacheExpire) return
 			expiredKeys.push(key)

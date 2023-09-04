@@ -6,7 +6,7 @@ import {
 	hashObj,
 	waitTime,
 	Expectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 } from '@sofie-package-manager/api'
 import {
@@ -88,7 +88,7 @@ export async function isFileFulfilled(
 	_worker: GenericWorker,
 	lookupSource: LookupPackageContainer<UniversalVersion>,
 	lookupTarget: LookupPackageContainer<UniversalVersion>
-): Promise<ReturnTypeIsExpectationFullfilled> {
+): Promise<ReturnTypeIsExpectationFulfilled> {
 	if (!lookupTarget.ready)
 		return {
 			fulfilled: false,

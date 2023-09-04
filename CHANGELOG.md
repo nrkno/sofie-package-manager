@@ -79,7 +79,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package package-manager-monorepo
 
-# <<<<<<< HEAD
 
 ## [1.42.1-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0...v1.42.1-alpha.0) (2023-06-09)
 
@@ -87,7 +86,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 - URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/tv-automation-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
 
-> > > > > > > master
 
 # [1.42.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.5...v1.42.0) (2023-05-10)
 

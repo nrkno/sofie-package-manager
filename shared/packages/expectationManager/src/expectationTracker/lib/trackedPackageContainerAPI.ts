@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { deepEqual, Reason, StatusCode } from '@sofie-package-manager/api'
+import { deepEqual, MonitorId, Reason, StatusCode, unprotectString } from '@sofie-package-manager/api'
 import { TrackedPackageContainerExpectation } from '../../lib/trackedPackageContainerExpectation'
 import { ExpectationTracker } from '../expectationTracker'
 
@@ -41,7 +41,7 @@ export class TrackedPackageContainerAPI {
 	/** Update the status of a PackageContainer monitor */
 	public updateTrackedPackageContainerMonitorStatus(
 		trackedPackageContainer: TrackedPackageContainerExpectation,
-		monitorId: string,
+		monitorId: MonitorId,
 		monitorLabel: string | undefined,
 		status: StatusCode,
 		statusReason: Reason
@@ -50,16 +50,17 @@ export class TrackedPackageContainerAPI {
 
 		let updatedStatus = false
 		trackedPackageContainer.status.statusChanged = Date.now()
+		const monitorIdStr = unprotectString(monitorId)
 
-		const existingMonitorStatus = trackedPackageContainer.status.monitors[monitorId]
+		const existingMonitorStatus = trackedPackageContainer.status.monitors[monitorIdStr]
 		const newMonitorStatus: ExpectedPackageStatusAPI.PackageContainerMonitorStatus = {
-			label: monitorLabel || existingMonitorStatus?.label || monitorId,
+			label: monitorLabel || existingMonitorStatus?.label || monitorIdStr,
 			status: status,
 			statusReason: statusReason,
 		}
 
 		if (!existingMonitorStatus || !deepEqual(existingMonitorStatus, newMonitorStatus)) {
-			trackedPackageContainer.status.monitors[monitorId] = newMonitorStatus
+			trackedPackageContainer.status.monitors[monitorIdStr] = newMonitorStatus
 			updatedStatus = true
 		}
 

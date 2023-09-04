@@ -9,7 +9,6 @@ import {
 	StatusCode as SofieStatusCode,
 	protectString,
 	unprotectString,
-	ProtectedString,
 	PeripheralDeviceForDevice,
 	PeripheralDeviceId,
 	PeripheralDeviceCommand,
@@ -25,12 +24,17 @@ import {
 	ProcessHandler,
 	StatusCode,
 	Statuses,
+	Status,
 	stringifyError,
 	hashObj,
 	setLogLevel,
 	getLogLevel,
 	ensureValidValue,
 	DEFAULT_LOG_LEVEL,
+	ExpectationId,
+	PackageContainerId,
+	AppId,
+	CoreProtectedString,
 } from '@sofie-package-manager/api'
 import {
 	DEFAULT_DELAY_REMOVAL_PACKAGE,
@@ -327,7 +331,7 @@ export class CoreHandler {
 	}
 	getCollection<
 		DBObj extends {
-			_id: ProtectedString<any> | string
+			_id: CoreProtectedString<any> | string
 		} = never
 	>(collectionName: string): Collection<DBObj> {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
@@ -413,7 +417,7 @@ export class CoreHandler {
 		}
 
 		if (statusCode === SofieStatusCode.GOOD) {
-			for (const status of Object.values(this.statuses)) {
+			for (const status of Object.values<Status | null>(this.statuses)) {
 				if (status && status.statusCode !== StatusCode.GOOD) {
 					statusCode = Math.max(statusCode, status.statusCode)
 					messages.push(status.message)
@@ -439,16 +443,16 @@ export class CoreHandler {
 		return versions
 	}
 
-	restartExpectation(workId: string): void {
+	restartExpectation(workId: ExpectationId): void {
 		return this._packageManagerHandler?.restartExpectation(workId)
 	}
 	restartAllExpectations(): void {
 		return this._packageManagerHandler?.restartAllExpectations()
 	}
-	abortExpectation(workId: string): void {
+	abortExpectation(workId: ExpectationId): void {
 		return this._packageManagerHandler?.abortExpectation(workId)
 	}
-	restartPackageContainer(containerId: string): void {
+	restartPackageContainer(containerId: PackageContainerId): void {
 		return this._packageManagerHandler?.restartPackageContainer(containerId)
 	}
 	troubleshoot(): any {
@@ -457,7 +461,7 @@ export class CoreHandler {
 	async getExpetationManagerStatus(): Promise<any> {
 		return this._packageManagerHandler?.getExpetationManagerStatus()
 	}
-	async debugKillApp(appId: string): Promise<void> {
+	async debugKillApp(appId: AppId): Promise<void> {
 		return this._packageManagerHandler?.debugKillApp(appId)
 	}
 }

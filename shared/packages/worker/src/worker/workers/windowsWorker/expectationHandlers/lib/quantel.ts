@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { AccessorOnPackage, Accessor } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { Expectation, literal } from '@sofie-package-manager/api'
+import { AccessorId, Expectation, literal, protectString } from '@sofie-package-manager/api'
 import { getAccessorHandle, isHTTPProxyAccessorHandle } from '../../../../accessorHandlers/accessor'
 import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
@@ -16,7 +16,7 @@ export function getSourceHTTPHandle(
 
 	const handle = getAccessorHandle<QuantelClipMetadata>(
 		worker,
-		sourceHandle.accessorId + '__http',
+		protectString<AccessorId>(sourceHandle.accessorId + '__http'),
 		literal<AccessorOnPackage.HTTPProxy>({
 			type: Accessor.AccessType.HTTP_PROXY,
 			baseUrl: thumbnailURL.baseURL,

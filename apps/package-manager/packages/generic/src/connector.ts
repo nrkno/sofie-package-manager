@@ -7,6 +7,11 @@ import {
 	ExpectedPackage,
 	literal,
 	Accessor,
+	protectString,
+	ExpectationManagerId,
+	ExpectedPackageId,
+	PackageContainerId,
+	AccessorId,
 } from '@sofie-package-manager/api'
 import { ExpectationManager, ExpectationManagerServerOptions } from '@sofie-package-manager/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
@@ -15,6 +20,7 @@ import chokidar from 'chokidar'
 import fs from 'fs'
 import { promisify } from 'util'
 import path from 'path'
+import { objectEntries } from '@sofie-package-manager/api'
 
 const fsAccess = promisify(fs.access)
 const fsReadFile = promisify(fs.readFile)
@@ -72,7 +78,7 @@ export class Connector {
 
 		this.packageManagerHandler = new PackageManagerHandler(
 			this.logger,
-			config.packageManager.deviceId || 'manager0',
+			protectString<ExpectationManagerId>(config.packageManager.deviceId || 'manager0'),
 			packageManagerServerOptions,
 			config.packageManager.accessUrl || undefined,
 			workForceConnectionOptions,
@@ -128,18 +134,14 @@ export class Connector {
 			await fsWriteFile(
 				fileName,
 				JSON.stringify(
-					literal<{
-						description: string
-						packageContainers: PackageContainers
-						expectedPackages: ExpectedPackage.Any[]
-					}>({
+					literal<WatchFile>({
 						description:
 							'This file is intended for debugging use. By passing the argument --watchFiles=true, the application will monitor this file as a second source of packages, so we can fiddle without going through Core',
 						packageContainers: {
-							source0: {
+							[protectString<PackageContainerId>('source0')]: {
 								label: 'Source 0',
 								accessors: {
-									local: {
+									[protectString<AccessorId>('local')]: {
 										type: Accessor.AccessType.LOCAL_FOLDER,
 										label: 'Local',
 										folderPath: 'D:\\media\\source0',
@@ -148,10 +150,10 @@ export class Connector {
 									},
 								},
 							},
-							target0: {
+							[protectString<PackageContainerId>('target0')]: {
 								label: 'Target 0',
 								accessors: {
-									local: {
+									[protectString<AccessorId>('local')]: {
 										type: Accessor.AccessType.LOCAL_FOLDER,
 										label: 'Local',
 										folderPath: 'D:\\media\\target0',
@@ -160,10 +162,10 @@ export class Connector {
 									},
 								},
 							},
-							internet: {
+							[protectString<PackageContainerId>('internet')]: {
 								label: 'The Internet',
 								accessors: {
-									http: {
+									[protectString<AccessorId>('http')]: {
 										type: Accessor.AccessType.HTTP,
 										baseUrl: '',
 										allowRead: true,
@@ -176,7 +178,7 @@ export class Connector {
 						expectedPackages: [
 							{
 								type: ExpectedPackage.PackageType.MEDIA_FILE,
-								_id: 'test',
+								_id: protectString<ExpectedPackageId>('test'),
 								contentVersionHash: 'abc1234',
 								content: {
 									filePath: 'amb.mp4',
@@ -184,9 +186,9 @@ export class Connector {
 								version: {},
 								sources: [
 									{
-										containerId: 'source0',
+										containerId: protectString<PackageContainerId>('source0'),
 										accessors: {
-											local: {
+											[protectString<AccessorId>('local')]: {
 												type: Accessor.AccessType.LOCAL_FOLDER,
 												filePath: 'amb.mp4',
 											},
@@ -240,14 +242,25 @@ export class Connector {
 			if (!(await fsExist(fileName))) return
 
 			const str = await fsReadFile(fileName, { encoding: 'utf-8' })
-			const o = JSON.parse(str)
+			const o: WatchFile = JSON.parse(str)
 
 			if (o.packageContainers && o.expectedPackages) {
-				packageManagerHandler.setExternalData(o.packageContainers, o.expectedPackages)
+				const packageContainers: PackageContainers = {}
+				for (const [id, container] of objectEntries(o.packageContainers)) {
+					packageContainers[id] = container
+				}
+
+				packageManagerHandler.setExternalData(packageContainers, o.expectedPackages)
 			}
 		}
 	}
 	getExpectationManager(): ExpectationManager {
 		return this.packageManagerHandler.getExpectationManager()
 	}
+}
+
+interface WatchFile {
+	description: string
+	packageContainers: PackageContainers
+	expectedPackages: ExpectedPackage.Any[]
 }

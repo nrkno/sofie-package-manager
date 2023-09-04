@@ -7,383 +7,232 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 # [1.50.0-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1...v1.50.0-alpha.2) (2023-06-22)
-
 
 ### Features
 
-* make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/sofie-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
-
-
+- make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/sofie-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
 
 # [1.50.0-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.42.0...v1.50.0-alpha.0) (2023-05-10)
 
-
 ### Features
 
-* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/sofie-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
-
-
-
-
+- implement phase and balance measurements ([c1b7077](https://github.com/nrkno/sofie-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
 
 ## [1.42.1](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 ## [1.42.1-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.42.0...v1.42.1-alpha.0) (2023-06-09)
-
 
 ### Bug Fixes
 
-* URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/sofie-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
-
-
-
-
+- URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/sofie-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
 
 # [1.42.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.5...v1.42.0) (2023-05-10)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 # [1.42.0-alpha.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.4...v1.42.0-alpha.5) (2023-05-10)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
-
-
-
-
 
 # [1.42.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.3...v1.42.0-alpha.4) (2023-05-03)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 # [1.42.0-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.2...v1.42.0-alpha.3) (2023-05-03)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 # [1.42.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.1...v1.42.0-alpha.2) (2023-05-03)
-
 
 ### Bug Fixes
 
-* add logging for when doing file (or other) operations. ([0407a3d](https://github.com/nrkno/tv-automation-package-manager/commit/0407a3dce15691d1d0424f730689f0230cc6736e))
-* add logging when removing dir ([1a6a102](https://github.com/nrkno/tv-automation-package-manager/commit/1a6a102cf26bfaa443d6d6002f913c87a49152fe))
-* add truePeak reporting ([51b78dd](https://github.com/nrkno/tv-automation-package-manager/commit/51b78ddc1fe2b76bea28bba6f1998ee431bf1830))
-
-
-
-
+- add logging for when doing file (or other) operations. ([0407a3d](https://github.com/nrkno/tv-automation-package-manager/commit/0407a3dce15691d1d0424f730689f0230cc6736e))
+- add logging when removing dir ([1a6a102](https://github.com/nrkno/tv-automation-package-manager/commit/1a6a102cf26bfaa443d6d6002f913c87a49152fe))
+- add truePeak reporting ([51b78dd](https://github.com/nrkno/tv-automation-package-manager/commit/51b78ddc1fe2b76bea28bba6f1998ee431bf1830))
 
 # [1.42.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.0...v1.42.0-alpha.1) (2023-04-26)
 
-
 ### Bug Fixes
 
-* Old files where cleaned up from temporary-store prematurely. ([7025367](https://github.com/nrkno/tv-automation-package-manager/commit/70253672842ca208e6d046551886d328844b49cb))
-
-
-
-
+- Old files where cleaned up from temporary-store prematurely. ([7025367](https://github.com/nrkno/tv-automation-package-manager/commit/70253672842ca208e6d046551886d328844b49cb))
 
 # [1.42.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-0...v1.42.0-alpha.0) (2023-04-26)
 
-
 ### Bug Fixes
 
-* **Loudness:** match only last scan result output ([c678c0b](https://github.com/nrkno/tv-automation-package-manager/commit/c678c0bce0dd75c7674502369730011d8cf480f0))
-* don't double-escape URLs ([a1a4089](https://github.com/nrkno/tv-automation-package-manager/commit/a1a40895a8efa8e04d8896264e80770395e132eb))
-* handle # in filenames and urls (%23, when URI encoded) ([c9ad9c8](https://github.com/nrkno/tv-automation-package-manager/commit/c9ad9c8d42d6ab865f3ac0b81891e1a02cbe985f))
-
+- **Loudness:** match only last scan result output ([c678c0b](https://github.com/nrkno/tv-automation-package-manager/commit/c678c0bce0dd75c7674502369730011d8cf480f0))
+- don't double-escape URLs ([a1a4089](https://github.com/nrkno/tv-automation-package-manager/commit/a1a40895a8efa8e04d8896264e80770395e132eb))
+- handle # in filenames and urls (%23, when URI encoded) ([c9ad9c8](https://github.com/nrkno/tv-automation-package-manager/commit/c9ad9c8d42d6ab865f3ac0b81891e1a02cbe985f))
 
 ### Features
 
-* implement test ([afcd0b5](https://github.com/nrkno/tv-automation-package-manager/commit/afcd0b552f6bb66079c64162fc6f40c7f702b139))
-* support failure in ffmpeg due to referencing a non-existant channel ([bf4888d](https://github.com/nrkno/tv-automation-package-manager/commit/bf4888d1d5525b3a4ee28f8b7e60e54c16c439a7))
-* **Loudness:** Generate loduness scan of packages ([6e990d7](https://github.com/nrkno/tv-automation-package-manager/commit/6e990d7d8910cfd887317d69feb48a3a7e151589))
-
+- implement test ([afcd0b5](https://github.com/nrkno/tv-automation-package-manager/commit/afcd0b552f6bb66079c64162fc6f40c7f702b139))
+- support failure in ffmpeg due to referencing a non-existant channel ([bf4888d](https://github.com/nrkno/tv-automation-package-manager/commit/bf4888d1d5525b3a4ee28f8b7e60e54c16c439a7))
+- **Loudness:** Generate loduness scan of packages ([6e990d7](https://github.com/nrkno/tv-automation-package-manager/commit/6e990d7d8910cfd887317d69feb48a3a7e151589))
 
 ### Reverts
 
-* Revert "chore: split out "@sofie-package-manager/input-api" to a separate package" ([8df7c18](https://github.com/nrkno/tv-automation-package-manager/commit/8df7c183d86436540b4e4b5489446d6340188b24))
-
-
-
-
+- Revert "chore: split out "@sofie-package-manager/input-api" to a separate package" ([8df7c18](https://github.com/nrkno/tv-automation-package-manager/commit/8df7c183d86436540b4e4b5489446d6340188b24))
 
 # [1.42.0-0](https://github.com/nrkno/sofie-package-manager/compare/v1.41.1...v1.42.0-0) (2023-03-22)
 
-
 ### Bug Fixes
 
-* ensure that target file paths exists before writing to file ([2d5381d](https://github.com/nrkno/sofie-package-manager/commit/2d5381db576de694b14a3a94c26f525f75ddfd9b))
-
+- ensure that target file paths exists before writing to file ([2d5381d](https://github.com/nrkno/sofie-package-manager/commit/2d5381db576de694b14a3a94c26f525f75ddfd9b))
 
 ### Features
 
-* Package manager placeholder ([47d2e1f](https://github.com/nrkno/sofie-package-manager/commit/47d2e1f64ffe90fe7a5fe967e83bca0befb66471))
-
-
-
-
+- Package manager placeholder ([47d2e1f](https://github.com/nrkno/sofie-package-manager/commit/47d2e1f64ffe90fe7a5fe967e83bca0befb66471))
 
 ## [1.41.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0...v1.41.1) (2023-02-22)
 
-
 ### Bug Fixes
 
-* add packageExists property to tryPackageRead() method, in order to return better sourceExists from isFileReadyToStartWorkingOn() ([ddccbbe](https://github.com/nrkno/tv-automation-package-manager/commit/ddccbbef9d7c00340cb746ad8e2645e143ea6de9))
-* adjust MESSAGE_TIMEOUT during unit tests ([2411472](https://github.com/nrkno/tv-automation-package-manager/commit/2411472811f39835985d3d86c7950d12be077b5c))
-* bug in joinUrls where it incorrectly joined the paths ("asdf/package", "//nas/folder/path") ([72b837a](https://github.com/nrkno/tv-automation-package-manager/commit/72b837acebae1eb3140400226fdcc58d91169d15))
-* packageExists value ([fc7e5c6](https://github.com/nrkno/tv-automation-package-manager/commit/fc7e5c6275eefcca86c9c4c124d9fc5bd7b809fa))
-
-
-
-
+- add packageExists property to tryPackageRead() method, in order to return better sourceExists from isFileReadyToStartWorkingOn() ([ddccbbe](https://github.com/nrkno/tv-automation-package-manager/commit/ddccbbef9d7c00340cb746ad8e2645e143ea6de9))
+- adjust MESSAGE_TIMEOUT during unit tests ([2411472](https://github.com/nrkno/tv-automation-package-manager/commit/2411472811f39835985d3d86c7950d12be077b5c))
+- bug in joinUrls where it incorrectly joined the paths ("asdf/package", "//nas/folder/path") ([72b837a](https://github.com/nrkno/tv-automation-package-manager/commit/72b837acebae1eb3140400226fdcc58d91169d15))
+- packageExists value ([fc7e5c6](https://github.com/nrkno/tv-automation-package-manager/commit/fc7e5c6275eefcca86c9c4c124d9fc5bd7b809fa))
 
 # [1.41.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.1...v1.41.0) (2023-02-03)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 # [1.41.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.41.0-alpha.0...v1.41.0-alpha.1) (2023-02-03)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 # [1.41.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.40.2...v1.41.0-alpha.0) (2023-01-27)
-
 
 ### Bug Fixes
 
-* CachedQuantelGateway: ([6597efe](https://github.com/nrkno/tv-automation-package-manager/commit/6597efe7b990b8152b3468a1842deadc168e621f))
-* rework CachedQuantelGateway ([216ac06](https://github.com/nrkno/tv-automation-package-manager/commit/216ac062114d464e89270e5ce0ead6e9bddeb367))
-
-
-
-
+- CachedQuantelGateway: ([6597efe](https://github.com/nrkno/tv-automation-package-manager/commit/6597efe7b990b8152b3468a1842deadc168e621f))
+- rework CachedQuantelGateway ([216ac06](https://github.com/nrkno/tv-automation-package-manager/commit/216ac062114d464e89270e5ce0ead6e9bddeb367))
 
 ## [1.40.1](https://github.com/nrkno/sofie-package-manager/compare/v1.40.0...v1.40.1) (2023-01-26)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 # [1.40.0](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.4...v1.40.0) (2023-01-23)
-
 
 ### Bug Fixes
 
-* don't respect timeSinceLastError if state is RESTARTED ([c94de26](https://github.com/nrkno/sofie-package-manager/commit/c94de268c27669be90b58c5a3d6fcc7321d23c4b))
-* remove dependency on blueprints-integration ([e545992](https://github.com/nrkno/sofie-package-manager/commit/e545992e5204ff836e86011edeee7c08fdcaeaff))
-
+- don't respect timeSinceLastError if state is RESTARTED ([c94de26](https://github.com/nrkno/sofie-package-manager/commit/c94de268c27669be90b58c5a3d6fcc7321d23c4b))
+- remove dependency on blueprints-integration ([e545992](https://github.com/nrkno/sofie-package-manager/commit/e545992e5204ff836e86011edeee7c08fdcaeaff))
 
 ### Features
 
-* CachedQuantelGateway to buffer requests ([33a2477](https://github.com/nrkno/sofie-package-manager/commit/33a2477d8b6ce495f6d2694e431f14a2fa90eeec))
-
-
-
-
+- CachedQuantelGateway to buffer requests ([33a2477](https://github.com/nrkno/sofie-package-manager/commit/33a2477d8b6ce495f6d2694e431f14a2fa90eeec))
 
 ## [1.39.8-alpha.4](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.3...v1.39.8-alpha.4) (2023-01-17)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 ## [1.39.8-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.2...v1.39.8-alpha.3) (2023-01-13)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 ## [1.39.8-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.1...v1.39.8-alpha.2) (2023-01-12)
-
 
 ### Bug Fixes
 
-* **Quantel:** shorten QUANTEL_TIMEOUT to be lower than INNER_ACTION_TIMEOUT ([0758974](https://github.com/nrkno/sofie-package-manager/commit/075897441dd64cba0cb8d0723483e052c08cfecb))
-
-
-
-
+- **Quantel:** shorten QUANTEL_TIMEOUT to be lower than INNER_ACTION_TIMEOUT ([0758974](https://github.com/nrkno/sofie-package-manager/commit/075897441dd64cba0cb8d0723483e052c08cfecb))
 
 ## [1.39.8-alpha.1](https://github.com/nrkno/sofie-package-manager/compare/v1.39.8-alpha.0...v1.39.8-alpha.1) (2023-01-12)
 
-
 ### Bug Fixes
 
-* add packageHandle.packageIsInPlace() method, used to signal that a package is in place (or is about to be), so that any scheduled delayRemoval are cleared. ([1a71bc5](https://github.com/nrkno/sofie-package-manager/commit/1a71bc5aca80013915a0932f7f2cff9e48e01c12))
-* potential issue when using temporaryFilePaths and renaming a file to an already existing file ([17caa32](https://github.com/nrkno/sofie-package-manager/commit/17caa32fd1670ca92c06c0657540c5bfbfc6a4a9))
-
-
-
-
+- add packageHandle.packageIsInPlace() method, used to signal that a package is in place (or is about to be), so that any scheduled delayRemoval are cleared. ([1a71bc5](https://github.com/nrkno/sofie-package-manager/commit/1a71bc5aca80013915a0932f7f2cff9e48e01c12))
+- potential issue when using temporaryFilePaths and renaming a file to an already existing file ([17caa32](https://github.com/nrkno/sofie-package-manager/commit/17caa32fd1670ca92c06c0657540c5bfbfc6a4a9))
 
 ## [1.39.8-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.39.7...v1.39.8-alpha.0) (2023-01-12)
 
-
 ### Bug Fixes
 
-* increase timeout on quantel ([d0e0379](https://github.com/nrkno/sofie-package-manager/commit/d0e03799e7d3fd7218c87c8a505d010be6080ab1))
-
-
-
-
+- increase timeout on quantel ([d0e0379](https://github.com/nrkno/sofie-package-manager/commit/d0e03799e7d3fd7218c87c8a505d010be6080ab1))
 
 ## [1.39.7](https://github.com/nrkno/sofie-package-manager/compare/v1.39.6...v1.39.7) (2023-01-11)
 
-
 ### Bug Fixes
 
-* update quantel-gateway-client ([0f75c1e](https://github.com/nrkno/sofie-package-manager/commit/0f75c1e330daee7dec31cc6499213309f3f6708e))
-
-
-
-
+- update quantel-gateway-client ([0f75c1e](https://github.com/nrkno/sofie-package-manager/commit/0f75c1e330daee7dec31cc6499213309f3f6708e))
 
 ## [1.39.6](https://github.com/nrkno/sofie-package-manager/compare/v1.39.5...v1.39.6) (2023-01-09)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 ## [1.39.5](https://github.com/nrkno/sofie-package-manager/compare/v1.39.4...v1.39.5) (2023-01-09)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
 
-
-
-
-
 ## [1.39.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.4-alpha.0...v1.39.4) (2023-01-04)
-
 
 ### Bug Fixes
 
-* a recursive function needs to be called recursively ([8e06bbf](https://github.com/nrkno/tv-automation-package-manager/commit/8e06bbf097ab9c691b9415571116f5dd618d7881))
-* replace dots with underscore in keys in scan results. ([e05f8ef](https://github.com/nrkno/tv-automation-package-manager/commit/e05f8ef05c934453a71e59458392497401a55b9c))
-
-
-
-
+- a recursive function needs to be called recursively ([8e06bbf](https://github.com/nrkno/tv-automation-package-manager/commit/8e06bbf097ab9c691b9415571116f5dd618d7881))
+- replace dots with underscore in keys in scan results. ([e05f8ef](https://github.com/nrkno/tv-automation-package-manager/commit/e05f8ef05c934453a71e59458392497401a55b9c))
 
 ## [1.39.4-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.3...v1.39.4-alpha.0) (2022-12-05)
 
-
 ### Bug Fixes
 
-* blackDetectRegex expects black_duration to be a number with a decimal point ([#19](https://github.com/nrkno/tv-automation-package-manager/issues/19)) ([bb23fba](https://github.com/nrkno/tv-automation-package-manager/commit/bb23fba5dd9ffb97ee8791bd3342bbf0e482aa73))
-
-
-
-
+- blackDetectRegex expects black_duration to be a number with a decimal point ([#19](https://github.com/nrkno/tv-automation-package-manager/issues/19)) ([bb23fba](https://github.com/nrkno/tv-automation-package-manager/commit/bb23fba5dd9ffb97ee8791bd3342bbf0e482aa73))
 
 ## [1.39.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.2...v1.39.3) (2022-11-30)
 
-
 ### Bug Fixes
 
-* Update default values to generate larger media preview thumbnails ([f3d0bd7](https://github.com/nrkno/tv-automation-package-manager/commit/f3d0bd764b20753f751e53c49f27abb86f739f07))
-
-
-
-
+- Update default values to generate larger media preview thumbnails ([f3d0bd7](https://github.com/nrkno/tv-automation-package-manager/commit/f3d0bd764b20753f751e53c49f27abb86f739f07))
 
 ## [1.39.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0...v1.39.1) (2022-09-16)
 
-
 ### Bug Fixes
 
-* a case where multiple QuantelGateway clients where spawned by mistake ([bfb42a5](https://github.com/nrkno/tv-automation-package-manager/commit/bfb42a53e50a0de48cecab3c2275dc3f766c097c))
-* minor improvements to the rateLimiter of the file-watcher ([7741626](https://github.com/nrkno/tv-automation-package-manager/commit/77416267c48a1ff528b6d04c6bcb3db756e54cf0))
-
-
-
-
+- a case where multiple QuantelGateway clients where spawned by mistake ([bfb42a5](https://github.com/nrkno/tv-automation-package-manager/commit/bfb42a53e50a0de48cecab3c2275dc3f766c097c))
+- minor improvements to the rateLimiter of the file-watcher ([7741626](https://github.com/nrkno/tv-automation-package-manager/commit/77416267c48a1ff528b6d04c6bcb3db756e54cf0))
 
 # [1.39.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0-in-development.1...v1.39.0) (2022-09-07)
 
-
 ### Bug Fixes
 
-* add WorkerStorage to AppContainer, to be used for storing data from workers ([19a1516](https://github.com/nrkno/tv-automation-package-manager/commit/19a15166c9fece12d8474227c4ac0833c115632d))
-* allow empty baseUrl for http accessor ([68af3d4](https://github.com/nrkno/tv-automation-package-manager/commit/68af3d436efe02bd4b2d446ffc23a234a6ad2c23))
-* better handling (or hack) of the "connect EADDRINUSE" issue, by swallowing the error and try again once ([3cd4dcc](https://github.com/nrkno/tv-automation-package-manager/commit/3cd4dccc381279afe09f9ed4129e67dc427b9da2))
-* bug fix: invert logic ([2f2db03](https://github.com/nrkno/tv-automation-package-manager/commit/2f2db0389bb7268c9eba4b136bcc469f407ca8fc))
-* bug fix: use startRequirement for source, for CopyProxy ([d7cdfee](https://github.com/nrkno/tv-automation-package-manager/commit/d7cdfeebad6d0dc824fb676673bb935acc69d332))
-* bug in workerAgent, where the job wasn't cancelled upon timeout in workerAgent ([8cf0020](https://github.com/nrkno/tv-automation-package-manager/commit/8cf002023b366b0b1d711ceff7aac885a0a000ed))
-* DataStorage: add custom timeout duration for write locks ([32d993d](https://github.com/nrkno/tv-automation-package-manager/commit/32d993d8025c4b2b300f35fd437e1339bc0d497f))
-* ffmpeg-issues on Windows ([3a523df](https://github.com/nrkno/tv-automation-package-manager/commit/3a523df3061680afcabb83315bbf9bfc0d4c221a))
-* FileShare: fast-path to avoid a timeout issue when many read/write-calls are queued at the same time ([cfe389c](https://github.com/nrkno/tv-automation-package-manager/commit/cfe389c09e31c50c982e590c20741d986b0cd09f))
-* graceful process handling ([#9](https://github.com/nrkno/tv-automation-package-manager/issues/9)) ([47ac8e1](https://github.com/nrkno/tv-automation-package-manager/commit/47ac8e16f13803c8273b0768d0bb48e560fbedc2))
-* handle errors in killFFMpeg by ignoring them ([43ff037](https://github.com/nrkno/tv-automation-package-manager/commit/43ff037e4e1d4e0f10192c1351164578cfceee26))
-* hide ffmpeg banner to decrease log size ([e3a24c2](https://github.com/nrkno/tv-automation-package-manager/commit/e3a24c2c4e11b5e4ea21a9af013dde10ec0e8860))
-* improve logging, adding categories for logger to make it easier to know where a lig line comes from ([db18a35](https://github.com/nrkno/tv-automation-package-manager/commit/db18a35e841169f0ace1b3d42db2b9932c15f88d))
-* improve performance for preview generation ([c761c8b](https://github.com/nrkno/tv-automation-package-manager/commit/c761c8bc6646e67a2fcdaf6ea096db389007a327))
-* improve proxy-copy when copying from quantel http-transformer ([8385e3a](https://github.com/nrkno/tv-automation-package-manager/commit/8385e3ad540cac5c31c0d5c8fe1f56496a4d40e3))
-* increase HTTP_TIMEOUT to reduce Socket turnover ([d26ea5d](https://github.com/nrkno/tv-automation-package-manager/commit/d26ea5d1d883794a7fff7e6d818fff0878d0021c))
-* issues with black&freeze detection ([be1adf8](https://github.com/nrkno/tv-automation-package-manager/commit/be1adf84437158295b9c0734265ab2097a09b16e))
-* only do a single job per worker ([fc94d3c](https://github.com/nrkno/tv-automation-package-manager/commit/fc94d3c64b468475625adb510290321b52fddf3d))
-* refactor FFMpeg execution for previews ([2e7e9ea](https://github.com/nrkno/tv-automation-package-manager/commit/2e7e9ea6286192e76e7bbadc58457dcfa8b16f06))
-* replace execFile with spawn and use maxBuffer in other places ([3816100](https://github.com/nrkno/tv-automation-package-manager/commit/38161003542d6c4c6c63a67b5bb59439df00de9b))
-* report progress 0 only after FFMpeg detects duration ([7809d73](https://github.com/nrkno/tv-automation-package-manager/commit/7809d730040259d0687cd413dc2c60dc74a9b815))
-* use HTTP agents for fetch ([bf3cecc](https://github.com/nrkno/tv-automation-package-manager/commit/bf3cecc0533c89867cf80b808a7f944edb174cd2))
-* workaround for windows-network-drive not returning all devices. ([46bc210](https://github.com/nrkno/tv-automation-package-manager/commit/46bc2104b0dacb8c0944790f7b631df16b0523e1))
-* worker child processes exit with null code ([#11](https://github.com/nrkno/tv-automation-package-manager/issues/11)) ([19ebe9c](https://github.com/nrkno/tv-automation-package-manager/commit/19ebe9c543453b9f3d65abeb071a69010ceca92f))
-* Worker: use AppContainer datastore in order to ensure that only one worker is accessing windows drive letters at the same time. ([6c3b58b](https://github.com/nrkno/tv-automation-package-manager/commit/6c3b58b192a5558b6ab7f12178a10625e0af3585))
-
+- add WorkerStorage to AppContainer, to be used for storing data from workers ([19a1516](https://github.com/nrkno/tv-automation-package-manager/commit/19a15166c9fece12d8474227c4ac0833c115632d))
+- allow empty baseUrl for http accessor ([68af3d4](https://github.com/nrkno/tv-automation-package-manager/commit/68af3d436efe02bd4b2d446ffc23a234a6ad2c23))
+- better handling (or hack) of the "connect EADDRINUSE" issue, by swallowing the error and try again once ([3cd4dcc](https://github.com/nrkno/tv-automation-package-manager/commit/3cd4dccc381279afe09f9ed4129e67dc427b9da2))
+- bug fix: invert logic ([2f2db03](https://github.com/nrkno/tv-automation-package-manager/commit/2f2db0389bb7268c9eba4b136bcc469f407ca8fc))
+- bug fix: use startRequirement for source, for CopyProxy ([d7cdfee](https://github.com/nrkno/tv-automation-package-manager/commit/d7cdfeebad6d0dc824fb676673bb935acc69d332))
+- bug in workerAgent, where the job wasn't cancelled upon timeout in workerAgent ([8cf0020](https://github.com/nrkno/tv-automation-package-manager/commit/8cf002023b366b0b1d711ceff7aac885a0a000ed))
+- DataStorage: add custom timeout duration for write locks ([32d993d](https://github.com/nrkno/tv-automation-package-manager/commit/32d993d8025c4b2b300f35fd437e1339bc0d497f))
+- ffmpeg-issues on Windows ([3a523df](https://github.com/nrkno/tv-automation-package-manager/commit/3a523df3061680afcabb83315bbf9bfc0d4c221a))
+- FileShare: fast-path to avoid a timeout issue when many read/write-calls are queued at the same time ([cfe389c](https://github.com/nrkno/tv-automation-package-manager/commit/cfe389c09e31c50c982e590c20741d986b0cd09f))
+- graceful process handling ([#9](https://github.com/nrkno/tv-automation-package-manager/issues/9)) ([47ac8e1](https://github.com/nrkno/tv-automation-package-manager/commit/47ac8e16f13803c8273b0768d0bb48e560fbedc2))
+- handle errors in killFFMpeg by ignoring them ([43ff037](https://github.com/nrkno/tv-automation-package-manager/commit/43ff037e4e1d4e0f10192c1351164578cfceee26))
+- hide ffmpeg banner to decrease log size ([e3a24c2](https://github.com/nrkno/tv-automation-package-manager/commit/e3a24c2c4e11b5e4ea21a9af013dde10ec0e8860))
+- improve logging, adding categories for logger to make it easier to know where a lig line comes from ([db18a35](https://github.com/nrkno/tv-automation-package-manager/commit/db18a35e841169f0ace1b3d42db2b9932c15f88d))
+- improve performance for preview generation ([c761c8b](https://github.com/nrkno/tv-automation-package-manager/commit/c761c8bc6646e67a2fcdaf6ea096db389007a327))
+- improve proxy-copy when copying from quantel http-transformer ([8385e3a](https://github.com/nrkno/tv-automation-package-manager/commit/8385e3ad540cac5c31c0d5c8fe1f56496a4d40e3))
+- increase HTTP_TIMEOUT to reduce Socket turnover ([d26ea5d](https://github.com/nrkno/tv-automation-package-manager/commit/d26ea5d1d883794a7fff7e6d818fff0878d0021c))
+- issues with black&freeze detection ([be1adf8](https://github.com/nrkno/tv-automation-package-manager/commit/be1adf84437158295b9c0734265ab2097a09b16e))
+- only do a single job per worker ([fc94d3c](https://github.com/nrkno/tv-automation-package-manager/commit/fc94d3c64b468475625adb510290321b52fddf3d))
+- refactor FFMpeg execution for previews ([2e7e9ea](https://github.com/nrkno/tv-automation-package-manager/commit/2e7e9ea6286192e76e7bbadc58457dcfa8b16f06))
+- replace execFile with spawn and use maxBuffer in other places ([3816100](https://github.com/nrkno/tv-automation-package-manager/commit/38161003542d6c4c6c63a67b5bb59439df00de9b))
+- report progress 0 only after FFMpeg detects duration ([7809d73](https://github.com/nrkno/tv-automation-package-manager/commit/7809d730040259d0687cd413dc2c60dc74a9b815))
+- use HTTP agents for fetch ([bf3cecc](https://github.com/nrkno/tv-automation-package-manager/commit/bf3cecc0533c89867cf80b808a7f944edb174cd2))
+- workaround for windows-network-drive not returning all devices. ([46bc210](https://github.com/nrkno/tv-automation-package-manager/commit/46bc2104b0dacb8c0944790f7b631df16b0523e1))
+- worker child processes exit with null code ([#11](https://github.com/nrkno/tv-automation-package-manager/issues/11)) ([19ebe9c](https://github.com/nrkno/tv-automation-package-manager/commit/19ebe9c543453b9f3d65abeb071a69010ceca92f))
+- Worker: use AppContainer datastore in order to ensure that only one worker is accessing windows drive letters at the same time. ([6c3b58b](https://github.com/nrkno/tv-automation-package-manager/commit/6c3b58b192a5558b6ab7f12178a10625e0af3585))
 
 ### Features
 
-* add CLI option: considerCPULoad ([6da6ab0](https://github.com/nrkno/tv-automation-package-manager/commit/6da6ab0beab48fb59d29b3fcbfc6a3d0e4aa5de4))
-* support for "temporary-storage"; by copying packages to a local PackageContainer, scanning, preview-generation etc can be done quicker. ([31513f3](https://github.com/nrkno/tv-automation-package-manager/commit/31513f3b2b46054c57c8ff6110abd7285d8983c6))
-* **worker/accessorHandlers/http(Proxy):** rethrow last timeout error ([9599603](https://github.com/nrkno/tv-automation-package-manager/commit/9599603c8356e2ee20dad770c9d828b4b39f1999))
-* use HEAD requests for querying http-servers ([a077126](https://github.com/nrkno/tv-automation-package-manager/commit/a07712643af9c35b8b61de8b4e2113553fc3a259))
-
+- add CLI option: considerCPULoad ([6da6ab0](https://github.com/nrkno/tv-automation-package-manager/commit/6da6ab0beab48fb59d29b3fcbfc6a3d0e4aa5de4))
+- support for "temporary-storage"; by copying packages to a local PackageContainer, scanning, preview-generation etc can be done quicker. ([31513f3](https://github.com/nrkno/tv-automation-package-manager/commit/31513f3b2b46054c57c8ff6110abd7285d8983c6))
+- **worker/accessorHandlers/http(Proxy):** rethrow last timeout error ([9599603](https://github.com/nrkno/tv-automation-package-manager/commit/9599603c8356e2ee20dad770c9d828b4b39f1999))
+- use HEAD requests for querying http-servers ([a077126](https://github.com/nrkno/tv-automation-package-manager/commit/a07712643af9c35b8b61de8b4e2113553fc3a259))
 
 ### Reverts
 
-* Revert "feat(worker/accessorHandlers/http(Proxy)): add retries to getPackagesToRemove for resiliance" ([f278d2f](https://github.com/nrkno/tv-automation-package-manager/commit/f278d2fad29474bc5e04393d7c6e4e981031e5b5))
-
-
-
-
+- Revert "feat(worker/accessorHandlers/http(Proxy)): add retries to getPackagesToRemove for resiliance" ([f278d2f](https://github.com/nrkno/tv-automation-package-manager/commit/f278d2fad29474bc5e04393d7c6e4e981031e5b5))
 
 # [1.39.0-in-development.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.39.0-in-development.0...v1.39.0-in-development.1) (2022-02-15)
 
@@ -402,7 +251,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - add "HelpfulEventEmitter" to be used instead ot EventEmitter,, because it'll give the developer a warning if they've forgotten to listen to error events. ([fc1b1db](https://github.com/nrkno/tv-automation-package-manager/commit/fc1b1db8f99abbc35bbd39ba87cee870c3df1885))
 - allow deep scanning of audio-only files ([27ebd36](https://github.com/nrkno/tv-automation-package-manager/commit/27ebd3654f1cff3ee97ade486eaae74ca9ef876e))
 - better handling of FFScan errors ([dd2d643](https://github.com/nrkno/tv-automation-package-manager/commit/dd2d6439eedfde8d391c092edb4cedd9403549ca))
-- bug: Quantel clips with no frames showed up as fullfilled ([d986e09](https://github.com/nrkno/tv-automation-package-manager/commit/d986e09fea6a5f30b509df7b0db1af40c047160a))
+- bug: Quantel clips with no frames showed up as fulfilled ([d986e09](https://github.com/nrkno/tv-automation-package-manager/commit/d986e09fea6a5f30b509df7b0db1af40c047160a))
 - create folder if it doesn't exist ([daec566](https://github.com/nrkno/tv-automation-package-manager/commit/daec566c9fcb1f62a69101dab305e7f34dcb0502))
 - file access errors doesn't need to include stack ([eed5507](https://github.com/nrkno/tv-automation-package-manager/commit/eed5507d909796634905b90720395b629bc58b5a))
 - fine-grained priority of accessors ([87f26c0](https://github.com/nrkno/tv-automation-package-manager/commit/87f26c09cb069422d691c509aa8001a6872c7639))
@@ -436,7 +285,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 - A pretty large rehaul of connection logic. ([4b20139](https://github.com/nrkno/tv-automation-package-manager/commit/4b201394c3074b5601ae6c4452129dde2d7318eb))
 - add "HelpfulEventEmitter" to be used instead ot EventEmitter,, because it'll give the developer a warning if they've forgotten to listen to error events. ([fc1b1db](https://github.com/nrkno/tv-automation-package-manager/commit/fc1b1db8f99abbc35bbd39ba87cee870c3df1885))
-- bug: Quantel clips with no frames showed up as fullfilled ([d986e09](https://github.com/nrkno/tv-automation-package-manager/commit/d986e09fea6a5f30b509df7b0db1af40c047160a))
+- bug: Quantel clips with no frames showed up as fulfilled ([d986e09](https://github.com/nrkno/tv-automation-package-manager/commit/d986e09fea6a5f30b509df7b0db1af40c047160a))
 - file access errors doesn't need to include stack ([eed5507](https://github.com/nrkno/tv-automation-package-manager/commit/eed5507d909796634905b90720395b629bc58b5a))
 - fine-grained priority of accessors ([87f26c0](https://github.com/nrkno/tv-automation-package-manager/commit/87f26c09cb069422d691c509aa8001a6872c7639))
 - handle unhandled promises ([13a6f5a](https://github.com/nrkno/tv-automation-package-manager/commit/13a6f5a2a7afde41b06538414d517b132e630edb))

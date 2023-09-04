@@ -9,11 +9,12 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	Reason,
 	stringifyError,
+	AccessorId,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -61,11 +62,11 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 
 		return isFileReadyToStartWorkingOn(worker, lookupSource, lookupTarget)
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		_wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isFileCopyProxy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
@@ -253,7 +254,7 @@ async function lookupCopyTargets(
 
 function checkAccessorForQuantelFiles(
 	_packageContainer: PackageContainerOnPackage,
-	accessorId: string,
+	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any
 ): { success: true } | { success: false; reason: Reason } {
 	if (accessor.type === Accessor.AccessType.QUANTEL) {

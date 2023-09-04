@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { compact } from 'underscore'
+import { AnyProtectedString } from './ProtectedString'
 
 /** Helper function to force the input to be of a certain type. */
 export function literal<T>(o: T): T {
@@ -269,16 +270,16 @@ export function isNodeRunningInDebugMode(): boolean {
  */
 export function deferGets<Args extends any[], Result>(
 	fcn: (...args: Args) => Promise<Result>
-): (groupId: string, ...args: Args) => Promise<Result> {
+): (groupId: string | AnyProtectedString, ...args: Args) => Promise<Result> {
 	const defers = new Map<
-		string,
+		string | AnyProtectedString,
 		{
 			resolve: (value: Result) => void
 			reject: (err: any) => void
 		}[]
 	>()
 
-	return async (groupId: string, ...args: Args) => {
+	return async (groupId: string | AnyProtectedString, ...args: Args) => {
 		return new Promise<Result>((resolve, reject) => {
 			// Check if there already is a call waiting:
 			const waiting = defers.get(groupId)
@@ -317,7 +318,7 @@ export function removeUndefinedProperties<T extends { [key: string]: unknown } |
 	if (typeof o !== 'object') return o
 
 	const o2: { [key: string]: unknown } = {}
-	for (const [key, value] of Object.entries(o)) {
+	for (const [key, value] of Object.entries<unknown>(o)) {
 		if (value !== undefined) o2[key] = value
 	}
 	return o2 as T
@@ -325,4 +326,20 @@ export function removeUndefinedProperties<T extends { [key: string]: unknown } |
 export function ensureValidValue<T>(value: T, check: (value: any) => boolean, defaultValue: T): T {
 	if (check(value)) return value
 	return defaultValue
+}
+/**
+ * Convenience method to map entries of a Map.
+ * Array.from(myMap.entries()).map(([key, value]) => console.log(key, value))
+ * mapEntries(myMap, (key, value) => console.log(key, value))
+ */
+export function mapEntries<K, V, R>(map: Map<K, V>, cb: (key: K, value: V) => R): R[] {
+	return Array.from(map.entries()).map(([key, value]) => cb(key, value))
+}
+/**
+ * Convenience method to find() a value in a Map.
+ */
+export function findValue<K, V>(map: Map<K, V>, cb: (key: K, value: V) => boolean): V | undefined {
+	const found = Array.from(map.entries()).find(([key, value]) => cb(key, value))
+	if (found === undefined) return undefined
+	return found[1]
 }

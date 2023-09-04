@@ -23,6 +23,10 @@ import {
 	stringifyError,
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
+	protectString,
+	DataId,
+	AccessorId,
+	MonitorId,
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
@@ -64,7 +68,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 	constructor(
 		worker: GenericWorker,
-		accessorId: string,
+		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.FileShare,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -351,17 +355,18 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
 	): Promise<SetupPackageContainerMonitorsResult> {
-		const resultingMonitors: { [monitorId: string]: MonitorInProgress } = {}
+		const resultingMonitors: Record<MonitorId, MonitorInProgress> = {}
 		const monitorIds = Object.keys(
 			packageContainerExp.monitors
 		) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitorId of monitorIds) {
-			if (monitorId === 'packages') {
+		for (const monitorIdStr of monitorIds) {
+			if (monitorIdStr === 'packages') {
 				// setup file monitor:
-				resultingMonitors[monitorId] = this.setupPackagesMonitor(packageContainerExp)
+				resultingMonitors[protectString<MonitorId>(monitorIdStr)] =
+					this.setupPackagesMonitor(packageContainerExp)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitorId)
+				assertNever(monitorIdStr)
 			}
 		}
 
@@ -405,7 +410,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
 			const windowsWorker = this.worker as WindowsWorker
 
-			const STORE_DRIVELETTERS = `fileShare_driveLetters_${this.worker.agentAPI.location.localComputerId}`
+			const STORE_DRIVELETTERS = protectString<DataId>(
+				`fileShare_driveLetters_${this.worker.agentAPI.location.localComputerId}`
+			)
 			// Note: Use the mappedDriveLetters as a WorkerStorage, to avoid a potential issue where other workers
 			// mess with the drive letter at the same time that we do, and we all end up to be unsynced with reality.
 
@@ -419,7 +426,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 				// Check if the drive letter has already been assigned in our cache:
 				let foundMappedDriveLetter: string | null = null
-				for (const [driveLetter, mountedPath] of Object.entries(mappedDriveLetters)) {
+				for (const [driveLetter, mountedPath] of Object.entries<string>(mappedDriveLetters)) {
 					if (mountedPath === folderPath) {
 						foundMappedDriveLetter = driveLetter
 					}
@@ -439,7 +446,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 						const mappedDriveLetters: MappedDriveLetters = mappedDriveLetters0 ?? {}
 						// First we check if the drive letter has already been assigned in our cache:
 						let foundMappedDriveLetter: string | null = null
-						for (const [driveLetter, mountedPath] of Object.entries(mappedDriveLetters)) {
+						for (const [driveLetter, mountedPath] of Object.entries<string>(mappedDriveLetters)) {
 							if (mountedPath === folderPath) {
 								foundMappedDriveLetter = driveLetter
 							}
@@ -465,7 +472,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 						}
 						if (!handlingDone) {
 							// Update our cache of mounted drive letters:
-							for (const [driveLetter, mount] of Object.entries(
+							for (const [driveLetter, mount] of Object.entries<networkDrive.DriveInfo>(
 								await this.getMountedDriveLetters(`new network path: "${folderPath}")`)
 							)) {
 								mappedDriveLetters[driveLetter] = mount.path

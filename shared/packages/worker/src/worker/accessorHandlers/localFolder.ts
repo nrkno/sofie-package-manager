@@ -22,6 +22,9 @@ import {
 	assertNever,
 	Reason,
 	stringifyError,
+	AccessorId,
+	MonitorId,
+	protectString,
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
@@ -51,7 +54,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 
 	constructor(
 		worker: GenericWorker,
-		accessorId: string,
+		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.LocalFolder,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -298,17 +301,18 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
 	): Promise<SetupPackageContainerMonitorsResult> {
-		const resultingMonitors: { [monitorId: string]: MonitorInProgress } = {}
+		const resultingMonitors: Record<MonitorId, MonitorInProgress> = {}
 		const monitorIds = Object.keys(
 			packageContainerExp.monitors
 		) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitorId of monitorIds) {
-			if (monitorId === 'packages') {
+		for (const monitorIdStr of monitorIds) {
+			if (monitorIdStr === 'packages') {
 				// setup file monitor:
-				resultingMonitors[monitorId] = this.setupPackagesMonitor(packageContainerExp)
+				resultingMonitors[protectString<MonitorId>(monitorIdStr)] =
+					this.setupPackagesMonitor(packageContainerExp)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitorId)
+				assertNever(monitorIdStr)
 			}
 		}
 

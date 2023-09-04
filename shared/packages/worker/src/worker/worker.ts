@@ -1,4 +1,5 @@
 import {
+	DataId,
 	Expectation,
 	ExpectationManagerWorkerAgent,
 	LoggerInstance,
@@ -6,7 +7,7 @@ import {
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
@@ -23,11 +24,11 @@ export interface GenericWorkerAgentAPI {
 	 * This is used to prevent multiple workers from working on the same data point at the same time.
 	 */
 	workerStorageWrite: <T>(
-		dataId: string,
+		dataId: DataId,
 		customTimeout: number | undefined,
 		cb: (current: T | undefined) => Promise<T> | T
 	) => Promise<void>
-	workerStorageRead: <T>(dataId: string) => Promise<T | undefined>
+	workerStorageRead: <T>(dataId: DataId) => Promise<T | undefined>
 }
 
 /**
@@ -75,19 +76,19 @@ export abstract class GenericWorker {
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
 	/**
 	 * Check if the expectation is fulfilled or not.
-	 * (If the exopectation is already fullfilled, theres no need to workOnExpectation().)
+	 * (If the exopectation is already fulfilled, theres no need to workOnExpectation().)
 	 */
-	abstract isExpectationFullfilled(
+	abstract isExpectationFulfilled(
 		exp: Expectation.Any,
-		wasFullfilled: boolean
-	): Promise<ReturnTypeIsExpectationFullfilled>
+		wasFulfilled: boolean
+	): Promise<ReturnTypeIsExpectationFulfilled>
 	/**
 	 * Start working on fullfilling an expectation.
 	 * @returns a WorkInProgress, upon beginning of the work. WorkInProgress then handles signalling of the work progress.
 	 */
 	abstract workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress>
 	/**
-	 * "Make an expectation un-fullfilled"
+	 * "Make an expectation un-fulfilled"
 	 * This is called when an expectation has been removed.
 	 */
 	abstract removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation>

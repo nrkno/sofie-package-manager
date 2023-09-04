@@ -1,3 +1,4 @@
+import { AppContainerId, AppId } from './ids'
 import { WorkerAgentConfig } from './worker'
 
 /** The AppContainer is a host application responsible for spawning other applications */
@@ -9,7 +10,7 @@ export const APPCONTAINER_MAX_KEEPALIVE = 6 * 3600 * 1000 // ms (6 hours)
 export interface AppContainerConfig {
 	workforceURL: string | null
 	port: number | null
-	appContainerId: string
+	appContainerId: AppContainerId
 	minRunningApps: number
 	maxRunningApps: number
 	maxAppKeepalive: number
@@ -44,7 +45,7 @@ export namespace AppContainer {
 		/** Information about an App running in an AppContainer */
 		export interface App {
 			/** Uniquely identifies a running instance of an app. */
-			appId: string
+			appId: AppId
 		}
 	}
 

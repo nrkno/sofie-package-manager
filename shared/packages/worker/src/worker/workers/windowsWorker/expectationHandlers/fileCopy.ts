@@ -8,11 +8,12 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	Reason,
 	stringifyError,
+	AccessorId,
 } from '@sofie-package-manager/api'
 import { IWorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
@@ -46,11 +47,11 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		return isFileReadyToStartWorkingOn(worker, lookupSource, lookupTarget)
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		_wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
@@ -150,7 +151,7 @@ async function lookupCopyTargets(
 
 function checkAccessorForQuantelFileflow(
 	_packageContainer: PackageContainerOnPackage,
-	accessorId: string,
+	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any
 ): { success: true } | { success: false; reason: Reason } {
 	if (accessor.type === Accessor.AccessType.QUANTEL) {

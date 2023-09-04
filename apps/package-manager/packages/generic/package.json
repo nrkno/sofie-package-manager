@@ -10,7 +10,8 @@
         "test": "jest"
     },
     "peerDependencies": {
-        "@sofie-automation/server-core-integration": "*"
+        "@sofie-automation/server-core-integration": "*",
+        "@sofie-automation/shared-lib": "*"
     },
     "dependencies": {
         "@sofie-package-manager/api": "1.50.0-alpha.3",

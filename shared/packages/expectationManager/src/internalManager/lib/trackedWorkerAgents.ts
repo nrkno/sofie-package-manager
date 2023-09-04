@@ -1,5 +1,5 @@
 import { PromisePool } from '@supercharge/promise-pool'
-import { LoggerInstance, Reason, stringifyError } from '@sofie-package-manager/api'
+import { LoggerInstance, Reason, WorkerAgentId, stringifyError } from '@sofie-package-manager/api'
 import { ExpectationStateHandlerSession, WorkerAgentAssignment } from '../../lib/types'
 import { WorkerAgentAPI } from '../../workerAgentApi'
 import { ExpectationTracker } from '../../expectationTracker/expectationTracker'
@@ -7,31 +7,29 @@ import { TrackedExpectation } from '../../lib/trackedExpectation'
 
 /** Storage for WorkerAgents */
 export class TrackedWorkerAgents {
-	private workerAgents: {
-		[workerId: string]: TrackedWorkerAgent
-	} = {}
+	private workerAgents: Map<WorkerAgentId, TrackedWorkerAgent> = new Map()
 
 	private logger: LoggerInstance
 	constructor(logger: LoggerInstance, private tracker: ExpectationTracker) {
 		this.logger = logger.category('TrackedWorkerAgents')
 	}
 
-	public get(workerId: string): TrackedWorkerAgent | undefined {
-		return this.workerAgents[workerId]
+	public get(workerId: WorkerAgentId): TrackedWorkerAgent | undefined {
+		return this.workerAgents.get(workerId)
 	}
-	public list(): { workerId: string; workerAgent: TrackedWorkerAgent }[] {
-		return Object.entries(this.workerAgents).map(([workerId, workerAgent]) => {
+	public list(): { workerId: WorkerAgentId; workerAgent: TrackedWorkerAgent }[] {
+		return Array.from(this.workerAgents.entries()).map(([workerId, workerAgent]) => {
 			return {
 				workerId,
 				workerAgent,
 			}
 		})
 	}
-	public upsert(workerId: string, workerAgent: TrackedWorkerAgent): void {
-		this.workerAgents[workerId] = workerAgent
+	public upsert(workerId: WorkerAgentId, workerAgent: TrackedWorkerAgent): void {
+		this.workerAgents.set(workerId, workerAgent)
 	}
-	public remove(workerId: string): void {
-		delete this.workerAgents[workerId]
+	public remove(workerId: WorkerAgentId): void {
+		this.workerAgents.delete(workerId)
 	}
 
 	/**
@@ -53,23 +51,21 @@ export class TrackedWorkerAgents {
 				if (!workerAgent.connected) return
 
 				// Only ask each worker once, or after a certain time has passed:
-				if (
-					!trackedExp.queriedWorkers[workerId] ||
-					Date.now() - trackedExp.queriedWorkers[workerId] > this.tracker.constants.WORKER_SUPPORT_TIME
-				) {
-					trackedExp.queriedWorkers[workerId] = Date.now()
+				const queriedWorker = trackedExp.queriedWorkers.get(workerId)
+				if (!queriedWorker || Date.now() - queriedWorker > this.tracker.constants.WORKER_SUPPORT_TIME) {
+					trackedExp.queriedWorkers.set(workerId, Date.now())
 					hasQueriedAnyone = true
 					try {
 						const support = await workerAgent.api.doYouSupportExpectation(trackedExp.exp)
 
 						if (support.support) {
-							trackedExp.availableWorkers[workerId] = true
+							trackedExp.availableWorkers.add(workerId)
 						} else {
-							delete trackedExp.availableWorkers[workerId]
+							trackedExp.availableWorkers.delete(workerId)
 							trackedExp.noAvailableWorkersReason = support.reason
 						}
 					} catch (err) {
-						delete trackedExp.availableWorkers[workerId]
+						trackedExp.availableWorkers.delete(workerId)
 
 						if ((err + '').match(/timeout/i)) {
 							trackedExp.noAvailableWorkersReason = {
@@ -106,11 +102,11 @@ export class TrackedWorkerAgents {
 		let countQueried = 0
 		let countInfinite = 0
 
-		const workerIds = Object.keys(trackedExp.availableWorkers)
+		const workerIds = Array.from(trackedExp.availableWorkers.keys())
 
 		let noCostReason: Reason = {
 			user: `${workerIds.length} workers are currently busy`,
-			tech: `${workerIds.length} busy, ${Object.keys(trackedExp.queriedWorkers).length} queried`,
+			tech: `${workerIds.length} busy, ${trackedExp.queriedWorkers.size} queried`,
 		}
 
 		const workerCosts: WorkerAgentAssignment[] = []
@@ -118,11 +114,11 @@ export class TrackedWorkerAgents {
 		// We're using PromisePool to query a batch of workers at a time:
 		await PromisePool.for(workerIds)
 			.withConcurrency(BATCH_SIZE)
-			.handleError(async (error, workerId: string) => {
+			.handleError(async (error, workerId: WorkerAgentId) => {
 				// Log the error
 				this.logger.error(`Error in assignWorkerToSession for worker "${workerId}": ${stringifyError(error)}`)
 			})
-			.process(async (workerId: string) => {
+			.process(async (workerId: WorkerAgentId) => {
 				// Abort if we have gotten enough answers:
 				if (workerCosts.length >= minWorkerCount) return
 
@@ -180,7 +176,7 @@ export class TrackedWorkerAgents {
 		if (!session) throw new Error('ExpectationManager: Internal error: Session not set')
 		if (session.assignedWorker) return // A worker has already been assigned
 
-		if (!Object.keys(trackedExp.availableWorkers).length) {
+		if (!trackedExp.availableWorkers.size) {
 			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }
 		}
 
@@ -196,9 +192,7 @@ export class TrackedWorkerAgents {
 		} else {
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker, ${noCostReason.user}`,
-				tech: `Waiting for a free worker ${noCostReason.tech} (${
-					Object.keys(trackedExp.availableWorkers).length
-				} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
+				tech: `Waiting for a free worker ${noCostReason.tech} (${trackedExp.availableWorkers.size} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
 			}
 		}
 	}

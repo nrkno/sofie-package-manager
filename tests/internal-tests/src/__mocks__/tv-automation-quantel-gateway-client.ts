@@ -312,7 +312,7 @@ class QuantelGateway extends EventEmitter {
 		if (DEBUG_LOG) console.log('searchClip', JSON.stringify(searchQuery))
 
 		return searchClip((clip) => {
-			for (const [key, value] of Object.entries(searchQuery)) {
+			for (const [key, value] of Object.entries<string | number | undefined>(searchQuery)) {
 				if (
 					// @ts-expect-error no index
 					clip[key] === value ||

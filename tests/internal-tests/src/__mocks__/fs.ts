@@ -194,7 +194,7 @@ function deleteMock(path: string, orgPath?: string, dir?: MockDirectory): void {
 export function __printAllFiles(): string {
 	const getPaths = (dir: MockDirectory, indent: string): string => {
 		const strs: any[] = []
-		for (const [name, file] of Object.entries(dir.content)) {
+		for (const [name, file] of Object.entries<MockAny>(dir.content)) {
 			if (file.isDirectory) {
 				strs.push(`${indent}${name}/`)
 				strs.push(getPaths(file, indent + '  '))
@@ -232,7 +232,7 @@ const errors = {
 }
 function fixPath(path: string) {
 	const mountedDrives = wndMock.__mountedDrives
-	for (const [driveLetter, mountedPath] of Object.entries(mountedDrives)) {
+	for (const [driveLetter, mountedPath] of Object.entries<wndMock0.DriveInfo>(mountedDrives)) {
 		path = path.replace(new RegExp(`^${driveLetter}:`), mountedPath.path)
 	}
 

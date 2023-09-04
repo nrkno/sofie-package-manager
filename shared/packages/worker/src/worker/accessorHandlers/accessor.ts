@@ -1,4 +1,4 @@
-import { assertNever, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
+import { assertNever, Accessor, AccessorOnPackage, AccessorId } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
@@ -11,7 +11,7 @@ import { ATEMAccessorHandle } from './atem'
 
 export function getAccessorHandle<Metadata>(
 	worker: GenericWorker,
-	accessorId: string,
+	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any,
 	content: unknown,
 	workOptions: unknown

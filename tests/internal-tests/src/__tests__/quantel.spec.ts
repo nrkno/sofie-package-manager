@@ -1,7 +1,16 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import * as QGatewayClientOrg from 'tv-automation-quantel-gateway-client'
-import { Expectation, literal, waitTime } from '@sofie-package-manager/api'
+import {
+	Expectation,
+	ExpectationId,
+	ExpectationManagerId,
+	ExpectedPackageId,
+	PackageContainerId,
+	literal,
+	protectString,
+	waitTime,
+} from '@sofie-package-manager/api'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
 import { waitUntil } from './lib/lib'
@@ -24,15 +33,22 @@ describe('Quantel', () => {
 		env.reset()
 		QGatewayClient.resetMock()
 	})
+	const EXP_copy0 = protectString<ExpectationId>('copy0')
+	const MANAGER0 = protectString<ExpectationManagerId>('manager0')
+	const PACKAGE0 = protectString<ExpectedPackageId>('package0')
+
+	const SOURCE0 = protectString<PackageContainerId>('source0')
+	const TARGET1 = protectString<PackageContainerId>('target1')
+
 	test('Clone by guid', async () => {
 		const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123')[0]
 
 		env.expectationManager.updateExpectations({
-			copy0: literal<Expectation.QuantelClipCopy>({
-				id: 'copy0',
+			[EXP_copy0]: literal<Expectation.QuantelClipCopy>({
+				id: EXP_copy0,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.QUANTEL_CLIP_COPY,
 				statusReport: {
 					label: `Copy quantel clip0`,
@@ -42,10 +58,10 @@ describe('Quantel', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getQuantelSource('source0')],
+					sources: [getQuantelSource(SOURCE0)],
 				},
 				endRequirement: {
-					targets: [getQuantelTarget('target1', 1001)],
+					targets: [getQuantelTarget(TARGET1, 1001)],
 					content: {
 						guid: 'abc123',
 					},
@@ -57,14 +73,14 @@ describe('Quantel', () => {
 
 		// Wait for the job to complete:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target1']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET1]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
 		const newClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123' && clip !== orgClip.clip)[0]
 		expect(newClip).toBeTruthy()
@@ -83,11 +99,11 @@ describe('Quantel', () => {
 		const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123')[0]
 
 		env.expectationManager.updateExpectations({
-			copy0: literal<Expectation.QuantelClipCopy>({
-				id: 'copy0',
+			[EXP_copy0]: literal<Expectation.QuantelClipCopy>({
+				id: EXP_copy0,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.QUANTEL_CLIP_COPY,
 				statusReport: {
 					label: `Copy quantel clip0`,
@@ -97,10 +113,10 @@ describe('Quantel', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getQuantelSource('source0')],
+					sources: [getQuantelSource(SOURCE0)],
 				},
 				endRequirement: {
-					targets: [getQuantelTarget('target1', 1001)],
+					targets: [getQuantelTarget(TARGET1, 1001)],
 					content: {
 						title: 'elephants',
 					},
@@ -112,14 +128,14 @@ describe('Quantel', () => {
 
 		// Wait for the job to complete:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target1']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET1]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
 		const newClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123' && clip !== orgClip.clip)[0]
 		expect(newClip).toBeTruthy()
@@ -173,11 +189,11 @@ describe('Quantel', () => {
 		const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123')[0]
 
 		env.expectationManager.updateExpectations({
-			copy0: literal<Expectation.QuantelClipCopy>({
-				id: 'copy0',
+			[EXP_copy0]: literal<Expectation.QuantelClipCopy>({
+				id: EXP_copy0,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.QUANTEL_CLIP_COPY,
 				statusReport: {
 					label: `Copy quantel clip0`,
@@ -187,10 +203,10 @@ describe('Quantel', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getQuantelSource('source0')],
+					sources: [getQuantelSource(SOURCE0)],
 				},
 				endRequirement: {
-					targets: [getQuantelTarget('target1', 1001)],
+					targets: [getQuantelTarget(TARGET1, 1001)],
 					content: {
 						title: 'New elephants',
 					},
@@ -209,13 +225,13 @@ describe('Quantel', () => {
 			expect(instance.mockCopyCount).toBe(0)
 		}
 
-		expect(env.containerStatuses['target1']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-		expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+		expect(env.containerStatuses[TARGET1]).toBeTruthy()
+		expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+		expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 		)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
 		const newClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123' && clip !== orgClip.clip)[0]
 		expect(newClip).toBeTruthy()
@@ -234,11 +250,11 @@ describe('Quantel', () => {
 		// const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123-reserved-clip')[0]
 
 		env.expectationManager.updateExpectations({
-			copy0: literal<Expectation.QuantelClipCopy>({
-				id: 'copy0',
+			[EXP_copy0]: literal<Expectation.QuantelClipCopy>({
+				id: EXP_copy0,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.QUANTEL_CLIP_COPY,
 				statusReport: {
 					label: `Copy quantel clip0`,
@@ -248,10 +264,10 @@ describe('Quantel', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getQuantelSource('source0')],
+					sources: [getQuantelSource(SOURCE0)],
 				},
 				endRequirement: {
-					targets: [getQuantelTarget('target1', 1001)],
+					targets: [getQuantelTarget(TARGET1, 1001)],
 					content: {
 						guid: 'abc123-reserved-clip',
 					},
@@ -263,12 +279,12 @@ describe('Quantel', () => {
 
 		// Wait for the job to get the correct status:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target1']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.statusReason.user).toEqual(
+			expect(env.containerStatuses[TARGET1]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.statusReason.user).toEqual(
 				`Reserved clip, not yet ready for playout`
 			)
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.PLACEHOLDER
 			)
 		}, env.WAIT_JOB_TIME)
@@ -286,15 +302,15 @@ describe('Quantel', () => {
 
 		// Wait for the job to finish:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target1']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-			// expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.statusReason.user).toEqual('')
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET1]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+			// expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.statusReason.user).toEqual('')
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, 500 + env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 	})
 })
 

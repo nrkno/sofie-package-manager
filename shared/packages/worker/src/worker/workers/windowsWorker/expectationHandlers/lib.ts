@@ -16,6 +16,7 @@ import {
 	Reason,
 	ReturnTypeDoYouSupportExpectation,
 	assertNever,
+	AccessorId,
 } from '@sofie-package-manager/api'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
@@ -126,7 +127,7 @@ export interface LookupChecks {
 
 	customCheck?: (
 		packageContainer: PackageContainerOnPackage,
-		accessorId: string,
+		accessorId: AccessorId,
 		accessor: AccessorOnPackage.Any
 	) => { success: true } | { success: false; reason: Reason }
 }

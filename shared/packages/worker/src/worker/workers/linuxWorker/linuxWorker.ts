@@ -7,7 +7,7 @@ import {
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
@@ -46,10 +46,10 @@ export class LinuxWorker extends GenericWorker {
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		throw new Error(`Not implemented yet`)
 	}
-	async isExpectationFullfilled(
+	async isExpectationFulfilled(
 		_exp: Expectation.Any,
-		_wasFullfilled: boolean
-	): Promise<ReturnTypeIsExpectationFullfilled> {
+		_wasFulfilled: boolean
+	): Promise<ReturnTypeIsExpectationFulfilled> {
 		throw new Error(`Not implemented yet`)
 	}
 	async workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {

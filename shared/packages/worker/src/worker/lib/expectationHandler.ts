@@ -2,7 +2,7 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@sofie-package-manager/api'
@@ -41,15 +41,15 @@ export interface ExpectationHandler {
 	) => Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
 	/**
 	 * Check if the expectation is fulfilled or not.
-	 * (If the exopectation is already fullfilled, theres no need to workOnExpectation().)
+	 * (If the exopectation is already fulfilled, theres no need to workOnExpectation().)
 	 */
-	isExpectationFullfilled: (
+	isExpectationFulfilled: (
 		exp: Expectation.Any,
-		/** If the caller believes that the expectation was fullfilled before */
-		wasFullfilled: boolean,
+		/** If the caller believes that the expectation was fulfilled before */
+		wasFulfilled: boolean,
 		genericWorker: GenericWorker,
 		specificWorker: any
-	) => Promise<ReturnTypeIsExpectationFullfilled>
+	) => Promise<ReturnTypeIsExpectationFulfilled>
 	/**
 	 * Start working on fullfilling an expectation.
 	 * @returns a WorkInProgress, upon beginning of the work. WorkInProgress then handles signalling of the work progress.
@@ -60,7 +60,7 @@ export interface ExpectationHandler {
 		specificWorker: any
 	) => Promise<IWorkInProgress>
 	/**
-	 * "Make an expectation un-fullfilled"
+	 * "Make an expectation un-fulfilled"
 	 * This is called when an expectation has been removed.
 	 */
 	removeExpectation: (

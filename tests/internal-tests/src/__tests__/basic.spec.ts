@@ -4,7 +4,15 @@ import WNDOrg from 'windows-network-drive'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import * as QGatewayClientOrg from 'tv-automation-quantel-gateway-client'
-import { Expectation, literal } from '@sofie-package-manager/api'
+import {
+	Expectation,
+	ExpectationId,
+	ExpectationManagerId,
+	ExpectedPackageId,
+	PackageContainerId,
+	literal,
+	protectString,
+} from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
 import type * as WNDType from '../__mocks__/windows-network-drive'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
@@ -29,6 +37,15 @@ const QGatewayClient = QGatewayClientOrg as any as typeof QGatewayClientType
 
 const fsStat = promisify(fs.stat)
 
+const MANAGER0 = protectString<ExpectationManagerId>('manager0')
+const EXP_copy0 = protectString<ExpectationId>('copy0')
+const PACKAGE0 = protectString<ExpectedPackageId>('package0')
+
+const SOURCE0 = protectString<PackageContainerId>('source0')
+const SOURCE1 = protectString<PackageContainerId>('source1')
+const TARGET0 = protectString<PackageContainerId>('target0')
+const TARGET1 = protectString<PackageContainerId>('target1')
+
 describe('Basic', () => {
 	let env: TestEnviromnent
 
@@ -52,11 +69,11 @@ describe('Basic', () => {
 		// console.log(fs.__printAllFiles())
 
 		env.expectationManager.updateExpectations({
-			copy0: literal<Expectation.FileCopy>({
-				id: 'copy0',
+			[EXP_copy0]: literal<Expectation.FileCopy>({
+				id: EXP_copy0,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.FILE_COPY,
 				statusReport: {
 					label: `Copy file0`,
@@ -66,10 +83,10 @@ describe('Basic', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getLocalSource('source0', 'file0Source.mp4')],
+					sources: [getLocalSource(SOURCE0, 'file0Source.mp4')],
 				},
 				endRequirement: {
-					targets: [getLocalTarget('target0', 'myFolder/file0Target.mp4')],
+					targets: [getLocalTarget(TARGET0, 'myFolder/file0Target.mp4')],
 					content: {
 						filePath: 'file0Target.mp4',
 					},
@@ -81,14 +98,14 @@ describe('Basic', () => {
 
 		// Wait for the job to complete:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
 		expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
 			size: 1234,
@@ -99,11 +116,11 @@ describe('Basic', () => {
 		fs.__mockSetDirectory('/targets/target1')
 
 		env.expectationManager.updateExpectations({
-			copy0: literal<Expectation.FileCopy>({
-				id: 'copy0',
+			[EXP_copy0]: literal<Expectation.FileCopy>({
+				id: EXP_copy0,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.FILE_COPY,
 				statusReport: {
 					label: `Copy file0`,
@@ -113,10 +130,10 @@ describe('Basic', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getFileShareSource('source1', 'file0Source.mp4')],
+					sources: [getFileShareSource(SOURCE1, 'file0Source.mp4')],
 				},
 				endRequirement: {
-					targets: [getLocalTarget('target1', 'subFolder0/file0Target.mp4')],
+					targets: [getLocalTarget(TARGET1, 'subFolder0/file0Target.mp4')],
 					content: {
 						filePath: 'subFolder0/file0Target.mp4',
 					},
@@ -128,14 +145,14 @@ describe('Basic', () => {
 
 		// Wait for the job to complete:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target1']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET1]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
 		expect(await WND.list()).toEqual({
 			X: {
@@ -154,11 +171,11 @@ describe('Basic', () => {
 		const orgClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123')[0]
 
 		env.expectationManager.updateExpectations({
-			copy0: literal<Expectation.QuantelClipCopy>({
-				id: 'copy0',
+			[EXP_copy0]: literal<Expectation.QuantelClipCopy>({
+				id: EXP_copy0,
 				priority: 0,
-				managerId: 'manager0',
-				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				managerId: MANAGER0,
+				fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 				type: Expectation.Type.QUANTEL_CLIP_COPY,
 				statusReport: {
 					label: `Copy quantel clip0`,
@@ -168,10 +185,10 @@ describe('Basic', () => {
 					sendReport: true,
 				},
 				startRequirement: {
-					sources: [getQuantelSource('source0')],
+					sources: [getQuantelSource(SOURCE0)],
 				},
 				endRequirement: {
-					targets: [getQuantelTarget('target1', 1001)],
+					targets: [getQuantelTarget(TARGET1, 1001)],
 					content: {
 						guid: 'abc123',
 					},
@@ -183,14 +200,14 @@ describe('Basic', () => {
 
 		// Wait for the job to complete:
 		await waitUntil(() => {
-			expect(env.containerStatuses['target1']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
-			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+			expect(env.containerStatuses[TARGET1]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
+			expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
 		}, env.WAIT_JOB_TIME)
 
-		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
+		expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
 		const newClip = QGatewayClient.searchClip((clip) => clip.ClipGUID === 'abc123' && clip !== orgClip.clip)[0]
 		expect(newClip).toBeTruthy()

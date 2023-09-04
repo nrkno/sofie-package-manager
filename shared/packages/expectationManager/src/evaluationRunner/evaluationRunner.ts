@@ -2,9 +2,11 @@
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import {
 	diff,
+	ExpectationId,
 	literal,
 	LoggerInstance,
-	PackageContainerExpectation,
+	objectEntries,
+	objectSize,
 	Reason,
 	StatusCode,
 	stringifyError,
@@ -19,7 +21,7 @@ import { TrackedPackageContainerExpectation } from '../lib/trackedPackageContain
 
 /**
  * The EvaluationRunner goes through one pass of evaluation of expectations.
- * When an evaulation is scheduled to run,
+ * When an evaluation is scheduled to run,
  * a new instance of EvaluationRunner is created, then the async .run() method is called.
  * After .run() is done, the instance is not used again.
  */
@@ -86,13 +88,11 @@ export class EvaluationRunner {
 		const cancelPromises: Promise<void>[] = []
 
 		// Added / Changed Expectations
-		for (const id of Object.keys(this.tracker.receivedUpdates.expectations)) {
-			const exp = this.tracker.receivedUpdates.expectations[id]
-
+		for (const exp of this.tracker.receivedUpdates.getExpectations()) {
 			let diffExplanation: string | null = null
 
 			let difference: null | 'new' | 'major' | 'minor' = null
-			const existingtrackedExp = this.tracker.trackedExpectations.get(id)
+			const existingtrackedExp = this.tracker.trackedExpectations.get(exp.id)
 			if (!existingtrackedExp) {
 				// new
 				difference = 'new'
@@ -120,7 +120,7 @@ export class EvaluationRunner {
 			if (difference === 'new' || difference === 'major') {
 				const newTrackedExp = getDefaultTrackedExpectation(exp, existingtrackedExp)
 
-				this.tracker.trackedExpectations.upsert(id, newTrackedExp)
+				this.tracker.trackedExpectations.upsert(exp.id, newTrackedExp)
 				if (difference === 'new') {
 					this.tracker.trackedExpectationAPI.updateTrackedExpectationStatus(newTrackedExp, {
 						state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
@@ -145,7 +145,7 @@ export class EvaluationRunner {
 			} else if (difference === 'minor') {
 				// A minor update doesn't require a full re-evaluation of the expectation.
 
-				const trackedExp = this.tracker.trackedExpectations.get(id)
+				const trackedExp = this.tracker.trackedExpectations.get(exp.id)
 				if (trackedExp) {
 					this.logger.debug(
 						`Minor update of expectation "${expLabel(trackedExp)}": ${diff(existingtrackedExp?.exp, exp)}`
@@ -162,7 +162,7 @@ export class EvaluationRunner {
 			if (!trackedExp) continue
 			trackedExp.errorCount = 0 // Also reset the errorCount, to start fresh.
 
-			if (!this.tracker.receivedUpdates.expectations[id]) {
+			if (!this.tracker.receivedUpdates.expectationExist(id)) {
 				// This expectation has been removed
 				// TODO: handled removed expectations!
 
@@ -187,12 +187,12 @@ export class EvaluationRunner {
 		// Restarted Expectations:
 		if (this.tracker.receivedUpdates.restartAllExpectations) {
 			for (const id of this.tracker.trackedExpectations.getIds()) {
-				this.tracker.receivedUpdates.restartExpectations[id] = true
+				this.tracker.receivedUpdates.restartExpectations(id)
 			}
 		}
 		this.tracker.receivedUpdates.restartAllExpectations = false
 
-		for (const id of Object.keys(this.tracker.receivedUpdates.restartExpectations)) {
+		for (const id of this.tracker.receivedUpdates.getRestartExpectations()) {
 			const trackedExp = this.tracker.trackedExpectations.get(id)
 			if (trackedExp) {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
@@ -214,10 +214,10 @@ export class EvaluationRunner {
 				trackedExp.lastEvaluationTime = 0 // To rerun ASAP
 			}
 		}
-		this.tracker.receivedUpdates.restartExpectations = {}
+		this.tracker.receivedUpdates.clearRestartExpectations()
 
 		// Aborted:
-		for (const id of Object.keys(this.tracker.receivedUpdates.abortExpectations)) {
+		for (const id of this.tracker.receivedUpdates.getAbortExpectations()) {
 			const trackedExp = this.tracker.trackedExpectations.get(id)
 			if (trackedExp) {
 				if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
@@ -238,7 +238,7 @@ export class EvaluationRunner {
 				})
 			}
 		}
-		this.tracker.receivedUpdates.abortExpectations = {}
+		this.tracker.receivedUpdates.clearAbortExpectations()
 
 		// We have now handled all new updates:
 		this.tracker.receivedUpdates.expectationsHasBeenUpdated = false
@@ -259,7 +259,7 @@ export class EvaluationRunner {
 
 		const times: { [key: string]: number } = {}
 
-		const removeIds: string[] = []
+		const removeIds: ExpectationId[] = []
 
 		const tracked = this.tracker.trackedExpectations.list()
 
@@ -377,16 +377,13 @@ export class EvaluationRunner {
 		this.tracker.receivedUpdates.packageContainersHasBeenUpdated = false
 
 		// Added / Changed
-		for (const containerId of Object.keys(this.tracker.receivedUpdates.packageContainers)) {
-			const packageContainer: PackageContainerExpectation =
-				this.tracker.receivedUpdates.packageContainers[containerId]
-
+		for (const packageContainer of this.tracker.receivedUpdates.getPackageContainers()) {
 			let isNew = false
 			let isUpdated = false
 
 			let trackedPackageContainer: TrackedPackageContainerExpectation
 
-			const existingPackageContainer = this.tracker.trackedPackageContainers.get(containerId)
+			const existingPackageContainer = this.tracker.trackedPackageContainers.get(packageContainer.id)
 			if (!existingPackageContainer) {
 				// Is new
 
@@ -394,7 +391,7 @@ export class EvaluationRunner {
 				isUpdated = true
 
 				trackedPackageContainer = {
-					id: containerId,
+					id: packageContainer.id,
 					packageContainer: packageContainer,
 					currentWorker: null,
 					waitingForWorkerTime: null,
@@ -410,13 +407,13 @@ export class EvaluationRunner {
 						monitors: {},
 					},
 				}
-				this.tracker.trackedPackageContainers.upsert(containerId, trackedPackageContainer)
+				this.tracker.trackedPackageContainers.upsert(packageContainer.id, trackedPackageContainer)
 			} else {
 				trackedPackageContainer = existingPackageContainer
 
 				if (!_.isEqual(existingPackageContainer.packageContainer, packageContainer)) {
 					isUpdated = true
-				} else if (this.tracker.receivedUpdates.restartPackageContainers[containerId]) {
+				} else if (this.tracker.receivedUpdates.isRestartPackageContainer(packageContainer.id)) {
 					isUpdated = true
 				}
 			}
@@ -451,7 +448,7 @@ export class EvaluationRunner {
 		// Removed:
 		for (const trackedPackageContainer of this.tracker.trackedPackageContainers.list()) {
 			const containerId = trackedPackageContainer.id
-			if (!this.tracker.receivedUpdates.packageContainers[containerId]) {
+			if (!this.tracker.receivedUpdates.getPackageContainer(containerId)) {
 				// This packageContainersExpectation has been removed
 
 				if (trackedPackageContainer.currentWorker) {
@@ -494,7 +491,7 @@ export class EvaluationRunner {
 			}
 		}
 
-		this.tracker.receivedUpdates.restartPackageContainers = {}
+		this.tracker.receivedUpdates.clearRestartExpectations()
 	}
 	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of this.tracker.trackedPackageContainers.list()) {
@@ -563,7 +560,7 @@ export class EvaluationRunner {
 							}
 						})
 					)
-					if (Object.keys(trackedPackageContainer.packageContainer.accessors).length > 0) {
+					if (objectSize(trackedPackageContainer.packageContainer.accessors) > 0) {
 						if (!trackedPackageContainer.currentWorker) {
 							if (this.manager.workerAgents.list().length) {
 								notSupportReason = {
@@ -618,7 +615,7 @@ export class EvaluationRunner {
 						continue // Break further execution for this PackageContainer
 					}
 
-					if (Object.keys(trackedPackageContainer.packageContainer.monitors).length !== 0) {
+					if (objectSize(trackedPackageContainer.packageContainer.monitors) !== 0) {
 						if (!trackedPackageContainer.monitorIsSetup) {
 							const monitorSetup = await workerAgent.api.setupPackageContainerMonitors(
 								trackedPackageContainer.packageContainer
@@ -627,7 +624,7 @@ export class EvaluationRunner {
 							trackedPackageContainer.status.monitors = {}
 							if (monitorSetup.success) {
 								trackedPackageContainer.monitorIsSetup = true
-								for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
+								for (const [monitorId, monitor] of objectEntries(monitorSetup.monitors)) {
 									if (trackedPackageContainer.status.monitors[monitorId]) {
 										// In case there no monitor status has been emitted yet:
 										this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerMonitorStatus(

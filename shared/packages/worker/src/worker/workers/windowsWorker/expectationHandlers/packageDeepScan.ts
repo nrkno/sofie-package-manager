@@ -7,7 +7,7 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
@@ -76,11 +76,11 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		wasFullfilled: boolean,
+		wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
@@ -114,7 +114,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			exp.endRequirement.version
 		)
 		if (packageInfoSynced.needsUpdate) {
-			if (wasFullfilled) {
+			if (wasFulfilled) {
 				// Remove the outdated scan result:
 				await lookupTarget.handle.removePackageInfo(PackageInfoType.DeepScan, exp)
 			}

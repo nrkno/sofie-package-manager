@@ -3,13 +3,17 @@ import { promiseTimeout, stringifyError } from './lib'
 import { LoggerInstance } from './logger'
 import { WebsocketClient } from './websocketClient'
 import { Hook, MessageBase, MessageIdentifyClient, ACTION_TIMEOUT } from './websocketConnection'
+import { MethodsInterfaceBase } from './methods'
 
 /**
  * The AdapterClient's sub-classes are used to connect to an AdapterServer in order to provide type-safe communication between processes (using web-sockets),
  * or (in the case where they run in the same process) hook directly into the AdapterServer, to call the methods directly.
  * @see {@link ./adapterServer.ts}
  */
-export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
+export abstract class AdapterClient<
+	ME extends MethodsInterfaceBase,
+	OTHER extends MethodsInterfaceBase
+> extends HelpfulEventEmitter {
 	/** Used for internal connections */
 	private serverHook?: Hook<OTHER, ME>
 
@@ -17,20 +21,24 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 		throw new Error('.init() must be called first!')
 	}
 
-	constructor(protected logger: LoggerInstance, private clientType: MessageIdentifyClient['clientType']) {
+	constructor(
+		protected logger: LoggerInstance,
+		protected id: OTHER['id'],
+		private clientType: MessageIdentifyClient['clientType']
+	) {
 		super()
 	}
 
-	private conn?: WebsocketClient
+	private conn?: WebsocketClient<OTHER['id']>
 	private terminated = false
 
 	private _connected = false
 
-	async init(id: string, connectionOptions: ClientConnectionOptions, clientMethods: ME): Promise<void> {
+	async init(connectionOptions: ClientConnectionOptions, clientMethods: Omit<ME, 'id'>): Promise<void> {
 		if (connectionOptions.type === 'websocket') {
 			const conn = new WebsocketClient(
 				this.logger,
-				id,
+				this.id,
 				connectionOptions.url,
 				this.clientType,
 				async (message: MessageBase) => {
@@ -56,14 +64,14 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 
 			conn.on('connected', () => {
 				if (this.listenerCount('connected') === 0) {
-					this.logger.debug(`Websocket client connected ("${id}", ${this.clientType})`)
+					this.logger.debug(`Websocket client connected ("${this.id}", ${this.clientType})`)
 				}
 				this.emit('connected')
 				this._connected = true
 			})
 			conn.on('disconnected', () => {
 				if (this.listenerCount('disconnected') === 0) {
-					this.logger.debug(`Websocket client disconnected ("${id}", ${this.clientType})`)
+					this.logger.debug(`Websocket client disconnected ("${this.id}", ${this.clientType})`)
 				}
 				this.emit('disconnected')
 				this._connected = false
@@ -78,7 +86,7 @@ export abstract class AdapterClient<ME, OTHER> extends HelpfulEventEmitter {
 			if (!this.serverHook)
 				throw new Error(`AdapterClient: can't init() an internal connection, call hook() first!`)
 
-			const serverHook: OTHER = this.serverHook(id, clientMethods)
+			const serverHook: OTHER = this.serverHook(this.id, clientMethods)
 			this._sendMessage = async (type: keyof OTHER, ...args: any[]) => {
 				if (this.terminated) throw new Error(`Can't send message due to being terminated`)
 

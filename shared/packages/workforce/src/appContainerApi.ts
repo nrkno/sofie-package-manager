@@ -6,6 +6,9 @@ import {
 	Expectation,
 	PackageContainerExpectation,
 	Reason,
+	WorkforceId,
+	AppType,
+	AppId,
 } from '@sofie-package-manager/api'
 
 /**
@@ -18,6 +21,7 @@ export class AppContainerAPI
 	implements WorkForceAppContainer.AppContainer
 {
 	constructor(
+		public id: WorkforceId,
 		methods: WorkForceAppContainer.WorkForce,
 		options: AdapterServerOptions<WorkForceAppContainer.AppContainer>
 	) {
@@ -36,21 +40,21 @@ export class AppContainerAPI
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any
-	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
 		return this._sendMessage('requestAppTypeForExpectation', exp)
 	}
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
-	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
 		return this._sendMessage('requestAppTypeForPackageContainer', packageContainer)
 	}
-	async spinUp(appType: string): Promise<string> {
+	async spinUp(appType: AppType): Promise<AppId> {
 		return this._sendMessage('spinUp', appType)
 	}
-	async spinDown(appId: string, reason: string): Promise<void> {
+	async spinDown(appId: AppId, reason: string): Promise<void> {
 		return this._sendMessage('spinDown', appId, reason)
 	}
-	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
+	async getRunningApps(): Promise<{ appId: AppId; appType: AppType }[]> {
 		return this._sendMessage('getRunningApps')
 	}
 }

@@ -1,11 +1,15 @@
 import {
+	AppId,
 	ClientConnectionOptions,
 	LoggerInstance,
 	LogLevel,
 	setLogLevel,
+	Status,
 	StatusCode,
 	Statuses,
 	stringifyError,
+	unprotectString,
+	WORKFORCE_ID,
 } from '@sofie-package-manager/api'
 import { WorkforceAPI } from '../../workforceApi'
 import { InternalManager } from '../internalManager'
@@ -25,17 +29,17 @@ export class WorkforceConnection {
 	) {
 		this.logger = logger.category('WorkforceConnection')
 
-		this.workforceAPI = new WorkforceAPI(this.logger)
+		this.workforceAPI = new WorkforceAPI(this.manager.managerId, this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('Workforce disconnected')
-			this.manager.statuses.update('workforce', {
+			this.manager.statuses.update(unprotectString(WORKFORCE_ID), {
 				statusCode: StatusCode.BAD,
 				message: 'Workforce disconnected (Restart Package Manager if this persists)',
 			})
 		})
 		this.workforceAPI.on('connected', () => {
 			this.logger.info('Workforce connected')
-			this.manager.statuses.update('workforce', { statusCode: StatusCode.GOOD, message: '' })
+			this.manager.statuses.update(unprotectString(WORKFORCE_ID), { statusCode: StatusCode.GOOD, message: '' })
 
 			this.workforceAPI
 				.registerExpectationManager(
@@ -55,7 +59,7 @@ export class WorkforceConnection {
 		})
 	}
 	public async init(): Promise<void> {
-		await this.workforceAPI.init(this.manager.managerId, this.workForceConnectionOptions, {
+		await this.workforceAPI.init(this.workForceConnectionOptions, {
 			setLogLevel: async (logLevel: LogLevel): Promise<void> => {
 				setLogLevel(logLevel)
 			},
@@ -70,7 +74,7 @@ export class WorkforceConnection {
 				await this._debugSendKillConnections()
 			},
 			onWorkForceStatus: async (statuses: Statuses): Promise<void> => {
-				for (const [id, status] of Object.entries(statuses)) {
+				for (const [id, status] of Object.entries<Status | null>(statuses)) {
 					this.manager.statuses.update(`workforce-${id}`, status)
 				}
 			},
@@ -85,7 +89,7 @@ export class WorkforceConnection {
 		this.workforceAPI.terminate()
 	}
 
-	async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
+	async setLogLevelOfApp(appId: AppId, logLevel: LogLevel): Promise<void> {
 		return this.workforceAPI.setLogLevelOfApp(appId, logLevel)
 	}
 

@@ -1,7 +1,14 @@
 import _ from 'underscore'
 import { CoreHandler } from './coreHandler'
 // eslint-disable-next-line node/no-extraneous-import
-import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
+import {
+	ExpectedPackageStatusAPI,
+	ExpectedPackage as ExpectedPackageOrg,
+} from '@sofie-automation/shared-lib/dist/package-manager/package'
+import {
+	ExpectedPackageId as CoreExpectedPackageId,
+	ExpectedPackageWorkStatusId,
+} from '@sofie-automation/shared-lib/dist/core/model/Ids'
 import {
 	PackageManagerActivePlaylist,
 	PackageManagerActiveRundown,
@@ -11,12 +18,7 @@ import {
 	PackageManagerPlayoutContext,
 	// eslint-disable-next-line node/no-extraneous-import
 } from '@sofie-automation/shared-lib/dist/package-manager/publications'
-import {
-	Observer,
-	PeripheralDeviceId,
-	protectString,
-	protectStringArray,
-} from '@sofie-automation/server-core-integration'
+import { Observer, PeripheralDeviceId } from '@sofie-automation/server-core-integration'
 // eslint-disable-next-line node/no-extraneous-import
 import { UpdateExpectedPackageWorkStatusesChanges } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
 // eslint-disable-next-line node/no-extraneous-import
@@ -43,6 +45,23 @@ import {
 	Accessor,
 	AccessorOnPackage,
 	Statuses,
+	Status,
+	ExpectationManagerId,
+	PackageContainerId,
+	ExpectedPackageId,
+	ExpectationId,
+	MonitorId,
+	AppId,
+	AccessorId,
+	AnyProtectedString,
+	objectEntries,
+	objectSize,
+	ProtectedString,
+	protectString,
+	unprotectString,
+	convProtectedString,
+	objectKeys,
+	objectValues,
 } from '@sofie-package-manager/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -57,7 +76,7 @@ export class PackageManagerHandler {
 
 	public expectationManager: ExpectationManager
 
-	private expectedPackageCache: { [id: string]: ExpectedPackageWrap } = {}
+	private expectedPackageCache: Map<ExpectedPackageId, ExpectedPackageWrap> = new Map()
 	public packageContainersCache: PackageContainers = {}
 
 	private externalData: { packageContainers: PackageContainers; expectedPackages: ExpectedPackageWrap[] } = {
@@ -65,9 +84,7 @@ export class PackageManagerHandler {
 		expectedPackages: [],
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
-	public monitoredPackages: {
-		[monitorId: string]: ExpectedPackageWrap[]
-	} = {}
+	public monitoredPackages: Map<MonitorId, ExpectedPackageWrap[]> = new Map()
 	settings: PackageManagerSettings = {
 		delayRemoval: 0,
 		useTemporaryFilePath: false,
@@ -78,10 +95,8 @@ export class PackageManagerHandler {
 		updated: number
 		expectedPackages: ExpectedPackageWrap[]
 		packageContainers: PackageContainers
-		expectations: {
-			[id: string]: Expectation.Any
-		}
-		packageContainerExpectations: { [id: string]: PackageContainerExpectation }
+		expectations: { [id: ExpectationId]: Expectation.Any }
+		packageContainerExpectations: { [id: PackageContainerId]: PackageContainerExpectation }
 	} = {
 		updated: 0,
 		expectedPackages: [],
@@ -95,7 +110,7 @@ export class PackageManagerHandler {
 	private logger: LoggerInstance
 	constructor(
 		logger: LoggerInstance,
-		private managerId: string,
+		private managerId: ExpectationManagerId,
 		private serverOptions: ExpectationManagerServerOptions,
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
@@ -253,12 +268,14 @@ export class PackageManagerHandler {
 				const expectedPackagesObjs = this.coreHandler
 					.getCollection<PackageManagerExpectedPackage>('packageManagerExpectedPackages')
 					.find()
-				expectedPackages.push(...expectedPackagesObjs)
+				for (const expectedPackagesObj of expectedPackagesObjs) {
+					expectedPackages.push(expectedPackagesObj as any as ExpectedPackageWrap)
+				}
 			}
 
 			// Add from Monitors:
 			{
-				for (const monitorExpectedPackages of Object.values(this.monitoredPackages)) {
+				for (const monitorExpectedPackages of this.monitoredPackages.values()) {
 					for (const expectedPackage of monitorExpectedPackages) {
 						expectedPackages.push(expectedPackage)
 					}
@@ -277,17 +294,19 @@ export class PackageManagerHandler {
 		expectedPackages: ExpectedPackageWrap[]
 	) {
 		// Step 0: Save local cache:
-		this.expectedPackageCache = {}
+		this.expectedPackageCache = new Map()
 		this.packageContainersCache = packageContainers
 		for (const exp of expectedPackages) {
 			// Note: There might be duplicates in expectedPackages
 
-			const existing = this.expectedPackageCache[exp.expectedPackage._id]
+			const expId: ExpectedPackageId = exp.expectedPackage._id
+
+			const existing = this.expectedPackageCache.get(expId)
 			if (
 				!existing ||
 				existing.priority > exp.priority // If the existing priority is lower (ie higher), replace it
 			) {
-				this.expectedPackageCache[exp.expectedPackage._id] = exp
+				this.expectedPackageCache.set(expId, exp)
 			}
 		}
 
@@ -307,7 +326,7 @@ export class PackageManagerHandler {
 			expectedPackages,
 			this.settings
 		)
-		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
+		this.logger.debug(`Has ${objectSize(expectations)} expectations`)
 		// this.logger.debug(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
@@ -316,7 +335,7 @@ export class PackageManagerHandler {
 			this.packageContainersCache,
 			activePlaylist
 		)
-		this.logger.debug(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
+		this.logger.debug(`Has ${objectSize(packageContainerExpectations)} packageContainerExpectations`)
 		this.dataSnapshot.packageContainerExpectations = packageContainerExpectations
 		this.dataSnapshot.updated = Date.now()
 
@@ -327,7 +346,7 @@ export class PackageManagerHandler {
 
 		this.expectationManager.updateExpectations(expectations)
 	}
-	public restartExpectation(workId: string): void {
+	public restartExpectation(workId: ExpectationId): void {
 		// This method can be called from core
 		this.expectationManager.restartExpectation(workId)
 	}
@@ -335,11 +354,11 @@ export class PackageManagerHandler {
 		// This method can be called from core
 		this.expectationManager.restartAllExpectations()
 	}
-	public abortExpectation(workId: string): void {
+	public abortExpectation(workId: ExpectationId): void {
 		// This method can be called from core
 		this.expectationManager.abortExpectation(workId)
 	}
-	public restartPackageContainer(containerId: string): void {
+	public restartPackageContainer(containerId: PackageContainerId): void {
 		// This method can be called from core
 		this.expectationManager.restartPackageContainer(containerId)
 	}
@@ -363,25 +382,27 @@ export class PackageManagerHandler {
 					this.workForceConnectionOptions.type === 'websocket' ? this.workForceConnectionOptions.url : null,
 				lastUpdated: this.dataSnapshot.updated,
 				countExpectedPackages: this.dataSnapshot.expectedPackages.length,
-				countPackageContainers: Object.keys(this.dataSnapshot.packageContainers).length,
-				countExpectations: Object.keys(this.dataSnapshot.expectations).length,
-				countPackageContainerExpectations: Object.keys(this.dataSnapshot.packageContainerExpectations).length,
+				countPackageContainers: objectSize(this.dataSnapshot.packageContainers),
+				countExpectations: objectSize(this.dataSnapshot.expectations),
+				countPackageContainerExpectations: objectSize(this.dataSnapshot.packageContainerExpectations),
 			},
 			updated: Date.now(),
 		}
 	}
-	public async debugKillApp(appId: string): Promise<void> {
+	public async debugKillApp(appId: AppId): Promise<void> {
 		return this.expectationManager.debugKillApp(appId)
 	}
 
-	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
+	/** Ensures that the packageContainerExpectations contains the mandatory expectations */
 	private ensureMandatoryPackageContainerExpectations(packageContainerExpectations: {
-		[id: string]: PackageContainerExpectation
+		[id: PackageContainerId]: PackageContainerExpectation
 	}): void {
-		for (const [containerId, packageContainer] of Object.entries(this.packageContainersCache)) {
+		for (const [containerId, packageContainer] of objectEntries<PackageContainerId, PackageContainer>(
+			this.packageContainersCache
+		)) {
 			/** Is the Container writeable */
 			let isWriteable = false
-			for (const accessor of Object.values(packageContainer.accessors)) {
+			for (const accessor of objectValues(packageContainer.accessors)) {
 				if (accessor.allowWrite) {
 					isWriteable = true
 					break
@@ -400,9 +421,10 @@ export class PackageManagerHandler {
 			}
 			if (isWriteable) {
 				// All writeable packageContainers should have the clean-up cronjob:
-				if (!packageContainerExpectations[containerId].cronjobs.cleanup) {
+				const existing = packageContainerExpectations[containerId] as PackageContainerExpectation | undefined
+				if (existing && !existing.cronjobs.cleanup) {
 					// Add cronjob to clean up:
-					packageContainerExpectations[containerId].cronjobs.cleanup = {
+					existing.cronjobs.cleanup = {
 						label: 'Clean up old packages',
 					}
 				}
@@ -424,26 +446,35 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 	private increment = 1
 
-	private toReportExpectationStatuses: ReportStatuses<ExpectedPackageStatusAPI.WorkStatus | null, undefined> = {}
-	public reportedExpectationStatuses: ReportStatuses<ExpectedPackageStatusAPI.WorkStatus, undefined> = {}
+	private toReportExpectationStatuses: ReportStatuses<
+		ExpectationId,
+		ExpectedPackageStatusAPI.WorkStatus | null,
+		undefined
+	> = new Map()
+	public reportedExpectationStatuses: ReportStatuses<ExpectationId, ExpectedPackageStatusAPI.WorkStatus, undefined> =
+		new Map()
 
 	private toReportPackageStatus: ReportStatuses<
+		PackageOnPackageId,
 		ExpectedPackageStatusAPI.PackageContainerPackageStatus | null,
-		{ containerId: string; packageId: string }
-	> = {}
+		{ containerId: PackageContainerId; packageId: ExpectedPackageId }
+	> = new Map()
 	public reportedPackageStatuses: ReportStatuses<
+		PackageOnPackageId,
 		ExpectedPackageStatusAPI.PackageContainerPackageStatus,
-		{ containerId: string; packageId: string }
-	> = {}
+		{ containerId: PackageContainerId; packageId: ExpectedPackageId }
+	> = new Map()
 
 	private toReportPackageContainerStatus: ReportStatuses<
+		PackageContainerId,
 		ExpectedPackageStatusAPI.PackageContainerStatus | null,
 		undefined
-	> = {}
+	> = new Map()
 	public reportedPackageContainerStatuses: ReportStatuses<
+		PackageContainerId,
 		ExpectedPackageStatusAPI.PackageContainerStatus,
 		undefined
-	> = {}
+	> = new Map()
 	private expectationManagerStatuses: Statuses = {}
 
 	constructor(logger: LoggerInstance, private packageManager: PackageManagerHandler) {
@@ -451,7 +482,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	}
 
 	public reportExpectationStatus(
-		expectationId: string,
+		expectationId: ExpectationId,
 		expectaction: Expectation.Any | null,
 		actualVersionHash: string | null,
 		statusInfo: {
@@ -463,13 +494,13 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		}
 	): void {
 		if (!expectaction) {
-			if (this.toReportExpectationStatuses[expectationId]) {
+			if (this.toReportExpectationStatuses.has(expectationId)) {
 				this.updateExpectationStatus(expectationId, null)
 			}
 		} else {
 			if (!expectaction.statusReport.sendReport) return // Don't report the status
 
-			const previouslyReported = this.toReportExpectationStatuses[expectationId]?.status
+			const previouslyReported = this.toReportExpectationStatuses.get(expectationId)?.status
 
 			// Remove undefined properties, so they don't mess with the spread operators below:
 			deleteAllUndefinedProperties(expectaction.statusReport)
@@ -493,11 +524,12 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				...statusInfo,
 
 				fromPackages: expectaction.fromPackages.map((fromPackage) => {
-					const prevPromPackage = this.toReportExpectationStatuses[expectationId]?.status?.fromPackages.find(
-						(p) => p.id === fromPackage.id
-					)
+					const fromPackageId = unprotectString(fromPackage.id)
+					const prevPromPackage = this.toReportExpectationStatuses
+						.get(expectationId)
+						?.status?.fromPackages.find((p) => p.id === fromPackageId)
 					return {
-						id: fromPackage.id,
+						id: fromPackageId,
 						expectedContentVersionHash: fromPackage.expectedContentVersionHash,
 						actualContentVersionHash: actualVersionHash || prevPromPackage?.actualContentVersionHash || '',
 					}
@@ -518,15 +550,15 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		}
 	}
 	public reportPackageContainerPackageStatus(
-		containerId: string,
-		packageId: string,
+		containerId: PackageContainerId,
+		packageId: ExpectedPackageId,
 		packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 	): void {
-		const packageContainerPackageId = `${containerId}_${packageId}`
+		const packageContainerPackageId = packageOnPackageId(containerId, packageId)
 		if (!packageStatus) {
 			this.updatePackageContainerPackageStatus(containerId, packageId, null)
 		} else {
-			const previouslyReported = this.toReportPackageStatus[packageContainerPackageId]?.status
+			const previouslyReported = this.toReportPackageStatus.get(packageContainerPackageId)?.status
 
 			const containerStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus = {
 				// Default properties:
@@ -556,13 +588,13 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		}
 	}
 	public reportPackageContainerExpectationStatus(
-		containerId: string,
+		containerId: PackageContainerId,
 		statusInfo: ExpectedPackageStatusAPI.PackageContainerStatus | null
 	): void {
 		if (!statusInfo) {
 			this.updatePackageContainerStatus(containerId, null)
 		} else {
-			const previouslyReported = this.toReportPackageContainerStatus[containerId]?.status
+			const previouslyReported = this.toReportPackageContainerStatus.get(containerId)?.status
 
 			const containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus = {
 				// Default properties:
@@ -600,14 +632,14 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 				return this.packageManager.coreHandler.coreMethods.fetchPackageInfoMetadata(
 					message.arguments[0],
-					protectStringArray(message.arguments[1])
+					convProtectedString<ExpectedPackageId[], CoreExpectedPackageId[]>(message.arguments[1])
 				)
 			}
 			case 'updatePackageInfo': {
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 				return this.packageManager.coreHandler.coreMethods.updatePackageInfo(
 					message.arguments[0],
-					protectString(message.arguments[1]),
+					convProtectedString<ExpectedPackageId, CoreExpectedPackageId>(message.arguments[1]),
 					message.arguments[2],
 					message.arguments[3],
 					message.arguments[4]
@@ -617,7 +649,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 				return this.packageManager.coreHandler.coreMethods.removePackageInfo(
 					message.arguments[0],
-					protectString(message.arguments[1]),
+					convProtectedString<ExpectedPackageId, CoreExpectedPackageId>(message.arguments[1]),
 					message.arguments[2]
 				)
 			}
@@ -635,52 +667,55 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 		if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
 
-		this.reportedExpectationStatuses = {}
+		this.reportedExpectationStatuses = new Map()
 		await this.packageManager.coreHandler.coreMethods.removeAllExpectedPackageWorkStatusOfDevice()
 
-		this.reportedPackageContainerStatuses = {}
+		this.reportedPackageContainerStatuses = new Map()
 		await this.packageManager.coreHandler.coreMethods.removeAllPackageContainerPackageStatusesOfDevice()
 
-		this.reportedPackageStatuses = {}
+		this.reportedPackageStatuses = new Map()
 		await this.packageManager.coreHandler.coreMethods.removeAllPackageContainerStatusesOfDevice()
 	}
 	public onCoreConnected() {
 		this.triggerReportUpdatedStatuses()
 	}
 
-	private updateExpectationStatus(expectationId: string, workStatus: ExpectedPackageStatusAPI.WorkStatus | null) {
-		this.toReportExpectationStatuses[expectationId] = {
+	private updateExpectationStatus(
+		expectationId: ExpectationId,
+		workStatus: ExpectedPackageStatusAPI.WorkStatus | null
+	) {
+		this.toReportExpectationStatuses.set(expectationId, {
 			status: workStatus,
 			ids: undefined,
 			hash: this.getIncrement(),
-		}
+		})
 		this.triggerReportUpdatedStatuses()
 	}
 	private updatePackageContainerPackageStatus(
-		containerId: string,
-		packageId: string,
+		containerId: PackageContainerId,
+		packageId: ExpectedPackageId,
 		packageStatus: ExpectedPackageStatusAPI.PackageContainerPackageStatus | null
 	): void {
-		const key = `${containerId}_${packageId}`
-		this.toReportPackageStatus[key] = {
+		const key = packageOnPackageId(containerId, packageId)
+		this.toReportPackageStatus.set(key, {
 			status: packageStatus,
 			ids: {
 				containerId,
 				packageId,
 			},
 			hash: this.getIncrement(),
-		}
+		})
 		this.triggerReportUpdatedStatuses()
 	}
 	private updatePackageContainerStatus(
-		containerId: string,
+		containerId: PackageContainerId,
 		containerStatus: ExpectedPackageStatusAPI.PackageContainerStatus | null
 	) {
-		this.toReportPackageContainerStatus[containerId] = {
+		this.toReportPackageContainerStatus.set(containerId, {
 			status: containerStatus,
 			ids: undefined,
 			hash: this.getIncrement(),
-		}
+		})
 		this.triggerReportUpdatedStatuses()
 	}
 	private triggerReportUpdatedStatuses() {
@@ -735,18 +770,18 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					if (change.type === 'delete') {
 						sendToCore.push({
 							type: 'delete',
-							id: protectString(expectationId),
+							id: convProtectedString<ExpectationId, ExpectedPackageWorkStatusId>(expectationId),
 						})
 					} else if (change.type === 'insert') {
 						sendToCore.push({
 							type: 'insert',
-							id: protectString(expectationId),
+							id: convProtectedString<ExpectationId, ExpectedPackageWorkStatusId>(expectationId),
 							status: change.status,
 						})
 					} else {
 						// Updated
 
-						const reported = this.reportedExpectationStatuses[expectationId]
+						const reported = this.reportedExpectationStatuses.get(expectationId)
 						if (!reported)
 							throw new Error(
 								`Internal Error: Expectation ${expectationId} not found in reportedExpectationStatuses (it should be)`
@@ -761,7 +796,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 						if (!_.isEmpty(mod)) {
 							sendToCore.push({
 								type: 'update',
-								id: protectString(expectationId),
+								id: convProtectedString<ExpectationId, ExpectedPackageWorkStatusId>(expectationId),
 								status: mod,
 							})
 						} else {
@@ -792,15 +827,15 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					if (change.type === 'delete') {
 						return {
 							type: 'delete',
-							containerId: change.ids.containerId,
-							packageId: change.ids.packageId,
+							containerId: unprotectString(change.ids.containerId),
+							packageId: unprotectString(change.ids.packageId),
 						}
 					} else {
 						// Inserted / Updated
 						return {
 							type: 'update',
-							containerId: change.ids.containerId,
-							packageId: change.ids.packageId,
+							containerId: unprotectString(change.ids.containerId),
+							packageId: unprotectString(change.ids.packageId),
 							status: change.status,
 						}
 					}
@@ -819,13 +854,13 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 						if (change.type === 'delete') {
 							return {
 								type: 'delete',
-								containerId: change.key,
+								containerId: unprotectString(change.key),
 							}
 						} else {
 							// Inserted / Updated
 							return {
 								type: 'update',
-								containerId: change.key,
+								containerId: unprotectString(change.key),
 								status: change.status,
 							}
 						}
@@ -835,18 +870,18 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		)
 	}
 
-	private async reportStatus<Status extends { [key: string]: any } | null, Ids>(
-		toReportStatus: ReportStatuses<Status | null, Ids>,
-		reportedStatuses: ReportStatuses<Status, Ids>,
-		sendChanges: (changesToSend: ChangesTosend<Status, Ids>) => Promise<void>
+	private async reportStatus<ID extends AnyProtectedString, Status extends { [key: string]: any } | null, Ids>(
+		toReportStatus: ReportStatuses<ID, Status | null, Ids>,
+		reportedStatuses: ReportStatuses<ID, Status, Ids>,
+		sendChanges: (changesToSend: ChangesTosend<ID, Status, Ids>) => Promise<void>
 	): Promise<void> {
-		const changesTosend: ChangesTosend<Status, Ids> = []
+		const changesTosend: ChangesTosend<ID, Status, Ids> = []
 
-		for (const [key, o] of Object.entries(toReportStatus)) {
+		for (const [key, o] of toReportStatus.entries()) {
 			if (o.hash !== null) {
 				if (!o.status) {
 					// Removed
-					if (reportedStatuses[key]) {
+					if (reportedStatuses.has(key)) {
 						changesTosend.push({
 							type: 'delete',
 							key,
@@ -857,7 +892,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				} else {
 					// Inserted / Updated
 					changesTosend.push({
-						type: reportedStatuses[key] ? 'update' : 'insert',
+						type: reportedStatuses.has(key) ? 'update' : 'insert',
 						key,
 						ids: o.ids,
 						status: o.status,
@@ -877,24 +912,24 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				for (const change of changesTosend) {
 					// Store the status we just sent into reportedStatuses:
 					if (change.type === 'delete') {
-						delete reportedStatuses[change.key]
+						reportedStatuses.delete(change.key)
 					} else {
-						reportedStatuses[change.key] = {
+						reportedStatuses.set(change.key, {
 							hash: change.hash,
 							ids: change.ids,
 							status: change.status,
-						}
+						})
 					}
 
 					// Now, check if the toReportStatus hash is still the same:
-					const orgToReportStaus = toReportStatus[change.key] as ReportStatus<Status, Ids> | undefined
+					const orgToReportStaus = toReportStatus.get(change.key) as ReportStatus<Status, Ids> | undefined
 					if (orgToReportStaus && orgToReportStaus.hash === change.hash) {
 						// Ok, this means that we have sent the latest update to Core.
 
 						if (orgToReportStaus.status === null) {
 							// The original data was deleted, so we can delete it, to prevent mamory leaks:
-							delete toReportStatus[change.key]
-							delete reportedStatuses[change.key]
+							toReportStatus.delete(change.key)
+							reportedStatuses.delete(change.key)
 						} else {
 							// Set the hash to null
 							orgToReportStaus.hash = null
@@ -916,8 +951,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		const statuses: Statuses = {}
 
 		for (const [containerId, container] of [
-			...Object.entries(this.reportedPackageContainerStatuses),
-			...Object.entries(this.toReportPackageContainerStatus),
+			...Array.from(this.reportedPackageContainerStatuses.entries()),
+			...Array.from(this.toReportPackageContainerStatus.entries()),
 		]) {
 			statuses[`container-${containerId}`] = container.status
 				? {
@@ -927,7 +962,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				: null
 		}
 
-		for (const [id, status] of Object.entries(this.expectationManagerStatuses)) {
+		for (const [id, status] of Object.entries<Status | null>(this.expectationManagerStatuses)) {
 			statuses[`expectationManager-${id}`] = status
 		}
 		this.packageManager.coreHandler
@@ -935,7 +970,11 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			.catch((e) => this.logger.error(`Error in updateCoreStatus : ${stringifyError(e)}`))
 	}
 
-	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
+	private reportMonitoredPackages(
+		_containerId: PackageContainerId,
+		monitorId: MonitorId,
+		expectedPackages: ExpectedPackage.Any[]
+	) {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
@@ -949,7 +988,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
 		)
 
-		this.packageManager.monitoredPackages[monitorId] = expectedPackagesWraps
+		this.packageManager.monitoredPackages.set(monitorId, expectedPackagesWraps)
 
 		this.packageManager.triggerUpdatedExpectedPackages()
 	}
@@ -963,8 +1002,9 @@ export function wrapExpectedPackage(
 	expectedPackage: ExpectedPackage.Any
 ): ExpectedPackageWrap | undefined {
 	const combinedSources: PackageContainerOnPackage[] = []
+
 	for (const packageSource of expectedPackage.sources) {
-		const lookedUpSource: PackageContainer = packageContainers[packageSource.containerId]
+		const lookedUpSource = packageContainers[packageSource.containerId] as PackageContainer | undefined
 		if (lookedUpSource) {
 			// We're going to combine the accessor attributes set on the Package with the ones defined on the source:
 			const combinedSource: PackageContainerOnPackage = {
@@ -973,8 +1013,8 @@ export function wrapExpectedPackage(
 				containerId: packageSource.containerId,
 			}
 
-			const accessorIds = _.uniq(
-				Object.keys(lookedUpSource.accessors).concat(Object.keys(packageSource.accessors || {}))
+			const accessorIds: AccessorId[] = _.uniq(
+				objectKeys(lookedUpSource.accessors).concat(objectKeys(packageSource.accessors || {}))
 			)
 
 			for (const accessorId of accessorIds) {
@@ -998,16 +1038,14 @@ export function wrapExpectedPackage(
 
 	for (const layer of expectedPackage.layers) {
 		// Hack: we use the layer name as a 1-to-1 relation to a target containerId
-		const packageContainerId: string = layer
+		const packageContainerId = protectString<PackageContainerId>(layer) // hack
 
 		if (packageContainerId) {
-			const lookedUpTarget = packageContainers[packageContainerId]
+			const lookedUpTarget = packageContainers[packageContainerId] as PackageContainer | undefined
 			if (lookedUpTarget) {
 				combinedTargets.push({
 					...omit(clone(lookedUpTarget), 'accessors'),
-					accessors: lookedUpTarget.accessors as {
-						[accessorId: string]: AccessorOnPackage.Any
-					},
+					accessors: lookedUpTarget.accessors,
 					containerId: packageContainerId,
 				})
 			}
@@ -1017,7 +1055,7 @@ export function wrapExpectedPackage(
 	if (combinedSources.length) {
 		if (combinedTargets.length) {
 			return {
-				expectedPackage: expectedPackage,
+				expectedPackage: expectedPackage as any,
 				priority: 999, // Default: lowest priority
 				sources: combinedSources,
 				targets: combinedTargets,
@@ -1050,9 +1088,25 @@ export function deleteAllUndefinedProperties<T extends { [key: string]: any }>(o
 		}
 	}
 }
+export type ConvertExpectedPackage<E extends ExpectedPackageOrg.Base> = Omit<E, '_id' | 'sources' | 'sideEffect'> & {
+	_id: ExpectedPackageId
+	sources: Array<
+		Omit<E['sources'][0], 'containerId' | 'accessors'> & {
+			containerId: PackageContainerId // Converts string -> PackageContainerId
+			accessors: {
+				[accessorId: AccessorId]: AccessorOnPackage.Any
+			}
+		}
+	>
+
+	sideEffect: Omit<E['sideEffect'], 'previewContainerId' | 'thumbnailContainerId'> & {
+		previewContainerId?: PackageContainerId | null
+		thumbnailContainerId?: PackageContainerId | null
+	}
+}
 
 export interface ExpectedPackageWrap {
-	expectedPackage: PackageManagerExpectedPackageBase
+	expectedPackage: ConvertExpectedPackage<PackageManagerExpectedPackageBase>
 	/** Lower should be done first */
 	priority: number
 	sources: PackageContainerOnPackage[]
@@ -1063,29 +1117,33 @@ export interface ExpectedPackageWrap {
 	// playoutLocation: any // todo?
 }
 
-export type PackageContainers = { [containerId: string]: PackageContainer }
+export type PackageContainers = Record<PackageContainerId, PackageContainer>
 
-type ReportStatuses<Status, Ids> = {
-	[key: string]: ReportStatus<Status, Ids>
-}
+type ReportStatuses<ID extends AnyProtectedString, Status, Ids> = Map<ID, ReportStatus<Status, Ids>>
+
 type ReportStatus<Status, Ids> = {
 	status: Status
 	ids: Ids
 	/** A unique value updated whenever the status is updated, or set to null if the status has already been reported. */
 	hash: number | null
 }
-type ChangesTosend<Status, Ids> = (
+type ChangesTosend<ID extends AnyProtectedString, Status, Ids> = (
 	| {
 			type: 'update' | 'insert'
-			key: string
+			key: ID
 			ids: Ids
 			status: Status
 			hash: number
 	  }
 	| {
 			type: 'delete'
-			key: string
+			key: ID
 			ids: Ids
 			hash: number
 	  }
 )[]
+
+type PackageOnPackageId = ProtectedString<'PackageOnPackageId', string>
+function packageOnPackageId(containerId: PackageContainerId, packageId: ExpectedPackageId): PackageOnPackageId {
+	return protectString<PackageOnPackageId>(`${containerId}_${packageId}`)
+}

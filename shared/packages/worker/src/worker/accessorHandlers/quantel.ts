@@ -1,3 +1,4 @@
+import { Socket } from 'node:net'
 import { CachedQuantelGateway } from './lib/CachedQuantelGateway'
 import {
 	GenericAccessorHandle,
@@ -21,6 +22,7 @@ import {
 	literal,
 	Reason,
 	INNER_ACTION_TIMEOUT,
+	AccessorId,
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
@@ -46,7 +48,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	private workOptions: any
 	constructor(
 		worker: GenericWorker,
-		accessorId: string,
+		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.Quantel,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -485,7 +487,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 			const { http: httpAgent } = gateway.getHTTPAgents()
 			setInterval(() => {
-				const sockets = Object.values(httpAgent.sockets)
+				const sockets = Object.values<Socket[] | undefined>(httpAgent.sockets)
 				this.worker.logger.silly(
 					`Quantel.QuantelGateway: Currently possessing ${sockets.reduce(
 						(mem, sockets) => mem + (sockets?.length ?? 0),
