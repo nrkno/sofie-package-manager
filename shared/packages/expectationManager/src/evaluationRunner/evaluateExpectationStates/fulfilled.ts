@@ -71,7 +71,7 @@ export async function evaluateExpectationStateFulfilled({
 					// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
 				}
 			} catch (error) {
-				runner.logger.warn(`Error in FULFILLED: ${stringifyError(error)}`)
+				runner.logger.warn(`Error in FULFILLED: exp "${trackedExp.id}": ${stringifyError(error)}`)
 				// Do nothing, hopefully some will be available at a later iteration
 				// todo: Is this the right thing to do?
 				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {

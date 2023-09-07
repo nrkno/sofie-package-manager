@@ -49,7 +49,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 				reason: {
 					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the source PackageContainers`,
 					tech: `Worker doesn't have access to any of the source packageContainers (${checks.sources
-						.map((o) => `${o.containerId} "${o.label}"`)
+						.map((o) => `"${o.containerId}": "${o.label}"`)
 						.join(', ')})`,
 				},
 			}
@@ -74,7 +74,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 				reason: {
 					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the target PackageContainers`,
 					tech: `Worker doesn't have access to any of the target packageContainers (${checks.targets
-						.map((o) => o.containerId)
+						.map((o) => `"${o.containerId}": "${o.label}"`)
 						.join(', ')})`,
 				},
 			}

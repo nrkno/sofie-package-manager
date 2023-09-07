@@ -84,7 +84,7 @@ export async function evaluateExpectationStateWaiting({
 			}
 		} catch (error) {
 			// There was an error, clearly it's not ready to start
-			runner.logger.warn(`Error in WAITING: ${stringifyError(error)}`)
+			runner.logger.warn(`Error in WAITING: exp "${trackedExp.id}": ${stringifyError(error)}`)
 
 			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
