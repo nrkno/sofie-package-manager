@@ -42,11 +42,11 @@ jobs:
             # write certficate to file
             echo "$WINDOWS_CERTIFICATE" | base64 -d > certificate.pfx
 
-            for FILE in deploy/*; do
+            for FILE in deploy/*.exe; do
+              echo "Trying to sign ${FILE}"
               # This path is a bit fragile, but necessary as no signtool is on the path.
               # If this path breaks, then find what versions of windows kits are installed in the updated runner image https://github.com/actions/runner-images#available-images
-              'C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe' sign //debug //fd SHA256 //f certificate.pfx //p "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" $FILE
-              echo $FILE
+              'C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe' sign //fd SHA256 //f certificate.pfx //p "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" $FILE
             done
           else
             echo "No certificate found"
