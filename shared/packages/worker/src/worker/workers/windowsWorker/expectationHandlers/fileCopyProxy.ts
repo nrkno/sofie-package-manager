@@ -32,6 +32,7 @@ import {
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
+import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer.
@@ -90,7 +91,7 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 			const sourceHandle = lookupSource.handle
 			const targetHandle = lookupTarget.handle
 
-			const startTime = Date.now()
+			const timer = startTimer()
 
 			if (
 				lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
@@ -142,7 +143,7 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 							await targetHandle.finalizePackage(fileOperation)
 							await targetHandle.updateMetadata(actualSourceUVersion)
 
-							const duration = Date.now() - startTime
+							const duration = timer.get()
 							wip._reportComplete(
 								actualSourceVersionHash,
 								{

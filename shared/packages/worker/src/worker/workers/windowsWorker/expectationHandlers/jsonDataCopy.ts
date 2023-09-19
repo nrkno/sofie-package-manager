@@ -21,6 +21,7 @@ import {
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
+import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
@@ -111,7 +112,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -180,7 +181,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 							await targetHandle.finalizePackage(fileOperation)
 							// await targetHandle.updateMetadata()
 
-							const duration = Date.now() - startTime
+							const duration = timer.get()
 							workInProgress._reportComplete(
 								actualSourceVersionHash,
 								{

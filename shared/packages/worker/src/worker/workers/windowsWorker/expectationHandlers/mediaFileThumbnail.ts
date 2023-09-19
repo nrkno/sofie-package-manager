@@ -29,6 +29,7 @@ import {
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
+import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Generates a thumbnail image from a source video file, and stores the resulting file into the target PackageContainer
@@ -139,7 +140,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Create a thumbnail from the source media file
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -236,7 +237,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(metadata)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							sourceVersionHash,
 							{

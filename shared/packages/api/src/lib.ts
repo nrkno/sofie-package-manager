@@ -57,10 +57,10 @@ export async function promiseTimeout<T>(
 	timeoutTime: number,
 	timeoutMessage?: string | ((timeoutDuration: number) => string)
 ): Promise<T> {
-	const startTime = Date.now()
+	const timer = startTimer()
 	return new Promise<T>((resolve, reject) => {
 		const timeout = setTimeout(() => {
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			const msg = typeof timeoutMessage === 'function' ? timeoutMessage(duration) : timeoutMessage
 			reject(msg || 'Timeout')
 		}, timeoutTime)
@@ -342,4 +342,22 @@ export function findValue<K, V>(map: Map<K, V>, cb: (key: K, value: V) => boolea
 	const found = Array.from(map.entries()).find(([key, value]) => cb(key, value))
 	if (found === undefined) return undefined
 	return found[1]
+}
+/**
+ * Usage:
+ * const timer = startTimer()
+ * // do stuff
+ * const duration = timer.get()
+ */
+export function startTimer(): {
+	/** Returns the duration since the timer started, in milliseconds */
+	get: () => number
+} {
+	const startTime = Date.now()
+
+	return {
+		get: () => {
+			return Date.now() - startTime
+		},
+	}
 }

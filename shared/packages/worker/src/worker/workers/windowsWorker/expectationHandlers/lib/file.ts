@@ -24,6 +24,7 @@ import { CancelablePromise } from '../../../../lib/cancelablePromise'
 import { PackageReadStream, PutPackageHandler } from '../../../../accessorHandlers/genericHandle'
 import { diff } from 'deep-diff'
 import { quantelFileflowCopy } from '../../lib/quantelFileflow'
+import { startTimer } from '@sofie-package-manager/api'
 
 export async function isFileReadyToStartWorkingOn(
 	worker: GenericWorker,
@@ -136,7 +137,7 @@ export async function doFileCopyExpectation(
 	if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 	if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
-	const startTime = Date.now()
+	const timer = startTimer()
 
 	const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 	const actualSourceVersionHash = hashObj(actualSourceVersion)
@@ -197,7 +198,7 @@ export async function doFileCopyExpectation(
 			await targetHandle.finalizePackage(fileOperation)
 			await targetHandle.updateMetadata(actualSourceUVersion)
 
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			workInProgress._reportComplete(
 				actualSourceVersionHash,
 				{
@@ -295,7 +296,7 @@ export async function doFileCopyExpectation(
 						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(actualSourceUVersion)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
 							{
@@ -390,7 +391,7 @@ export async function doFileCopyExpectation(
 			await targetHandle.finalizePackage(fileOperation)
 			await targetHandle.updateMetadata(actualSourceUVersion)
 
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			workInProgress._reportComplete(
 				actualSourceVersionHash,
 				{

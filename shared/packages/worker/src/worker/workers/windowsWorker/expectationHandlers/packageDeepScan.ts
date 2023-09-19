@@ -26,6 +26,7 @@ import {
 	scanWithFFProbe,
 } from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
+import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Performs a "deep scan" of the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
@@ -126,7 +127,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source media file and upload the results to Core
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -215,7 +216,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 
 			await targetHandle.finalizePackage(scanOperation)
 
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			workInProgress._reportComplete(
 				sourceVersionHash,
 				{

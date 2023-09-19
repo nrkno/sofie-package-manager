@@ -28,6 +28,7 @@ import {
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
+import { startTimer } from '@sofie-package-manager/api'
 
 export const QuantelClipPreview: ExpectationWindowsHandler = {
 	doYouSupportExpectation(
@@ -151,7 +152,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -222,7 +223,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 						await targetHandle.finalizePackage(quantelOperation)
 						await targetHandle.updateMetadata(metadata)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
 							{

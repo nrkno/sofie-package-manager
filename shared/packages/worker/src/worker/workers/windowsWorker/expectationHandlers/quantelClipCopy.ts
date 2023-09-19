@@ -15,6 +15,7 @@ import {
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { startTimer } from '@sofie-package-manager/api'
 
 export const QuantelClipCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
@@ -134,7 +135,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the clip from Source to Target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -236,7 +237,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 						await targetHandle.finalizePackage(quantelOperation)
 						await targetHandle.updateMetadata(actualSourceUVersion)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
 							{

@@ -1,3 +1,5 @@
+import { startTimer } from '@sofie-package-manager/api'
+
 export function waitTime(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -7,14 +9,14 @@ export function waitTime(ms: number): Promise<void> {
  * Useful in unit-tests as a way to wait until a predicate is fulfilled.
  */
 export async function waitUntil(expectFcn: () => void, maxWaitTime: number): Promise<void> {
-	const startTime = Date.now()
+	const timer = startTimer()
 	while (true) {
 		await waitTime(100)
 		try {
 			expectFcn()
 			return
 		} catch (err) {
-			let waitedTime = Date.now() - startTime
+			let waitedTime = timer.get()
 			if (waitedTime > maxWaitTime) {
 				console.log(`waitUntil: waited for ${waitedTime} ms, giving up (maxWaitTime: ${maxWaitTime}).`)
 				throw err

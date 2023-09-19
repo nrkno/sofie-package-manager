@@ -10,6 +10,7 @@ import {
 	Reason,
 	StatusCode,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { PromisePool } from '@supercharge/promise-pool'
 import _ from 'underscore'
@@ -38,29 +39,41 @@ export class EvaluationRunner {
 	public async run(): Promise<EvaluationResult> {
 		this.logger.debug(Date.now() / 1000 + ' _evaluateExpectations ----------')
 
-		let startTime = Date.now()
 		const times: { [key: string]: number } = {}
 
-		// First we're going to see if there is any new incoming data which needs to be pulled in.
-		if (this.tracker.receivedUpdates.expectationsHasBeenUpdated) {
-			await this.updateReceivedData_Expectations().promise
+		{
+			const timer = startTimer()
+
+			// First we're going to see if there is any new incoming data which needs to be pulled in.
+			if (this.tracker.receivedUpdates.expectationsHasBeenUpdated) {
+				await this.updateReceivedData_Expectations().promise
+			}
+			times['timeUpdateReceivedExpectations'] = timer.get()
 		}
-		times['timeUpdateReceivedExpectations'] = Date.now() - startTime
-		startTime = Date.now()
 
-		if (this.tracker.receivedUpdates.packageContainersHasBeenUpdated) {
-			await this._updateReceivedData_TrackedPackageContainers()
+		{
+			const timer = startTimer()
+
+			if (this.tracker.receivedUpdates.packageContainersHasBeenUpdated) {
+				await this._updateReceivedData_TrackedPackageContainers()
+			}
+			times['timeUpdateReceivedPackageContainerExpectations'] = timer.get()
 		}
-		times['timeUpdateReceivedPackageContainerExpectations'] = Date.now() - startTime
-		startTime = Date.now()
 
-		// Iterate through the PackageContainerExpectations:
-		await this._evaluateAllTrackedPackageContainers()
-		times['timeEvaluateAllTrackedPackageContainers'] = Date.now() - startTime
-		startTime = Date.now()
+		{
+			const timer = startTimer()
 
-		this.tracker.worksInProgress.checkWorksInProgress()
-		times['timeMonitorWorksInProgress'] = Date.now() - startTime
+			// Iterate through the PackageContainerExpectations:
+			await this._evaluateAllTrackedPackageContainers()
+			times['timeEvaluateAllTrackedPackageContainers'] = timer.get()
+		}
+
+		{
+			const timer = startTimer()
+
+			this.tracker.worksInProgress.checkWorksInProgress()
+			times['timeMonitorWorksInProgress'] = timer.get()
+		}
 
 		// Iterate through all Expectations:
 		const { runAgainASAP, times: evaluateTimes } = await this._evaluateAllExpectations()
@@ -298,7 +311,7 @@ export class EvaluationRunner {
 
 		// Step 1: Evaluate the Expectations which are in the states that can be handled in parallel:
 		for (const handleState of handleStatesParallel) {
-			const startTime = Date.now()
+			const timer = startTimer()
 			// Filter out the ones that are in the state we're about to handle:
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
 
@@ -324,7 +337,7 @@ export class EvaluationRunner {
 						postProcessSession(trackedExp)
 					})
 			}
-			times[`time_${handleState}`] = Date.now() - startTime
+			times[`time_${handleState}`] = timer.get()
 		}
 
 		// Step 1.5: Reset the session:
@@ -340,7 +353,7 @@ export class EvaluationRunner {
 		})
 		this.logger.debug(`Worker count: ${this.manager.workerAgents.list().length}`)
 
-		const startTime = Date.now()
+		const timer = startTimer()
 		// Step 2: Evaluate the expectations, now one by one:
 		for (const trackedExp of tracked) {
 			// Only handle the states that
@@ -350,7 +363,7 @@ export class EvaluationRunner {
 				postProcessSession(trackedExp)
 			}
 
-			if (runAgainASAP && Date.now() - startTime > this.tracker.constants.ALLOW_SKIPPING_QUEUE_TIME) {
+			if (runAgainASAP && timer.get() > this.tracker.constants.ALLOW_SKIPPING_QUEUE_TIME) {
 				// Skip the rest of the queue, so that we don't get stuck on evaluating low-prio expectations.
 				this.logger.debug(
 					`Skipping the rest of the queue (after ${this.tracker.constants.ALLOW_SKIPPING_QUEUE_TIME})`
@@ -365,7 +378,7 @@ export class EvaluationRunner {
 				break
 			}
 		}
-		times[`time_restTrackedExp`] = Date.now() - startTime
+		times[`time_restTrackedExp`] = timer.get()
 		for (const id of removeIds) {
 			this.tracker.trackedExpectations.remove(id)
 		}
@@ -495,7 +508,7 @@ export class EvaluationRunner {
 	}
 	private async _evaluateAllTrackedPackageContainers(): Promise<void> {
 		for (const trackedPackageContainer of this.tracker.trackedPackageContainers.list()) {
-			const startTime = Date.now()
+			const timer = startTimer()
 
 			try {
 				let badStatus = false
@@ -708,9 +721,7 @@ export class EvaluationRunner {
 					}
 				)
 			}
-			this.logger.debug(
-				`trackedPackageContainer ${trackedPackageContainer.id}, took ${Date.now() - startTime} ms`
-			)
+			this.logger.debug(`trackedPackageContainer ${trackedPackageContainer.id}, took ${timer.get()} ms`)
 		}
 	}
 }

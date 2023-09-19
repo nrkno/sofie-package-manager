@@ -25,6 +25,7 @@ import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
 import { WindowsWorker } from '../windowsWorker'
 import { getSourceHTTPHandle, QuantelClipMetadata } from './lib/quantel'
+import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Generates a thumbnail image from a source quantel clip, and stores the resulting file into the target PackageContainer
@@ -148,7 +149,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Fetch the Thumbnail from the Quantel HTTP-transformer and put it on the target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -222,7 +223,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 							await lookupTarget.handle.finalizePackage(quantelOperation)
 							await lookupTarget.handle.updateMetadata(targetMetadata)
 
-							const duration = Date.now() - startTime
+							const duration = timer.get()
 							workInProgress._reportComplete(
 								targetMetadata.sourceVersionHash,
 								{

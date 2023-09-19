@@ -28,6 +28,7 @@ import {
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
+import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Generates a low-res preview video of a source video file, and stores the resulting file into the target PackageContainer
@@ -142,7 +143,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -235,7 +236,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(metadata)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
 							{
