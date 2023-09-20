@@ -32,6 +32,8 @@ export interface PackageContainerExpectation extends PackageContainer {
 			usePolling?: number | null
 			/** If set, will set the awaitWriteFinish.StabilityThreshold of chokidar */
 			awaitWriteFinishStabilityThreshold?: number | null
+			/** If set, the monitor will warn if the monitored number of packages is greater than this */
+			warningLimit?: number
 
 			/** What layers to set on the resulting ExpectedPackage */
 			targetLayers: string[]

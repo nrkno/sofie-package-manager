@@ -164,7 +164,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			}
 		)
 
-		monitorInProgress._reportStatus(StatusCode.UNKNOWN, {
+		monitorInProgress._setStatus('setup', StatusCode.UNKNOWN, {
 			user: 'Setting up file watcher...',
 			tech: `Setting up file watcher...`,
 		})
@@ -175,8 +175,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 		if (options.usePolling) {
 			chokidarOptions.usePolling = true
-			chokidarOptions.interval = 2000
-			chokidarOptions.binaryInterval = 2000
+			chokidarOptions.interval = options.usePolling
+			chokidarOptions.binaryInterval = options.usePolling
 		}
 		if (options.awaitWriteFinishStabilityThreshold) {
 			chokidarOptions.awaitWriteFinish = {
@@ -214,20 +214,22 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					for (let [filePath, version] of seenFiles.entries()) {
 						// Update the version
 						if (!version) {
+							const fullPath = path.join(this.folderPath, filePath)
 							try {
-								const fullPath = path.join(this.folderPath, filePath)
 								const stat = await fsStat(fullPath)
 								version = this.convertStatToVersion(stat)
 								seenFiles.set(filePath, version)
+
+								monitorInProgress._unsetStatus(fullPath)
 							} catch (err) {
 								version = null
 								this.worker.logger.error(
-									`GenericFileAccessorHandle.setupPackagesMonitor: Unexpected Exception cautght: ${stringifyError(
+									`GenericFileAccessorHandle.setupPackagesMonitor: Unexpected Exception caught: ${stringifyError(
 										err
 									)}`
 								)
 
-								monitorInProgress._reportStatus(StatusCode.BAD, {
+								monitorInProgress._setStatus(fullPath, StatusCode.BAD, {
 									user: 'Error when accessing watched file',
 									tech: `Error: ${stringifyError(err)}`,
 								})
@@ -284,6 +286,16 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 						arguments: [packageContainerExp.id, monitorId, packages],
 					})
 
+					if (options.warningLimit && seenFiles.size > options.warningLimit) {
+						monitorInProgress._setStatus('warningLimit', StatusCode.WARNING_MINOR, {
+							user: 'Warning: Too many files for monitor',
+							tech: `There are ${seenFiles.size} files in the folder, which might cause performance issues. Reduce the number of files to below ${options.warningLimit} to get rid of this warning.`,
+						})
+					} else {
+						monitorInProgress._unsetStatus('warningLimit')
+					}
+
+					// Finally
 					triggerSendUpdateIsRunning = false
 					if (triggerSendUpdateRunAgain) triggerSendUpdate()
 				})().catch((err) => {
@@ -324,6 +336,8 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					.catch(() => {
 						// The file truly doesn't exist
 
+						monitorInProgress._unsetStatus(fullPath)
+
 						const localPath = getFilePath(fullPath)
 						if (localPath) {
 							seenFiles.delete(localPath)
@@ -337,13 +351,13 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 						err
 					)}`
 				)
-				monitorInProgress._reportStatus(StatusCode.BAD, {
+				monitorInProgress._setStatus('watcher', StatusCode.BAD, {
 					user: 'Error in file watcher',
 					tech: `chokidar error: ${stringifyError(err)}`,
 				})
 			})
 			.on('ready', () => {
-				monitorInProgress._reportStatus(StatusCode.GOOD, {
+				monitorInProgress._setStatus('setup', StatusCode.GOOD, {
 					user: 'File watcher is set up',
 					tech: `File watcher is set up`,
 				})
