@@ -311,23 +311,34 @@ export function stat(path: string, callback: (error: any, result?: any) => void)
 fs.stat = stat
 
 export function access(path: string, mode: number | undefined, callback: (error: any, result?: any) => void): void {
+	if (mode === undefined)
+		throw new Error(
+			`Mock fs.access: Don't use mode===undefined in Package Manager (or perhaps the mock fs constants aren't setup correctly?)`
+		)
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.access', path, mode)
+	const mockFile = getMock(path)
+	// if (DEBUG_LOG) console.log('fs.access', path, mode)
 	fsMockEmitter.emit('access', path, mode)
-	try {
-		const mockFile = getMock(path)
-		if (mode === fsConstants.R_OK && !mockFile.accessRead) {
-			return callback({ someError: 'Mock: read access denied ' })
-		} else if (mode === fsConstants.W_OK && !mockFile.accessWrite) {
-			return callback({ someError: 'Mock: write access denied ' })
-		} else {
-			return callback(undefined, null)
+	setTimeout(() => {
+		try {
+			if (mode === constants.R_OK && !mockFile.accessRead) {
+				return callback({ someError: 'Mock: read access denied ' })
+			} else if (mode === constants.W_OK && !mockFile.accessWrite) {
+				return callback({ someError: 'Mock: write access denied ' })
+			} else {
+				return callback(undefined, null)
+			}
+		} catch (err) {
+			callback(err)
 		}
-	} catch (err) {
-		callback(err)
-	}
+	}, FS_ACCESS_DELAY)
 }
 fs.access = access
+let FS_ACCESS_DELAY = 0
+export function __mockSetAccessDelay(delay: number): void {
+	FS_ACCESS_DELAY = delay
+}
+fs.__mockSetAccessDelay = __mockSetAccessDelay
 
 export function unlink(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)

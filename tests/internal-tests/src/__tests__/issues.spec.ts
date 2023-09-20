@@ -55,6 +55,10 @@ describe('Handle unhappy paths', () => {
 	beforeEach(() => {
 		fs.__mockReset()
 		env.reset()
+		fs.__mockSetAccessDelay(0) // Reset any access delay
+	})
+	afterEach(() => {
+		fs.__mockSetAccessDelay(0) // Reset any access delay
 	})
 
 	test('Wait for non-existing local file', async () => {
@@ -101,6 +105,39 @@ describe('Handle unhappy paths', () => {
 		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
 			size: 1234,
 		})
+	})
+	test('Slow responding file operations', async () => {
+		fs.__mockSetDirectory('/sources/source0/')
+		fs.__mockSetDirectory('/targets/target0')
+		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+		fs.__mockSetAccessDelay(INNER_ACTION_TIMEOUT + 100) // Simulate a slow file operation
+
+		env.setLogFilterFunction((level, ...args) => {
+			const str = args.join(',')
+			// Suppress some logged warnings:
+			if (level === 'warn' && str.includes('checkPackageContainerWriteAccess')) return false
+			return true
+		})
+
+		addCopyFileExpectation(
+			env,
+			'copy0',
+			[getLocalSource('source0', 'file0Source.mp4')],
+			[getLocalTarget('target0', 'file0Target.mp4')]
+		)
+
+		await waitUntil(() => {
+			// Expect the Expectation to be waiting:
+			expect(env.expectationStatuses['copy0']).toMatchObject({
+				actualVersionHash: null,
+				statusInfo: {
+					// status: expect.stringMatching(/fulfilled/),
+					statusReason: {
+						tech: expect.stringMatching(/timeout.*checkPackageContainerWriteAccess.*Accessor.*/i),
+					},
+				},
+			})
+		}, INNER_ACTION_TIMEOUT + 100)
 	})
 	test.skip('Wait for non-existing network-shared, file', async () => {
 		// To be written
