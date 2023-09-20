@@ -11,11 +11,6 @@ const wndMock = wndMock0 as any as WNDMockType
 /* eslint-disable no-console */
 const DEBUG_LOG = false
 
-enum fsConstants {
-	R_OK = 2,
-	W_OK = 4,
-}
-
 const fs: any = jest.createMockFromModule('fs')
 
 type MockAny = MockDirectory | MockFile
@@ -199,7 +194,11 @@ export function __printAllFiles(): string {
 				strs.push(`${indent}${name}/`)
 				strs.push(getPaths(file, indent + '  '))
 			} else {
-				strs.push(`${indent}${name}: size: ${file.size}`)
+				strs.push(
+					`${indent}${name}: size: ${file.size} (${file.accessRead ? 'read' : ''} ${
+						file.accessWrite ? 'write' : ''
+					})`
+				)
 			}
 		}
 		return strs.join('\n')
@@ -288,6 +287,12 @@ export function __emitter(): EventEmitter {
 	return fsMockEmitter
 }
 fs.__emitter = __emitter
+
+export enum constants {
+	R_OK = 2,
+	W_OK = 4,
+}
+fs.constants = constants
 
 export function stat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
