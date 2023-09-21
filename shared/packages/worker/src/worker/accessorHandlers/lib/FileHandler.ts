@@ -361,6 +361,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					user: 'File watcher is set up',
 					tech: `File watcher is set up`,
 				})
+				triggerSendUpdate()
 			})
 
 		return monitorInProgress
