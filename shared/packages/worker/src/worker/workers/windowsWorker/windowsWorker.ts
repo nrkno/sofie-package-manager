@@ -91,8 +91,8 @@ export class WindowsWorker extends GenericWorker {
 	): Promise<ReturnTypeIsExpectationFullfilled> {
 		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, wasFullfilled, this, this)
 	}
-	async workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress> {
-		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this)
+	async workOnExpectation(exp: Expectation.Any, progressTimeout: number): Promise<IWorkInProgress> {
+		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this, progressTimeout)
 	}
 	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		return this.getExpectationHandler(exp).removeExpectation(exp, this, this)

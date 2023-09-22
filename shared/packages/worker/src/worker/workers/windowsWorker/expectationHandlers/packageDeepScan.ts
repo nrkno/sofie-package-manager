@@ -123,7 +123,12 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker,
+		_: WindowsWorker,
+		progressTimeout: number
+	): Promise<IWorkInProgress> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source media file and upload the results to Core
 		const startTime = Date.now()
@@ -184,16 +189,47 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			let resultFreezes: ScanAnomaly[] = []
 			let resultScenes: number[] = []
 			if (hasVideoStream) {
+				let hasGottenProgress = false
+				let isDone = false
 				currentProcess = scanMoreInfo(
 					sourceHandle,
 					ffProbeScan,
 					exp.endRequirement.version,
 					(progress) => {
+						hasGottenProgress = true
 						workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
 					},
 					worker.logger.category('scanMoreInfo')
 				)
+
+				setTimeout(() => {
+					if (!isDone && currentProcess && !hasGottenProgress) {
+						// If we haven't gotten any progress yet, we probably won't get any.
+
+						// 2023-09-20: There seems to be some bug in the FFMpeg scan where it won't output any progress
+						// if the scene detection is on.
+						// Let's abort and try again without scene detection:
+
+						currentProcess.cancel()
+
+						currentProcess = scanMoreInfo(
+							sourceHandle,
+							ffProbeScan,
+							{
+								...exp.endRequirement.version,
+								scenes: false, // no scene detection
+							},
+							(progress) => {
+								hasGottenProgress = true
+								workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+							},
+							worker.logger.category('scanMoreInfo')
+						)
+					}
+				}, progressTimeout * 0.5)
+
 				const result = await currentProcess
+				isDone = true
 				resultBlacks = result.blacks
 				resultFreezes = result.freezes
 				resultScenes = result.scenes

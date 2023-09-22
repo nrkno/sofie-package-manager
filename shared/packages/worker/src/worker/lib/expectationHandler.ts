@@ -57,7 +57,9 @@ export interface ExpectationHandler {
 	workOnExpectation: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
-		specificWorker: any
+		specificWorker: any,
+		/** An FYI, the work will be considered timed out if there are no progression reports within this interval*/
+		progressTimeout: number
 	) => Promise<IWorkInProgress>
 	/**
 	 * "Make an expectation un-fullfilled"

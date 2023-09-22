@@ -492,7 +492,7 @@ export class WorkerAgent {
 				)
 
 				try {
-					const workInProgress = await this._worker.workOnExpectation(exp)
+					const workInProgress = await this._worker.workOnExpectation(exp, timeout)
 
 					currentJob.workInProgress = workInProgress
 
