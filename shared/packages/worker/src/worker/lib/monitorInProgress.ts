@@ -50,7 +50,7 @@ export class MonitorInProgress extends HelpfulEventEmitter implements IMonitorIn
 			}
 
 		if (this.lastReportedStatus?.status !== worstStatus.status) {
-			this.lastReportedStatus !== worstStatus
+			this.lastReportedStatus = worstStatus
 
 			this.emit('status', worstStatus.status, worstStatus.reason)
 		}
