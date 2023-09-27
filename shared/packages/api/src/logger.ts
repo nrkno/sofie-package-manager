@@ -61,7 +61,8 @@ export function setupLogger(
 	category: string,
 	categoryLabel?: string,
 	handleProcess = false,
-	initialLogLevel?: LogLevel
+	initialLogLevel?: LogLevel,
+	filterFcn?: (level: string, ...args: any[]) => boolean
 ): LoggerInstance {
 	if (!loggerContainer) throw new Error('Logging has not been set up! initializeLogger() must be called first.')
 
@@ -141,9 +142,31 @@ export function setupLogger(
 			`${category ? `${category}.` : ''}${subCategory}`,
 			subLabel && `${categoryLabel}>${subLabel}`,
 			undefined,
-			initialLogLevel
+			initialLogLevel,
+			filterFcn
 		)
 	}
+	if (filterFcn) {
+		for (const methodName of [
+			'error',
+			'warn',
+			'help',
+			'data',
+			'info',
+			'debug',
+			'prompt',
+			'http',
+			'verbose',
+			'input',
+			'silly',
+		]) {
+			const orgMethod = (loggerInstance as any)[methodName]
+			;(loggerInstance as any)[methodName] = (...args: any[]) => {
+				if (filterFcn(methodName, ...args)) orgMethod.call(loggerInstance, ...args)
+			}
+		}
+	}
+
 	allLoggers.set(category, loggerInstance)
 	return loggerInstance
 }

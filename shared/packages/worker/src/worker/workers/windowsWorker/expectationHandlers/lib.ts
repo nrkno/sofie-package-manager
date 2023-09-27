@@ -17,6 +17,8 @@ import {
 	ReturnTypeDoYouSupportExpectation,
 	assertNever,
 	AccessorId,
+	promiseTimeout,
+	INNER_ACTION_TIMEOUT,
 } from '@sofie-package-manager/api'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
@@ -139,128 +141,176 @@ export async function lookupAccessorHandles<Metadata>(
 	expectationWorkOptions: unknown,
 	checks: LookupChecks
 ): Promise<LookupPackageContainer<Metadata>> {
-	/** undefined if all good, error string otherwise */
-	let errorReason: undefined | Reason = { user: 'No target found', tech: 'No target found' }
+	const prioritizedAccessors = prioritizeAccessors(packageContainers)
 
-	// See if the file is available at any of the targets:
-	for (const { packageContainer, accessorId, accessor } of prioritizeAccessors(packageContainers)) {
-		errorReason = undefined
+	return promiseTimeout<LookupPackageContainer<Metadata>>(
+		(async () => {
+			/** undefined if all good, error string otherwise */
+			let errorReason: undefined | Reason = { user: 'No target found', tech: 'No target found' }
 
-		const handle = getAccessorHandle<Metadata>(
-			worker,
-			accessorId,
-			accessor,
-			expectationContent,
-			expectationWorkOptions
-		)
+			// See if the file is available at any of the targets:
+			for (const { packageContainer, accessorId, accessor } of prioritizedAccessors) {
+				errorReason = undefined
 
-		if (checks.read) {
-			// Check that the accessor-handle supports reading:
-			const readResult = handle.checkHandleRead()
-			if (!readResult.success) {
-				errorReason = {
-					user: `There is an issue with the configuration for the PackageContainer "${
-						packageContainer.label
-					}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						readResult.reason.tech
-					}`,
-				}
-				continue // Maybe next accessor works?
-			}
-		}
+				const handle = getAccessorHandle<Metadata>(
+					worker,
+					accessorId,
+					accessor,
+					expectationContent,
+					expectationWorkOptions
+				)
 
-		if (checks.readPackage) {
-			// Check that the Package can be read:
-			const readResult = await handle.checkPackageReadAccess()
-			if (!readResult.success) {
-				errorReason = {
-					user: `Can't read the Package from PackageContainer "${packageContainer.label}" (on accessor "${
-						accessor.label || accessorId
-					}"), due to: ${readResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						readResult.reason.tech
-					}`,
+				if (checks.read) {
+					// Check that the accessor-handle supports reading:
+					const readResult = handle.checkHandleRead()
+					if (!readResult.success) {
+						errorReason = {
+							user: `There is an issue with the configuration for the PackageContainer "${
+								packageContainer.label
+							}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
+							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+								readResult.reason.tech
+							}`,
+						}
+						continue // Maybe next accessor works?
+					}
 				}
 
-				continue // Maybe next accessor works?
-			}
-		}
-		if (checks.packageVersion !== undefined) {
-			// Check that the version of the Package is correct:
-			const actualSourceVersion = await handle.getPackageActualVersion()
+				if (checks.readPackage) {
+					// Check that the Package can be read:
+					const readResult = await promiseTimeout(
+						handle.checkPackageReadAccess(),
+						INNER_ACTION_TIMEOUT,
+						(duration) =>
+							`Timeout after ${duration} ms in lookupAccessorHandles->checkPackageReadAccess for Accessor "${accessorId}", ${JSON.stringify(
+								{
+									expectationContent,
+									expectationWorkOptions,
+								}
+							)}`
+					)
+					if (!readResult.success) {
+						errorReason = {
+							user: `Can't read the Package from PackageContainer "${
+								packageContainer.label
+							}" (on accessor "${accessor.label || accessorId}"), due to: ${readResult.reason.user}`,
+							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+								readResult.reason.tech
+							}`,
+						}
 
-			const compareVersionResult = compareActualExpectVersions(actualSourceVersion, checks.packageVersion)
-			if (!compareVersionResult.success) {
-				errorReason = {
-					user: `Won't read from the package, due to: ${compareVersionResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						compareVersionResult.reason.tech
-					}`,
+						continue // Maybe next accessor works?
+					}
 				}
-				continue // Maybe next accessor works?
-			}
-		}
+				if (checks.packageVersion !== undefined) {
+					// Check that the version of the Package is correct:
 
-		if (checks.write) {
-			// Check that the accessor-handle supports writing:
-			const writeResult = handle.checkHandleWrite()
-			if (!writeResult.success) {
-				errorReason = {
-					user: `There is an issue with the configuration for the PackageContainer "${
-						packageContainer.label
-					}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
-					tech: `${packageContainer.label}: lookupTargets: Accessor "${accessor.label || accessorId}": ${
-						writeResult.reason.tech
-					}`,
-				}
-				continue // Maybe next accessor works?
-			}
-		}
-		if (checks.writePackageContainer) {
-			// Check that it is possible to write to write to the package container:
-			const writeAccessResult = await handle.checkPackageContainerWriteAccess()
-			if (!writeAccessResult.success) {
-				errorReason = {
-					user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${
-						accessor.label || accessorId
-					}"), due to: ${writeAccessResult.reason.user}`,
-					tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-						writeAccessResult.reason.tech
-					}`,
-				}
-				continue // Maybe next accessor works?
-			}
-		}
+					const actualSourceVersion = await promiseTimeout(
+						handle.getPackageActualVersion(),
+						INNER_ACTION_TIMEOUT,
+						(duration) =>
+							`Timeout after ${duration} ms in lookupAccessorHandles->getPackageActualVersion for Accessor "${accessorId}", ${JSON.stringify(
+								{
+									expectationContent,
+									expectationWorkOptions,
+								}
+							)}`
+					)
 
-		if (typeof checks.customCheck === 'function') {
-			const checkResult = checks.customCheck(packageContainer, accessorId, accessor)
-			if (!checkResult.success) {
-				errorReason = {
-					user: checkResult.reason.user,
-					tech: checkResult.reason.tech,
+					const compareVersionResult = compareActualExpectVersions(actualSourceVersion, checks.packageVersion)
+					if (!compareVersionResult.success) {
+						errorReason = {
+							user: `Won't read from the package, due to: ${compareVersionResult.reason.user}`,
+							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+								compareVersionResult.reason.tech
+							}`,
+						}
+						continue // Maybe next accessor works?
+					}
 				}
-				continue // Maybe next accessor works?
-			}
-		}
 
-		if (!errorReason) {
-			// All good, no need to look further:
+				if (checks.write) {
+					// Check that the accessor-handle supports writing:
+					const writeResult = handle.checkHandleWrite()
+					if (!writeResult.success) {
+						errorReason = {
+							user: `There is an issue with the configuration for the PackageContainer "${
+								packageContainer.label
+							}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
+							tech: `${packageContainer.label}: lookupTargets: Accessor "${
+								accessor.label || accessorId
+							}": ${writeResult.reason.tech}`,
+						}
+						continue // Maybe next accessor works?
+					}
+				}
+				if (checks.writePackageContainer) {
+					// Check that it is possible to write to write to the package container:
+
+					const writeAccessResult = await promiseTimeout(
+						handle.checkPackageContainerWriteAccess(),
+						INNER_ACTION_TIMEOUT,
+						(duration) =>
+							`Timeout after ${duration} ms in lookupAccessorHandles->checkPackageContainerWriteAccess for Accessor "${accessorId}", ${JSON.stringify(
+								{
+									expectationContent,
+									expectationWorkOptions,
+								}
+							)}`
+					)
+
+					if (!writeAccessResult.success) {
+						errorReason = {
+							user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${
+								accessor.label || accessorId
+							}"), due to: ${writeAccessResult.reason.user}`,
+							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+								writeAccessResult.reason.tech
+							}`,
+						}
+						continue // Maybe next accessor works?
+					}
+				}
+
+				if (typeof checks.customCheck === 'function') {
+					const checkResult = checks.customCheck(packageContainer, accessorId, accessor)
+					if (!checkResult.success) {
+						errorReason = {
+							user: checkResult.reason.user,
+							tech: checkResult.reason.tech,
+						}
+						continue // Maybe next accessor works?
+					}
+				}
+
+				if (!errorReason) {
+					// All good, no need to look further:
+					return {
+						accessor: accessor,
+						handle: handle,
+						ready: true,
+						// reason: `Can access target "${packageContainer.label}" through accessor "${
+						// 	accessor.label || accessorId
+						// }"`,
+					}
+				}
+			}
 			return {
-				accessor: accessor,
-				handle: handle,
-				ready: true,
-				// reason: `Can access target "${packageContainer.label}" through accessor "${
-				// 	accessor.label || accessorId
-				// }"`,
+				accessor: undefined,
+				ready: false,
+				reason: errorReason,
 			}
-		}
-	}
-	return {
-		accessor: undefined,
-		ready: false,
-		reason: errorReason,
-	}
+		})(),
+		INNER_ACTION_TIMEOUT,
+		(duration) =>
+			`Timeout after ${duration} ms in lookupAccessorHandles. (${
+				prioritizedAccessors.length
+			} prioritizedAccessors, ${JSON.stringify({
+				expectationContent,
+				expectationWorkOptions,
+				checks,
+			})})`
+	)
 }
 
 /** Converts a diff to some kind of user-readable string */

@@ -1,5 +1,5 @@
 import { execFile, ChildProcess, spawn } from 'child_process'
-import { Expectation, assertNever, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
+import { Expectation, assertNever, Accessor, AccessorOnPackage, LoggerInstance } from '@sofie-package-manager/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -227,7 +227,8 @@ export function scanMoreInfo(
 	onProgress: (
 		/** Progress, goes from 0 to 1 */
 		progress: number
-	) => void
+	) => void,
+	logger: LoggerInstance
 ): CancelablePromise<{
 	scenes: number[]
 	freezes: ScanAnomaly[]
@@ -310,7 +311,10 @@ export function scanMoreInfo(
 		ffMpegProcess.stderr.on('data', (data: any) => {
 			const stringData = data.toString()
 
-			if (typeof stringData !== 'string') return
+			if (typeof stringData !== 'string') {
+				logger.warn(`FFMpeg: bad stderr data (${typeof stringData})`)
+				return
+			}
 
 			try {
 				const frameRegex = /^frame= +\d+/g

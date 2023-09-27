@@ -10,6 +10,7 @@ import {
 	PackageContainerId,
 	literal,
 	protectString,
+	INNER_ACTION_TIMEOUT,
 } from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
@@ -28,16 +29,14 @@ const fsAccess = promisify(fs.access)
 const fsStat = promisify(fs.stat)
 
 const fsExists = async (filePath: string) => {
-	let exists = false
 	try {
-		await fsAccess(filePath, undefined)
+		await fsAccess(filePath, fs.constants.R_OK)
 		// The file exists
-		exists = true
+		return true
 	} catch (err) {
-		// Ignore
+		if (typeof err === 'object' && err && (err as any).code === 'ENOENT') return false
+		throw err
 	}
-
-	return exists
 }
 
 // const fsStat = promisify(fs.stat)
@@ -63,7 +62,7 @@ describeForAllPlatforms(
 			expect(fs.lstat).toBeTruthy()
 			expect(fs.__mockReset).toBeTruthy()
 
-			jest.setTimeout(env.WAIT_JOB_TIME * 10 + env.WAIT_SCAN_TIME * 2)
+			jest.setTimeout(env.WAIT_JOB_TIME_SAFE * 10 + env.WAIT_SCAN_TIME * 2)
 		})
 		afterAll(() => {
 			env.terminate()
@@ -71,6 +70,10 @@ describeForAllPlatforms(
 		beforeEach(() => {
 			fs.__mockReset()
 			env.reset()
+			fs.__mockSetAccessDelay(0) // Reset any access delay
+		})
+		afterEach(() => {
+			fs.__mockSetAccessDelay(0) // Reset any access delay
 		})
 	},
 	(_platform: string) => {
@@ -89,13 +92,13 @@ describeForAllPlatforms(
 				expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
 					actualVersionHash: null,
 					statusInfo: {
-						status: /new|waiting/,
+						status: expect.stringMatching(/new|waiting/),
 						statusReason: {
-							tech: /not able to access file/i,
+							tech: expect.stringMatching(/not able to access file/i),
 						},
 					},
 				})
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 
 			expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
@@ -112,12 +115,45 @@ describeForAllPlatforms(
 				expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				)
-			}, env.WAIT_SCAN_TIME + env.ERROR_WAIT_TIME + env.WAIT_JOB_TIME)
+			}, env.WAIT_SCAN_TIME + env.ERROR_WAIT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 			expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
 				size: 1234,
 			})
+		})
+		test('Slow responding file operations', async () => {
+			fs.__mockSetDirectory('/sources/source0/')
+			fs.__mockSetDirectory('/targets/target0')
+			fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+			fs.__mockSetAccessDelay(INNER_ACTION_TIMEOUT + 100) // Simulate a slow file operation
+
+			env.setLogFilterFunction((level, ...args) => {
+				const str = args.join(',')
+				// Suppress some logged warnings:
+				if (level === 'warn' && str.includes('checkPackageContainerWriteAccess')) return false
+				return true
+			})
+
+			addCopyFileExpectation(
+				env,
+				EXP_copy0,
+				[getLocalSource(SOURCE0, 'file0Source.mp4')],
+				[getLocalTarget(TARGET0, 'file0Target.mp4')]
+			)
+
+			await waitUntil(() => {
+				// Expect the Expectation to be waiting:
+				expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
+					actualVersionHash: null,
+					statusInfo: {
+						// status: expect.stringMatching(/fulfilled/),
+						statusReason: {
+							tech: expect.stringMatching(/timeout.*checkPackageContainerWriteAccess.*Accessor.*/i),
+						},
+					},
+				})
+			}, INNER_ACTION_TIMEOUT + 100)
 		})
 		test.skip('Wait for non-existing network-shared, file', async () => {
 			// To be written
@@ -146,7 +182,6 @@ describeForAllPlatforms(
 				accessRead: true,
 				accessWrite: false,
 			})
-			// fs.__printAllFiles()
 
 			addCopyFileExpectation(
 				env,
@@ -160,13 +195,13 @@ describeForAllPlatforms(
 				expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
 					actualVersionHash: null,
 					statusInfo: {
-						status: /new|waiting/,
+						status: expect.stringMatching(/new|waiting/),
 						statusReason: {
-							tech: /not able to access file/i,
+							tech: expect.stringMatching(/not able to access file/i),
 						},
 					},
 				})
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 
 			// Now the file can be read from:
 			fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
@@ -174,13 +209,13 @@ describeForAllPlatforms(
 			await waitTime(env.WAIT_SCAN_TIME)
 
 			await waitUntil(() => {
-				// Expect the Expectation to be waiting:
+				// Expect the Expectation to be waiting -> new:
 				expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
 					actualVersionHash: null,
 					statusInfo: {
 						status: 'new',
 						statusReason: {
-							tech: /not able to access target/i,
+							tech: expect.stringMatching(/Not able to write to container folder.*write access denied/i),
 						},
 					},
 				})
@@ -199,7 +234,7 @@ describeForAllPlatforms(
 				expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				)
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 
 			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 			expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
@@ -251,6 +286,14 @@ describeForAllPlatforms(
 
 			fs.__emitter().once('copyFile', listenToCopyFile)
 
+			env.setLogFilterFunction((level, ...args) => {
+				const str = args.join(',')
+				// Suppress some logged warnings:
+				if (level === 'warn' && str.includes('stalled, restarting')) return false
+				if (level === 'error' && str.includes('cancelling timed out work')) return false
+				return true
+			})
+
 			addCopyFileExpectation(
 				env,
 				EXP_copy0,
@@ -269,7 +312,7 @@ describeForAllPlatforms(
 				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(
 					expect.stringMatching(/new|waiting/)
 				)
-			}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
+			}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 			// Add another worker:
 			env.addWorker()
@@ -313,6 +356,14 @@ describeForAllPlatforms(
 			})
 			fs.__emitter().once('copyFile', listenToCopyFile)
 
+			env.setLogFilterFunction((level, ...args) => {
+				const str = args.join(',')
+				// Suppress some logged warnings:
+				if (level === 'warn' && str.includes('stalled, restarting')) return false
+				if (level === 'warn' && str.includes('Cancelling job')) return false
+				return true
+			})
+
 			addCopyFileExpectation(
 				env,
 				EXP_copy0,
@@ -332,7 +383,7 @@ describeForAllPlatforms(
 				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(
 					expect.stringMatching(/new|waiting|ready|fulfilled/)
 				)
-			}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
+			}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 			// Wait for the copy to complete:
 			await waitUntil(() => {
@@ -427,18 +478,20 @@ describeForAllPlatforms(
 				expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				)
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 			await waitUntil(() => {
 				expect(env.containerStatuses[TARGET1]).toBeTruthy()
 				expect(env.containerStatuses[TARGET1].packages[PACKAGE0]).toBeTruthy()
 				expect(env.containerStatuses[TARGET1].packages[PACKAGE0].packageStatus?.status).toEqual(
 					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				)
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 
-			// Check that step 1 and 2 fullfills:
+			// Check that step 1 and 2 fulfills:
 			expect(env.expectationStatuses[STEP1].statusInfo.status).toEqual('fulfilled')
 			expect(env.expectationStatuses[STEP2].statusInfo.status).toEqual('fulfilled')
+
+			expect(await fsExists('/targets/target0/myFolder/file0Target.mp4')).toBe(true)
 
 			expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
 				size: 1234,
@@ -456,13 +509,13 @@ describeForAllPlatforms(
 				expect(env.containerStatuses[TARGET0].packages[PACKAGE0].packageStatus?.status).toEqual(
 					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 				)
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 
 			// Step 2 should be un-fulfilled, since it depends on step 1.
 			await waitUntil(() => {
 				expect(env.expectationStatuses[STEP1].statusInfo.status).toMatch(/waiting|new/)
 				expect(env.expectationStatuses[STEP2].statusInfo.status).toMatch(/waiting|new/)
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 
 			// The step1-copied file should remain, since removePackageOnUnFulfill is not set
 			expect(await fsExists('/targets/target0/myFolder/file0Target.mp4')).toBe(true)
@@ -476,7 +529,7 @@ describeForAllPlatforms(
 			await waitUntil(() => {
 				expect(env.expectationStatuses[STEP1].statusInfo.status).toBe('fulfilled')
 				expect(env.expectationStatuses[STEP2].statusInfo.status).toBe('fulfilled')
-			}, env.WAIT_JOB_TIME)
+			}, env.WAIT_JOB_TIME_SAFE)
 		})
 	}
 )

@@ -108,10 +108,11 @@ export async function setupExpectationManager(
 	debugLogging: boolean,
 	workerCount: number = 1,
 	callbacks: ExpectationManagerCallbacks,
-	options?: ExpectationManagerOptions
+	options: ExpectationManagerOptions,
+	logFilterFunction: (level: string, ...args: any[]) => boolean
 ) {
 	const logLevel = debugLogging ? LogLevel.DEBUG : LogLevel.WARN
-	const logger = setupLogger(config, '', undefined, undefined, logLevel)
+	const logger = setupLogger(config, '', undefined, undefined, logLevel, logFilterFunction)
 
 	const expectationManager = new ExpectationManager(
 		logger,
@@ -205,6 +206,14 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	}
 	initializeLogger(config)
 
+	let logFilterFunctionInner: (level: string, ...args: any[]) => boolean = () => {
+		return true // Default behavior: no filtering
+	}
+	let logFilterFunction = (level: string, ...args: any[]) => logFilterFunctionInner(level, ...args)
+	const setLogFilterFunction = (filter: (level: string, ...args: any[]) => boolean) => {
+		logFilterFunctionInner = filter
+	}
+
 	const em = await setupExpectationManager(
 		config,
 		debugLogging,
@@ -290,11 +299,13 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
 				ERROR_WAIT_TIME: ERROR_WAIT_TIME - 300,
 			},
-		}
+		},
+		logFilterFunction
 	)
 
 	return {
 		WAIT_JOB_TIME,
+		WAIT_JOB_TIME_SAFE: WAIT_JOB_TIME + 1000,
 		WAIT_SCAN_TIME,
 		WORK_TIMEOUT_TIME,
 		ERROR_WAIT_TIME,
@@ -308,6 +319,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			if (debugLogging) {
 				console.log('RESET ENVIRONMENT')
 			}
+			setLogFilterFunction(() => true)
 			em.expectationManager.resetWork()
 			objectKeys(expectationStatuses).forEach((key: ExpectationId) => {
 				delete expectationStatuses[key]
@@ -325,10 +337,13 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		},
 		addWorker: em.addWorker,
 		removeWorker: em.removeWorker,
+		setLogFilterFunction: setLogFilterFunction,
 	}
 }
 export interface TestEnviromnent {
 	WAIT_JOB_TIME: number
+	/** A little longer than WAIT_JOB_TIME, to be used in waitUntil()-expressions */
+	WAIT_JOB_TIME_SAFE: number
 	WAIT_SCAN_TIME: number
 	WORK_TIMEOUT_TIME: number
 	ERROR_WAIT_TIME: number
@@ -342,6 +357,7 @@ export interface TestEnviromnent {
 	terminate: () => void
 	addWorker: () => Promise<WorkerAgentId>
 	removeWorker: (id: WorkerAgentId) => Promise<void>
+	setLogFilterFunction: (filter: (level: string, ...args: any[]) => boolean) => void
 }
 
 export type ExpectationStatuses = Record<

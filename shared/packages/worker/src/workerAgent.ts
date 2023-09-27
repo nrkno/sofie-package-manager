@@ -478,13 +478,14 @@ export class WorkerAgent {
 							currentJob.timeoutInterval = null
 							return
 						}
+						const timeSinceLastUpdate = Date.now() - currentJob.lastUpdated
 
-						if (Date.now() - currentJob.lastUpdated > timeout) {
+						if (timeSinceLastUpdate > timeout) {
 							// The job seems to have timed out.
 							// Expectation Manager will clean up on it's side, we have to do the same here.
 
 							this.logger.warn(
-								`WorkerAgent: Cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId}) due to timeout (${timeout})`
+								`WorkerAgent: Cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId}) due to timeout (${timeSinceLastUpdate} > ${timeout})`
 							)
 							if (currentJob.timeoutInterval) {
 								clearInterval(currentJob.timeoutInterval)

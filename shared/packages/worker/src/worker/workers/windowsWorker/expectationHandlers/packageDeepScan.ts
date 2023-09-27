@@ -136,7 +136,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		let currentProcess: CancelablePromise<any> | undefined
-		const workInProgress = new WorkInProgress({ workLabel: 'Scanning file' }, async () => {
+		const workInProgress = new WorkInProgress({ workLabel: 'Deep Scanning file' }, async () => {
 			// On cancel
 			currentProcess?.cancel()
 		}).do(async () => {
@@ -185,9 +185,15 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			let resultFreezes: ScanAnomaly[] = []
 			let resultScenes: number[] = []
 			if (hasVideoStream) {
-				currentProcess = scanMoreInfo(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
-					workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
-				})
+				currentProcess = scanMoreInfo(
+					sourceHandle,
+					ffProbeScan,
+					exp.endRequirement.version,
+					(progress) => {
+						workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+					},
+					worker.logger.category('scanMoreInfo')
+				)
 				const result = await currentProcess
 				resultBlacks = result.blacks
 				resultFreezes = result.freezes
