@@ -1,5 +1,6 @@
-import { ExpectationManagerId, PackageContainerId } from '@sofie-package-manager/api'
 import {
+	ExpectationManagerId,
+	PackageContainerId,
 	ExpectationManagerWorkerAgent,
 	AdapterServer,
 	Expectation,

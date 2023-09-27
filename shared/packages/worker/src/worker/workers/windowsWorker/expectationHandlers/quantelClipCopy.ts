@@ -11,11 +11,11 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { startTimer } from '@sofie-package-manager/api'
 
 export const QuantelClipCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {

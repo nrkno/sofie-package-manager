@@ -8,6 +8,7 @@ import {
 	Expectation,
 	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isATEMAccessorHandle,
@@ -24,7 +25,6 @@ import { CancelablePromise } from '../../../../lib/cancelablePromise'
 import { PackageReadStream, PutPackageHandler } from '../../../../accessorHandlers/genericHandle'
 import { diff } from 'deep-diff'
 import { quantelFileflowCopy } from '../../lib/quantelFileflow'
-import { startTimer } from '@sofie-package-manager/api'
 
 export async function isFileReadyToStartWorkingOn(
 	worker: GenericWorker,

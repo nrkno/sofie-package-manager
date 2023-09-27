@@ -11,6 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isCorePackageInfoAccessorHandle,
@@ -21,7 +22,6 @@ import {
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
-import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer

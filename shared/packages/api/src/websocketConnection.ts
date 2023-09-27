@@ -170,14 +170,7 @@ export function isMessageIdentifyClient(message: unknown): message is MessageIde
 export type NotAssignedPartyId = ProtectedString<'NotAssigned', string>
 
 /** Ids of any communicating parties */
-export type PartyId =
-	| NotAssignedPartyId
-	| WorkerAgentId
-	| ExpectationManagerId
-	| AppContainerId
-	| WorkforceId
-	| ExpectationManagerId
-	| AppContainerId
+export type PartyId = NotAssignedPartyId | WorkerAgentId | ExpectationManagerId | AppContainerId | WorkforceId
 
 /** A Hook defines */
 export type Hook<ServerMethods extends MethodsInterfaceBase, ClientMethods extends MethodsInterfaceBase> = (

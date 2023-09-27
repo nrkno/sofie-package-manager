@@ -11,6 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { isCorePackageInfoAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -26,7 +27,6 @@ import {
 	scanWithFFProbe,
 } from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
-import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Performs a "deep scan" of the source package and saves the result file into the target PackageContainer (a Sofie Core collection)

@@ -10,6 +10,7 @@ import {
 	literal,
 	Reason,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -25,7 +26,6 @@ import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
 import { WindowsWorker } from '../windowsWorker'
 import { getSourceHTTPHandle, QuantelClipMetadata } from './lib/quantel'
-import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Generates a thumbnail image from a source quantel clip, and stores the resulting file into the target PackageContainer

@@ -9,6 +9,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -29,7 +30,6 @@ import {
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
-import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Generates a thumbnail image from a source video file, and stores the resulting file into the target PackageContainer

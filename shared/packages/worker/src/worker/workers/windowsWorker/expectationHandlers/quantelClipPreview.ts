@@ -11,6 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -28,7 +29,6 @@ import {
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
-import { startTimer } from '@sofie-package-manager/api'
 
 export const QuantelClipPreview: ExpectationWindowsHandler = {
 	doYouSupportExpectation(

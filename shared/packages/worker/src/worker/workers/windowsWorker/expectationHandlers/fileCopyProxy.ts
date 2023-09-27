@@ -15,6 +15,7 @@ import {
 	Reason,
 	stringifyError,
 	AccessorId,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -32,7 +33,6 @@ import {
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
-import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer.

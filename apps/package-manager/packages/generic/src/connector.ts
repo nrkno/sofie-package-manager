@@ -12,6 +12,7 @@ import {
 	ExpectedPackageId,
 	PackageContainerId,
 	AccessorId,
+	objectEntries,
 } from '@sofie-package-manager/api'
 import { ExpectationManager, ExpectationManagerServerOptions } from '@sofie-package-manager/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
@@ -20,7 +21,6 @@ import chokidar from 'chokidar'
 import fs from 'fs'
 import { promisify } from 'util'
 import path from 'path'
-import { objectEntries } from '@sofie-package-manager/api'
 
 const fsAccess = promisify(fs.access)
 const fsReadFile = promisify(fs.readFile)

@@ -12,6 +12,7 @@ import {
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -28,7 +29,6 @@ import {
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
-import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Generates a low-res preview video of a source video file, and stores the resulting file into the target PackageContainer

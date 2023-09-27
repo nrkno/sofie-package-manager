@@ -11,6 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { isCorePackageInfoAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -19,7 +20,6 @@ import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { isAnFFMpegSupportedSourceAccessor, isAnFFMpegSupportedSourceAccessorHandle, scanWithFFProbe } from './lib/scan'
 import { WindowsWorker } from '../windowsWorker'
 import { PackageInfoType } from './lib/coreApi'
-import { startTimer } from '@sofie-package-manager/api'
 
 /**
  * Scans the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
