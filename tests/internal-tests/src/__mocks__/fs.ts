@@ -324,6 +324,7 @@ export function access(path: string, mode: number | undefined, callback: (error:
 	const mockFile = getMock(path)
 	// if (DEBUG_LOG) console.log('fs.access', path, mode)
 	fsMockEmitter.emit('access', path, mode)
+	if (FS_ACCESS_DELAY > 0) console.log('FS_ACCESS_DELAY', FS_ACCESS_DELAY)
 	setTimeout(() => {
 		try {
 			if (mode === constants.R_OK && !mockFile.accessRead) {
