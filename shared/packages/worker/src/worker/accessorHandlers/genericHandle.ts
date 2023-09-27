@@ -4,6 +4,8 @@ import {
 	PackageContainerExpectation,
 	Reason,
 	HelpfulEventEmitter,
+	promiseTimeout,
+	INNER_ACTION_TIMEOUT,
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { MonitorInProgress } from '../lib/monitorInProgress'
@@ -18,7 +20,49 @@ export abstract class GenericAccessorHandle<Metadata> {
 		protected _accessor: AccessorOnPackage.Any,
 		protected _content: unknown,
 		public readonly type: string
-	) {}
+	) {
+		// Wrap all accessor methods which return promises into promiseTimeout.
+		// This is to get a finer grained logging, in case of a timeout:
+
+		/** List of all methods */
+		const methodsToWrap: Array<keyof GenericAccessorHandle<Metadata>> = [
+			'checkPackageReadAccess',
+			'tryPackageRead',
+			'checkPackageContainerWriteAccess',
+			'getPackageActualVersion',
+			'removePackage',
+			'fetchMetadata',
+			'updateMetadata',
+			'removeMetadata',
+			'getPackageReadStream',
+			'putPackageStream',
+			'getPackageReadInfo',
+			'putPackageInfo',
+			'prepareForOperation',
+			'finalizePackage',
+			'runCronJob',
+			'setupPackageContainerMonitors',
+		]
+
+		for (const methodName of methodsToWrap) {
+			const originalMethod = this[methodName] as (...args: any[]) => Promise<unknown>
+
+			;(this as any)[methodName] = async function (...args: any[]) {
+				return promiseTimeout(
+					originalMethod.call(this, ...args),
+					INNER_ACTION_TIMEOUT,
+					(duration) =>
+						`Timeout after ${duration} ms in ${methodName} for Accessor "${
+							this.accessorId
+						}". Context: ${JSON.stringify({
+							type: type,
+							accessor: this._accessor,
+							content: this._content,
+						})}`
+				)
+			}
+		}
+	}
 
 	/**
 	 * A string that can identify the package.

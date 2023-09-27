@@ -134,7 +134,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		let currentProcess: CancelablePromise<any> | undefined
-		const workInProgress = new WorkInProgress({ workLabel: 'Scanning file' }, async () => {
+		const workInProgress = new WorkInProgress({ workLabel: 'Scanning file (loudness)' }, async () => {
 			// On cancel
 			currentProcess?.cancel()
 		}).do(async () => {

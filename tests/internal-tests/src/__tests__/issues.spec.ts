@@ -2,7 +2,7 @@ import fsOrg from 'fs'
 import { promisify } from 'util'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { Expectation, literal } from '@sofie-package-manager/api'
+import { Expectation, INNER_ACTION_TIMEOUT, literal } from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
 import { waitUntil, waitTime } from './lib/lib'
@@ -20,16 +20,14 @@ const fsAccess = promisify(fs.access)
 const fsStat = promisify(fs.stat)
 
 const fsExists = async (filePath: string) => {
-	let exists = false
 	try {
-		await fsAccess(filePath, undefined)
+		await fsAccess(filePath, fs.constants.R_OK)
 		// The file exists
-		exists = true
+		return true
 	} catch (err) {
-		// Ignore
+		if (typeof err === 'object' && err && (err as any).code === 'ENOENT') return false
+		throw err
 	}
-
-	return exists
 }
 
 // const fsStat = promisify(fs.stat)
@@ -55,6 +53,10 @@ describe('Handle unhappy paths', () => {
 	beforeEach(() => {
 		fs.__mockReset()
 		env.reset()
+		fs.__mockSetAccessDelay(0) // Reset any access delay
+	})
+	afterEach(() => {
+		fs.__mockSetAccessDelay(0) // Reset any access delay
 	})
 
 	test('Wait for non-existing local file', async () => {
@@ -72,9 +74,9 @@ describe('Handle unhappy paths', () => {
 			expect(env.expectationStatuses['copy0']).toMatchObject({
 				actualVersionHash: null,
 				statusInfo: {
-					status: /new|waiting/,
+					status: expect.stringMatching(/new|waiting/),
 					statusReason: {
-						tech: /not able to access file/i,
+						tech: expect.stringMatching(/not able to access file/i),
 					},
 				},
 			})
@@ -102,6 +104,39 @@ describe('Handle unhappy paths', () => {
 			size: 1234,
 		})
 	})
+	test('Slow responding file operations', async () => {
+		fs.__mockSetDirectory('/sources/source0/')
+		fs.__mockSetDirectory('/targets/target0')
+		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+		fs.__mockSetAccessDelay(INNER_ACTION_TIMEOUT + 100) // Simulate a slow file operation
+
+		env.setLogFilterFunction((level, ...args) => {
+			const str = args.join(',')
+			// Suppress some logged warnings:
+			if (level === 'warn' && str.includes('checkPackageContainerWriteAccess')) return false
+			return true
+		})
+
+		addCopyFileExpectation(
+			env,
+			'copy0',
+			[getLocalSource('source0', 'file0Source.mp4')],
+			[getLocalTarget('target0', 'file0Target.mp4')]
+		)
+
+		await waitUntil(() => {
+			// Expect the Expectation to be waiting:
+			expect(env.expectationStatuses['copy0']).toMatchObject({
+				actualVersionHash: null,
+				statusInfo: {
+					// status: expect.stringMatching(/fulfilled/),
+					statusReason: {
+						tech: expect.stringMatching(/timeout.*checkPackageContainerWriteAccess.*Accessor.*/i),
+					},
+				},
+			})
+		}, INNER_ACTION_TIMEOUT + 100)
+	})
 	test.skip('Wait for non-existing network-shared, file', async () => {
 		// To be written
 
@@ -126,7 +161,6 @@ describe('Handle unhappy paths', () => {
 			accessRead: true,
 			accessWrite: false,
 		})
-		// fs.__printAllFiles()
 
 		addCopyFileExpectation(
 			env,
@@ -140,9 +174,9 @@ describe('Handle unhappy paths', () => {
 			expect(env.expectationStatuses['copy0']).toMatchObject({
 				actualVersionHash: null,
 				statusInfo: {
-					status: /new|waiting/,
+					status: expect.stringMatching(/new|waiting/),
 					statusReason: {
-						tech: /not able to access file/i,
+						tech: expect.stringMatching(/not able to access file/i),
 					},
 				},
 			})
@@ -152,13 +186,14 @@ describe('Handle unhappy paths', () => {
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
 
 		await waitUntil(() => {
-			// Expect the Expectation to be waiting:
+			// Expect the Expectation to be waiting -> new:
 			expect(env.expectationStatuses['copy0']).toMatchObject({
 				actualVersionHash: null,
 				statusInfo: {
 					status: 'new',
 					statusReason: {
-						tech: /not able to access target/i,
+						// user: expect.stringMatching(/asdf/i),
+						tech: expect.stringMatching(/Not able to write to container folder.*write access denied/i),
 					},
 				},
 			})
@@ -229,6 +264,14 @@ describe('Handle unhappy paths', () => {
 
 		fs.__emitter().once('copyFile', listenToCopyFile)
 
+		env.setLogFilterFunction((level, ...args) => {
+			const str = args.join(',')
+			// Suppress some logged warnings:
+			if (level === 'warn' && str.includes('stalled, restarting')) return false
+			if (level === 'error' && str.includes('cancelling timed out work')) return false
+			return true
+		})
+
 		addCopyFileExpectation(
 			env,
 			'copy0',
@@ -288,6 +331,14 @@ describe('Handle unhappy paths', () => {
 			})
 		})
 		fs.__emitter().once('copyFile', listenToCopyFile)
+
+		env.setLogFilterFunction((level, ...args) => {
+			const str = args.join(',')
+			// Suppress some logged warnings:
+			if (level === 'warn' && str.includes('stalled, restarting')) return false
+			if (level === 'warn' && str.includes('Cancelling job')) return false
+			return true
+		})
 
 		addCopyFileExpectation(
 			env,
@@ -413,6 +464,7 @@ describe('Handle unhappy paths', () => {
 		expect(env.expectationStatuses['step1'].statusInfo.status).toEqual('fulfilled')
 		expect(env.expectationStatuses['step2'].statusInfo.status).toEqual('fulfilled')
 
+		expect(await fsExists('/targets/target0/myFolder/file0Target.mp4')).toBe(true)
 		expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
 			size: 1234,
 		})
