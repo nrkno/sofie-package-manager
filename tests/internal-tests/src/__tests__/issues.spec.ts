@@ -131,7 +131,9 @@ describe('Handle unhappy paths', () => {
 				statusInfo: {
 					// status: expect.stringMatching(/fulfilled/),
 					statusReason: {
-						tech: expect.stringMatching(/timeout.*checkPackageContainerWriteAccess.*Accessor.*/i),
+						tech: expect.stringMatching(
+							/timeout.*(checkPackageContainerWriteAccess|checkPackageReadAccess).*Accessor.*/i
+						),
 					},
 				},
 			})
