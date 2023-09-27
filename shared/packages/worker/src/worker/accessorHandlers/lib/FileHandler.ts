@@ -287,7 +287,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					})
 
 					if (options.warningLimit && seenFiles.size > options.warningLimit) {
-						monitorInProgress._setStatus('warningLimit', StatusCode.WARNING_MINOR, {
+						monitorInProgress._setStatus('warningLimit', StatusCode.WARNING_MAJOR, {
 							user: 'Warning: Too many files for monitor',
 							tech: `There are ${seenFiles.size} files in the folder, which might cause performance issues. Reduce the number of files to below ${options.warningLimit} to get rid of this warning.`,
 						})
