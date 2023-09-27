@@ -290,6 +290,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 
 	return {
 		WAIT_JOB_TIME,
+		WAIT_JOB_TIME_SAFE: WAIT_JOB_TIME + 1000,
 		WAIT_SCAN_TIME,
 		WORK_TIMEOUT_TIME,
 		ERROR_WAIT_TIME,
@@ -321,6 +322,8 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 }
 export interface TestEnviromnent {
 	WAIT_JOB_TIME: number
+	/** A little longer than WAIT_JOB_TIME, to be used in waitUntil()-expressions */
+	WAIT_JOB_TIME_SAFE: number
 	WAIT_SCAN_TIME: number
 	WORK_TIMEOUT_TIME: number
 	ERROR_WAIT_TIME: number
