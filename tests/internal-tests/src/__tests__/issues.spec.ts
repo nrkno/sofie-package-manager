@@ -44,7 +44,7 @@ describe('Handle unhappy paths', () => {
 		expect(fs.lstat).toBeTruthy()
 		expect(fs.__mockReset).toBeTruthy()
 
-		jest.setTimeout(env.WAIT_JOB_TIME * 10 + env.WAIT_SCAN_TIME * 2)
+		jest.setTimeout(env.WAIT_JOB_TIME_SAFE * 10 + env.WAIT_SCAN_TIME * 2)
 	})
 	afterAll(() => {
 		env.terminate()
@@ -80,7 +80,7 @@ describe('Handle unhappy paths', () => {
 					},
 				},
 			})
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 
 		expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
 			ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
@@ -97,7 +97,7 @@ describe('Handle unhappy paths', () => {
 			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
-		}, env.WAIT_SCAN_TIME + env.ERROR_WAIT_TIME + env.WAIT_JOB_TIME)
+		}, env.WAIT_SCAN_TIME + env.ERROR_WAIT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
@@ -182,7 +182,7 @@ describe('Handle unhappy paths', () => {
 					},
 				},
 			})
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 
 		// Now the file can be read from:
 		fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
@@ -214,7 +214,7 @@ describe('Handle unhappy paths', () => {
 			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 
 		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 		expect(await fsStat('/targets/target0/file0Target.mp4')).toMatchObject({
@@ -290,7 +290,7 @@ describe('Handle unhappy paths', () => {
 		// Wait until the work have been aborted, and restarted:
 		await waitUntil(() => {
 			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
-		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
+		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 		// Add another worker:
 		env.addWorker()
@@ -361,7 +361,7 @@ describe('Handle unhappy paths', () => {
 			expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual(
 				expect.stringMatching(/new|waiting|ready|fulfilled/)
 			)
-		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME)
+		}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 		// Wait for the copy to complete:
 		await waitUntil(() => {
@@ -453,14 +453,14 @@ describe('Handle unhappy paths', () => {
 			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 		await waitUntil(() => {
 			expect(env.containerStatuses['target1']).toBeTruthy()
 			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
 			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 			)
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 
 		// Check that step 1 and 2 fullfills:
 		expect(env.expectationStatuses['step1'].statusInfo.status).toEqual('fulfilled')
@@ -483,13 +483,13 @@ describe('Handle unhappy paths', () => {
 			expect(env.containerStatuses['target0'].packages['package0'].packageStatus?.status).toEqual(
 				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.NOT_FOUND
 			)
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 
 		// Step 2 should be un-fullfilled, since it depends on step 1.
 		await waitUntil(() => {
 			expect(env.expectationStatuses['step1'].statusInfo.status).toMatch(/waiting|new/)
 			expect(env.expectationStatuses['step2'].statusInfo.status).toMatch(/waiting|new/)
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 
 		// The step1-copied file should remain, since removePackageOnUnFulfill is not set
 		expect(await fsExists('/targets/target0/myFolder/file0Target.mp4')).toBe(true)
@@ -503,7 +503,7 @@ describe('Handle unhappy paths', () => {
 		await waitUntil(() => {
 			expect(env.expectationStatuses['step1'].statusInfo.status).toBe('fulfilled')
 			expect(env.expectationStatuses['step2'].statusInfo.status).toBe('fulfilled')
-		}, env.WAIT_JOB_TIME)
+		}, env.WAIT_JOB_TIME_SAFE)
 	})
 })
 function addCopyFileExpectation(
