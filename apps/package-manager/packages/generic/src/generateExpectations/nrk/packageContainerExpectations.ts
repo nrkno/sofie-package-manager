@@ -24,7 +24,7 @@ export function getPackageContainerExpectations(
 					packages: {
 						label: 'Monitor Packages on source',
 						targetLayers: ['target0'],
-						ignore: '.bat',
+						ignore: ['.bat'],
 						// ignore: '',
 					},
 				},
@@ -43,9 +43,6 @@ export function getPackageContainerExpectations(
 					packages: {
 						label: 'Monitor for Smartbull',
 						targetLayers: ['source-smartbull'], // not used, since the layers of the original smartbull-package are used
-						usePolling: 2000,
-						awaitWriteFinishStabilityThreshold: 2000,
-						warningLimit: 3000, // We seem to get performance issues at around 9000 (when polling network drives), so 3000 should give us an early warning
 					},
 				},
 			}
