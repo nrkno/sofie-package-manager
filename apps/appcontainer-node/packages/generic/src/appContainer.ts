@@ -217,7 +217,7 @@ export class AppContainer {
 			this.initWorkForceApiPromise = { resolve, reject }
 		})
 
-		this.logger.info(`Initialized"`)
+		this.logger.info(`Initialized`)
 	}
 	/** Return the API-methods that the AppContainer exposes to the WorkerAgent */
 	private getWorkerAgentAPI(clientId: string): AppContainerWorkerAgent.AppContainer {

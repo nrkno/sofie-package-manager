@@ -628,6 +628,10 @@ export class EvaluationRunner {
 							if (monitorSetup.success) {
 								trackedPackageContainer.monitorIsSetup = true
 								for (const [monitorId, monitor] of Object.entries(monitorSetup.monitors)) {
+									this.logger.debug(
+										`Set up monitor "${monitor.label}" (${monitorId}) for PackageContainer ${trackedPackageContainer.id}`
+									)
+
 									if (trackedPackageContainer.status.monitors[monitorId]) {
 										// In case there no monitor status has been emitted yet:
 										this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerMonitorStatus(
