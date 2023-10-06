@@ -88,7 +88,7 @@ Other useful commands:
 yarn start:single-app
 
 # Start the single-app in local-only mode, using packages from expectedPackages.json
-yarn start:single-app -- -- --watchFiles=true --noCore=true
+yarn start:single-app -- -- --watchFiles=true --noCore=true --logLevel=debug
 
 
 
