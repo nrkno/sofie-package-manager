@@ -58,6 +58,27 @@ const packageJson = require(path.join(basePath, '/package.json'))
 		await Promise.all(ps)
 		ps = []
 	}
+
+	// Hack to make pkg include the native dependency @parcel/watcher:
+	{
+		log(`Hacking @parcel/watcher...`)
+
+		/*
+			This hack exploits the line @parcel/watcher/index.js:21 :
+				binding = require('./build/Release/watcher.node');
+			By copying the native module into that location, pkg will include it in the build.
+		*/
+		const arch = os.arch()
+		const platform = os.platform()
+		const prebuildType = process.argv[2] || `${platform}-${arch}`
+
+		const source = path.join(basePath, `node_modules/@parcel/watcher-${prebuildType}`) // @parcel/watcher-win32-x64
+		const target = path.join(basePath, 'node_modules/@parcel/watcher/build/Release')
+
+		log(`  Copying: ${source} to ${target}`)
+		await fse.copy(source, target)
+	}
+
 	log(`...done!`)
 })().catch(log)
 
