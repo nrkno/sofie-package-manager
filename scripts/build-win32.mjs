@@ -93,18 +93,23 @@ if (!executableName) {
 
 	const extraArgs = []
 
+	const assets = []
+
 	if (packageJson.name === '@single-app/app') {
+		assets.push(path.join(basePath, './node_modules/@sofie-automation/server-core-integration/package.json'))
+		assets.push(path.join(basePath, './package.json'))
+	}
+
+	if (assets.length > 0) {
 		extraArgs.push(
 			'--assets',
-			[
-				path.join(basePath, './node_modules/@sofie-automation/server-core-integration/package.json'),
-				path.join(basePath, './package.json'),
-			].join(',')
+			assets.join(',')
 		)
 	}
 
 	await pkg.exec([
 		path.join(basePath, './dist/index.js'),
+		// '--debug',
 		'--targets',
 		'node16-win-x64',
 		'--output',
