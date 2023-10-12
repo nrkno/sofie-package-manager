@@ -7,7 +7,7 @@ const rimraf = promisify(require('rimraf'))
 	Removing all /node_modules and /dist folders
 */
 
-const basePath = process.cwd()
+const basePath = '.'
 
 ;(async () => {
 	log('Gathering files to remove...')

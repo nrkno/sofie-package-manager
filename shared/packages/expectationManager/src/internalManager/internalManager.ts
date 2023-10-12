@@ -18,7 +18,7 @@ import { WorkerAgentAPI } from '../workerAgentApi'
 import { getDefaultConstants } from '../lib/constants'
 import { ExpectationTracker } from '../expectationTracker/expectationTracker'
 import { TrackedWorkerAgents } from './lib/trackedWorkerAgents'
-import { ManagerStatusMonitor } from './lib/managerStatusMonitor'
+import { ManagerStatusWatchdog } from './lib/managerStatusWatchdog'
 import {
 	ExpectationManagerCallbacks,
 	ExpectationManagerOptions,
@@ -43,7 +43,7 @@ export class InternalManager {
 	public statuses: ManagerStatusReporter
 
 	private enableChaosMonkey = false
-	private managerMonitor: ManagerStatusMonitor
+	private managerWatchdog: ManagerStatusWatchdog
 
 	public statusReport: StatusReportCache
 
@@ -79,7 +79,7 @@ export class InternalManager {
 		this.tracker.on('error', (err) => this.logger.error(`ExpectationTracker error" ${stringifyError(err)}`))
 		this.workerAgents = new TrackedWorkerAgents(this.logger, this.tracker)
 		this.statuses = new ManagerStatusReporter(this.callbacks)
-		this.managerMonitor = new ManagerStatusMonitor(this.logger, this.tracker, this.statuses)
+		this.managerWatchdog = new ManagerStatusWatchdog(this.logger, this.tracker, this.statuses)
 		this.statusReport = new StatusReportCache(this)
 
 		this.enableChaosMonkey = options?.chaosMonkey ?? false
@@ -107,7 +107,7 @@ export class InternalManager {
 		this.tracker.terminate()
 		this.expectationManagerServer.terminate()
 		this.workforceConnection.terminate()
-		this.managerMonitor.terminate()
+		this.managerWatchdog.terminate()
 	}
 	/** USED IN TESTS ONLY. Quickly reset the tracked work of the expectationManager. */
 	resetWork(): void {

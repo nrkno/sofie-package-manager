@@ -69,6 +69,7 @@ import { GenerateExpectationApi } from './generateExpectations/api'
 import { PackageManagerSettings } from './generated/options'
 
 import * as NRK from './generateExpectations/nrk'
+import { startTimer } from '@sofie-package-manager/api'
 
 export class PackageManagerHandler {
 	public coreHandler!: CoreHandler
@@ -76,7 +77,6 @@ export class PackageManagerHandler {
 
 	public expectationManager: ExpectationManager
 
-	private expectedPackageCache: Map<ExpectedPackageId, ExpectedPackageWrap> = new Map()
 	public packageContainersCache: PackageContainers = {}
 
 	private externalData: { packageContainers: PackageContainers; expectedPackages: ExpectedPackageWrap[] } = {
@@ -228,6 +228,8 @@ export class PackageManagerHandler {
 		this._triggerUpdatedExpectedPackagesTimeout = setTimeout(() => {
 			this._triggerUpdatedExpectedPackagesTimeout = null
 
+			const timer = startTimer()
+
 			const packageContainers: PackageContainers = {}
 			const expectedPackageSources: {
 				sourceName: string
@@ -296,6 +298,8 @@ export class PackageManagerHandler {
 			}
 
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackageSources)
+
+			this.logger.debug(`Took ${timer.get()} ms to handle updated expectedPackages`)
 		}, 300)
 	}
 
@@ -317,21 +321,7 @@ export class PackageManagerHandler {
 		}
 
 		// Step 0: Save local cache:
-		this.expectedPackageCache = new Map()
 		this.packageContainersCache = packageContainers
-		for (const exp of expectedPackages) {
-			// Note: There might be duplicates in expectedPackages
-
-			const expId: ExpectedPackageId = exp.expectedPackage._id
-
-			const existing = this.expectedPackageCache.get(expId)
-			if (
-				!existing ||
-				existing.priority > exp.priority // If the existing priority is lower (ie higher), replace it
-			) {
-				this.expectedPackageCache.set(expId, exp)
-			}
-		}
 
 		this.logger.debug(
 			`Has ${expectedPackages.length} expectedPackages (${expectedPackageSources
