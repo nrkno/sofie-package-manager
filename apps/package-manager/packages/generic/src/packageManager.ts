@@ -189,6 +189,8 @@ export class PackageManagerHandler {
 		this._triggerUpdatedExpectedPackagesTimeout = setTimeout(() => {
 			this._triggerUpdatedExpectedPackagesTimeout = null
 
+			const startTime = Date.now()
+
 			const packageContainers: PackageContainers = {}
 			const expectedPackageSources: {
 				sourceName: string
@@ -273,6 +275,8 @@ export class PackageManagerHandler {
 			}
 
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackageSources)
+
+			this.logger.debug(`Took ${Date.now() - startTime}ms to handle updated expectedPackages`)
 		}, 300)
 	}
 
