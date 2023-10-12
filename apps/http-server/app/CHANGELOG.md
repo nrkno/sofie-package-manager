@@ -5,10 +5,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 # [1.50.0-alpha.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.6...v1.50.0-alpha.7) (2023-09-08)
 
-**Note:** Version bump only for package @http-server/app
-
-
-
 
 
 # [1.50.0-alpha.6](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.5...v1.50.0-alpha.6) (2023-09-04)
@@ -57,6 +53,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [1.50.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.0...v1.50.0-alpha.1) (2023-05-10)
+
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
+
+**Note:** Version bump only for package @http-server/app
+
+
 
 
 ## [1.42.1](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)

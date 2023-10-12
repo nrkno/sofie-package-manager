@@ -5,10 +5,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 # [1.50.0-alpha.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.6...v1.50.0-alpha.7) (2023-09-08)
 
-**Note:** Version bump only for package @sofie-package-manager/worker
-
-
-
 
 
 # [1.50.0-alpha.6](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.5...v1.50.0-alpha.6) (2023-09-04)
@@ -53,9 +49,30 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 - implement phase and balance measurements ([c1b7077](https://github.com/nrkno/sofie-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
 
+
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
+
+
+### Bug Fixes
+
+* add new option `warningLimit` to monitor. ([a50b1a2](https://github.com/nrkno/tv-automation-package-manager/commit/a50b1a225719e78d1fd7471d9c183f1af888042d))
+* bug ([6c99dd7](https://github.com/nrkno/tv-automation-package-manager/commit/6c99dd79542872f2281e8a82cf683be9dcf33b77))
+* fix in file monitor ([3fb2eed](https://github.com/nrkno/tv-automation-package-manager/commit/3fb2eedee84a0992e969e96451040e4cdda418e1))
+* replace chokidar file monitor with ParcelWatcher ([60922e4](https://github.com/nrkno/tv-automation-package-manager/commit/60922e403c60739c5360b61d932b526b98c70ef3))
+* restart deep-scanning if ffpmeg doesn't output progress. ([a13b4f6](https://github.com/nrkno/tv-automation-package-manager/commit/a13b4f6eac488f880ab0c87de4ccca75963266e3))
+* rewrite the retrying of ffmpeg ([c7a8b06](https://github.com/nrkno/tv-automation-package-manager/commit/c7a8b063362344f0c2acc63b44be80269bd571fc))
+* wrap Accessor methods, in order to catch timeout issues earlier ([7f2a1f2](https://github.com/nrkno/tv-automation-package-manager/commit/7f2a1f2b1bcbce9ce1f3fcb15c4f2553a8cf03fe))
+* wrap lookupAccessorHandles in promiseTimeout, in order to catch timeouts earlier ([dc95092](https://github.com/nrkno/tv-automation-package-manager/commit/dc95092f46dadabaacb60023ef59083f509dd74b))
+
+
+
+
+
 ## [1.42.1](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
+
+
 
 ## [1.42.1-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.42.0...v1.42.1-alpha.0) (2023-06-09)
 

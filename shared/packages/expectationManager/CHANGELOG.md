@@ -22,14 +22,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 # [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
 
 
-### Bug Fixes
-
-* don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
-* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
-
-
-
-
 
 # [1.50.0-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
 
@@ -49,7 +41,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Bug Fixes
 
 * don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/sofie-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
+* improve debug logging, add CLI argument: --logLevel=debug ([52043c0](https://github.com/nrkno/tv-automation-package-manager/commit/52043c03fd924f33c88e7e4771826e8e2ff435e5))
 
+
+
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
+
+
+### Bug Fixes
+
+* don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
+* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
 
 
 

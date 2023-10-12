@@ -5,107 +5,86 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 # [1.50.0-alpha.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.6...v1.50.0-alpha.7) (2023-09-08)
 
-
 ### Reverts
 
-* chore: lerna useWorkspaces ([e1e5d27](https://github.com/nrkno/tv-automation-package-manager/commit/e1e5d2767c83e0230d6aab56705e021b67f38178))
-
-
-
-
+- chore: lerna useWorkspaces ([e1e5d27](https://github.com/nrkno/tv-automation-package-manager/commit/e1e5d2767c83e0230d6aab56705e021b67f38178))
 
 # [1.50.0-alpha.6](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.5...v1.50.0-alpha.6) (2023-09-04)
 
-
 ### Bug Fixes
 
-* CI signtool.exe /debug ([44f344a](https://github.com/nrkno/tv-automation-package-manager/commit/44f344ad7303512e79bfec5dca67bb3f12e6a76a))
-
-
-
-
+- CI signtool.exe /debug ([44f344a](https://github.com/nrkno/tv-automation-package-manager/commit/44f344ad7303512e79bfec5dca67bb3f12e6a76a))
 
 # [1.50.0-alpha.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.4...v1.50.0-alpha.5) (2023-09-04)
 
-
 ### Reverts
 
-* chore: lerna useWorkspaces ([c2f6432](https://github.com/nrkno/tv-automation-package-manager/commit/c2f6432eeae6c366a80ed7a412750a97374a321f))
-
-
-
-
+- chore: lerna useWorkspaces ([c2f6432](https://github.com/nrkno/tv-automation-package-manager/commit/c2f6432eeae6c366a80ed7a412750a97374a321f))
 
 # [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
 
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
 
 ### Bug Fixes
 
-* don't manually restart subscriptions when reconnecting to core SOFIE-2442 ([8d64216](https://github.com/nrkno/tv-automation-package-manager/commit/8d64216d452e92d8fb36152c0011149781822ea5))
-* don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
-* package.json asset build in pkg ([c546b5f](https://github.com/nrkno/tv-automation-package-manager/commit/c546b5fd6457e7b30381f28e4f802b4f385a3348))
-* remove version reporting ([ac0cd46](https://github.com/nrkno/tv-automation-package-manager/commit/ac0cd4684a5709dfbb6e1eda268d42e446d67967))
-* type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
-* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
-* URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/tv-automation-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
-* version printout on start ([c4b11bd](https://github.com/nrkno/tv-automation-package-manager/commit/c4b11bd454442504442ec679c9fc709faa16b263))
+- add new option `warningLimit` to monitor. ([a50b1a2](https://github.com/nrkno/tv-automation-package-manager/commit/a50b1a225719e78d1fd7471d9c183f1af888042d))
+- bug ([6c99dd7](https://github.com/nrkno/tv-automation-package-manager/commit/6c99dd79542872f2281e8a82cf683be9dcf33b77))
+- fix in file monitor ([3fb2eed](https://github.com/nrkno/tv-automation-package-manager/commit/3fb2eedee84a0992e969e96451040e4cdda418e1))
+- hack to make pkg include @parcel/watcher native dependencies ([3f1fd7d](https://github.com/nrkno/tv-automation-package-manager/commit/3f1fd7da092dee2d217f2e8c879a74c49e85441e))
+- improve debug logging, add CLI argument: --logLevel=debug ([52043c0](https://github.com/nrkno/tv-automation-package-manager/commit/52043c03fd924f33c88e7e4771826e8e2ff435e5))
+- replace chokidar file monitor with ParcelWatcher ([60922e4](https://github.com/nrkno/tv-automation-package-manager/commit/60922e403c60739c5360b61d932b526b98c70ef3))
+- restart deep-scanning if ffpmeg doesn't output progress. ([a13b4f6](https://github.com/nrkno/tv-automation-package-manager/commit/a13b4f6eac488f880ab0c87de4ccca75963266e3))
+- rewrite the retrying of ffmpeg ([c7a8b06](https://github.com/nrkno/tv-automation-package-manager/commit/c7a8b063362344f0c2acc63b44be80269bd571fc))
+- wrap Accessor methods, in order to catch timeout issues earlier ([7f2a1f2](https://github.com/nrkno/tv-automation-package-manager/commit/7f2a1f2b1bcbce9ce1f3fcb15c4f2553a8cf03fe))
+- wrap lookupAccessorHandles in promiseTimeout, in order to catch timeouts earlier ([dc95092](https://github.com/nrkno/tv-automation-package-manager/commit/dc95092f46dadabaacb60023ef59083f509dd74b))
 
+## [1.42.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)
+
+### Bug Fixes
+
+- don't manually restart subscriptions when reconnecting to core SOFIE-2442 ([8d64216](https://github.com/nrkno/tv-automation-package-manager/commit/8d64216d452e92d8fb36152c0011149781822ea5))
+- don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
+- package.json asset build in pkg ([c546b5f](https://github.com/nrkno/tv-automation-package-manager/commit/c546b5fd6457e7b30381f28e4f802b4f385a3348))
+- remove version reporting ([ac0cd46](https://github.com/nrkno/tv-automation-package-manager/commit/ac0cd4684a5709dfbb6e1eda268d42e446d67967))
+- type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
+- update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
+- URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/tv-automation-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
+- version printout on start ([c4b11bd](https://github.com/nrkno/tv-automation-package-manager/commit/c4b11bd454442504442ec679c9fc709faa16b263))
 
 ### Features
 
-* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
-* make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
-* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
-
-
-
-
+- implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+- make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
+- subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
 
 # [1.50.0-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
 
-
 ### Features
 
-* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
-
-
-
-
+- subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
 
 # [1.50.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.50.0-alpha.2) (2023-06-22)
 
-
 ### Bug Fixes
 
-* type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
-
+- type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
 
 ### Features
 
-* make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
-
-
+- make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
 
 # [1.50.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.0...v1.50.0-alpha.1) (2023-05-10)
 
-
-
 # [1.50.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0...v1.50.0-alpha.0) (2023-05-10)
-
 
 ### Bug Fixes
 
-* don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
-
+- don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
 
 ### Features
 
-* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
-* r50 json config schema ([1a0d477](https://github.com/nrkno/tv-automation-package-manager/commit/1a0d47761746a25692862afa7c351147db29a790))
-
-
-
-
+- implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+- r50 json config schema ([1a0d477](https://github.com/nrkno/tv-automation-package-manager/commit/1a0d47761746a25692862afa7c351147db29a790))
 
 # [1.50.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.0...v1.50.0-alpha.1) (2023-05-10)
 
@@ -137,13 +116,11 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package package-manager-monorepo
 
-
 ## [1.42.1-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0...v1.42.1-alpha.0) (2023-06-09)
 
 ### Bug Fixes
 
 - URL handling was broken, because it treated URLs as file paths ([827a939](https://github.com/nrkno/tv-automation-package-manager/commit/827a93961e9647927aef7970af8babbab028a29e))
-
 
 # [1.42.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0-alpha.5...v1.42.0) (2023-05-10)
 

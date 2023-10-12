@@ -20,6 +20,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
 
 
 ### Bug Fixes
@@ -32,6 +33,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Features
 
 * implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+* improve debug logging, add CLI argument: --logLevel=debug ([52043c0](https://github.com/nrkno/tv-automation-package-manager/commit/52043c03fd924f33c88e7e4771826e8e2ff435e5))
 
 
 

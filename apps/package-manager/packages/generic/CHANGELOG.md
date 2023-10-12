@@ -22,21 +22,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 # [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
 
 
-### Bug Fixes
-
-* don't manually restart subscriptions when reconnecting to core SOFIE-2442 ([8d64216](https://github.com/nrkno/tv-automation-package-manager/commit/8d64216d452e92d8fb36152c0011149781822ea5))
-* type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
-* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
-
-
-### Features
-
-* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
-* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
-
-
-
-
 
 # [1.50.0-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
 
@@ -65,6 +50,25 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * implement phase and balance measurements ([c1b7077](https://github.com/nrkno/sofie-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
 * r50 json config schema ([1a0d477](https://github.com/nrkno/sofie-package-manager/commit/1a0d47761746a25692862afa7c351147db29a790))
+* add new option `warningLimit` to monitor. ([a50b1a2](https://github.com/nrkno/tv-automation-package-manager/commit/a50b1a225719e78d1fd7471d9c183f1af888042d))
+* improve debug logging, add CLI argument: --logLevel=debug ([52043c0](https://github.com/nrkno/tv-automation-package-manager/commit/52043c03fd924f33c88e7e4771826e8e2ff435e5))
+* replace chokidar file monitor with ParcelWatcher ([60922e4](https://github.com/nrkno/tv-automation-package-manager/commit/60922e403c60739c5360b61d932b526b98c70ef3))
+
+
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
+
+
+### Bug Fixes
+
+* don't manually restart subscriptions when reconnecting to core SOFIE-2442 ([8d64216](https://github.com/nrkno/tv-automation-package-manager/commit/8d64216d452e92d8fb36152c0011149781822ea5))
+* type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
+* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
+
+
+### Features
+
+* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
 
 
 

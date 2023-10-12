@@ -22,13 +22,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 # [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.1...v1.50.0-alpha.4) (2023-09-04)
 
 
-### Bug Fixes
-
-* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
-
-
-
-
 
 # [1.50.0-alpha.3](https://github.com/nrkno/sofie-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
 
@@ -43,8 +36,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [1.50.0-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.42.0...v1.50.0-alpha.0) (2023-05-10)
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
 
-**Note:** Version bump only for package @appcontainer-node/generic
+
+### Bug Fixes
+
+* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
+
+* improve debug logging, add CLI argument: --logLevel=debug ([52043c0](https://github.com/nrkno/tv-automation-package-manager/commit/52043c03fd924f33c88e7e4771826e8e2ff435e5))
 
 
 

@@ -40,6 +40,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [1.50.0-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.42.0...v1.50.0-alpha.0) (2023-05-10)
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
 
 **Note:** Version bump only for package @worker/app
 
