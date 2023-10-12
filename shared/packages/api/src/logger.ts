@@ -134,7 +134,10 @@ export function setupLogger(
 				transports: [transportConsole],
 			})
 		}
-		if (handleProcess) logger.info('Logging to Console')
+		if (handleProcess && process.env.JEST_WORKER_ID === undefined) {
+			// Is not running in Jest
+			logger.info('Logging to Console')
+		}
 		if (initialLogLevel) setLogLevel(initialLogLevel, true)
 	}
 	// Somewhat of a hack, inject the category method:
