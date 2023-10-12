@@ -17,6 +17,7 @@ import { describeForAllPlatforms, waitUntil } from './lib/lib'
 import { getQuantelSource, getQuantelTarget } from './lib/containers'
 jest.mock('child_process')
 jest.mock('tv-automation-quantel-gateway-client')
+jest.mock('@parcel/watcher')
 
 const QGatewayClient = QGatewayClientOrg as any as typeof QGatewayClientType
 

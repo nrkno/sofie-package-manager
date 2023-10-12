@@ -84,7 +84,7 @@ export class PackageManagerHandler {
 		expectedPackages: [],
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
-	public monitoredPackages: Map<MonitorId, ExpectedPackageWrap[]> = new Map()
+	public monitoredPackages: Map<PackageContainerId, Map<MonitorId, ExpectedPackageWrap[]>> = new Map()
 	settings: PackageManagerSettings = {
 		delayRemoval: 0,
 		useTemporaryFilePath: false,
@@ -289,11 +289,13 @@ export class PackageManagerHandler {
 
 			// Add from Monitors:
 			{
-				for (const [monitorId, monitorExpectedPackages] of this.monitoredPackages.entries()) {
-					expectedPackageSources.push({
-						sourceName: `monitor_${monitorId}`,
-						expectedPackages: monitorExpectedPackages,
-					})
+				for (const monitors of this.monitoredPackages.values()) {
+					for (const [monitorId, monitorExpectedPackages] of monitors.entries()) {
+						expectedPackageSources.push({
+							sourceName: `monitor_${monitorId}`,
+							expectedPackages: monitorExpectedPackages,
+						})
+					}
 				}
 			}
 
@@ -676,7 +678,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				)
 			}
 			case 'reportFromMonitorPackages':
-				this.reportMonitoredPackages(...message.arguments)
+				this.onReportMonitoredPackages(...message.arguments)
 				break
 
 			default:
@@ -992,8 +994,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			.catch((e) => this.logger.error(`Error in updateCoreStatus : ${stringifyError(e)}`))
 	}
 
-	private reportMonitoredPackages(
-		_containerId: PackageContainerId,
+	private onReportMonitoredPackages(
+		containerId: PackageContainerId,
 		monitorId: MonitorId,
 		expectedPackages: ExpectedPackage.Any[]
 	) {
@@ -1010,7 +1012,12 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
 		)
 
-		this.packageManager.monitoredPackages.set(monitorId, expectedPackagesWraps)
+		let monitors = this.packageManager.monitoredPackages.get(containerId)
+		if (!monitors) {
+			monitors = new Map()
+			this.packageManager.monitoredPackages.set(containerId, monitors)
+		}
+		monitors.set(monitorId, expectedPackagesWraps)
 
 		this.packageManager.triggerUpdatedExpectedPackages()
 	}
