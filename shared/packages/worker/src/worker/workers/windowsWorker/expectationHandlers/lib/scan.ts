@@ -239,6 +239,7 @@ export function scanMoreInfo(
 		freezes: ScanAnomaly[]
 		blacks: ScanAnomaly[]
 	}>(async (resolve, reject, onCancel) => {
+		let cancelled = false
 		let filterString = ''
 		if (targetVersion.blackDetection) {
 			if (targetVersion.blackDuration && targetVersion.blackDuration?.endsWith('s')) {
@@ -287,6 +288,7 @@ export function scanMoreInfo(
 			}
 		}
 		onCancel(() => {
+			cancelled = true
 			killFFMpeg()
 			reject('Cancelled')
 		})
@@ -309,6 +311,7 @@ export function scanMoreInfo(
 		let previousStringData = ''
 		let fileDuration: number | undefined = undefined
 		ffMpegProcess.stderr.on('data', (data: any) => {
+			if (cancelled) return
 			const stringData = data.toString()
 
 			if (typeof stringData !== 'string') {
@@ -413,6 +416,7 @@ export function scanMoreInfo(
 		}
 
 		const onClose = (code: number | null) => {
+			if (cancelled) return
 			if (ffMpegProcess) {
 				ffMpegProcess = undefined
 				if (code === 0) {

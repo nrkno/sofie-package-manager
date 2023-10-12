@@ -362,8 +362,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		for (const monitorIdStr of monitorIds) {
 			if (monitorIdStr === 'packages') {
 				// setup file monitor:
-				resultingMonitors[protectString<MonitorId>(monitorIdStr)] =
-					this.setupPackagesMonitor(packageContainerExp)
+				resultingMonitors[protectString<MonitorId>(monitorIdStr)] = await this.setupPackagesMonitor(
+					packageContainerExp
+				)
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
 				assertNever(monitorIdStr)

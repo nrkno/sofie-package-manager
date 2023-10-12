@@ -52,7 +52,7 @@ export class LinuxWorker extends GenericWorker {
 	): Promise<ReturnTypeIsExpectationFulfilled> {
 		throw new Error(`Not implemented yet`)
 	}
-	async workOnExpectation(_exp: Expectation.Any): Promise<IWorkInProgress> {
+	async workOnExpectation(_exp: Expectation.Any, _progressTimeout: number): Promise<IWorkInProgress> {
 		throw new Error(`Not implemented yet`)
 	}
 	async removeExpectation(_exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {

@@ -10,15 +10,29 @@ export function waitTime(ms: number): Promise<void> {
  */
 export async function waitUntil(expectFcn: () => void, maxWaitTime: number): Promise<void> {
 	const timer = startTimer()
+	const previousErrors: string[] = []
+
 	while (true) {
 		await waitTime(100)
 		try {
 			expectFcn()
 			return
 		} catch (err) {
-			let waitedTime = timer.get()
+			const errorStr = `${err}`
+			if (previousErrors.length) {
+				const previousError = previousErrors[previousErrors.length - 1]
+				if (errorStr !== previousError) {
+					previousErrors.push(errorStr)
+				}
+			} else {
+				previousErrors.push(errorStr)
+			}
+
+			const waitedTime = timer.get()
 			if (waitedTime > maxWaitTime) {
 				console.log(`waitUntil: waited for ${waitedTime} ms, giving up (maxWaitTime: ${maxWaitTime}).`)
+				console.log(`Previous errors: \n${previousErrors.join('\n')}`)
+
 				throw err
 			}
 			// else ignore error and try again later

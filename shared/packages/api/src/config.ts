@@ -13,6 +13,7 @@ import { AppContainerId, WorkerAgentId } from './ids'
 /** Generic CLI-argument-definitions for any process */
 const processOptions = defineArguments({
 	logPath: { type: 'string', describe: 'Set to write logs to this file' },
+	logLevel: { type: 'string', describe: 'Set default log level. (Might be overwritten by Sofie Core)' },
 
 	unsafeSSL: {
 		type: 'boolean',
@@ -276,15 +277,22 @@ const quantelHTTPTransformerProxyConfigArguments = defineArguments({
 
 export interface ProcessConfig {
 	logPath: string | undefined
-	/** Will cause the Node applocation to blindly accept all certificates. Not recommenced unless in local, controlled networks. */
+	logLevel: string | undefined
+	/** Will cause the Node app to blindly accept all certificates. Not recommenced unless in local, controlled networks. */
 	unsafeSSL: boolean
 	/** Paths to certificates to load, for SSL-connections */
 	certificates: string[]
 }
-function getProcessConfig(argv: { logPath: string | undefined; unsafeSSL: boolean; certificates: string | undefined }) {
+function getProcessConfig(argv: {
+	logPath: string | undefined
+	logLevel: string | undefined
+	unsafeSSL: boolean
+	certificates: string | undefined
+}) {
 	const certs: string[] = (argv.certificates || process.env.CERTIFICATES || '').split(';') || []
 	return {
 		logPath: argv.logPath,
+		logLevel: argv.logLevel,
 		unsafeSSL: argv.unsafeSSL,
 		certificates: _.compact(certs),
 	}

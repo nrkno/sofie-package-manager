@@ -51,13 +51,17 @@ export interface ExpectationHandler {
 		specificWorker: any
 	) => Promise<ReturnTypeIsExpectationFulfilled>
 	/**
-	 * Start working on fullfilling an expectation.
-	 * @returns a WorkInProgress, upon beginning of the work. WorkInProgress then handles signalling of the work progress.
+	 * Start working on fulfilling an expectation.
+	 * The function returns a WorkInProgress, which then handles the actual work asynchronously.
+	 * The returned WorkInProgress is expected to emit 'progress'-events at some interval, to indicate that the work is progressing
+	 * (otherwise the work will be considered timed out and will be cancelled).
 	 */
 	workOnExpectation: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
-		specificWorker: any
+		specificWorker: any,
+		/** An FYI, the work will be considered timed out if there are no progression reports within this interval*/
+		progressTimeout: number
 	) => Promise<IWorkInProgress>
 	/**
 	 * "Make an expectation un-fulfilled"

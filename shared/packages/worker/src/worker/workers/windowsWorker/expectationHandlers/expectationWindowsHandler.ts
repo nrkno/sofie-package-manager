@@ -36,7 +36,9 @@ export interface ExpectationWindowsHandler extends ExpectationHandler {
 	workOnExpectation: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
+		windowsWorker: WindowsWorker,
+		/** An FYI, the work will be considered timed out if there are no progression reports within this interval*/
+		progressTimeout: number
 	) => Promise<IWorkInProgress>
 	removeExpectation: (
 		exp: Expectation.Any,

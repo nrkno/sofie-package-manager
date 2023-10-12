@@ -523,7 +523,7 @@ export class WorkerAgent {
 				)
 
 				try {
-					const workInProgress = await this._worker.workOnExpectation(exp)
+					const workInProgress = await this._worker.workOnExpectation(exp, timeout)
 
 					currentJob.workInProgress = workInProgress
 
@@ -637,6 +637,7 @@ export class WorkerAgent {
 						activeMonitor.set(monitorId, monitorInProgress)
 						returnMonitors[monitorId] = monitorInProgress.properties
 
+						monitorInProgress.removeAllListeners('error') // Replace any temporary listeners
 						monitorInProgress.on('error', (internalError: unknown) => {
 							this.logger.error(
 								`WorkerAgent.methods.setupPackageContainerMonitors: ${JSON.stringify(internalError)}`

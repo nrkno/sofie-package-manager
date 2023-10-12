@@ -18,12 +18,13 @@ import {
 	MonitorId,
 	AccessorId,
 } from '@sofie-package-manager/api'
-import chokidar from 'chokidar'
+
 import { GenericWorker } from '../../worker'
 
 import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
 import { removeBasePath } from './pathJoin'
+import { FileEvent, FileWatcher, IFileWatcher } from './FileWatcher'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -154,7 +155,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		return this.getFullPath(filePath) + '_metadata.json'
 	}
 
-	setupPackagesMonitor(packageContainerExp: PackageContainerExpectation): MonitorInProgress {
+	async setupPackagesMonitor(packageContainerExp: PackageContainerExpectation): Promise<MonitorInProgress> {
 		const options = packageContainerExp.monitors.packages
 		if (!options) throw new Error('Options not set (this should never happen)')
 
@@ -164,31 +165,22 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			},
 			async () => {
 				// Called on stop
-				await watcher.close()
+				await watcher.stop()
 			}
 		)
+		// Set up a temporary error listener, to catch any errors during setup:
+		monitorInProgress.on('error', (internalError: any) => {
+			this.worker.logger.error(`setupPackagesMonitor.monitorInProgress: ${JSON.stringify(internalError)}`)
+			monitorInProgress._setStatus(StatusCategory.SETUP, StatusCode.BAD, {
+				user: 'Internal error',
+				tech: `MonitorInProgress error: ${stringifyError(internalError)}`,
+			})
+		})
 
-		monitorInProgress._setStatus('setup', StatusCode.UNKNOWN, {
+		monitorInProgress._setStatus(StatusCategory.SETUP, StatusCode.UNKNOWN, {
 			user: 'Setting up file watcher...',
 			tech: `Setting up file watcher...`,
 		})
-
-		const chokidarOptions: chokidar.WatchOptions = {
-			ignored: options.ignore ? new RegExp(options.ignore) : undefined,
-			persistent: true,
-		}
-		if (options.usePolling) {
-			chokidarOptions.usePolling = true
-			chokidarOptions.interval = options.usePolling
-			chokidarOptions.binaryInterval = options.usePolling
-		}
-		if (options.awaitWriteFinishStabilityThreshold) {
-			chokidarOptions.awaitWriteFinish = {
-				stabilityThreshold: options.awaitWriteFinishStabilityThreshold,
-				pollInterval: options.awaitWriteFinishStabilityThreshold,
-			}
-		}
-		const watcher = chokidar.watch(this.folderPath, chokidarOptions)
 
 		const monitorId = protectString<MonitorId>(
 			`${this.worker.agentAPI.config.workerId}_${this.worker.uniqueId}_${Date.now()}`
@@ -226,7 +218,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 								version = this.convertStatToVersion(stat)
 								seenFiles.set(filePath, version)
 
-								monitorInProgress._unsetStatus(fullPath)
+								monitorInProgress._unsetStatus(StatusCategory.FILE + fullPath)
 							} catch (err) {
 								version = null
 								this.worker.logger.error(
@@ -235,7 +227,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 									)}`
 								)
 
-								monitorInProgress._setStatus(fullPath, StatusCode.BAD, {
+								monitorInProgress._setStatus(StatusCategory.FILE + fullPath, StatusCode.BAD, {
 									user: 'Error when accessing watched file',
 									tech: `Error: ${stringifyError(err)}`,
 								})
@@ -293,12 +285,12 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 					})
 
 					if (options.warningLimit && seenFiles.size > options.warningLimit) {
-						monitorInProgress._setStatus('warningLimit', StatusCode.WARNING_MAJOR, {
+						monitorInProgress._setStatus(StatusCategory.WARNING_LIMIT, StatusCode.WARNING_MAJOR, {
 							user: 'Warning: Too many files for monitor',
 							tech: `There are ${seenFiles.size} files in the folder, which might cause performance issues. Reduce the number of files to below ${options.warningLimit} to get rid of this warning.`,
 						})
 					} else {
-						monitorInProgress._unsetStatus('warningLimit')
+						monitorInProgress._unsetStatus(StatusCategory.WARNING_LIMIT)
 					}
 
 					// Finally
@@ -312,63 +304,45 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			}, 1000) // Wait just a little bit, to avoid doing multiple updates
 		}
 
-		/** Get the local filepath from the fullPath */
-		const getFilePath = (fullPath: string): string | undefined => {
-			return path.relative(this.folderPath, fullPath)
-		}
-		watcher
-			.on('add', (fullPath) => {
-				const localPath = getFilePath(fullPath)
-				if (localPath) {
-					seenFiles.set(localPath, null)
-					triggerSendUpdate()
-				}
+		const watcher: IFileWatcher = new FileWatcher(this.folderPath, {
+			ignore: options.ignore,
+			awaitWriteFinishStabilityThreshold: options.awaitWriteFinishStabilityThreshold,
+		})
+		watcher.on('error', (errString: string) => {
+			this.worker.logger.error(`GenericFileAccessorHandle.setupPackagesMonitor: watcher.error: ${errString}}`)
+			monitorInProgress._setStatus(StatusCategory.WATCHER, StatusCode.BAD, {
+				user: 'There was an unexpected error in the file watcher',
+				tech: `FileWatcher error: ${stringifyError(errString)}`,
 			})
-			.on('change', (fullPath) => {
-				const localPath = getFilePath(fullPath)
+		})
+		watcher.on('fileEvent', (fileEvent: FileEvent) => {
+			const localPath = watcher.getLocalFilePath(fileEvent.path)
+
+			if (fileEvent.type === 'create' || fileEvent.type === 'update') {
 				if (localPath) {
 					seenFiles.set(localPath, null) // This will cause triggerSendUpdate() to update the version
 					triggerSendUpdate()
 				}
-			})
-			.on('unlink', (fullPath) => {
-				// We don't trust chokidar, so we'll check it ourselves first..
-				// (We've seen an issue where removing a single file from a folder causes chokidar to emit unlink for ALL the files)
-				fsAccess(fullPath, fs.constants.R_OK)
-					.then(() => {
-						// The file seems to exist, even though chokidar says it doesn't.
-						// Ignore the event, then
-					})
-					.catch(() => {
-						// The file truly doesn't exist
+			} else if (fileEvent.type === 'delete') {
+				// Reset any BAD status related to this file:
+				monitorInProgress._unsetStatus(StatusCategory.FILE + fileEvent.path)
 
-						monitorInProgress._unsetStatus(fullPath)
+				if (localPath) {
+					seenFiles.delete(localPath)
+					triggerSendUpdate()
+				}
+			} else {
+				assertNever(fileEvent.type)
+			}
+		})
 
-						const localPath = getFilePath(fullPath)
-						if (localPath) {
-							seenFiles.delete(localPath)
-							triggerSendUpdate()
-						}
-					})
-			})
-			.on('error', (err) => {
-				this.worker.logger.error(
-					`GenericFileAccessorHandle.setupPackagesMonitor: watcher.error: Unexpected error event: ${stringifyError(
-						err
-					)}`
-				)
-				monitorInProgress._setStatus('watcher', StatusCode.BAD, {
-					user: 'Error in file watcher',
-					tech: `chokidar error: ${stringifyError(err)}`,
-				})
-			})
-			.on('ready', () => {
-				monitorInProgress._setStatus('setup', StatusCode.GOOD, {
-					user: 'File watcher is set up',
-					tech: `File watcher is set up`,
-				})
-				triggerSendUpdate()
-			})
+		// Watch for events:
+		await watcher.init()
+		triggerSendUpdate()
+		monitorInProgress._setStatus(StatusCategory.SETUP, StatusCode.GOOD, {
+			user: 'File watcher is set up',
+			tech: `File watcher is set up`,
+		})
 
 		return monitorInProgress
 	}
@@ -472,4 +446,11 @@ interface DelayPackageRemovalEntry {
 	filePath: string
 	/** Unix timestamp for when it's clear to remove the file */
 	removeTime: number
+}
+
+enum StatusCategory {
+	SETUP = 'setup',
+	WARNING_LIMIT = 'warningLimit',
+	WATCHER = 'watcher',
+	FILE = 'file_',
 }

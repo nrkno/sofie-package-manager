@@ -17,7 +17,6 @@ import {
 import { ExpectationManager, ExpectationManagerServerOptions } from '@sofie-package-manager/expectation-manager'
 import { CoreHandler, CoreConfig } from './coreHandler'
 import { PackageContainers, PackageManagerHandler } from './packageManager'
-import chokidar from 'chokidar'
 import fs from 'fs'
 import { promisify } from 'util'
 import path from 'path'
@@ -211,24 +210,6 @@ export class Connector {
 				'utf-8'
 			)
 		}
-
-		const watcher = chokidar.watch(fileName, { persistent: true })
-
-		this.logger.info(`Watching file "${fileName}"`)
-
-		watcher
-			.on('add', () => {
-				triggerReloadInput()
-			})
-			.on('change', () => {
-				triggerReloadInput()
-			})
-			.on('unlink', () => {
-				triggerReloadInput()
-			})
-			.on('error', (error) => {
-				this.logger.error(`Error emitter in Filewatcher: ${stringifyError(error)}`)
-			})
 		const triggerReloadInput = () => {
 			setTimeout(() => {
 				reloadInput().catch((error) => {
@@ -236,6 +217,15 @@ export class Connector {
 				})
 			}, 100)
 		}
+
+		this.logger.info(`Watching file "${fileName}"`)
+		fs.watchFile(fileName, { persistent: true }, (currStats, prevStats) => {
+			if (currStats.mtimeMs !== prevStats.mtimeMs) {
+				triggerReloadInput()
+			}
+		})
+		triggerReloadInput()
+
 		const reloadInput = async () => {
 			this.logger.info(`Change detected in ${fileName}`)
 			// Check that the file exists:
