@@ -50,7 +50,9 @@ export class PackageManagerHandler {
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
 	public monitoredPackages: {
-		[monitorId: string]: ResultingExpectedPackage[]
+		[containerId: string]: {
+			[monitorId: string]: ResultingExpectedPackage[]
+		}
 	} = {}
 	settings: PackageManagerSettings = {
 		delayRemoval: 0,
@@ -266,11 +268,13 @@ export class PackageManagerHandler {
 
 			// Add from Monitors:
 			{
-				for (const [monitorId, monitorExpectedPackages] of Object.entries(this.monitoredPackages)) {
-					expectedPackageSources.push({
-						sourceName: `monitor_${monitorId}`,
-						expectedPackages: monitorExpectedPackages,
-					})
+				for (const monitors of Object.values(this.monitoredPackages)) {
+					for (const [monitorId, monitorExpectedPackages] of Object.entries(monitors)) {
+						expectedPackageSources.push({
+							sourceName: `monitor_${monitorId}`,
+							expectedPackages: monitorExpectedPackages,
+						})
+					}
 				}
 			}
 
@@ -640,7 +644,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				)
 			}
 			case 'reportFromMonitorPackages':
-				this.reportMonitoredPackages(...message.arguments)
+				this.onReportMonitoredPackages(...message.arguments)
 				break
 
 			default:
@@ -953,7 +957,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			.catch((e) => this.logger.error(`Error in updateCoreStatus : ${stringifyError(e)}`))
 	}
 
-	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
+	private onReportMonitoredPackages(containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
@@ -967,7 +971,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
 		)
 
-		this.packageManager.monitoredPackages[monitorId] = expectedPackagesWraps
+		if (!this.packageManager.monitoredPackages[containerId]) this.packageManager.monitoredPackages[containerId] = {}
+		this.packageManager.monitoredPackages[containerId][monitorId] = expectedPackagesWraps
 
 		this.packageManager.triggerUpdatedExpectedPackages()
 	}
