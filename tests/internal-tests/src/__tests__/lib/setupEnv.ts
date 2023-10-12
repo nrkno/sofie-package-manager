@@ -36,6 +36,7 @@ const defaultTestConfig: SingleAppConfig = {
 		logPath: '',
 		unsafeSSL: false,
 		certificates: [],
+		logLevel: LogLevel.INFO,
 	},
 	workforce: {
 		port: null,
@@ -192,6 +193,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			certificates: [],
 			logPath: undefined,
 			unsafeSSL: false,
+			logLevel: debugLogging ? LogLevel.DEBUG : LogLevel.INFO,
 		},
 	}
 	initializeLogger(config)

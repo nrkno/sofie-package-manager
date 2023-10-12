@@ -2,6 +2,7 @@
 const promisify = require('util').promisify
 const cp = require('child_process')
 const path = require('path')
+const os = require('os')
 // const nexe = require('nexe')
 const exec = promisify(cp.exec)
 
@@ -23,36 +24,60 @@ const packageJson = require(path.join(basePath, '/package.json'))
 // }
 
 ;(async () => {
-	log(`Collecting dependencies for ${packageJson.name}...`)
-	// List all Lerna packages:
-	const list = await exec('yarn lerna list -a --json')
-	const str = list.stdout
-		.replace(/^yarn run .*$/gm, '')
-		.replace(/^\$.*$/gm, '')
-		.replace(/^Done in.*$/gm, '')
+	// Collecting dependencies
+	{
+		log(`Collecting dependencies for ${packageJson.name}...`)
+		// List all Lerna packages:
+		const list = await exec('yarn lerna list -a --json')
+		const str = list.stdout
+			.replace(/^yarn run .*$/gm, '')
+			.replace(/^\$.*$/gm, '')
+			.replace(/^Done in.*$/gm, '')
 
-	const packages = JSON.parse(str)
+		const packages = JSON.parse(str)
 
-	await mkdirp(path.join(basePath, 'node_modules'))
+		await mkdirp(path.join(basePath, 'node_modules'))
 
-	// Copy the packages into node_modules:
-	const copiedFolders = []
-	let ps = []
-	for (const package0 of packages) {
-		if (package0.name.match(/boilerplate/)) continue
-		if (package0.name.match(packageJson.name)) continue
+		// Copy the packages into node_modules:
 
-		const target = path.resolve(path.join(basePath, 'tmp_packages_for_build', package0.name))
-		log(`  Copying: ${package0.name} to ${target}`)
+		const copiedFolders = []
+		let ps = []
+		for (const package0 of packages) {
+			if (package0.name.match(/boilerplate/)) continue
+			if (package0.name.match(packageJson.name)) continue
 
-		// log(`    ${package0.location} -> ${target}`)
-		ps.push(fseCopy(package0.location, target))
+			const target = path.resolve(path.join(basePath, 'tmp_packages_for_build', package0.name))
+			log(`  Copying: ${package0.name} to ${target}`)
 
-		copiedFolders.push(target)
+			// log(`    ${package0.location} -> ${target}`)
+			ps.push(fseCopy(package0.location, target))
+
+			copiedFolders.push(target)
+		}
+
+		await Promise.all(ps)
+		ps = []
 	}
 
-	await Promise.all(ps)
-	ps = []
+	// Hack to make pkg include the native dependency @parcel/watcher:
+	{
+		log(`Hacking @parcel/watcher...`)
+
+		/*
+			This hack exploits the line @parcel/watcher/index.js:21 :
+				binding = require('./build/Release/watcher.node');
+			By copying the native module into that location, pkg will include it in the build.
+		*/
+		const arch = os.arch()
+		const platform = os.platform()
+		const prebuildType = process.argv[2] || `${platform}-${arch}`
+
+		const source = path.join(basePath, `node_modules/@parcel/watcher-${prebuildType}`) // @parcel/watcher-win32-x64
+		const target = path.join(basePath, 'node_modules/@parcel/watcher/build/Release')
+
+		log(`  Copying: ${source} to ${target}`)
+		await fse.copy(source, target)
+	}
 
 	log(`...done!`)
 })().catch(log)

@@ -123,7 +123,12 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker,
+		_: WindowsWorker,
+		progressTimeout: number
+	): Promise<IWorkInProgress> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source media file and upload the results to Core
 		const startTime = Date.now()
@@ -184,16 +189,81 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 			let resultFreezes: ScanAnomaly[] = []
 			let resultScenes: number[] = []
 			if (hasVideoStream) {
-				currentProcess = scanMoreInfo(
-					sourceHandle,
-					ffProbeScan,
-					exp.endRequirement.version,
-					(progress) => {
-						workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
-					},
-					worker.logger.category('scanMoreInfo')
-				)
+				let hasGottenProgress = false
+
+				currentProcess = new CancelablePromise<{
+					scenes: number[]
+					freezes: ScanAnomaly[]
+					blacks: ScanAnomaly[]
+				}>(async (resolve, reject, onCancel) => {
+					let isDone = false
+					let ignoreNextCancelError = false
+
+					const scanMoreInfoProcess = scanMoreInfo(
+						sourceHandle,
+						ffProbeScan,
+						exp.endRequirement.version,
+						(progress) => {
+							hasGottenProgress = true
+							workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+						},
+						worker.logger.category('scanMoreInfo')
+					)
+					onCancel(() => {
+						scanMoreInfoProcess.cancel()
+					})
+
+					scanMoreInfoProcess.then(
+						(result) => {
+							isDone = true
+							resolve(result)
+						},
+						(error) => {
+							if (`${error}`.match(/cancelled/i) && ignoreNextCancelError) {
+								// ignore this
+								ignoreNextCancelError = false
+							} else {
+								reject(error)
+							}
+						}
+					)
+
+					// Guard against an edge case where we don't get any progress reports:
+					setTimeout(() => {
+						if (!isDone && currentProcess && !hasGottenProgress) {
+							// If we haven't gotten any progress yet, we probably won't get any.
+
+							// 2023-09-20: There seems to be some bug in the FFMpeg scan where it won't output any progress
+							// if the scene detection is on.
+							// Let's abort and try again without scene detection:
+
+							ignoreNextCancelError = true
+							currentProcess.cancel()
+
+							const scanMoreInfoProcessSecondTry = scanMoreInfo(
+								sourceHandle,
+								ffProbeScan,
+								{
+									...exp.endRequirement.version,
+									scenes: false, // no scene detection
+								},
+								(progress) => {
+									hasGottenProgress = true
+									workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+								},
+								worker.logger.category('scanMoreInfo')
+							)
+
+							scanMoreInfoProcessSecondTry.then(
+								(result) => resolve(result),
+								(error) => reject(error)
+							)
+						}
+					}, progressTimeout * 0.5)
+				})
+
 				const result = await currentProcess
+
 				resultBlacks = result.blacks
 				resultFreezes = result.freezes
 				resultScenes = result.scenes

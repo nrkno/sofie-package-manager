@@ -85,7 +85,11 @@ export abstract class GenericWorker {
 	 * Start working on fullfilling an expectation.
 	 * @returns a WorkInProgress, upon beginning of the work. WorkInProgress then handles signalling of the work progress.
 	 */
-	abstract workOnExpectation(exp: Expectation.Any): Promise<IWorkInProgress>
+	abstract workOnExpectation(
+		exp: Expectation.Any,
+		/** An FYI, the work will be considered timed out if there are no progression reports within this interval*/
+		progressTimeout: number
+	): Promise<IWorkInProgress>
 	/**
 	 * "Make an expectation un-fullfilled"
 	 * This is called when an expectation has been removed.

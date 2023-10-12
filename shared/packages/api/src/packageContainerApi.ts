@@ -25,12 +25,12 @@ export interface PackageContainerExpectation extends PackageContainer {
 		/** Monitor the packages of a PackageContainer */
 		packages?: {
 			label: string
-			/** If set, ignore any files matching this. (Regular expression). */
-			ignore?: string
+			/** If set, ignore any files matching any of the patterns (Glob pattern). */
+			ignore?: string[]
 
 			/** If set, the monitoring will be using polling, at the given interval [ms] */
-			usePolling?: number | null
-			/** If set, will set the awaitWriteFinish.StabilityThreshold of chokidar */
+			// usePolling?: number | null
+			/** If set, will wait for the file being unchanged for the specified duration before considering it [ms] */
 			awaitWriteFinishStabilityThreshold?: number | null
 			/** If set, the monitor will warn if the monitored number of packages is greater than this */
 			warningLimit?: number

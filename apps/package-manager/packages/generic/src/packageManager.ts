@@ -42,7 +42,6 @@ export class PackageManagerHandler {
 
 	public expectationManager: ExpectationManager
 
-	private expectedPackageCache: { [id: string]: ExpectedPackageWrap } = {}
 	public packageContainersCache: PackageContainers = {}
 
 	private externalData: { packageContainers: PackageContainers; expectedPackages: ExpectedPackageWrap[] } = {
@@ -51,7 +50,9 @@ export class PackageManagerHandler {
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
 	public monitoredPackages: {
-		[monitorId: string]: ResultingExpectedPackage[]
+		[containerId: string]: {
+			[monitorId: string]: ResultingExpectedPackage[]
+		}
 	} = {}
 	settings: PackageManagerSettings = {
 		delayRemoval: 0,
@@ -190,8 +191,13 @@ export class PackageManagerHandler {
 		this._triggerUpdatedExpectedPackagesTimeout = setTimeout(() => {
 			this._triggerUpdatedExpectedPackagesTimeout = null
 
-			const expectedPackages: ExpectedPackageWrap[] = []
+			const startTime = Date.now()
+
 			const packageContainers: PackageContainers = {}
+			const expectedPackageSources: {
+				sourceName: string
+				expectedPackages: ExpectedPackageWrap[]
+			}[] = []
 
 			let activePlaylist: ActivePlaylist = {
 				_id: '',
@@ -202,10 +208,17 @@ export class PackageManagerHandler {
 
 			// Add from external data:
 			{
+				const expectedPackagesExternal: ExpectedPackageWrap[] = []
 				for (const expectedPackage of this.externalData.expectedPackages) {
-					expectedPackages.push(expectedPackage)
+					expectedPackagesExternal.push(expectedPackage)
 				}
 				Object.assign(packageContainers, this.externalData.packageContainers)
+				if (expectedPackagesExternal.length > 0) {
+					expectedPackageSources.push({
+						sourceName: 'external',
+						expectedPackages: expectedPackagesExternal,
+					})
+				}
 			}
 
 			if (!this.coreHandler.notUsingCore) {
@@ -222,6 +235,7 @@ export class PackageManagerHandler {
 
 				// Add from Core collections:
 				{
+					const expectedPackagesCore: ExpectedPackageWrap[] = []
 					const expectedPackageObjs = objs.filter((o) => o.type === 'expected_packages')
 
 					if (!expectedPackageObjs.length) {
@@ -232,7 +246,7 @@ export class PackageManagerHandler {
 					for (const expectedPackageObj of expectedPackageObjs) {
 						for (const expectedPackage of expectedPackageObj.expectedPackages) {
 							// Note: There might be duplicates of packages here, to be deduplicated later
-							expectedPackages.push(expectedPackage)
+							expectedPackagesCore.push(expectedPackage)
 						}
 					}
 
@@ -243,19 +257,30 @@ export class PackageManagerHandler {
 						return
 					}
 					Object.assign(packageContainers, packageContainerObj.packageContainers as PackageContainers)
+					if (expectedPackagesCore.length > 0) {
+						expectedPackageSources.push({
+							sourceName: 'core',
+							expectedPackages: expectedPackagesCore,
+						})
+					}
 				}
 			}
 
 			// Add from Monitors:
 			{
-				for (const monitorExpectedPackages of Object.values(this.monitoredPackages)) {
-					for (const expectedPackage of monitorExpectedPackages) {
-						expectedPackages.push(expectedPackage)
+				for (const monitors of Object.values(this.monitoredPackages)) {
+					for (const [monitorId, monitorExpectedPackages] of Object.entries(monitors)) {
+						expectedPackageSources.push({
+							sourceName: `monitor_${monitorId}`,
+							expectedPackages: monitorExpectedPackages,
+						})
 					}
 				}
 			}
 
-			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackages)
+			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackageSources)
+
+			this.logger.debug(`Took ${Date.now() - startTime}ms to handle updated expectedPackages`)
 		}, 300)
 	}
 
@@ -264,24 +289,27 @@ export class PackageManagerHandler {
 		activePlaylist: ActivePlaylist,
 		activeRundowns: ActiveRundown[],
 
-		expectedPackages: ExpectedPackageWrap[]
+		expectedPackageSources: {
+			sourceName: string
+			expectedPackages: ExpectedPackageWrap[]
+		}[]
 	) {
-		// Step 0: Save local cache:
-		this.expectedPackageCache = {}
-		this.packageContainersCache = packageContainers
-		for (const exp of expectedPackages) {
-			// Note: There might be duplicates in expectedPackages
-
-			const existing = this.expectedPackageCache[exp.expectedPackage._id]
-			if (
-				!existing ||
-				existing.priority > exp.priority // If the existing priority is lower (ie higher), replace it
-			) {
-				this.expectedPackageCache[exp.expectedPackage._id] = exp
+		const expectedPackages: ExpectedPackageWrap[] = []
+		for (const expectedPackageSource of expectedPackageSources) {
+			for (const exp of expectedPackageSource.expectedPackages) {
+				expectedPackages.push(exp)
 			}
 		}
 
-		this.logger.debug(`Has ${expectedPackages.length} expectedPackages`)
+		// Step 0: Save local cache:
+		this.packageContainersCache = packageContainers
+
+		this.logger.debug(
+			`Has ${expectedPackages.length} expectedPackages (${expectedPackageSources
+				.map((s) => `${s.sourceName}: ${s.expectedPackages.length}`)
+				.join(', ')})`
+		)
+		this.logger.silly(JSON.stringify(expectedPackages, null, 2))
 		// this.logger.debug(JSON.stringify(expectedPackages, null, 2))
 
 		this.dataSnapshot.expectedPackages = expectedPackages
@@ -298,15 +326,19 @@ export class PackageManagerHandler {
 			this.settings
 		)
 		this.logger.debug(`Has ${Object.keys(expectations).length} expectations`)
+		this.logger.silly(JSON.stringify(expectations, null, 2))
 		// this.logger.debug(JSON.stringify(expectations, null, 2))
 		this.dataSnapshot.expectations = expectations
 
+		this.logger.debug(`Has ${Object.keys(this.packageContainersCache).length} packageContainers`)
+		this.logger.silly(JSON.stringify(this.packageContainersCache, null, 2))
 		const packageContainerExpectations = this.expectationGeneratorApi.getPackageContainerExpectations(
 			this.expectationManager.managerId,
 			this.packageContainersCache,
 			activePlaylist
 		)
 		this.logger.debug(`Has ${Object.keys(packageContainerExpectations).length} packageContainerExpectations`)
+		this.logger.silly(JSON.stringify(packageContainerExpectations, null, 2))
 		this.dataSnapshot.packageContainerExpectations = packageContainerExpectations
 		this.dataSnapshot.updated = Date.now()
 
@@ -364,7 +396,7 @@ export class PackageManagerHandler {
 		return this.expectationManager.debugKillApp(appId)
 	}
 
-	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
+	/** Ensures that the packageContainerExpectations contains the mandatory expectations */
 	private ensureMandatoryPackageContainerExpectations(packageContainerExpectations: {
 		[id: string]: PackageContainerExpectation
 	}): void {
@@ -612,7 +644,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				)
 			}
 			case 'reportFromMonitorPackages':
-				this.reportMonitoredPackages(...message.arguments)
+				this.onReportMonitoredPackages(...message.arguments)
 				break
 
 			default:
@@ -925,7 +957,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			.catch((e) => this.logger.error(`Error in updateCoreStatus : ${stringifyError(e)}`))
 	}
 
-	private reportMonitoredPackages(_containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
+	private onReportMonitoredPackages(containerId: string, monitorId: string, expectedPackages: ExpectedPackage.Any[]) {
 		const expectedPackagesWraps: ExpectedPackageWrap[] = []
 
 		for (const expectedPackage of expectedPackages) {
@@ -939,7 +971,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			`reportMonitoredPackages: ${expectedPackages.length} packages, ${expectedPackagesWraps.length} wraps`
 		)
 
-		this.packageManager.monitoredPackages[monitorId] = expectedPackagesWraps
+		if (!this.packageManager.monitoredPackages[containerId]) this.packageManager.monitoredPackages[containerId] = {}
+		this.packageManager.monitoredPackages[containerId][monitorId] = expectedPackagesWraps
 
 		this.packageManager.triggerUpdatedExpectedPackages()
 	}

@@ -20,6 +20,9 @@ export enum LogLevel {
 	DEBUG = 'debug',
 	SILLY = 'silly',
 }
+export function isLogLevel(logLevel: string): logLevel is LogLevel {
+	return ['error', 'warn', 'info', 'verbose', 'debug', 'silly'].includes(logLevel)
+}
 
 export const DEFAULT_LOG_LEVEL = LogLevel.VERBOSE
 

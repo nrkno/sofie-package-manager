@@ -7,7 +7,7 @@ import { promisify } from 'util'
 
 const glob = promisify(glob0)
 
-const basePath = process.cwd()
+const basePath = '.'
 
 console.log(`Cleaning up...`)
 
@@ -21,7 +21,10 @@ console.log(`Remove unused files...`)
 const copiedFiles = [
 	...(await glob(`${basePath}/apps/*/app/node_modules/@*/app/*`)),
 	...(await glob(`${basePath}/apps/*/app/node_modules/@*/generic/*`)),
+	...(await glob(`${basePath}/node_modules/@parcel/watcher/build/**/*`)),
 ]
+
+console.log('copiedFiles', copiedFiles)
 for (const file of copiedFiles) {
 	console.log(`Removing file: "${file}"`)
 	ps.push(fse.rm(file, { recursive: true }))
