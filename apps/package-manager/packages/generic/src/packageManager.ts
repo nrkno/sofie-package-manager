@@ -42,7 +42,6 @@ export class PackageManagerHandler {
 
 	public expectationManager: ExpectationManager
 
-	private expectedPackageCache: { [id: string]: ExpectedPackageWrap } = {}
 	public packageContainersCache: PackageContainers = {}
 
 	private externalData: { packageContainers: PackageContainers; expectedPackages: ExpectedPackageWrap[] } = {
@@ -295,19 +294,7 @@ export class PackageManagerHandler {
 		}
 
 		// Step 0: Save local cache:
-		this.expectedPackageCache = {}
 		this.packageContainersCache = packageContainers
-		for (const exp of expectedPackages) {
-			// Note: There might be duplicates in expectedPackages
-
-			const existing = this.expectedPackageCache[exp.expectedPackage._id]
-			if (
-				!existing ||
-				existing.priority > exp.priority // If the existing priority is lower (ie higher), replace it
-			) {
-				this.expectedPackageCache[exp.expectedPackage._id] = exp
-			}
-		}
 
 		this.logger.debug(
 			`Has ${expectedPackages.length} expectedPackages (${expectedPackageSources
@@ -401,7 +388,7 @@ export class PackageManagerHandler {
 		return this.expectationManager.debugKillApp(appId)
 	}
 
-	/** Ensures that the packageContainerExpectations containes the mandatory expectations */
+	/** Ensures that the packageContainerExpectations contains the mandatory expectations */
 	private ensureMandatoryPackageContainerExpectations(packageContainerExpectations: {
 		[id: string]: PackageContainerExpectation
 	}): void {
