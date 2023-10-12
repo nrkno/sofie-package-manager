@@ -13,6 +13,7 @@ jest.mock('mkdirp')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
+jest.mock('@parcel/watcher')
 
 const fs = fsOrg as any as typeof fsMockType
 
