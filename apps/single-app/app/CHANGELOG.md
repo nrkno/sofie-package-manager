@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
+
+
+### Bug Fixes
+
+* improve debug logging, add CLI argument: --logLevel=debug ([52043c0](https://github.com/nrkno/tv-automation-package-manager/commit/52043c03fd924f33c88e7e4771826e8e2ff435e5))
+
+
+
+
+
 ## [1.42.1](https://github.com/nrkno/sofie-package-manager/compare/v1.42.1-alpha.4...v1.42.1) (2023-06-19)
 
 **Note:** Version bump only for package @single-app/app
