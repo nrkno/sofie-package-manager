@@ -8013,10 +8013,10 @@ path-type@^4.0.0:
   resolved "https://registry.yarnpkg.com/path-type/-/path-type-4.0.0.tgz#84ed01c0a7ba380afe09d90a8c180dcd9d03043b"
   integrity sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==
 
-pechkin@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/pechkin/-/pechkin-1.0.1.tgz#0808db3002005d66679464a48a7996ef4e5c55f0"
-  integrity sha512-ag2XU6STh5Hj2OXkxu7sJeHEEq9yYCnSQZTvUEFMv3UwPDMIpL6k1Vzw3hB9qhere9BeH6AERPboaptdOOCNTw==
+pechkin@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/pechkin/-/pechkin-2.2.0.tgz#e150d2f4a6abb596a4191aebcda54898d533af1a"
+  integrity sha512-sndCi+N1Qwd+yBzjra3lONuncj+EZyJmCfLukYQCmukqdG+Qxoj2QXeFqkJYhJJZ4ZdvX1xWAnepj0eHhj3TBQ==
   dependencies:
     busboy "^1.6.0"
 
