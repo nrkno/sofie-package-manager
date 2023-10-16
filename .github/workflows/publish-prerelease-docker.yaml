@@ -166,7 +166,7 @@ jobs:
           tags: "${{ steps.quantel-dockerhub-tag.outputs.tags }}"
 
   trivy-scanning-http-server:
-    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.0.0
+    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.0.1
     with:
       runs-on: "['ubuntu-latest']"
       registry-url: ghcr.io
@@ -183,7 +183,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
 
   trivy-scanning-quantel-http-transformer-proxy:
-    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.0.0
+    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.0.1
     with:
       runs-on: "['ubuntu-latest']"
       registry-url: ghcr.io
