@@ -44,7 +44,7 @@
         "precommit": "lint-staged"
     },
     "devDependencies": {
-        "@sofie-automation/code-standard-preset": "~2.3",
+        "@sofie-automation/code-standard-preset": "~2.5",
         "@types/jest": "^29.2.5",
         "deep-extend": "^0.6.0",
         "find": "^0.3.0",
