@@ -361,3 +361,17 @@ export function startTimer(): {
 		},
 	}
 }
+/**
+ * If the string is longer than maxLength, it will be shortened to maxLength, with '...' in the middle
+ */
+export function stringMaxLength(str: string, maxLength: number): string {
+	str = `${str}`
+	if (str.length > maxLength) {
+		maxLength = maxLength - 3 // make space for '...'
+		const length0 = Math.floor(maxLength / 2)
+		const length1 = maxLength - length0
+
+		return str.slice(0, length0) + '...' + str.slice(-length1)
+	}
+	return str
+}

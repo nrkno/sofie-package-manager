@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { Expectation, ExpectationId, Reason, WorkerAgentId } from '@sofie-package-manager/api'
+import { Expectation, ExpectationId, Reason, WorkerAgentId, stringMaxLength } from '@sofie-package-manager/api'
 import { ExpectationStateHandlerSession } from '../lib/types'
 import { ExpectationTrackerConstants } from './constants'
 
@@ -59,12 +59,7 @@ export interface TrackedExpectation {
 }
 
 export function expLabel(exp: TrackedExpectation): string {
-	let id = `${exp.id}`
-	if (id.length > 16) {
-		id = id.slice(0, 8) + '...' + id.slice(-8)
-	}
-
-	return `${id} ${exp.exp.statusReport.label.slice(0, 50)}`
+	return stringMaxLength(exp.id, 16) + ' ' + stringMaxLength(exp.exp.statusReport.label, 80)
 }
 
 export function sortTrackedExpectations(

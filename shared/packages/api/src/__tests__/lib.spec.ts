@@ -1,4 +1,4 @@
-import { deferGets, diff, promiseTimeout, stringifyError, waitTime } from '../lib'
+import { deferGets, diff, promiseTimeout, stringMaxLength, stringifyError, waitTime } from '../lib'
 
 describe('lib', () => {
 	test('diff', () => {
@@ -217,6 +217,14 @@ describe('lib', () => {
 			'a8_3', // was not executed
 		])
 		expect(i).toBe(5)
+	})
+	test('stringMaxLength', () => {
+		expect(stringMaxLength('abc', 10)).toBe('abc')
+		expect(stringMaxLength('0123456789abcdefg', 17)).toBe('0123456789abcdefg')
+		expect(stringMaxLength('0123456789abcdefg', 15)).toBe('012345...bcdefg')
+		expect(stringMaxLength('0123456789abcdefg', 10)).toBe('012...defg')
+		expect(stringMaxLength('0123456789abcdefg', 9)).toBe('012...efg')
+		expect(stringMaxLength('0123456789abcdefg', 8)).toBe('01...efg')
 	})
 })
 export {}
