@@ -36,9 +36,9 @@ import { FileVerify } from './expectationHandlers/fileVerify'
 export class WindowsWorker extends GenericWorker {
 	static readonly type = 'windowsWorker'
 
-	/** null = all is well */
+	/** Contains the result of testing the FFMpeg executable. null = all is well, otherwise contains error message */
 	public testFFMpeg: null | string = 'Not initialized'
-	/** null = all is well */
+	/** Contains the result of testing the FFProbe executable. null = all is well, otherwise contains error message */
 	public testFFProbe: null | string = 'Not initialized'
 
 	private monitor: NodeJS.Timer | undefined

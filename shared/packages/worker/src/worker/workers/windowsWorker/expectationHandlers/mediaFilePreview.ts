@@ -49,6 +49,14 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
 				},
 			}
+		if (windowsWorker.testFFProbe)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker (FFProbe)',
+					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
+				},
+			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
