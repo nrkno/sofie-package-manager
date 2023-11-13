@@ -24,7 +24,7 @@
         "atem-connection": "^3.2.0",
         "deep-diff": "^1.0.2",
         "form-data": "^4.0.0",
-        "mkdirp": "^1.0.4",
+        "mkdirp": "^3.0.1",
         "node-fetch": "^2.6.1",
         "tmp": "~0.2.1",
         "tv-automation-quantel-gateway-client": "3.1.7",
