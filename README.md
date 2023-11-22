@@ -1,16 +1,22 @@
-# Sofie: The Modern TV News Studio Automation System (Package Manager)
+# Sofie Package Manager
 
-This is the "Package Manager" application of the [**Sofie** TV News Studio Automation System](https://github.com/nrkno/Sofie-TV-automation/).
+This is the _Package Manager_ application of the [**Sofie** TV Automation System](https://github.com/nrkno/Sofie-TV-automation/).
 
-_Note: This is a mono-repo._
+Package Manager is used by the Sofie system to copy, analyze, and process media files. It is what powers Sofie's ability to copy media files to playout devices, to know when a media file is ready for playout, and to display details about media files in the rundown view such as scene changes, black frames, freeze frames, and more.
+
+## Repository-specific Info for Developers
+* [Developer Info](DEVELOPER.md)
+* [Contribution Guidelines](CONTRIBUTING.md)
+
+## General Sofie System Info
+* [Documentation](https://nrkno.github.io/sofie-core/)
+* [Releases](https://nrkno.github.io/sofie-core/releases)
 
 ## Introduction and Quick Start
+See the [Installing Package Manager](https://nrkno.github.io/sofie-core/docs/user-guide/installation/installing-package-manager) page of the Sofie System Documentation to learn how to get started with Package Manager in a demo environment with CasparCG.
 
-See the [Installing Package Manager](https://nrkno.github.io/tv-automation-server-core/docs/getting-started/installation/installing-package-manager) page of the [Sofie System Documentation](https://nrkno.github.io/tv-automation-server-core/) to learn how to get started with Package Manager in a demo environment with CasparCG.
-
-## File structure
-
-This is a mono-repo, all packages resides in [shared/packages](shared/packages) and [apps/](apps/).
+## File Structure
+This is a monorepo, all packages resides in [shared/packages](shared/packages) and [apps/](apps/).
 
 The packages in [shared/packages](shared/packages) are helper libraries, used by the packages in [apps/](apps/).
 
@@ -38,7 +44,7 @@ The packages in [tests/](tests/) contain unit/integration tests.
 | **Worker**             | [shared/packages/worker](shared/packages/worker)                         | The Worker class is used by the Worker application                      |
 | **Workforce**          | [shared/packages/Workforce](shared/packages/Workforce)                   | The Workforce class is used by the Worker application                   |
 
-## Notes on installation
+## Notes on Installation
 
 It has been observed a potential issue when running Package Manager as an executable on Windows:
 For unknown reasons, there is a buildup of "zombie" TCP sockets over time. It is unknown if this is caused by something in Package Manager or ffmpeg/ffprobe.
@@ -46,11 +52,11 @@ As a remedy/hack, [this script](/scripts/clean-up-tcp-sockets.bat) has been usef
 
 ## For Developers
 
-Be sure to read the [FOR DEVELOPERS](/FOR_DEVELOPERS.md) documentation.
+Be sure to read the [DEVELOPER](/DEVELOPER.md) documentation.
 
-Note: This mono-repo uses [Yarn](https://yarnpkg.com) and [Lerna](https://github.com/lerna/lerna), so most commands can be run on the root folder (no need to cd into each package).
+Note: This monorepo uses [Yarn](https://yarnpkg.com/) and [Lerna](https://github.com/lerna/lerna), so most commands can be run on the root folder (no need to cd into each package).
 
-Initialize repo:
+Initialize Repo:
 
 ```bash
 # install lerna globally
@@ -105,3 +111,11 @@ yarn start:workforce -- -- --port=8080
 yarn start:workforce -- -- --help
 
 ```
+---
+
+_The NRK logo is a registered trademark of Norsk rikskringkasting AS. The license does not grant any right to use, in any way, any trademarks, service marks or logos of Norsk rikskringkasting AS._
+
+
+
+
+
