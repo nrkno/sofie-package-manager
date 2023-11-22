@@ -12,6 +12,8 @@ Package Manager is used by the Sofie system to copy, analyze, and process media 
 * [Documentation](https://nrkno.github.io/sofie-core/)
 * [Releases](https://nrkno.github.io/sofie-core/releases)
 
+---
+
 ## Introduction and Quick Start
 See the [Installing Package Manager](https://nrkno.github.io/sofie-core/docs/user-guide/installation/installing-package-manager) page of the Sofie System Documentation to learn how to get started with Package Manager in a demo environment with CasparCG.
 
@@ -73,9 +75,7 @@ yarn build
 
 ```
 
-Now you should be good to go.
-
-Whenever you do a change, run `yarn build` (or `yarn build:changed` to only build the changed ones) to compile.
+Now you should be good to go. Whenever you do a change, run `yarn build` (or `yarn build:changed` to only build the changed ones) to compile.
 
 Before any code is committed, run these:
 
