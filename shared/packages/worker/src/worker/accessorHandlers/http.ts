@@ -48,7 +48,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		// Verify content data:
 		this.content = content
 		if (!content.onlyContainerAccess) {
-			if (!this.accessor.url || !this.content.path) throw new Error('Bad input data: content.path not set!')
+			if (!this.accessor.url && !this.content.path) throw new Error('Bad input data: content.path not set!')
 		}
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
