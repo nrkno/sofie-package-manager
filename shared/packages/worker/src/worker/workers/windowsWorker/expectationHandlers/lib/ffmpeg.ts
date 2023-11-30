@@ -1,6 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import path from 'path'
-import mkdirp from 'mkdirp'
+import { mkdirp } from 'mkdirp'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
