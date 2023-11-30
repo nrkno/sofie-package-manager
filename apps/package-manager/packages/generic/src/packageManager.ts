@@ -619,14 +619,19 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {
 			case 'fetchPackageInfoMetadata': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				if (this.packageManager.coreHandler.notUsingCore) {
+					return // Abort if we are not using core
+				}
 				return this.packageManager.coreHandler.coreMethods.fetchPackageInfoMetadata(
 					message.arguments[0],
 					protectStringArray(message.arguments[1])
 				)
 			}
 			case 'updatePackageInfo': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				if (this.packageManager.coreHandler.notUsingCore) {
+					this.logger.info(`Core: updatePackageInfo: ${JSON.stringify(message.arguments)}`)
+					return // Abort if we are not using core
+				}
 				return this.packageManager.coreHandler.coreMethods.updatePackageInfo(
 					message.arguments[0],
 					protectString(message.arguments[1]),
@@ -636,7 +641,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				)
 			}
 			case 'removePackageInfo': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
+				if (this.packageManager.coreHandler.notUsingCore) {
+					this.logger.info(`Core: removePackageInfo: ${JSON.stringify(message.arguments)}`)
+					return // Abort if we are not using core
+				}
 				return this.packageManager.coreHandler.coreMethods.removePackageInfo(
 					message.arguments[0],
 					protectString(message.arguments[1]),
