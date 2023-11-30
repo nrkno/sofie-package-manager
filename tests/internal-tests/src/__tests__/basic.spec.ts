@@ -11,6 +11,7 @@ import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gat
 import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
 import { waitUntil } from './lib/lib'
 import {
+	getCorePackageInfoTarget,
 	getFileShareSource,
 	getLocalSource,
 	getLocalTarget,
@@ -221,6 +222,44 @@ describe('Basic', () => {
 	test.skip('Media file preview from local to file share', async () => {
 		// To be written
 		expect(1).toEqual(1)
+	})
+	test('Be able to copy JSON Data from local file to Core', async () => {
+		fs.__mockSetFile('/sources/source0/myData0.json', 1234)
+
+		env.expectationManager.updateExpectations({
+			copy0: literal<Expectation.JsonDataCopy>({
+				id: 'copy0',
+				priority: 0,
+				managerId: 'manager0',
+				fromPackages: [{ id: 'package0', expectedContentVersionHash: 'abcd1234' }],
+				type: Expectation.Type.JSON_DATA_COPY,
+				statusReport: {
+					label: `Copy json data`,
+					description: `test`,
+					sendReport: false,
+				},
+				startRequirement: {
+					sources: [getLocalSource('source0', 'myData0.json')],
+				},
+				endRequirement: {
+					targets: [getCorePackageInfoTarget('target1')],
+					content: {},
+					version: { type: Expectation.Version.Type.JSON_DATA },
+				},
+				workOptions: {},
+			}),
+		})
+
+		// Wait for the job to complete:
+		await waitUntil(() => {
+			expect(env.containerStatuses['target1']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0']).toBeTruthy()
+			expect(env.containerStatuses['target1'].packages['package0'].packageStatus?.status).toEqual(
+				ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+			)
+		}, env.WAIT_JOB_TIME)
+
+		expect(env.expectationStatuses['copy0'].statusInfo.status).toEqual('fulfilled')
 	})
 })
 

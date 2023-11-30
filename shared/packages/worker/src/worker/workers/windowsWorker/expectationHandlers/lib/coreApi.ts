@@ -2,6 +2,9 @@ export enum PackageInfoType {
 	Scan = 'scan',
 	DeepScan = 'deepScan',
 	Loudness = 'loudness',
+
+	/** Unknown JSON data */
+	JSON = 'json',
 }
 
 export interface DeepScanResult {

@@ -46,10 +46,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		super(worker, accessorId, accessor, content, HTTPAccessorHandle.type)
 
 		// Verify content data:
-		if (!content.onlyContainerAccess) {
-			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
-		}
 		this.content = content
+		if (!content.onlyContainerAccess) {
+			if (!this.accessor.url || !this.content.path) throw new Error('Bad input data: content.path not set!')
+		}
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
@@ -97,6 +97,18 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.HTTPFile> {
+		if (this.accessor.isStable) {
+			// We assume the it is stable, so we won't even check the headers:
+			return {
+				type: Expectation.Version.Type.HTTP_FILE,
+
+				contentType: '',
+				contentLength: 0,
+				modified: 0,
+				etags: [`stable:${this.fullUrl}`],
+			}
+		}
+
 		const header = await this.fetchHeader()
 
 		return this.convertHeadersToVersion(header.headers)

@@ -119,7 +119,7 @@ export namespace ExpectedPackage {
 	export interface ExpectedPackageMediaFile extends Base {
 		type: PackageType.MEDIA_FILE
 		content: {
-			/** Local file path on the playout device */
+			/** Local file path on the package container */
 			filePath: string
 		}
 		version: {
@@ -337,6 +337,9 @@ export namespace AccessorOnPackage {
 	export interface HTTP extends Partial<Accessor.HTTP> {
 		/** URL path to resource (combined with .baseUrl gives the full URL), for example: /folder/myFile */
 		url?: string
+
+		/** If true, assumes that a source never changes once it has been fetched. */
+		isStable?: boolean
 	}
 	export interface Quantel extends Partial<Accessor.Quantel> {
 		guid?: string
