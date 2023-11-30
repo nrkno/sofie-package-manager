@@ -1,6 +1,6 @@
 {
     "name": "@worker/generic",
-    "version": "1.42.2",
+    "version": "1.43.0-alpha.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -10,8 +10,8 @@
         "__test": "jest"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.42.2",
-        "@sofie-package-manager/worker": "1.42.2"
+        "@sofie-package-manager/api": "1.43.0-alpha.0",
+        "@sofie-package-manager/worker": "1.43.0-alpha.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
