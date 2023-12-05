@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.43.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0-alpha.0...v1.43.0-alpha.1) (2023-12-05)
+
+
+### Bug Fixes
+
+* json data copying ([6ce0b05](https://github.com/nrkno/tv-automation-package-manager/commit/6ce0b0505d7b0bb18821cd2f8e4cc97820de6d96))
+
+
+
+
+
 # [1.43.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.2...v1.43.0-alpha.0) (2023-11-30)
 
 
