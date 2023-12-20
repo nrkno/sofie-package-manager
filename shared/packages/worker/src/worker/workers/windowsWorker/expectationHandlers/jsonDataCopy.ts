@@ -113,13 +113,14 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 			}
 		} else {
 			// check that the file is of the right version:
-			const actualTargetVersion = await lookupTarget.handle.getPackageActualVersion()
-			if (!actualTargetVersion)
+			const actualTargetUVersion = await lookupTarget.handle.fetchMetadata()
+			// const actualTargetVersion = await lookupTarget.handle.getPackageActualVersion()
+			if (!actualTargetUVersion)
 				return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
 
 			const issueVersions = compareUniversalVersions(
 				makeUniversalVersion(actualSourceVersion),
-				makeUniversalVersion(actualTargetVersion)
+				actualTargetUVersion
 			)
 			if (!issueVersions.success) {
 				return { fulfilled: false, reason: issueVersions.reason }
@@ -144,7 +145,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
-		// const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
+		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
 		// const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
@@ -295,7 +296,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 							// Copying is done
 							;(async () => {
 								await targetHandle.finalizePackage(fileOperation)
-								// await targetHandle.updateMetadata()
+								await targetHandle.updateMetadata(actualSourceUVersion)
 
 								const duration = Date.now() - startTime
 								workInProgress._reportComplete(
