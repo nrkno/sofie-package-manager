@@ -259,25 +259,34 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 	}
 	private async fetchHeader() {
-		const fetch = fetchWithController(this.fullUrl, {
-			method: 'HEAD',
-		})
-		const res = await fetch.response
+		const { headers, status, statusText } = await this.worker.cacheTemporaryData(
+			this.type,
+			this.fullUrl,
+			async () => {
+				const response = await fetchWithController(this.fullUrl, {
+					method: 'HEAD',
+				}).response
+				response.body.on('error', () => {
+					// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
+				})
 
-		res.body.on('error', () => {
-			// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
-		})
-
-		const headers: HTTPHeaders = {
-			contentType: res.headers.get('content-type'),
-			contentLength: res.headers.get('content-length'),
-			lastModified: res.headers.get('last-modified'),
-			etags: res.headers.get('etag'),
-		}
+				const headers: HTTPHeaders = {
+					contentType: response.headers.get('content-type'),
+					contentLength: response.headers.get('content-length'),
+					lastModified: response.headers.get('last-modified'),
+					etags: response.headers.get('etag'),
+				}
+				return {
+					headers,
+					status: response.status,
+					statusText: response.statusText,
+				}
+			}
+		)
 
 		return {
-			status: res.status,
-			statusText: res.statusText,
+			status: status,
+			statusText: statusText,
 			headers: headers,
 		}
 	}

@@ -142,6 +142,60 @@ export abstract class GenericWorker {
 			},
 		}
 	}
+
+	private _accessorTemporaryCache: {
+		[accessorType: string]: {
+			[key: string]: {
+				/** timestamp */
+				validTo: number
+				data: any
+			}
+		}
+	} = {}
+	private _accessorTemporaryCacheCleanupTimeout: NodeJS.Timeout | undefined
+	private _accessorTemporaryCacheCleanup() {
+		const now = Date.now()
+		for (const accessorType of Object.keys(this._accessorTemporaryCache)) {
+			const cache = this._accessorTemporaryCache[accessorType]
+			for (const key in cache) {
+				if (cache[key].validTo <= now) {
+					delete cache[key]
+				}
+			}
+		}
+	}
+	/**
+	 * Store and access temporary data. Useful to debounce / rate limit external calls
+	 * @example
+	 * const data = await this.worker.cacheTemporaryData(this.type, url, () => getData(url))
+	 * */
+	public async cacheTemporaryData<T>(
+		accessorType: string,
+		key: string,
+		cb: () => Promise<T>,
+		ttl = 1000
+	): Promise<T> {
+		// Check if data is in cache:
+		if (!this._accessorTemporaryCache[accessorType]) this._accessorTemporaryCache[accessorType] = {}
+		const cache = this._accessorTemporaryCache[accessorType]
+		const now = Date.now()
+		if (cache[key] && cache[key].validTo >= now) {
+			return cache[key].data
+		}
+
+		const data = await cb()
+		cache[key] = {
+			validTo: now + ttl,
+			data: data,
+		}
+		if (!this._accessorTemporaryCacheCleanupTimeout) {
+			this._accessorTemporaryCacheCleanupTimeout = setTimeout(() => {
+				this._accessorTemporaryCacheCleanupTimeout = undefined
+				this._accessorTemporaryCacheCleanup()
+			}, ttl + 1)
+		}
+		return data
+	}
 }
 export interface WorkerLocation {
 	/** The name/identifier of the computer that this runs on */
