@@ -43,6 +43,7 @@ import { PackageManagerHandler } from './packageManager'
 import { ExternalPeripheralDeviceAPI } from '@sofie-automation/server-core-integration/dist/lib/methods'
 import { PeripheralDeviceCommand } from '@sofie-automation/shared-lib/dist/core/model/PeripheralDeviceCommand'
 import { getCredentials } from './credentials'
+import { FakeCore } from './fakeCore'
 
 let packageJson: any
 try {
@@ -69,6 +70,7 @@ export class CoreHandler {
 	public delayRemovalPackageInfo = 0
 	public useTemporaryFilePath = false
 	public notUsingCore = false
+	public fakeCore: FakeCore
 
 	private core!: CoreConnection
 
@@ -87,6 +89,8 @@ export class CoreHandler {
 	constructor(logger: LoggerInstance, deviceOptions: DeviceConfig) {
 		this.logger = logger.category('CoreHandler')
 		this._deviceOptions = deviceOptions
+
+		this.fakeCore = new FakeCore(this.logger)
 	}
 
 	async init(config: PackageManagerConfig, processHandler: ProcessHandler): Promise<void> {
