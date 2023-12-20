@@ -96,7 +96,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 
 		if (isCorePackageInfoAccessorHandle(lookupTarget.handle)) {
 			const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
-				PackageInfoType.DeepScan,
+				PackageInfoType.JSON,
 				exp,
 				{}, // exp.startRequirement.content,
 				actualSourceVersion,
