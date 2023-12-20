@@ -97,18 +97,6 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true }
 	}
 	async getPackageActualVersion(): Promise<Expectation.Version.HTTPFile> {
-		if (this.accessor.isStable) {
-			// We assume the it is stable, so we won't even check the headers:
-			return {
-				type: Expectation.Version.Type.HTTP_FILE,
-
-				contentType: '',
-				contentLength: 0,
-				modified: 0,
-				etags: [`stable:${this.fullUrl}`],
-			}
-		}
-
 		const header = await this.fetchHeader()
 
 		return this.convertHeadersToVersion(header.headers)
@@ -259,7 +247,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 	}
 	private async fetchHeader() {
-		const { headers, status, statusText } = await this.worker.cacheTemporaryData(
+		const ttl = this.accessor.isStable
+			? 1000 * 60 * 60 * 24 // 1 day
+			: 1000 // a second
+		const { headers, status, statusText } = await this.worker.cacheData(
 			this.type,
 			this.fullUrl,
 			async () => {
@@ -281,7 +272,8 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 					status: response.status,
 					statusText: response.statusText,
 				}
-			}
+			},
+			ttl
 		)
 
 		return {

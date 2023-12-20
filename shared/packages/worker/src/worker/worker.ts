@@ -165,16 +165,11 @@ export abstract class GenericWorker {
 		}
 	}
 	/**
-	 * Store and access temporary data. Useful to debounce / rate limit external calls
+	 * Store and access data. Useful to debounce / rate limit external calls
 	 * @example
 	 * const data = await this.worker.cacheTemporaryData(this.type, url, () => getData(url))
 	 * */
-	public async cacheTemporaryData<T>(
-		accessorType: string,
-		key: string,
-		cb: () => Promise<T>,
-		ttl = 1000
-	): Promise<T> {
+	public async cacheData<T>(accessorType: string, key: string, cb: () => Promise<T>, ttl = 1000): Promise<T> {
 		// Check if data is in cache:
 		if (!this._accessorTemporaryCache[accessorType]) this._accessorTemporaryCache[accessorType] = {}
 		const cache = this._accessorTemporaryCache[accessorType]
@@ -192,7 +187,7 @@ export abstract class GenericWorker {
 			this._accessorTemporaryCacheCleanupTimeout = setTimeout(() => {
 				this._accessorTemporaryCacheCleanupTimeout = undefined
 				this._accessorTemporaryCacheCleanup()
-			}, ttl + 1)
+			}, 1000)
 		}
 		return data
 	}
