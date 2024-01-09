@@ -1,16 +1,24 @@
-# Sofie: The Modern TV News Studio Automation System (Package Manager)
+# Sofie Package Manager
 
-This is the "Package Manager" application of the [**Sofie** TV News Studio Automation System](https://github.com/nrkno/Sofie-TV-automation/).
+This is the _Package Manager_ application of the [**Sofie** TV News Studio Automation System](https://github.com/nrkno/Sofie-TV-automation/).
 
-_Note: This is a mono-repo._
+* [_For Developers_](DEVELOPER.md)
+
+## General Sofie System Information
+* [_Sofie_ Documentation](https://nrkno.github.io/sofie-core/)
+* [_Sofie_ Releases](https://nrkno.github.io/sofie-core/releases)
+* [Contribution Guidelines](CONTRIBUTING.md)
+* [License](LICENSE)
+
+---
 
 ## Introduction and Quick Start
 
 See the [Installing Package Manager](https://nrkno.github.io/tv-automation-server-core/docs/getting-started/installation/installing-package-manager) page of the [Sofie System Documentation](https://nrkno.github.io/tv-automation-server-core/) to learn how to get started with Package Manager in a demo environment with CasparCG.
 
-## File structure
+## File Structure
 
-This is a mono-repo, all packages resides in [shared/packages](shared/packages) and [apps/](apps/).
+This is a monorepo, all packages resides in [shared/packages](shared/packages) and [apps/](apps/).
 
 The packages in [shared/packages](shared/packages) are helper libraries, used by the packages in [apps/](apps/).
 
@@ -38,70 +46,12 @@ The packages in [tests/](tests/) contain unit/integration tests.
 | **Worker**             | [shared/packages/worker](shared/packages/worker)                         | The Worker class is used by the Worker application                      |
 | **Workforce**          | [shared/packages/Workforce](shared/packages/Workforce)                   | The Workforce class is used by the Worker application                   |
 
-## Notes on installation
+## Notes on Installation
 
 It has been observed a potential issue when running Package Manager as an executable on Windows:
 For unknown reasons, there is a buildup of "zombie" TCP sockets over time. It is unknown if this is caused by something in Package Manager or ffmpeg/ffprobe.
 As a remedy/hack, [this script](/scripts/clean-up-tcp-sockets.bat) has been useful to avoid potential longterm issues.
 
-## For Developers
+---
 
-Be sure to read the [FOR DEVELOPERS](/FOR_DEVELOPERS.md) documentation.
-
-Note: This mono-repo uses [Yarn](https://yarnpkg.com) and [Lerna](https://github.com/lerna/lerna), so most commands can be run on the root folder (no need to cd into each package).
-
-Initialize repo:
-
-```bash
-# install lerna globally
-yarn global add lerna
-
-# set up mono-repo
-yarn setup
-
-# Install all dependencies
-yarn
-
-# Build all packages
-yarn build
-
-```
-
-Now you should be good to go.
-
-Whenever you do a change, run `yarn build` (or `yarn build:changed` to only build the changed ones) to compile.
-
-Before any code is committed, run these:
-
-```bash
-# Lint all packages
-yarn lint
-
-# Run all tests
-yarn test
-```
-
-Other useful commands:
-
-```bash
-# Start the single-app (contains all apps)
-yarn start:single-app
-
-# Start the single-app in local-only mode, using packages from expectedPackages.json
-yarn start:single-app -- -- --watchFiles=true --noCore=true --logLevel=debug
-
-
-
-# (Windows only) Compile all apps into executables, and put into the deploy/ folder.
-yarn do:build-win32
-
-# To run a command for a single package, use the --scope option
-yarn build --scope @sofie-package-manager/api
-
-# CLI arguments can be passed like so: (note the double -- --)
-yarn start:workforce -- -- --port=8080
-
-# Documentation for the CLI agruments
-yarn start:workforce -- -- --help
-
-```
+_The NRK logo is a registered trademark of Norsk rikskringkasting AS. The license does not grant any right to use, in any way, any trademarks, service marks or logos of Norsk rikskringkasting AS._

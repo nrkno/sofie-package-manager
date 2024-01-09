@@ -1,23 +1,25 @@
-This document contains documentation intended for developers of this repo.
+# For Developers
 
-# Key concepts
+Note: This monorepo uses [Yarn](https://yarnpkg.com) and [Lerna](https://github.com/lerna/lerna), so most commands can be run on the root folder (no need to cd into each package).
+
+## Key concepts
 
 ![System overview](./images/System-overview.png 'System overview')
 
-## Workforce
+### Workforce
 
-_Note: There can be only one (1) Workforce in a setup._
+_Note: There can be only one(1) Workforce in a setup._
 
 The Workforce keeps track of which `ExpectationManagers` and `Workers` are online, and mediates the contact between the two.
 The Workforce is responsible for making sure more `Workers` are spun up (by `AppContainers`) if needed.
 
-## AppContainer
+### AppContainer
 
 _Note: There can be multiple AppContainers in a setup_
 
 The `AppContainer` is reponsible for spinning up/down `Workers`, and restarting them if they crashes. It allows for having a unified API for several types of computing resources, such as physical computers, Kubernetes clusters (not implemented yet), or some other type of computing cluster.
 
-## Package Manager
+### Package Manager
 
 _Note: There can be multiple Package Managers in a setup (usually one per Sofie-Core)_
 
@@ -37,7 +39,7 @@ A typical lifetime of an Expectation is:
 4. `WORKING`: Intermediary state while the Worker is working.
 5. `FULFILLED`: From time-to-time, the Expectation is re-checked if it still is `FULFILLED`
 
-## Worker
+#### Worker
 
 _Note: There can be multiple Workers in a setup_
 
@@ -48,7 +50,7 @@ The Worker is (almost completely) **stateless**, which allows it to expose a lam
 
 _Future functionality: There are multiple different types of Workers. Some are running on a Windows-machine with direct access to that maching. Some are running in Linux/Docker containers, or even off-premise._
 
-### ExpectationHandlers & AccessorHandlers
+#### ExpectationHandlers & AccessorHandlers
 
 ![Expectation and Accessor handlers](./images/handlers.png 'Expectation and Accessor handlers')
 
@@ -59,26 +61,26 @@ The `ExpectationHandlers` handles the high-level functionality required for a ce
 For example, when [copying a file](shared/packages/worker/src/worker/workers/windowsWorker/expectationHandlers/fileCopy.ts) from one folder to another, the `ExpectationHandler` will handle things like "check if the source package exists", "check if the target package already exists" but it's never touching the files directly, only talking to the the `AccessorHandler`.
 The `AccessorHandler` [exposes a few generic methods](./shared/packages/worker/src/worker/accessorHandlers/genericHandle.ts), like "check if we can read from a Package" (ie does a file exist), etc.
 
-## HTTP-server
+### HTTP Server
 
-The HTTP-server application is a simple HTTP-server which allows for uploading and downloading of Packages with a RESTful API.
-It is intended to provide a simple way of serving for example preview-files to the Sofie-GUI.
+The HTTP Server application is a simple HTTP Server which allows for uploading and downloading of Packages with a RESTful API.
+It is intended to provide a simple way of serving for example preview-files to the Sofie GUI.
 
-## Single-app
+### Single App
 
 The Single App is a special process which runs one of each of the above, all in the same process.
 It is intended to be used as a simple deployment and for deveoplemnt/debugging.
 
-## Quantel HTTP Transformer Proxy
+### Quantel HTTP Transformer Proxy
 
 This is a small application intended to fix an issue in the Quantel HTTP Transformer, causing streamed content to not work properly.
 It works as a proxy http server, pointed at the original Quantel HTTP Transformer.
 
-# Data structure & key concepts
+## Data Structure & Key Concepts
 
 The Package Manager is based on a few key concepts that are intentionally worded to be generic. Instead of calling things "files" or "media", we use the word "Package". The reason behind this is that the Package Manager is indended to be able to handle many different types of "things", stored in a multitude of ways on different types of systems and software/hardware.
 
-## The "Package"
+### The "Package"
 
 A Package is an abstract "thing". It can be a media-file, a graphics-template, a sound-file, or something else.
 The Package is defined by its `content` and `version`.
@@ -87,23 +89,23 @@ The **content** of a Package is what defines what the package is "in general". F
 
 The **version** of a Package is what defines which actual version a package is. For example, a Media-file might have a "modified date" property, or a version number.
 
-## PackageContainer
+### PackageContainer
 
 A PackageContainer is an "entity that contains/stores Packages". For example: For files on a file-system, the PackageContainer would be a folder.
 
 A PackageContainer is separated from an **Accessor**, which is the "way to access Packages in a PackageContainer". For Example: A folder on a file system, could be accessed locally, via a network-share and perhaps via a HTTP-endpoint.
 
-## Expectation
+### Expectation
 
 _See [expectationApi.ts](shared/packages/api/src/expectationApi.ts)._
 
 An Expectation is what the PackageManager uses to figure out what should be done and how to do it. One example is "Copy a file from a source into a target".
 
-# Examples:
+## Examples
 
 Below are some examples of the data:
 
-## Example A, a file is to be copied
+### Example A, a file is to be copied
 
 ```javascript
 // The input to Package Manager (from Sofie-Core):
@@ -161,3 +163,72 @@ const expectedPackages = [
 	},
 ]
 ```
+
+
+---
+
+
+## Initialize Repo
+
+```bash
+# install lerna globally
+yarn global add lerna
+
+# set up mono-repo
+yarn setup
+
+# Install all dependencies
+yarn
+
+# Build all packages
+yarn build
+
+```
+
+Now you should be good to go.
+
+Whenever you do a change, run `yarn build` (or `yarn build:changed` to only build the changed ones) to compile.
+
+Before any code is committed, run these:
+
+```bash
+# Lint all packages
+yarn lint
+
+# Run all tests
+yarn test
+```
+
+## Other Useful Commands
+
+```bash
+# Start the single-app (contains all apps)
+yarn start:single-app
+
+# Start the single-app in local-only mode, using packages from expectedPackages.json
+yarn start:single-app -- -- --watchFiles=true --noCore=true --logLevel=debug
+
+
+
+# (Windows only) Compile all apps into executables, and put into the deploy/ folder.
+yarn do:build-win32
+
+# To run a command for a single package, use the --scope option
+yarn build --scope @sofie-package-manager/api
+
+# CLI arguments can be passed like so: (note the double -- --)
+yarn start:workforce -- -- --port=8080
+
+# Documentation for the CLI agruments
+yarn start:workforce -- -- --help
+
+```
+
+
+
+
+---
+
+
+
+
