@@ -285,6 +285,12 @@ export class PackageManagerHandler {
 				for (const expectedPackagesObj of expectedPackagesObjs) {
 					expectedPackagesCore.push(expectedPackagesObj as any as ExpectedPackageWrap)
 				}
+				if (expectedPackagesCore.length > 0) {
+					expectedPackageSources.push({
+						sourceName: 'core',
+						expectedPackages: expectedPackagesCore,
+					})
+				}
 			}
 
 			// Add from Monitors:
