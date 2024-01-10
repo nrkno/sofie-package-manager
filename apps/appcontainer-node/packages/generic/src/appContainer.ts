@@ -186,6 +186,11 @@ export class AppContainer {
 	}
 	async init(): Promise<void> {
 		await this.setupAvailableApps()
+		// Note: if we later change this.setupAvailableApps to run on an interval
+		// don't throw here:
+		if (Object.keys(this.availableApps).length === 0) {
+			throw new Error(`AppContainer found no apps upon init. (Check if there are any Worker executables?)`)
+		}
 
 		if (this.workForceConnectionOptions.type === 'websocket') {
 			this.logger.info(`Connecting to Workforce at "${this.workForceConnectionOptions.url}"`)
@@ -289,7 +294,10 @@ export class AppContainer {
 					: '',
 			]
 		}
-		if (process.execPath.match(/node.exe$/)) {
+		if (
+			process.execPath.endsWith('node.exe') || // windows
+			process.execPath.endsWith('node') // linux
+		) {
 			// Process runs as a node process, we're probably in development mode.
 			this.availableApps['worker'] = {
 				file: process.execPath,
@@ -300,7 +308,7 @@ export class AppContainer {
 			}
 		} else {
 			// Process is a compiled executable
-			// Look for the worker executable in the same folder:
+			// Look for the worker executable(s) in the same folder:
 
 			const dirPath = path.dirname(process.execPath)
 			// Note: nexe causes issues with its virtual file system: https://github.com/nexe/nexe/issues/613#issuecomment-579107593
@@ -317,6 +325,7 @@ export class AppContainer {
 				}
 			})
 		}
+
 		this.logger.info(`Available apps`)
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			this.logger.info(`${appType}: ${availableApp.file}`)
@@ -366,7 +375,12 @@ export class AppContainer {
 			}
 		}
 
-		this.logger.debug(`Available apps: ${Object.keys(this.availableApps).join(', ')}`)
+		const availableAppNames = Object.keys(this.availableApps)
+		if (availableAppNames.length === 0) {
+			this.logger.error('No apps available')
+		} else {
+			this.logger.debug(`Available apps: ${availableAppNames.join(', ')}`)
+		}
 
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			// Do we already have any instance of the appType running?
@@ -426,7 +440,12 @@ export class AppContainer {
 			}
 		}
 
-		this.logger.debug(`Available apps: ${Object.keys(this.availableApps).join(', ')}`)
+		const availableAppNames = Object.keys(this.availableApps)
+		if (availableAppNames.length === 0) {
+			this.logger.error('No apps available')
+		} else {
+			this.logger.debug(`Available apps: ${availableAppNames.join(', ')}`)
+		}
 
 		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
 			// Do we already have any instance of the appType running?
