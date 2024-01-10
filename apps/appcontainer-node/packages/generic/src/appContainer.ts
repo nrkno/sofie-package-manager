@@ -194,7 +194,7 @@ export class AppContainer {
 		await this.setupAvailableApps()
 		// Note: if we later change this.setupAvailableApps to run on an interval
 		// don't throw here:
-		if (Object.keys(this.availableApps).length === 0) {
+		if (this.availableApps.size === 0) {
 			throw new Error(`AppContainer found no apps upon init. (Check if there are any Worker executables?)`)
 		}
 
@@ -385,11 +385,10 @@ export class AppContainer {
 			}
 		}
 
-		const availableAppNames = Array.from(this.availableApps.keys())
-		if (availableAppNames.length === 0) {
+		if (this.availableApps.size === 0) {
 			this.logger.error('No apps available')
 		} else {
-			this.logger.debug(`Available apps: ${availableAppNames.join(', ')}`)
+			this.logger.debug(`Available apps: ${Array.from(this.availableApps.keys()).join(', ')}`)
 		}
 
 		for (const [appType, availableApp] of this.availableApps.entries()) {
@@ -452,11 +451,10 @@ export class AppContainer {
 			}
 		}
 
-		const availableAppNames = Array.from(this.availableApps.keys())
-		if (availableAppNames.length === 0) {
+		if (this.availableApps.size === 0) {
 			this.logger.error('No apps available')
 		} else {
-			this.logger.debug(`Available apps: ${availableAppNames.join(', ')}`)
+			this.logger.debug(`Available apps: ${Array.from(this.availableApps.keys()).join(', ')}`)
 		}
 
 		for (const [appType, availableApp] of this.availableApps.entries()) {
