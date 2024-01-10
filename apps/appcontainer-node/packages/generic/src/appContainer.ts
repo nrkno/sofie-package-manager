@@ -194,7 +194,7 @@ export class AppContainer {
 		await this.setupAvailableApps()
 		// Note: if we later change this.setupAvailableApps to run on an interval
 		// don't throw here:
-		if (Object.keys(this.availableApps).length) {
+		if (Object.keys(this.availableApps).length === 0) {
 			throw new Error(`AppContainer found no apps upon init. (Check if there are any Worker executables?)`)
 		}
 
