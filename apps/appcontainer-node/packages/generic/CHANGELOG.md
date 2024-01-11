@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.43.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0-alpha.2...v1.43.0) (2024-01-11)
+
+
+### Bug Fixes
+
+* crash at startup ([561e0ab](https://github.com/nrkno/tv-automation-package-manager/commit/561e0ab09f2028f012db7db3d4f7158ff3d1849d))
+* log errors if there are no available apps in a container to use for workers ([52a786a](https://github.com/nrkno/tv-automation-package-manager/commit/52a786a4d83477fd8a9266f1b7b279889c86bd55))
+
+
+
+
+
 # [1.43.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0-alpha.1...v1.43.0-alpha.2) (2023-12-20)
 
 **Note:** Version bump only for package @appcontainer-node/generic
