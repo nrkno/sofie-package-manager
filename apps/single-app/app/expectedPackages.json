@@ -48,6 +48,29 @@
                     "allowWrite": true
                 }
             }
+        },
+        "http0": {
+            "label": "Local HTTP",
+            "accessors": {
+                "http": {
+                    "type": "http",
+                    "label": "http",
+                    "baseUrl": "http://127.0.0.1:8080",
+                    "allowRead": true,
+                    "allowWrite": false
+                }
+            }
+        },
+        "core0": {
+            "label": "Core",
+            "accessors": {
+                "packageInfo0": {
+                    "type": "core_package_info",
+                    "label": "Package Info",
+                    "allowRead": true,
+                    "allowWrite": true
+                }
+            }
         }
     },
     "expectedPackages": [
@@ -86,6 +109,30 @@
                     ]
                 }
             }
+        },
+        {
+            "type": "json_data",
+            "_id": "json0",
+            "contentVersionHash": "abc1234",
+            "content": {
+                "path": "test.json"
+            },
+            "version": {},
+            "sources": [
+                {
+                    "containerId": "http0",
+                    "accessors": {
+                        "local": {
+                            "type": "http",
+                            "isImmutable": true
+                        }
+                    }
+                }
+            ],
+            "layers": [
+                "core0"
+            ],
+            "sideEffect": {}
         }
     ]
 }

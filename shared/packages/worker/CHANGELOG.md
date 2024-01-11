@@ -3,6 +3,42 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.43.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0-alpha.1...v1.43.0-alpha.2) (2023-12-20)
+
+
+### Bug Fixes
+
+* better handling of when source isStable ([2198266](https://github.com/nrkno/tv-automation-package-manager/commit/2198266457e283062ec849a70740b892b33f555e))
+* bug fix: wrong PackageIntoType ([312f401](https://github.com/nrkno/tv-automation-package-manager/commit/312f4010017350638462fd88faa77805b45b2b80))
+* cache header http queries, to reduce external load ([8a64005](https://github.com/nrkno/tv-automation-package-manager/commit/8a640058eb2b8cb982e9a33cccd44573d444afd1))
+* json-data-copy: properly store metadata for files ([b6a5212](https://github.com/nrkno/tv-automation-package-manager/commit/b6a5212d599cbd2b2f23bc0915a2e43fa8c27edc))
+
+
+
+
+
+# [1.43.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0-alpha.0...v1.43.0-alpha.1) (2023-12-05)
+
+
+### Bug Fixes
+
+* json data copying ([6ce0b05](https://github.com/nrkno/tv-automation-package-manager/commit/6ce0b0505d7b0bb18821cd2f8e4cc97820de6d96))
+
+
+
+
+
+# [1.43.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.2...v1.43.0-alpha.0) (2023-11-30)
+
+
+### Features
+
+* make json data copy work ([ba050d5](https://github.com/nrkno/tv-automation-package-manager/commit/ba050d504d28584c0d7085bfac78a0afc025ecb2))
+
+
+
+
+
 ## [1.42.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.42.2) (2023-10-12)
 
 

@@ -616,18 +616,17 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 		this.expectationManagerStatuses = statuses
 		this.triggerReportUpdatedStatuses()
 	}
+
 	public async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		switch (message.type) {
 			case 'fetchPackageInfoMetadata': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
-				return this.packageManager.coreHandler.coreMethods.fetchPackageInfoMetadata(
+				return this.getCoreMethods().fetchPackageInfoMetadata(
 					message.arguments[0],
 					protectStringArray(message.arguments[1])
 				)
 			}
 			case 'updatePackageInfo': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
-				return this.packageManager.coreHandler.coreMethods.updatePackageInfo(
+				return this.getCoreMethods().updatePackageInfo(
 					message.arguments[0],
 					protectString(message.arguments[1]),
 					message.arguments[2],
@@ -636,8 +635,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				)
 			}
 			case 'removePackageInfo': {
-				if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
-				return this.packageManager.coreHandler.coreMethods.removePackageInfo(
+				return this.getCoreMethods().removePackageInfo(
 					message.arguments[0],
 					protectString(message.arguments[1]),
 					message.arguments[2]
@@ -655,16 +653,14 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	public async cleanReportedStatuses() {
 		// Clean out all reported statuses, this is an easy way to sync a clean state with core
 
-		if (this.packageManager.coreHandler.notUsingCore) return // Abort if we are not using core
-
 		this.reportedExpectationStatuses = {}
-		await this.packageManager.coreHandler.coreMethods.removeAllExpectedPackageWorkStatusOfDevice()
+		await this.getCoreMethods().removeAllExpectedPackageWorkStatusOfDevice()
 
 		this.reportedPackageContainerStatuses = {}
-		await this.packageManager.coreHandler.coreMethods.removeAllPackageContainerPackageStatusesOfDevice()
+		await this.getCoreMethods().removeAllPackageContainerPackageStatusesOfDevice()
 
 		this.reportedPackageStatuses = {}
-		await this.packageManager.coreHandler.coreMethods.removeAllPackageContainerStatusesOfDevice()
+		await this.getCoreMethods().removeAllPackageContainerStatusesOfDevice()
 	}
 	public onCoreConnected() {
 		this.triggerReportUpdatedStatuses()
@@ -979,6 +975,11 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 	private getIncrement(): number {
 		if (this.increment >= Number.MAX_SAFE_INTEGER) this.increment = 0
 		return this.increment++
+	}
+	private getCoreMethods() {
+		return this.packageManager.coreHandler.notUsingCore
+			? this.packageManager.coreHandler.fakeCore.coreMethods
+			: this.packageManager.coreHandler.coreMethods
 	}
 }
 export function wrapExpectedPackage(

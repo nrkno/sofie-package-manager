@@ -15,12 +15,14 @@ import {
 import {
 	isCorePackageInfoAccessorHandle,
 	isFileShareAccessorHandle,
+	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
+import { PackageInfoType } from './lib/coreApi'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
@@ -62,7 +64,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 	},
 	isExpectationFullfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		wasFullfilled: boolean,
 		worker: GenericWorker
 	): Promise<ReturnTypeIsExpectationFullfilled> => {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
@@ -87,20 +89,42 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 				},
 			}
 		}
-
-		// check that the file is of the right version:
-		const actualTargetVersion = await lookupTarget.handle.fetchMetadata()
-		if (!actualTargetVersion)
-			return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
-
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
-		const issueVersions = compareUniversalVersions(makeUniversalVersion(actualSourceVersion), actualTargetVersion)
-		if (!issueVersions.success) {
-			return { fulfilled: false, reason: issueVersions.reason }
+		if (isCorePackageInfoAccessorHandle(lookupTarget.handle)) {
+			const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
+				PackageInfoType.JSON,
+				exp,
+				{}, // exp.startRequirement.content,
+				actualSourceVersion,
+				exp.endRequirement.version
+			)
+			if (packageInfoSynced.needsUpdate) {
+				if (wasFullfilled) {
+					// Remove the outdated result:
+					await lookupTarget.handle.removePackageInfo(PackageInfoType.JSON, exp)
+				}
+				return { fulfilled: false, reason: packageInfoSynced.reason }
+			} else {
+				return { fulfilled: true }
+			}
+		} else {
+			// check that the file is of the right version:
+			const actualTargetUVersion = await lookupTarget.handle.fetchMetadata()
+			// const actualTargetVersion = await lookupTarget.handle.getPackageActualVersion()
+			if (!actualTargetUVersion)
+				return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
+
+			const issueVersions = compareUniversalVersions(
+				makeUniversalVersion(actualSourceVersion),
+				actualTargetUVersion
+			)
+			if (!issueVersions.success) {
+				return { fulfilled: false, reason: issueVersions.reason }
+			}
 		}
 
 		return {
@@ -121,87 +145,182 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 		const actualSourceVersionHash = hashObj(actualSourceVersion)
-		// const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
+		const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
 		// const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
 		if (
-			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupSource.accessor.type === Accessor.AccessType.HTTP) &&
-			lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO
+			lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+			lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+			lookupSource.accessor.type === Accessor.AccessType.HTTP ||
+			lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY
 		) {
-			// We can copy by using streams:
 			if (
 				!isLocalFolderAccessorHandle(lookupSource.handle) &&
 				!isFileShareAccessorHandle(lookupSource.handle) &&
+				!isHTTPAccessorHandle(lookupSource.handle) &&
 				!isHTTPProxyAccessorHandle(lookupSource.handle)
 			)
 				throw new Error(`Source AccessHandler type is wrong`)
-			if (!isCorePackageInfoAccessorHandle(targetHandle)) throw new Error(`Source AccessHandler type is wrong`)
 
-			let wasCancelled = false
-			let sourceStream: PackageReadStream | undefined = undefined
-			let writeStream: PutPackageHandler | undefined = undefined
-			const workInProgress = new WorkInProgress({ workLabel: 'Copying, using streams' }, async () => {
-				// on cancel work
-				wasCancelled = true
-				await new Promise<void>((resolve, reject) => {
-					writeStream?.once('close', () => {
-						targetHandle
-							.removePackage('work cancelled')
-							.then(() => resolve())
-							.catch((err) => reject(err))
-					})
+			if (lookupTarget.accessor.type === Accessor.AccessType.CORE_PACKAGE_INFO) {
+				// Copy the JSON data into Core PackageInfo
+
+				if (!isCorePackageInfoAccessorHandle(targetHandle)) {
+					throw new Error(`Target AccessHandler type is wrong`)
+				}
+
+				let wasCancelled = false
+				let sourceStream: PackageReadStream | undefined = undefined
+				const workInProgress = new WorkInProgress({ workLabel: 'Copying, using streams' }, async () => {
+					// on cancel work
+					wasCancelled = true
+
 					sourceStream?.cancel()
-					writeStream?.abort()
+				}).do(async () => {
+					workInProgress._reportProgress(actualSourceVersionHash, 0.1)
+
+					if (wasCancelled) return
+
+					sourceStream = await lookupSource.handle.getPackageReadStream()
+
+					workInProgress._reportProgress(actualSourceVersionHash, 0.5)
+
+					// Special: read the stream into memory and create JSON from it:
+					const readChunks: Buffer[] = []
+					sourceStream.readStream.on('data', (data) => {
+						if (wasCancelled) return
+						workInProgress._reportProgress(actualSourceVersionHash, 0.6)
+						readChunks.push(data)
+					})
+					sourceStream.readStream.on('error', (error) => {
+						workInProgress._reportError(error)
+					})
+					sourceStream.readStream.on('end', () => {
+						if (wasCancelled) return
+
+						Promise.resolve()
+							.then(async () => {
+								workInProgress._reportProgress(actualSourceVersionHash, 0.7)
+
+								const jsonString = Buffer.concat(readChunks).toString('utf8')
+
+								let jsonData: any = undefined
+								try {
+									jsonData = JSON.parse(jsonString)
+								} catch (err) {
+									throw new Error(`Error parsing JSON: ${err}`)
+								}
+								const saveOperation = await targetHandle.prepareForOperation(
+									'Copy JSON.Data',
+									lookupSource.handle
+								)
+
+								await targetHandle.updatePackageInfo(
+									PackageInfoType.JSON,
+									exp,
+									{}, // exp.startRequirement.content,
+									actualSourceVersion,
+									exp.endRequirement.version,
+									jsonData
+								)
+								await targetHandle.finalizePackage(saveOperation)
+
+								if (wasCancelled) return
+								const duration = Date.now() - startTime
+								workInProgress._reportComplete(
+									actualSourceVersionHash,
+									{
+										user: `Copy completed in ${Math.round(duration / 100) / 10}s`,
+										tech: `Completed at ${Date.now()}`,
+									},
+									undefined
+								)
+							})
+							.catch((error) => {
+								workInProgress._reportError(error)
+							})
+					})
 				})
-			}).do(async () => {
-				workInProgress._reportProgress(actualSourceVersionHash, 0.1)
 
-				if (wasCancelled) return
-				const fileOperation = await targetHandle.prepareForOperation('Copy JSON.Data', lookupSource.handle)
-				sourceStream = await lookupSource.handle.getPackageReadStream()
-				writeStream = await targetHandle.putPackageStream(sourceStream.readStream)
+				return workInProgress
+			} else if (
+				lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY
+			) {
+				// We can copy by using streams.
+				if (
+					!isLocalFolderAccessorHandle(targetHandle) &&
+					!isFileShareAccessorHandle(targetHandle) &&
+					!isHTTPProxyAccessorHandle(targetHandle)
+				) {
+					throw new Error(`Target AccessHandler type is wrong`)
+				}
 
-				workInProgress._reportProgress(actualSourceVersionHash, 0.5)
+				let wasCancelled = false
+				let sourceStream: PackageReadStream | undefined = undefined
+				let writeStream: PutPackageHandler | undefined = undefined
+				const workInProgress = new WorkInProgress({ workLabel: 'Copying, using streams' }, async () => {
+					// on cancel work
+					wasCancelled = true
+					await new Promise<void>((resolve, reject) => {
+						writeStream?.once('close', () => {
+							targetHandle
+								.removePackage('work cancelled')
+								.then(() => resolve())
+								.catch((err) => reject(err))
+						})
+						sourceStream?.cancel()
+						writeStream?.abort()
+					})
+				}).do(async () => {
+					workInProgress._reportProgress(actualSourceVersionHash, 0.1)
 
-				sourceStream.readStream.on('error', (err) => {
-					workInProgress._reportError(err)
-				})
-				writeStream.on('error', (err) => {
-					workInProgress._reportError(err)
-				})
-				writeStream.once('close', () => {
-					if (wasCancelled) return // ignore
-					setImmediate(() => {
-						// Copying is done
-						;(async () => {
-							await targetHandle.finalizePackage(fileOperation)
-							// await targetHandle.updateMetadata()
+					if (wasCancelled) return
+					const fileOperation = await targetHandle.prepareForOperation('Copy JSON.Data', lookupSource.handle)
+					sourceStream = await lookupSource.handle.getPackageReadStream()
+					writeStream = await targetHandle.putPackageStream(sourceStream.readStream)
 
-							const duration = Date.now() - startTime
-							workInProgress._reportComplete(
-								actualSourceVersionHash,
-								{
-									user: `Completed in ${Math.round(duration / 100) / 10}s`,
-									tech: `Completed at ${Date.now()}`,
-								},
-								undefined
-							)
-						})().catch((err) => {
-							workInProgress._reportError(err)
+					workInProgress._reportProgress(actualSourceVersionHash, 0.5)
+
+					sourceStream.readStream.on('error', (err) => {
+						workInProgress._reportError(err)
+					})
+					writeStream.on('error', (err) => {
+						workInProgress._reportError(err)
+					})
+					writeStream.once('close', () => {
+						if (wasCancelled) return // ignore
+						setImmediate(() => {
+							// Copying is done
+							;(async () => {
+								await targetHandle.finalizePackage(fileOperation)
+								await targetHandle.updateMetadata(actualSourceUVersion)
+
+								const duration = Date.now() - startTime
+								workInProgress._reportComplete(
+									actualSourceVersionHash,
+									{
+										user: `Completed in ${Math.round(duration / 100) / 10}s`,
+										tech: `Completed at ${Date.now()}`,
+									},
+									undefined
+								)
+							})().catch((err) => {
+								workInProgress._reportError(err)
+							})
 						})
 					})
 				})
-			})
 
-			return workInProgress
-		} else {
-			throw new Error(
-				`JsonDataCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
-			)
+				return workInProgress
+			}
 		}
+		// else:
+		throw new Error(
+			`JsonDataCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+		)
 	},
 	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)

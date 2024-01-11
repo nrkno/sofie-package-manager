@@ -1,9 +1,7 @@
 import { Accessor, AccessorOnPackage, Expectation, literal } from '@sofie-package-manager/api'
 
-export function getLocalSource(
-	containerId: string,
-	filePath: string
-): Expectation.SpecificPackageContainerOnPackage.FileSource {
+export function getLocalSource(containerId: string, filePath: string) {
+	// : Expectation.SpecificPackageContainerOnPackage.FileSource
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
@@ -105,6 +103,18 @@ export function getQuantelTarget(
 				// networkId?: string;
 				allowRead: true,
 				allowWrite: true,
+			}),
+		},
+	}
+}
+export function getCorePackageInfoTarget(containerId: string) {
+	// Expectation.SpecificPackageContainerOnPackage.JSONDataTarget
+	return {
+		containerId: containerId,
+		label: `Label ${containerId}`,
+		accessors: {
+			core0: literal<AccessorOnPackage.CorePackageCollection>({
+				type: Accessor.AccessType.CORE_PACKAGE_INFO,
 			}),
 		},
 	}

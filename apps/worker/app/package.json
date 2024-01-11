@@ -1,6 +1,6 @@
 {
     "name": "@worker/app",
-    "version": "1.42.2",
+    "version": "1.43.0-alpha.2",
     "description": "Boilerplace",
     "private": true,
     "scripts": {
@@ -15,7 +15,7 @@
         "nexe": "^3.3.7"
     },
     "dependencies": {
-        "@worker/generic": "1.42.2"
+        "@worker/generic": "1.43.0-alpha.2"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

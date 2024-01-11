@@ -46,6 +46,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
 		onlyContainerAccess?: boolean
 		filePath?: string
+		path?: string
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
@@ -60,7 +61,8 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
-			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+			if (!content.filePath && !content.path && !this.accessor.filePath)
+				throw new Error('Bad input data: content.filePath nor content.path not set!')
 		}
 		this.content = content
 
@@ -335,7 +337,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	/** Local path to the Package, ie the File */
 	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
-		const filePath = this.accessor.filePath || this.content.filePath
+		const filePath = this.accessor.filePath || this.content.filePath || this.content.path
 		if (!filePath) throw new Error(`LocalFolderAccessor: filePath not set!`)
 		return filePath
 	}

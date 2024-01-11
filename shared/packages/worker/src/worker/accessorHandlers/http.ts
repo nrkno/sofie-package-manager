@@ -46,10 +46,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		super(worker, accessorId, accessor, content, HTTPAccessorHandle.type)
 
 		// Verify content data:
-		if (!content.onlyContainerAccess) {
-			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
-		}
 		this.content = content
+		if (!content.onlyContainerAccess) {
+			if (!this.accessor.url && !this.content.path) throw new Error('Bad input data: content.path not set!')
+		}
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
@@ -247,25 +247,38 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 	}
 	private async fetchHeader() {
-		const fetch = fetchWithController(this.fullUrl, {
-			method: 'HEAD',
-		})
-		const res = await fetch.response
+		const ttl = this.accessor.isImmutable
+			? 1000 * 60 * 60 * 24 // 1 day
+			: 1000 // a second
+		const { headers, status, statusText } = await this.worker.cacheData(
+			this.type,
+			this.fullUrl,
+			async () => {
+				const response = await fetchWithController(this.fullUrl, {
+					method: 'HEAD',
+				}).response
+				response.body.on('error', () => {
+					// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
+				})
 
-		res.body.on('error', () => {
-			// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
-		})
-
-		const headers: HTTPHeaders = {
-			contentType: res.headers.get('content-type'),
-			contentLength: res.headers.get('content-length'),
-			lastModified: res.headers.get('last-modified'),
-			etags: res.headers.get('etag'),
-		}
+				const headers: HTTPHeaders = {
+					contentType: response.headers.get('content-type'),
+					contentLength: response.headers.get('content-length'),
+					lastModified: response.headers.get('last-modified'),
+					etags: response.headers.get('etag'),
+				}
+				return {
+					headers,
+					status: response.status,
+					statusText: response.statusText,
+				}
+			},
+			ttl
+		)
 
 		return {
-			status: res.status,
-			statusText: res.statusText,
+			status: status,
+			statusText: statusText,
 			headers: headers,
 		}
 	}
