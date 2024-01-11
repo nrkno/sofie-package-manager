@@ -48,10 +48,12 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		super(worker, accessorId, accessor, content, HTTPProxyAccessorHandle.type)
 
 		// Verify content data:
+		this.content = content
 		if (!content.onlyContainerAccess) {
+			if (!this.accessor.url || !this.content.filePath)
+				throw new Error('Bad input data: content.filePath not set!')
 			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
 		}
-		this.content = content
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')

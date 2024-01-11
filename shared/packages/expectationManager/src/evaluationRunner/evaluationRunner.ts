@@ -597,9 +597,9 @@ export class EvaluationRunner {
 					if (notSupportReason) {
 						badStatus = true
 						this.logger.debug(
-							`_evaluateAllTrackedPackageContainers: doYouSupportPackageContainer could not find a supportive worker: ${JSON.stringify(
-								notSupportReason
-							)}`
+							`_evaluateAllTrackedPackageContainers: doYouSupportPackageContainer could not find a supportive worker for "${
+								trackedPackageContainer.id
+							}": ${JSON.stringify(notSupportReason)}`
 						)
 						this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
 							trackedPackageContainer,

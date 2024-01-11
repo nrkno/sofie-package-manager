@@ -79,7 +79,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
-			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+			if (!content.filePath && !this.accessor.filePath)
+				throw new Error('Bad input data: content.filePath not set!')
 		}
 		this.content = content
 

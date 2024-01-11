@@ -23,7 +23,13 @@ import {
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 
-/** Accessor handle for accessing data store in Core */
+/**
+ * Accessor handle for accessing data store in Sofie Core.
+ * Note: To use this AccessorHandle, you have to use the special methods
+ * * findUnUpdatedPackageInfo()
+ * * updatePackageInfo()
+ * * removePackageInfo()
+ */
 export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	static readonly type = 'corePackageInfo'
 	// @ts-expect-error unused variable

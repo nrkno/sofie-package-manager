@@ -123,3 +123,15 @@ export function getQuantelTarget(
 		},
 	}
 }
+export function getCorePackageInfoTarget(containerId: string) {
+	// Expectation.SpecificPackageContainerOnPackage.JSONDataTarget
+	return {
+		containerId: containerId,
+		label: `Label ${containerId}`,
+		accessors: {
+			core0: literal<AccessorOnPackage.CorePackageCollection>({
+				type: Accessor.AccessType.CORE_PACKAGE_INFO,
+			}),
+		},
+	}
+}
