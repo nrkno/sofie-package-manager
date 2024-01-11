@@ -247,7 +247,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 	}
 	private async fetchHeader() {
-		const ttl = this.accessor.isStable
+		const ttl = this.accessor.isImmutable
 			? 1000 * 60 * 60 * 24 // 1 day
 			: 1000 // a second
 		const { headers, status, statusText } = await this.worker.cacheData(

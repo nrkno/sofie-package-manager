@@ -339,7 +339,7 @@ export namespace AccessorOnPackage {
 		url?: string
 
 		/** If true, assumes that a source never changes once it has been fetched. */
-		isStable?: boolean
+		isImmutable?: boolean
 	}
 	export interface Quantel extends Partial<Accessor.Quantel> {
 		guid?: string

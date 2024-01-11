@@ -124,7 +124,7 @@
                     "accessors": {
                         "local": {
                             "type": "http",
-                            "isStable": true
+                            "isImmutable": true
                         }
                     }
                 }
