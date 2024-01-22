@@ -47,11 +47,12 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	) {
 		super(worker, accessorId, accessor, content, HTTPProxyAccessorHandle.type)
 
+		this.content = content
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
-			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+			if (!this._getFilePath())
+				throw new Error('Bad input data: neither content.filePath nor accessor.url are set!')
 		}
-		this.content = content
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
@@ -260,7 +261,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	}
 	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
-		const filePath = this.accessor.url || this.content.filePath
+		const filePath = this._getFilePath()
 		if (!filePath) throw new Error(`HTTPAccessorHandle: filePath not set!`)
 		return filePath
 	}
@@ -425,6 +426,9 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	/** Full path to the metadata file */
 	private getMetadataPath(fullUrl: string) {
 		return fullUrl + '_metadata.json'
+	}
+	private _getFilePath(): string | undefined {
+		return this.accessor.url || this.content.filePath
 	}
 }
 interface HTTPHeaders {

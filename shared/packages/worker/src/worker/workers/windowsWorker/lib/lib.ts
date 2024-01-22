@@ -67,6 +67,7 @@ export function makeUniversalVersion(
 			Expectation.Version.Type.FILE_ON_DISK,
 			Expectation.Version.Type.HTTP_FILE,
 			Expectation.Version.Type.QUANTEL_CLIP,
+			Expectation.Version.Type.JSON_DATA,
 		].includes(version.type)
 	) {
 		throw new Error(`getAllVersionProperties: Unsupported type "${version.type}"`)
@@ -82,6 +83,8 @@ export function makeUniversalVersion(
 					? version.fileSize
 					: version.type === Expectation.Version.Type.HTTP_FILE
 					? version.contentLength
+					: version.type === Expectation.Version.Type.JSON_DATA
+					? version.size
 					: undefined,
 		},
 

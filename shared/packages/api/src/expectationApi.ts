@@ -310,14 +310,14 @@ export namespace Expectation {
 		type: Type.JSON_DATA_COPY
 
 		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.FileSource[]
+			sources: SpecificPackageContainerOnPackage.JSONDataSource[]
 		}
 		endRequirement: {
-			targets: SpecificPackageContainerOnPackage.FileTarget[]
+			targets: SpecificPackageContainerOnPackage.JSONDataTarget[]
 			content: {
-				path: string
+				path?: string
 			}
-			version: Version.ExpectedFileOnDisk // maybe something else?
+			version: Version.ExpectedJSONData
 		}
 		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 	}
@@ -367,6 +367,28 @@ export namespace Expectation {
 				[accessorId: AccessorId]: AccessorOnPackage.Quantel
 			}
 		}
+
+		/** Defines a PackageContainer for reading JSON data. */
+		export interface JSONDataSource extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
+					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
+			}
+		}
+
+		/** Defines a PackageContainer for writing JSON data. */
+		export interface JSONDataTarget extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
+					| AccessorOnPackage.HTTPProxy
+					| AccessorOnPackage.CorePackageCollection
+			}
+		}
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-namespace
@@ -399,7 +421,15 @@ export namespace Expectation {
 			| ExpectedHTTPFile
 			| ExpectedQuantelClip
 			| ExpectedATEMFile
-		export type Any = FileOnDisk | MediaFileThumbnail | CorePackageInfo | HTTPFile | QuantelClip | ATEMFile
+			| ExpectedJSONData
+		export type Any =
+			| FileOnDisk
+			| MediaFileThumbnail
+			| CorePackageInfo
+			| HTTPFile
+			| QuantelClip
+			| ATEMFile
+			| JSONData
 		export interface Base {
 			type: Type
 		}
@@ -413,6 +443,7 @@ export namespace Expectation {
 			QUANTEL_CLIP_THUMBNAIL = 'quantel_clip_thumbnail',
 			QUANTEL_CLIP_PREVIEW = 'quantel_clip_preview',
 			ATEM_FILE = 'atem_file',
+			JSON_DATA = 'json_data',
 		}
 		type ExpectedType<T extends Base> = Partial<T> & Pick<T, 'type'>
 
@@ -497,5 +528,12 @@ export namespace Expectation {
 			hash: string
 		}
 		export type ExpectedATEMFile = ExpectedType<ATEMFile>
+
+		export interface JSONData extends Base {
+			type: Type.JSON_DATA
+			/** size in bytes */
+			size: string
+		}
+		export type ExpectedJSONData = ExpectedType<JSONData>
 	}
 }

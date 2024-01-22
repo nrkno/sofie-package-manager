@@ -45,11 +45,12 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	) {
 		super(worker, accessorId, accessor, content, ATEMAccessorHandle.type)
 
+		this.content = content
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
-			if (!content.filePath) throw new Error('Bad input data: content.filePath not set!')
+			if (!this._getFilePath())
+				throw new Error('Bad input data: neither content.filePath nor accessor.filePath are set!')
 		}
-		this.content = content
 	}
 	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.AtemMediaStore
@@ -348,7 +349,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return streamWrapper
 	}
 	private getAtemClipName(): string {
-		const filePath = this.accessor.filePath || this.content.filePath
+		const filePath = this._getFilePath()
 
 		if (!filePath) throw new Error('Atem: filePath not set!')
 		return filePath
@@ -443,6 +444,9 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}, '')
 
 		return crypto.createHash('md5').update(concatenatedHash).digest('base64')
+	}
+	private _getFilePath(): string | undefined {
+		return this.accessor.filePath || this.content.filePath
 	}
 }
 
