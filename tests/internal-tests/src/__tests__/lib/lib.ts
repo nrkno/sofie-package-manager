@@ -51,7 +51,7 @@ export function describeForAllPlatforms(name: string, cbOnce: () => void, cbPerP
 				beforeAll(async () => {
 					orgProcessPlatform = process.platform
 					Object.defineProperty(process, 'platform', {
-						value: 'darwin',
+						value: platform,
 					})
 				})
 				afterAll(() => {
