@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.43.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0...v1.43.1) (2024-01-22)
+
+
+### Bug Fixes
+
+* refactor and fix issue with (wrongly) thown error "Error: Bad input data: content.filePath not set!" ([550e893](https://github.com/nrkno/tv-automation-package-manager/commit/550e8936cdbc464052d39c0efd5e60d3ece3a70d))
+
+
+
+
+
 # [1.43.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0-alpha.2...v1.43.0) (2024-01-11)
 
 **Note:** Version bump only for package @sofie-package-manager/worker

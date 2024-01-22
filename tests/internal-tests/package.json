@@ -1,6 +1,6 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.43.0",
+    "version": "1.43.1",
     "description": "Internal tests",
     "private": true,
     "scripts": {
@@ -15,10 +15,10 @@
     },
     "dependencies": {
         "@http-server/generic": "1.43.0",
-        "@package-manager/generic": "1.43.0",
+        "@package-manager/generic": "1.43.1",
         "@sofie-package-manager/api": "1.43.0",
-        "@sofie-package-manager/expectation-manager": "1.43.0",
-        "@sofie-package-manager/worker": "1.43.0",
+        "@sofie-package-manager/expectation-manager": "1.43.1",
+        "@sofie-package-manager/worker": "1.43.1",
         "@sofie-package-manager/workforce": "1.43.0",
         "underscore": "^1.12.0",
         "windows-network-drive": "^4.0.1"
