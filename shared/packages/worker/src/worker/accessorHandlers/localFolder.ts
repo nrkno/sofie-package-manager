@@ -59,12 +59,12 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	) {
 		super(worker, accessorId, accessor, content, LocalFolderAccessorHandle.type)
 
+		this.content = content
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
-			if (!content.filePath && !content.path && !this.accessor.filePath)
-				throw new Error('Bad input data: content.filePath nor content.path not set!')
+			if (!this._getFilePath())
+				throw new Error('Bad input data: neither accessor.filePath, content.filePath nor content.path are set!')
 		}
-		this.content = content
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
@@ -334,10 +334,11 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	get orgFolderPath(): string {
 		return this.folderPath
 	}
+
 	/** Local path to the Package, ie the File */
 	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
-		const filePath = this.accessor.filePath || this.content.filePath || this.content.path
+		const filePath = this._getFilePath()
 		if (!filePath) throw new Error(`LocalFolderAccessor: filePath not set!`)
 		return filePath
 	}
@@ -365,5 +366,8 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			}
 		}
 		return { success: true }
+	}
+	private _getFilePath(): string | undefined {
+		return this.accessor.filePath || this.content.filePath || this.content.path
 	}
 }

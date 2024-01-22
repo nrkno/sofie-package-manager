@@ -72,12 +72,12 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		this.originalFolderPath = this.accessor.folderPath
 		this.actualFolderPath = this.originalFolderPath // To be overwritten later
 
+		this.content = content
 		// Verify content data:
 		if (!content.onlyContainerAccess) {
-			if (!content.filePath && !this.accessor.filePath)
-				throw new Error('Bad input data: content.filePath not set!')
+			if (!this._getFilePath())
+				throw new Error('Bad input data: neither content.filePath nor accessor.filePath are set!')
 		}
-		this.content = content
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
@@ -380,7 +380,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	get filePath(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
 
-		const filePath = this.accessor.filePath || this.content.filePath
+		const filePath = this._getFilePath()
 		if (!filePath) throw new Error(`FileShareAccessor: filePath not set!`)
 		return filePath
 	}
@@ -618,6 +618,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			}
 		}
 		return { success: true }
+	}
+	private _getFilePath(): string | undefined {
+		return this.accessor.filePath || this.content.filePath
 	}
 }
 interface MappedDriveLetters {

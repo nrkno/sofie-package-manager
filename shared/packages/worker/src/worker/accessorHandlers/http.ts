@@ -45,10 +45,10 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	) {
 		super(worker, accessorId, accessor, content, HTTPAccessorHandle.type)
 
-		// Verify content data:
 		this.content = content
+		// Verify content data:
 		if (!content.onlyContainerAccess) {
-			if (!this.accessor.url && !this.content.path) throw new Error('Bad input data: content.path not set!')
+			if (!this._getFilePath()) throw new Error('Bad input data: neither content.path nor accessor.url are set!')
 		}
 
 		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
@@ -232,7 +232,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	get path(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
-		const filePath = this.accessor.url || this.content.path
+		const filePath = this._getFilePath()
 		if (!filePath) throw new Error(`HTTPAccessorHandle: path not set!`)
 		return filePath
 	}
@@ -410,6 +410,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	/** Full path to the metadata file */
 	private getMetadataPath(fullUrl: string) {
 		return fullUrl + '_metadata.json'
+	}
+	private _getFilePath(): string | undefined {
+		return this.accessor.url || this.content.path
 	}
 }
 interface HTTPHeaders {
