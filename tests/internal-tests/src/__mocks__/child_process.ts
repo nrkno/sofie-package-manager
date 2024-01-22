@@ -89,7 +89,7 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 	let destinationFolder
 	const files = []
 	for (const arg of args) {
-		const options = [
+		const options: (string | RegExp)[] = [
 			'/s',
 			'/e',
 			'/lev:',
@@ -131,9 +131,16 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 
 		let isOption = false
 		for (const option of options) {
-			if (arg.match(new RegExp(option))) {
-				isOption = true
-				break
+			if (typeof option === 'string') {
+				if (arg === option) {
+					isOption = true
+					break
+				}
+			} else {
+				if (arg.match(new RegExp(option))) {
+					isOption = true
+					break
+				}
 			}
 		}
 		if (!isOption) {
@@ -143,9 +150,22 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 		}
 	}
 
-	if (!sourceFolder) throw new Error(`Mock child_process.spawn: sourceFolder not set: "${args}"`)
-	if (!destinationFolder) throw new Error(`Mock child_process.spawn: destinationFolder not set: "${args}"`)
-	if (!files.length) throw new Error(`Mock child_process.spawn: files not set: "${args}"`)
+	if (!sourceFolder)
+		throw new Error(
+			`Mock child_process.spawn: sourceFolder not set: "${args}" (destinationFolder: "${destinationFolder}", files: ${files.join(
+				','
+			)})`
+		)
+	if (!destinationFolder)
+		throw new Error(
+			`Mock child_process.spawn: destinationFolder not set: "${args}" (sourceFolder: "${sourceFolder}", files: ${files.join(
+				','
+			)}) `
+		)
+	if (!files.length)
+		throw new Error(
+			`Mock child_process.spawn: files not set: "${args}" (sourceFolder: "${sourceFolder}", destinationFolder: "${destinationFolder}")`
+		)
 
 	// Just do a simple copy, expand this if needed later...
 	try {
