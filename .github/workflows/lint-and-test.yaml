@@ -29,7 +29,9 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Prepare Environment
-        run: yarn
+        run: |
+          yarn config set network-timeout 100000 -g
+          yarn
         env:
           CI: true
       - name: Type check
@@ -46,6 +48,7 @@ jobs:
     name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         node_version: ['16']
         os: [ubuntu-latest, windows-latest] # [windows-latest, macOS-latest]
@@ -65,6 +68,7 @@ jobs:
 
       - name: Prepare Environment
         run: |
+          yarn config set network-timeout 100000 -g
           yarn
           yarn build
         env:
