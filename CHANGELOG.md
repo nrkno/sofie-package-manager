@@ -3,6 +3,107 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0-alpha.9](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.50.0-alpha.9) (2024-01-30)
+
+
+### Bug Fixes
+
+* atem and ffmpeg linux ([87a5f35](https://github.com/nrkno/tv-automation-package-manager/commit/87a5f35a1aadbcb224e7ff3d3137a1155e450bc9))
+
+
+
+# [1.50.0-alpha.8](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0...v1.50.0-alpha.8) (2024-01-11)
+
+
+### Bug Fixes
+
+* add checks for FFPrope executable ([f1084e8](https://github.com/nrkno/tv-automation-package-manager/commit/f1084e84bb17968d39faf746ab841113137aeb14))
+* bad merge ([dca3763](https://github.com/nrkno/tv-automation-package-manager/commit/dca37639a2a12ce93c029acc5fdebba88e2c2187))
+* ignoring expectedPackages from core ([7e3f462](https://github.com/nrkno/tv-automation-package-manager/commit/7e3f462265412ad1602f0f6d81aa2c8b1fb9b0d0))
+
+
+
+# [1.50.0-alpha.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.6...v1.50.0-alpha.7) (2023-09-08)
+
+
+
+# [1.50.0-alpha.6](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.5...v1.50.0-alpha.6) (2023-09-04)
+
+
+### Bug Fixes
+
+* CI signtool.exe /debug ([44f344a](https://github.com/nrkno/tv-automation-package-manager/commit/44f344ad7303512e79bfec5dca67bb3f12e6a76a))
+
+
+
+# [1.50.0-alpha.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.4...v1.50.0-alpha.5) (2023-09-04)
+
+
+### Reverts
+
+* chore: lerna useWorkspaces ([c2f6432](https://github.com/nrkno/tv-automation-package-manager/commit/c2f6432eeae6c366a80ed7a412750a97374a321f))
+
+
+
+# [1.50.0-alpha.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.3...v1.50.0-alpha.4) (2023-09-04)
+
+
+### Bug Fixes
+
+* don't error when trying to generate a preview for an audio-only file ([f7a9dc5](https://github.com/nrkno/tv-automation-package-manager/commit/f7a9dc5255049271b5e4b1c58bc901300867708b))
+* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
+
+
+### Features
+
+* generate audio waveform images for audio-only files (and don't try to generate previews for them) ([10e5747](https://github.com/nrkno/tv-automation-package-manager/commit/10e574757bcdd86a2a5aa9dade2ed34b5d0984f9))
+
+
+
+# [1.50.0-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.2...v1.50.0-alpha.3) (2023-06-28)
+
+
+### Features
+
+* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
+
+
+
+# [1.50.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.1...v1.50.0-alpha.2) (2023-06-22)
+
+
+### Bug Fixes
+
+* type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
+
+
+### Features
+
+* make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
+
+
+
+# [1.50.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.0...v1.50.0-alpha.1) (2023-05-10)
+
+
+
+# [1.50.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0...v1.50.0-alpha.0) (2023-05-10)
+
+
+### Bug Fixes
+
+* don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
+
+
+### Features
+
+* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+* r50 json config schema ([1a0d477](https://github.com/nrkno/tv-automation-package-manager/commit/1a0d47761746a25692862afa7c351147db29a790))
+
+
+
+
+
 # [1.50.0-alpha.8](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0...v1.50.0-alpha.8) (2024-01-11)
 
 

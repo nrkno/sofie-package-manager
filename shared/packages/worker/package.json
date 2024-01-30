@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/worker",
-    "version": "1.50.0-alpha.8",
+    "version": "1.50.0-alpha.9",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
