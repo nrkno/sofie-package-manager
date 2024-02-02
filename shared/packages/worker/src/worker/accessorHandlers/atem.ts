@@ -502,7 +502,7 @@ async function stream2Disk(sourceStream: NodeJS.ReadableStream, outputFile: stri
 	})
 }
 
-async function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
+export async function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '_%04d.tga')
 	const args = ['-i', inputFile]
 	if (opts) {
@@ -513,78 +513,73 @@ async function createTGASequence(inputFile: string, opts?: { width: number; heig
 	return ffmpeg(args)
 }
 
-async function convertFrameToRGBA(inputFile: string): Promise<string> {
+export async function convertFrameToRGBA(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.rgba')
 	const args = [`-i`, inputFile, '-pix_fmt', 'rgba', '-f', 'rawvideo', outputFile]
 	return ffmpeg(args)
 }
 
-async function convertAudio(inputFile: string): Promise<string> {
+export async function convertAudio(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.wav')
 	const args = [
 		`-i`,
 		inputFile,
 		'-vn', // no video
-		'-ar`,`48000', // 48kHz sample rate
-		'-ac`,`2', // stereo audio
-		'-c:a`,`pcm_s24le',
+		'-ar',
+		'48000', // 48kHz sample rate
+		'-ac',
+		'2', // stereo audio
+		'-c:a',
+		'pcm_s24le',
 		outputFile,
 	]
 
 	return ffmpeg(args)
 }
 
-async function countFrames(inputFile: string): Promise<number> {
-	return new Promise((resolve, reject) => {
-		const args = [
-			'-i',
-			inputFile,
-			'-v',
-			'error',
-			'-select_streams',
-			'v:0',
-			'-count_frames',
-			'-show_entries',
-			'stream=nb_read_frames',
-			'-print_format',
-			'csv',
-		]
+export async function countFrames(inputFile: string): Promise<number> {
+	const args = [
+		'-i',
+		inputFile,
+		'-v',
+		'error',
+		'-select_streams',
+		'v:0',
+		'-count_frames',
+		'-show_entries',
+		'stream=nb_read_frames',
+		'-print_format',
+		'csv',
+	]
 
-		ffprobe(args)
-			.then((result) => {
-				const resultParts = result.split(',')
-				const durationFrames = parseInt(resultParts[1], 10)
-				resolve(durationFrames)
-			})
-			.catch((error) => reject(error))
-	})
+	const result = await ffprobe(args)
+
+	const resultParts = result.split(',')
+	return parseInt(resultParts[1], 10)
 }
 
-async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
-	return new Promise((resolve, reject) => {
-		const args = [
-			'-i',
-			inputFile,
-			'-v',
-			'error',
-			'-select_streams',
-			type === 'video' ? 'v' : 'a',
-			'-show_entries',
-			'stream=index',
-			'-of',
-			'csv=p=0',
-		]
+export async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
+	const args = [
+		'-i',
+		inputFile,
+		'-v',
+		'error',
+		'-select_streams',
+		type === 'video' ? 'v' : 'a',
+		'-show_entries',
+		'stream=index',
+		'-of',
+		'csv=p=0',
+	]
 
-		ffprobe(args)
-			.then((result) => {
-				const resultParts = result
-					.split('\n')
-					.map((str) => parseInt(str, 10))
-					.filter((num) => !isNaN(num))
-				resolve(resultParts)
-			})
-			.catch((error) => reject(error))
-	})
+	const result = await ffprobe(args)
+
+	const resultParts = result
+		.split('\n')
+		.map((str) => parseInt(str, 10))
+		.filter((num) => !isNaN(num))
+
+	return resultParts
 }
 
 async function ffprobe(args: string[]): Promise<string> {
