@@ -11,7 +11,7 @@ import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist
 	The reason for this is to allow for easier addition of custom types without
 	having to update the blueprints-integration library.
 
-	Note: When adding types in this file, consider opening a PR to Sofie Core (https://github.com/nrkno/tv-automation-server-core)
+	Note: When adding types in this file, consider opening a PR to Sofie Core (https://github.com/nrkno/sofie-core)
 	later to add it into blueprints-integration.
 */
 
@@ -272,7 +272,7 @@ export namespace Accessor {
 	export interface Quantel extends Base {
 		type: AccessType.QUANTEL
 
-		/** URL to a Quantel-gateway (https://github.com/nrkno/tv-automation-quantel-gateway) */
+		/** URL to a Quantel-gateway (https://github.com/nrkno/sofie-quantel-gateway) */
 		quantelGatewayUrl: string
 
 		/** Locations of the Quantel ISA:s (in order of importance) */
