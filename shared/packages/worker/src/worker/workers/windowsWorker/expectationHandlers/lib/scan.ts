@@ -16,7 +16,7 @@ import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
 import { MAX_EXEC_BUFFER } from '../../../../lib/lib'
-import { getFFMpegExecutable } from './ffmpeg'
+import { getFFMpegExecutable, getFFProbeExecutable } from './ffmpeg'
 import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'
 
 export interface FFProbeScanResultStream {
@@ -66,7 +66,6 @@ export function scanWithFFProbe(
 				assertNever(sourceHandle)
 				throw new Error('Unknown handle')
 			}
-			const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
 			// Use FFProbe to scan the file:
 			const args = ['-hide_banner', `-i`, inputPath, '-show_streams', '-show_format', '-print_format', 'json']
 			let ffProbeProcess: ChildProcess | undefined = undefined
@@ -77,7 +76,7 @@ export function scanWithFFProbe(
 			})
 
 			ffProbeProcess = execFile(
-				file,
+				getFFProbeExecutable(),
 				args,
 				{
 					maxBuffer: MAX_EXEC_BUFFER,
