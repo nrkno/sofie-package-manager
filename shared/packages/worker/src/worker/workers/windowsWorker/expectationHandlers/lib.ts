@@ -19,6 +19,7 @@ import {
 	AccessorId,
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
+	escapeFilePath,
 } from '@sofie-package-manager/api'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
@@ -370,7 +371,7 @@ export function previewFFMpegArguments(input: string, seekableSource: boolean, m
 		seekableSource ? undefined : '-seekable',
 		seekableSource ? undefined : '0',
 		`-i`,
-		input, // Input file path
+		escapeFilePath(input), // Input file path
 		'-f',
 		'webm', // format: webm
 		'-an', // blocks all audio streams
@@ -409,7 +410,7 @@ export function thumbnailFFMpegArguments(
 		'-hide_banner',
 		...(hasVideoStream && seekTimeCode ? [`-ss`, `${seekTimeCode}`] : []),
 		`-i`,
-		input,
+		escapeFilePath(input),
 		`-f`,
 		`image2`,
 		'-frames:v',
@@ -440,7 +441,7 @@ export function proxyFFMpegArguments(
 		'-y', // Overwrite output files without asking.
 		seekableSource ? undefined : '-seekable 0',
 		`-i`,
-		input, // Input file path
+		escapeFilePath(input), // Input file path
 
 		'-c',
 		'copy', // Stream copy, no transcoding
@@ -451,9 +452,9 @@ export function proxyFFMpegArguments(
 	// Check target to see if we should tell ffmpeg which format to use:
 	let targetPath = ''
 	if (isLocalFolderAccessorHandle(targetHandle)) {
-		targetPath = targetHandle.fullPath
+		targetPath = escapeFilePath(targetHandle.fullPath)
 	} else if (isFileShareAccessorHandle(targetHandle)) {
-		targetPath = targetHandle.fullPath
+		targetPath = escapeFilePath(targetHandle.fullPath)
 	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
 		targetPath = ''
 	} else {

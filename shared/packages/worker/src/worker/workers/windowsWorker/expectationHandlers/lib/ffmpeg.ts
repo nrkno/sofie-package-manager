@@ -9,7 +9,7 @@ import {
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
-import { assertNever, stringifyError } from '@sofie-package-manager/api'
+import { assertNever, escapeFilePath, stringifyError } from '@sofie-package-manager/api'
 
 export interface OverriddenFFMpegExecutables {
 	ffmpeg: string
@@ -104,11 +104,11 @@ export async function spawnFFMpeg<Metadata>(
 	let pipeStdOut = false
 	if (isLocalFolderAccessorHandle(targetHandle)) {
 		await mkdirp(path.dirname(targetHandle.fullPath)) // Create folder if it doesn't exist
-		args.push(targetHandle.fullPath)
+		args.push(escapeFilePath(targetHandle.fullPath))
 	} else if (isFileShareAccessorHandle(targetHandle)) {
 		await targetHandle.prepareFileAccess()
 		await mkdirp(path.dirname(targetHandle.fullPath)) // Create folder if it doesn't exist
-		args.push(targetHandle.fullPath)
+		args.push(escapeFilePath(targetHandle.fullPath))
 	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
 		pipeStdOut = true
 		args.push('pipe:1') // pipe output to stdout

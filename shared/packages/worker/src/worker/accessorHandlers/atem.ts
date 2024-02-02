@@ -12,7 +12,7 @@ import {
 	AccessorHandlerRunCronJobResult,
 	PackageOperation,
 } from './genericHandle'
-import { Expectation, Accessor, AccessorOnPackage, AccessorId } from '@sofie-package-manager/api'
+import { Expectation, Accessor, AccessorOnPackage, AccessorId, escapeFilePath } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'
@@ -504,7 +504,7 @@ async function stream2Disk(sourceStream: NodeJS.ReadableStream, outputFile: stri
 
 export async function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '_%04d.tga')
-	const args = ['-i', inputFile]
+	const args = ['-i', escapeFilePath(inputFile)]
 	if (opts) {
 		args.push('-vf', `scale=${opts.width}:${opts.height}`)
 	}
@@ -515,7 +515,7 @@ export async function createTGASequence(inputFile: string, opts?: { width: numbe
 
 export async function convertFrameToRGBA(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.rgba')
-	const args = [`-i`, inputFile, '-pix_fmt', 'rgba', '-f', 'rawvideo', outputFile]
+	const args = [`-i`, escapeFilePath(inputFile), '-pix_fmt', 'rgba', '-f', 'rawvideo', outputFile]
 	return ffmpeg(args)
 }
 
@@ -523,7 +523,7 @@ export async function convertAudio(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.wav')
 	const args = [
 		`-i`,
-		inputFile,
+		escapeFilePath(inputFile),
 		'-vn', // no video
 		'-ar',
 		'48000', // 48kHz sample rate
@@ -531,7 +531,7 @@ export async function convertAudio(inputFile: string): Promise<string> {
 		'2', // stereo audio
 		'-c:a',
 		'pcm_s24le',
-		outputFile,
+		escapeFilePath(outputFile),
 	]
 
 	return ffmpeg(args)
@@ -540,7 +540,7 @@ export async function convertAudio(inputFile: string): Promise<string> {
 export async function countFrames(inputFile: string): Promise<number> {
 	const args = [
 		'-i',
-		inputFile,
+		escapeFilePath(inputFile),
 		'-v',
 		'error',
 		'-select_streams',
@@ -561,7 +561,7 @@ export async function countFrames(inputFile: string): Promise<number> {
 export async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
 	const args = [
 		'-i',
-		inputFile,
+		escapeFilePath(inputFile),
 		'-v',
 		'error',
 		'-select_streams',
