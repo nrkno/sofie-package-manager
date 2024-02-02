@@ -10,6 +10,7 @@ import {
 	assertNever,
 	stringifyError,
 	startTimer,
+	escapeFilePath,
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -220,10 +221,10 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 				let inputPath: string
 				if (isLocalFolderAccessorHandle(sourceHandle)) {
-					inputPath = sourceHandle.fullPath
+					inputPath = escapeFilePath(sourceHandle.fullPath)
 				} else if (isFileShareAccessorHandle(sourceHandle)) {
 					await sourceHandle.prepareFileAccess()
-					inputPath = sourceHandle.fullPath
+					inputPath = escapeFilePath(sourceHandle.fullPath)
 				} else if (isHTTPAccessorHandle(sourceHandle)) {
 					inputPath = sourceHandle.fullUrl
 				} else if (isHTTPProxyAccessorHandle(sourceHandle)) {

@@ -1,5 +1,12 @@
 import { execFile, ChildProcess, spawn } from 'child_process'
-import { Expectation, assertNever, Accessor, AccessorOnPackage, LoggerInstance } from '@sofie-package-manager/api'
+import {
+	Expectation,
+	assertNever,
+	Accessor,
+	AccessorOnPackage,
+	LoggerInstance,
+	escapeFilePath,
+} from '@sofie-package-manager/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -50,12 +57,12 @@ export function scanWithFFProbe(
 			let inputPath: string
 			let filePath: string
 			if (isLocalFolderAccessorHandle(sourceHandle)) {
-				inputPath = sourceHandle.fullPath
-				filePath = sourceHandle.filePath
+				inputPath = escapeFilePath(sourceHandle.fullPath)
+				filePath = escapeFilePath(sourceHandle.filePath)
 			} else if (isFileShareAccessorHandle(sourceHandle)) {
 				await sourceHandle.prepareFileAccess()
-				inputPath = sourceHandle.fullPath
-				filePath = sourceHandle.filePath
+				inputPath = escapeFilePath(sourceHandle.fullPath)
+				filePath = escapeFilePath(sourceHandle.filePath)
 			} else if (isHTTPAccessorHandle(sourceHandle)) {
 				inputPath = sourceHandle.fullUrl
 				filePath = sourceHandle.path
@@ -650,10 +657,10 @@ async function getFFMpegInputArgsFromAccessorHandle(
 ): Promise<string[]> {
 	const args: string[] = []
 	if (isLocalFolderAccessorHandle(sourceHandle)) {
-		args.push(`-i`, sourceHandle.fullPath)
+		args.push(`-i`, escapeFilePath(sourceHandle.fullPath))
 	} else if (isFileShareAccessorHandle(sourceHandle)) {
 		await sourceHandle.prepareFileAccess()
-		args.push(`-i`, sourceHandle.fullPath)
+		args.push(`-i`, escapeFilePath(sourceHandle.fullPath))
 	} else if (isHTTPAccessorHandle(sourceHandle)) {
 		args.push(`-i`, sourceHandle.fullUrl)
 	} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
