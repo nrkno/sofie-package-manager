@@ -21,6 +21,7 @@ function createLocalFolderAccessorHandleMock(fullPath: string): LocalFolderAcces
 		{
 			type: LocalFolderAccessorHandle.type,
 			fullPath: fullPath,
+			filePath: path.basename(fullPath),
 		},
 		{
 			fallbackMockImplementation: () => {
@@ -157,7 +158,7 @@ runForEachFFMpegRelease(() => {
 				const fileStat = await fsStat(outputPath)
 				expect(fileStat.isFile()).toBeTruthy()
 			} finally {
-				await fsUnlink(outputPath)
+				await fsUnlink(outputPath).catch(() => null)
 			}
 		})
 
@@ -181,7 +182,7 @@ runForEachFFMpegRelease(() => {
 				const fileStat = await fsStat(outputPath)
 				expect(fileStat.isFile()).toBeTruthy()
 			} finally {
-				await fsUnlink(outputPath)
+				await fsUnlink(outputPath).catch(() => null)
 			}
 		})
 	})
