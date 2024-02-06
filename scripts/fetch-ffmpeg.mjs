@@ -28,7 +28,6 @@ const platformInfo = `${process.platform}-${process.arch}`
 const platformVersions = targetVersions[platformInfo]
 
 if (platformVersions) {
-	const tmpPath = path.join(ffmpegRootDir, 'tmp')
 
 	for (const version of platformVersions) {
 		const versionPath = path.join(ffmpegRootDir, version.id)
@@ -37,24 +36,40 @@ if (platformVersions) {
 			console.log(`Fetching ${version.url}`)
 			// Download it
 
+			const fileExtension = version.url.endsWith('.tar.xz') ? '.tar.xz' : version.url.endsWith('.zip') ? '.zip' : ''
+			const tmpPath = path.resolve(path.join(ffmpegRootDir, 'tmp' + fileExtension))
+
 			// eslint-disable-next-line no-undef
 			const response = await fetch(version.url)
 			if (!response.ok) throw new Error(`unexpected response ${response.statusText}`)
 			await streamPipeline(response.body, createWriteStream(tmpPath))
 
 			// Extract it
-			if (version.url.endsWith('.tar.xz')) {
+			if (fileExtension === '.tar.xz') {
 				await fs.mkdir(versionPath).catch(() => null)
 				cp.execSync(`tar -xJf ${toPosix(tmpPath)} --strip-components=1 -C ${toPosix(versionPath)}`)
-			} else if (version.url.endsWith('.zip')) {
-				cp.execSync(`unzip ${toPosix(tmpPath)} -d ${toPosix(ffmpegRootDir)}`)
+			} else if (fileExtension === '.zip') {
+				if (process.platform === 'win32') {
 
-				const dirname = path.parse(version.url).name
-				await fs.rename(path.join(ffmpegRootDir, dirname), versionPath)
+					cp.execSync(`tar -xf ${toPosix(tmpPath)}`, {
+						cwd: ffmpegRootDir
+					})
+
+					const list = cp.execSync(`tar -tf ${toPosix(tmpPath)}`).toString()
+					const mainFolder = list.split('\n')[0].trim() // "ffmpeg-4.3.1-win64-static/"
+						.replace(/[\/\\]*$/, '') // remove trailing slash
+					await fs.rename(path.join(ffmpegRootDir, mainFolder), versionPath)
+				} else {
+					cp.execSync(`unzip ${toPosix(tmpPath)} -d ${toPosix(ffmpegRootDir)}`)
+					const dirname = path.parse(version.url).name
+					await fs.rename(path.join(ffmpegRootDir, dirname), versionPath)
+				}
+
+				await fs.rm(tmpPath)
+
 			} else {
 				throw new Error(`Unhandled file extension: ${version.url}`)
 			}
-			await fs.rm(tmpPath)
 		}
 	}
 } else {
