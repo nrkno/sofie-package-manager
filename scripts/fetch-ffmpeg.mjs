@@ -1,3 +1,9 @@
+/**
+ * This is a small helper to download and extract a set of ffmpeg binaries.
+ * It reads the file `./tests/ffmpegReleases.json` to see what versions should be downloaded,
+ * and puts them into `.ffmpeg/` at the root of the repository.
+ */
+
 import fs from 'fs/promises'
 import { pipeline } from 'node:stream'
 import { promisify } from 'node:util'
@@ -73,5 +79,5 @@ if (platformVersions) {
 		}
 	}
 } else {
-	throw new Error(`FFmpeg downloading for "${platformInfo}" not supported yet`)
+	throw new Error(`No FFMpeg binaries have been defined for "${platformInfo}" yet`)
 }

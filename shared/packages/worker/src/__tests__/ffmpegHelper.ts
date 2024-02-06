@@ -1,9 +1,6 @@
 import path from 'path'
 import { LocalFolderAccessorHandle } from '../worker/accessorHandlers/localFolder'
-import { setFFMpegExecutables, spawnFFMpeg } from '../worker/workers/windowsWorker/expectationHandlers/lib/ffmpeg'
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const targetVersions = require('../../../../../tests/ffmpegReleases.json')
+import { overrideFFMpegExecutables, spawnFFMpeg } from '../worker/workers/windowsWorker/expectationHandlers/lib/ffmpeg'
 
 export const SamplesDir = path.join(__dirname, '../../../../../tests/samples')
 
@@ -32,16 +29,20 @@ export function runForEachFFMpegRelease(runForFFmpegRelease: () => void) {
 	const ffmpegFilename = process.platform === 'win32' ? 'bin/ffmpeg.exe' : 'ffmpeg'
 
 	const ffmpegRootPath = path.join(__dirname, '../../../../../.ffmpeg')
+
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	const targetVersions = require('../../../../../tests/ffmpegReleases.json')
+
 	for (const version of targetVersions[`${process.platform}-${process.arch}`]) {
 		describe(`FFmpeg ${version.id}`, () => {
 			beforeEach(() => {
-				setFFMpegExecutables({
+				overrideFFMpegExecutables({
 					ffmpeg: path.join(ffmpegRootPath, version.id, ffmpegFilename),
 					ffprobe: path.join(ffmpegRootPath, version.id, ffprobeFilename),
 				})
 			})
 			afterAll(() => {
-				setFFMpegExecutables(null)
+				overrideFFMpegExecutables(null)
 			})
 
 			runForFFmpegRelease()

@@ -17,7 +17,11 @@ export interface OverriddenFFMpegExecutables {
 }
 
 let overriddenFFMpegPaths: OverriddenFFMpegExecutables | null = null
-export function setFFMpegExecutables(paths: OverriddenFFMpegExecutables | null): void {
+/**
+ * Override the paths of the ffmpeg executables, intended for unit testing purposes
+ * @param paths Paths to executables
+ */
+export function overrideFFMpegExecutables(paths: OverriddenFFMpegExecutables | null): void {
 	overriddenFFMpegPaths = paths
 }
 
