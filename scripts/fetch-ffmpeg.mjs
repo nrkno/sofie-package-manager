@@ -1,5 +1,6 @@
 /**
- * This is a small helper to download and extract a set of ffmpeg binaries.
+ * This is a small helper to download and extract a set of ffmpeg binaries, so that we can
+ * test package-manager with multiple versions of ffmpeg.
  * It reads the file `./tests/ffmpegReleases.json` to see what versions should be downloaded,
  * and puts them into `.ffmpeg/` at the root of the repository.
  */
@@ -34,7 +35,6 @@ const platformInfo = `${process.platform}-${process.arch}`
 const platformVersions = targetVersions[platformInfo]
 
 if (platformVersions) {
-
 	for (const version of platformVersions) {
 		const versionPath = path.join(ffmpegRootDir, version.id)
 		const dirStat = await pathExists(versionPath)
@@ -56,13 +56,14 @@ if (platformVersions) {
 				cp.execSync(`tar -xJf ${toPosix(tmpPath)} --strip-components=1 -C ${toPosix(versionPath)}`)
 			} else if (fileExtension === '.zip') {
 				if (process.platform === 'win32') {
-
 					cp.execSync(`tar -xf ${toPosix(tmpPath)}`, {
-						cwd: ffmpegRootDir
+						cwd: ffmpegRootDir,
 					})
 
 					const list = cp.execSync(`tar -tf ${toPosix(tmpPath)}`).toString()
-					const mainFolder = list.split('\n')[0].trim() // "ffmpeg-4.3.1-win64-static/"
+					const mainFolder = list
+						.split('\n')[0]
+						.trim() // "ffmpeg-4.3.1-win64-static/"
 						.replace(/[\/\\]*$/, '') // remove trailing slash
 					await fs.rename(path.join(ffmpegRootDir, mainFolder), versionPath)
 				} else {
@@ -72,7 +73,6 @@ if (platformVersions) {
 				}
 
 				await fs.rm(tmpPath)
-
 			} else {
 				throw new Error(`Unhandled file extension: ${version.url}`)
 			}
