@@ -1,6 +1,8 @@
 import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
+import * as LockFile from 'proper-lockfile'
+import _ from 'underscore'
 import {
 	ExpectedPackage,
 	StatusCode,
@@ -53,48 +55,36 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 	/** Schedule the package for later removal */
 	async delayPackageRemoval(filePath: string, ttl: number): Promise<void> {
-		const packagesToRemove = await this.getPackagesToRemove()
+		await this.updatePackagesToRemove((packagesToRemove) => {
+			// Search for a pre-existing entry:
+			let alreadyExists = false
+			for (const entry of packagesToRemove) {
+				if (entry.filePath === filePath) {
+					// extend the TTL if it was found:
+					entry.removeTime = Date.now() + ttl
 
-		// Search for a pre-existing entry:
-		let found = false
-		for (const entry of packagesToRemove) {
-			if (entry.filePath === filePath) {
-				// extend the TTL if it was found:
-				entry.removeTime = Date.now() + ttl
-
-				found = true
-				break
+					alreadyExists = true
+					break
+				}
 			}
-		}
-		if (!found) {
-			packagesToRemove.push({
-				filePath: filePath,
-				removeTime: Date.now() + ttl,
-			})
-		}
-
-		await this.storePackagesToRemove(packagesToRemove)
+			if (!alreadyExists) {
+				packagesToRemove.push({
+					filePath: filePath,
+					removeTime: Date.now() + ttl,
+				})
+			}
+			return packagesToRemove
+		})
 	}
 	/** Clear a scheduled later removal of a package */
 	async clearPackageRemoval(filePath: string): Promise<void> {
-		const packagesToRemove = await this.getPackagesToRemove()
-
-		let found = false
-		for (let i = 0; i < packagesToRemove.length; i++) {
-			const entry = packagesToRemove[i]
-			if (entry.filePath === filePath) {
-				packagesToRemove.splice(i, 1)
-				found = true
-				break
-			}
-		}
-		if (found) {
-			await this.storePackagesToRemove(packagesToRemove)
-		}
+		await this.updatePackagesToRemove((packagesToRemove) => {
+			return packagesToRemove.filter((entry) => entry.filePath !== filePath)
+		})
 	}
 	/** Remove any packages that are due for removal */
 	async removeDuePackages(): Promise<Reason | null> {
-		let packagesToRemove = await this.getPackagesToRemove()
+		const packagesToRemove = await this.getPackagesToRemove()
 
 		const removedFilePaths: string[] = []
 		for (const entry of packagesToRemove) {
@@ -112,21 +102,14 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			}
 		}
 
-		// Fetch again, to decrease the risk of race-conditions:
-		packagesToRemove = await this.getPackagesToRemove()
-		let changed = false
-		// Remove paths from array:
-		for (let i = 0; i < packagesToRemove.length; i++) {
-			const entry = packagesToRemove[i]
-			if (removedFilePaths.includes(entry.filePath)) {
-				packagesToRemove.splice(i, 1)
-				changed = true
-				break
-			}
+		if (removedFilePaths.length > 0) {
+			// Update the list of packages to remove:
+			await this.updatePackagesToRemove((packagesToRemove) => {
+				// Remove the entries of the files we removed:
+				return packagesToRemove.filter((entry) => !removedFilePaths.includes(entry.filePath))
+			})
 		}
-		if (changed) {
-			await this.storePackagesToRemove(packagesToRemove)
-		}
+
 		return null
 	}
 	/** Unlink (remove) a file, if it exists. Returns true if it did exist */
@@ -430,8 +413,84 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 		return packagesToRemove
 	}
-	private async storePackagesToRemove(packagesToRemove: DelayPackageRemovalEntry[]): Promise<void> {
-		await fsWriteFile(this.deferRemovePackagesPath, JSON.stringify(packagesToRemove))
+	/** Update the deferred-remove-packages list */
+	private async updatePackagesToRemove(
+		cbManipulateList: (list: DelayPackageRemovalEntry[]) => DelayPackageRemovalEntry[]
+	): Promise<void> {
+		// Note: It is high likelihood that several processes will try to write to this file at the same time
+		// Therefore, we need to lock the file while writing to it.
+
+		const LOCK_ATTEMPTS_COUNT = 10
+		const RETRY_TIMEOUT = 100 // ms
+
+		let lockCompromisedError: Error | null = null
+
+		// Retry up to 10 times at locking and writing the file:
+		for (let i = 0; i < LOCK_ATTEMPTS_COUNT; i++) {
+			lockCompromisedError = null
+
+			// Get file lock
+			let releaseLock: (() => Promise<void>) | undefined = undefined
+			try {
+				releaseLock = await LockFile.lock(this.deferRemovePackagesPath, {
+					onCompromised: (err) => {
+						// This is called if the lock somehow gets compromised
+						this.worker.logger.warn(`updatePackagesToRemove: Lock compromised: ${err}`)
+						lockCompromisedError = err
+					},
+				})
+			} catch (e) {
+				if (e instanceof Error && (e as any).code === 'ENOENT') {
+					// The file does not exist. Create an empty file and try again:
+					await fsWriteFile(this.deferRemovePackagesPath, '')
+					continue
+				} else if (e instanceof Error && (e as any).code === 'ELOCKED') {
+					// Already locked, try again later:
+					await sleep(RETRY_TIMEOUT)
+					continue
+				} else {
+					// Unknown error. Log and exit:
+					this.worker.logger.error(e)
+					return
+				}
+			}
+			// At this point, we have acquired the lock.
+			try {
+				// Read and write to the file:
+				const oldList = await this.getPackagesToRemove()
+				const newList = cbManipulateList(clone(oldList))
+				if (!_.isEqual(oldList, newList)) {
+					if (lockCompromisedError) {
+						// The lock was compromised. Try again:
+						continue
+					}
+					await fsWriteFile(this.deferRemovePackagesPath, JSON.stringify(newList))
+				}
+
+				// Release the lock:
+				if (!lockCompromisedError) await releaseLock()
+				// Done, exit the function:
+				return
+			} catch (e) {
+				if (e instanceof Error && (e as any).code === 'ERELEASED') {
+					// Lock was already released. Something must have gone wrong (eg. someone deleted a folder),
+					// Log and try again:
+					this.worker.logger.warn(`updatePackagesToRemove: Lock was already released`)
+					continue
+				} else {
+					// Release the lock:
+					if (!lockCompromisedError) await releaseLock()
+					throw e
+				}
+			}
+		}
+		// At this point, the lock failed
+		this.worker.logger.error(
+			`updatePackagesToRemove: Failed to lock file "${this.deferRemovePackagesPath}" after ${LOCK_ATTEMPTS_COUNT} attempts`
+		)
+		if (lockCompromisedError) {
+			this.worker.logger.error(`updatePackagesToRemove: lockCompromisedError: ${lockCompromisedError}`)
+		}
 	}
 }
 
@@ -447,4 +506,10 @@ enum StatusCategory {
 	WARNING_LIMIT = 'warningLimit',
 	WATCHER = 'watcher',
 	FILE = 'file_',
+}
+function clone<T>(o: T): T {
+	return JSON.parse(JSON.stringify(o))
+}
+async function sleep(duration: number): Promise<void> {
+	return new Promise((r) => setTimeout(r, duration))
 }
