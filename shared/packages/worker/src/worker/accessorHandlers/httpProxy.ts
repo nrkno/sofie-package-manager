@@ -100,12 +100,19 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 
 		return this.convertHeadersToVersion(header.headers)
 	}
-	async removePackage(): Promise<void> {
+	async removePackage(reason: string): Promise<void> {
 		if (this.workOptions.removeDelay) {
-			await this.delayPackageRemoval(this.workOptions.removeDelay)
+			this.worker.logOperation(
+				`Remove package: Delay remove package "${this.packageName}", delay: ${this.workOptions.removeDelay} (${reason})`
+			)
+			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
-			await this.deletePackageIfExists(this.fullUrl)
+			if (await this.deletePackageIfExists(this.fullUrl)) {
+				this.worker.logOperation(`Remove package: Removed file "${this.packageName}" (${reason})`)
+			} else {
+				this.worker.logOperation(`Remove package: File already removed "${this.packageName}" (${reason})`)
+			}
 		}
 	}
 	async getPackageReadStream(): Promise<PackageReadStream> {
@@ -297,10 +304,8 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 	}
 
-	async delayPackageRemoval(ttl: number): Promise<void> {
+	async delayPackageRemoval(filePath: string, ttl: number): Promise<void> {
 		const packagesToRemove = await this.getPackagesToRemove()
-
-		const filePath = this.filePath
 
 		// Search for a pre-existing entry:
 		let found = false
@@ -375,17 +380,19 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 		return null
 	}
-	private async deletePackageIfExists(url: string): Promise<void> {
+	/** Returns false if nothing was removed */
+	private async deletePackageIfExists(url: string): Promise<boolean> {
 		const result = await fetchWithTimeout(url, {
 			method: 'DELETE',
 		})
-		if (result.status === 404) return undefined // that's ok
+		if (result.status === 404) return false // that's ok
 		if (result.status >= 400) {
 			const text = await result.text()
 			throw new Error(
 				`deletePackageIfExists: Bad response: [${result.status}]: ${result.statusText}, DELETE ${this.fullUrl}, ${text}`
 			)
 		}
+		return true
 	}
 	/** Full path to the file containing deferred removals */
 	private get deferRemovePackagesPath(): string {

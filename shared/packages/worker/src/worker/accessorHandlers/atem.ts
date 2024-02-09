@@ -206,13 +206,15 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			}
 		}
 	}
-	async removePackage(): Promise<void> {
+	async removePackage(reason: string): Promise<void> {
 		const atem = await this.getAtem()
 		if (this.accessor.mediaType && typeof this.accessor.bankIndex === 'number') {
 			if (this.accessor.mediaType === 'clip') {
 				await atem.clearMediaPoolClip(this.accessor.bankIndex)
+				this.worker.logOperation(`Remove package: Removed clip "${this.packageName}" (${reason})`)
 			} else {
 				await atem.clearMediaPoolStill(this.accessor.bankIndex)
+				this.worker.logOperation(`Remove package: Removed still "${this.packageName}" (${reason})`)
 			}
 		} else {
 			throw new Error('mediaType or bankIndex were undefined')
