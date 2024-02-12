@@ -10,7 +10,6 @@
         "start": "node dist/index.js"
     },
     "devDependencies": {
-        "nexe": "^3.3.7"
     },
     "dependencies": {
         "@package-manager/generic": "1.43.1"

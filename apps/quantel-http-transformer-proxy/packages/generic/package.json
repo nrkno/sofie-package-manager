@@ -39,8 +39,7 @@
         "@types/node": "^14.14.31",
         "@types/underscore": "^1.10.24",
         "@types/xml2js": "^0.4.7",
-        "@types/yargs": "^17.0.24",
-        "nexe": "^3.3.7"
+        "@types/yargs": "^17.0.24"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
