@@ -29,7 +29,7 @@ export interface FFProbeScanResult {
 	// to be defined...
 	streams?: FFProbeScanResultStream[]
 	format?: {
-		duration: number
+		duration: string
 	}
 }
 export function scanWithFFProbe(
@@ -215,6 +215,12 @@ export function scanFieldOrder(
 	})
 }
 
+export interface ScanMoreInfoResult {
+	scenes: number[]
+	freezes: ScanAnomaly[]
+	blacks: ScanAnomaly[]
+}
+
 export function scanMoreInfo(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
@@ -230,16 +236,8 @@ export function scanMoreInfo(
 		progress: number
 	) => void,
 	logger: LoggerInstance
-): CancelablePromise<{
-	scenes: number[]
-	freezes: ScanAnomaly[]
-	blacks: ScanAnomaly[]
-}> {
-	return new CancelablePromise<{
-		scenes: number[]
-		freezes: ScanAnomaly[]
-		blacks: ScanAnomaly[]
-	}>(async (resolve, reject, onCancel) => {
+): CancelablePromise<ScanMoreInfoResult> {
+	return new CancelablePromise<ScanMoreInfoResult>(async (resolve, reject, onCancel) => {
 		let cancelled = false
 		let filterString = ''
 		if (targetVersion.blackDetection) {
@@ -307,7 +305,7 @@ export function scanMoreInfo(
 
 		// ffProbeProcess.stdout.on('data', () => { lastProgressReportTimestamp = new Date() })
 		if (!ffMpegProcess.stderr) {
-			throw new Error('spawned ffprobe-process stdin is null!')
+			throw new Error('spawned ffmpeg-process stdin is null!')
 		}
 		let previousStringData = ''
 		let fileDuration: number | undefined = undefined
@@ -409,7 +407,7 @@ export function scanMoreInfo(
 				killFFMpeg()
 
 				reject(
-					`Error parsing FFProbe data. Error: "${err} ${
+					`Error parsing FFMpeg data. Error: "${err} ${
 						err && typeof err === 'object' ? (err as Error).stack : ''
 					}", context: "${context}" `
 				)
@@ -436,7 +434,7 @@ export function scanMoreInfo(
 						blacks,
 					})
 				} else {
-					reject(`FFProbe exited with code ${code} (${previousStringData})`)
+					reject(`FFMpeg exited with code ${code} (${previousStringData.trim()})`)
 				}
 			}
 		}
@@ -483,16 +481,7 @@ function scanLoudnessStream(
 		filterString += 'ebur128=peak=true[out]'
 
 		const file = getFFMpegExecutable()
-		const args = [
-			'-nostats',
-			'-filter_complex',
-			JSON.stringify(filterString),
-			'-map',
-			JSON.stringify('[out]'),
-			'-f',
-			'null',
-			'-',
-		]
+		const args = ['-nostats', '-filter_complex', filterString, '-map', '[out]', '-f', 'null', '-']
 
 		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
 

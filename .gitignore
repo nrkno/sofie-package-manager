@@ -30,3 +30,4 @@ tmp_packages_for_build/
 ffmpeg.exe
 ffprobe.exe
 apps/single-app/app/expectedPackages.json_smartbull
+.ffmpeg/

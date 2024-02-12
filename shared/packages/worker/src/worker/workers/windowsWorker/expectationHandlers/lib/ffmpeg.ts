@@ -11,14 +11,30 @@ import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { assertNever, stringifyError } from '@sofie-package-manager/api'
 
+export interface OverriddenFFMpegExecutables {
+	ffmpeg: string
+	ffprobe: string
+}
+
+let overriddenFFMpegPaths: OverriddenFFMpegExecutables | null = null
+/**
+ * Override the paths of the ffmpeg executables, intended for unit testing purposes
+ * @param paths Paths to executables
+ */
+export function overrideFFMpegExecutables(paths: OverriddenFFMpegExecutables | null): void {
+	overriddenFFMpegPaths = paths
+}
+
 export interface FFMpegProcess {
 	pid: number
 	cancel: () => void
 }
 export function getFFMpegExecutable(): string {
+	if (overriddenFFMpegPaths) return overriddenFFMpegPaths.ffmpeg
 	return process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
 }
 export function getFFProbeExecutable(): string {
+	if (overriddenFFMpegPaths) return overriddenFFMpegPaths.ffprobe
 	return process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
 }
 /** Check if FFMpeg is available, returns null if no error found */
