@@ -233,11 +233,17 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	async removePackage(reason: string): Promise<void> {
 		await this.prepareFileAccess()
 		if (this.workOptions.removeDelay) {
+			this.worker.logOperation(
+				`Remove package: Delay remove file "${this.packageName}", delay: ${this.workOptions.removeDelay} (${reason})`
+			)
 			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
-			if (await this.unlinkIfExists(this.fullPath))
+			if (await this.unlinkIfExists(this.fullPath)) {
 				this.worker.logOperation(`Remove package: Removed file "${this.packageName}", ${reason}`)
+			} else {
+				this.worker.logOperation(`Remove package: File already removed "${this.packageName}" (${reason})`)
+			}
 		}
 	}
 

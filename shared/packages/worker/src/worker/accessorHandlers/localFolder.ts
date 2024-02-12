@@ -183,11 +183,17 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 	async removePackage(reason: string): Promise<void> {
 		if (this.workOptions.removeDelay) {
+			this.worker.logOperation(
+				`Remove package: Delay remove file "${this.packageName}", delay: ${this.workOptions.removeDelay} (${reason})`
+			)
 			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
-			if (await this.unlinkIfExists(this.fullPath))
-				this.worker.logOperation(`Remove package: Removed file "${this.fullPath}" (${reason})`)
+			if (await this.unlinkIfExists(this.fullPath)) {
+				this.worker.logOperation(`Remove package: Removed file "${this.packageName}" (${reason})`)
+			} else {
+				this.worker.logOperation(`Remove package: File already removed "${this.packageName}" (${reason})`)
+			}
 		}
 	}
 	async getPackageReadStream(): Promise<{ readStream: NodeJS.ReadableStream; cancel: () => void }> {

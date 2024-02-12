@@ -11,7 +11,6 @@
         "start": "node dist/index.js"
     },
     "devDependencies": {
-        "nexe": "^3.3.7"
     },
     "dependencies": {
         "@boilerplate/generic": "1.50.0-alpha.7"

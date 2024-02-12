@@ -10,7 +10,6 @@
     },
     "devDependencies": {
         "deep-extend": "^0.6.0",
-        "nexe": "^3.3.7",
         "tv-automation-quantel-gateway-client": "^3.1.7"
     },
     "dependencies": {
