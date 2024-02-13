@@ -1,8 +1,6 @@
 import path from 'path'
 import { promisify } from 'util'
 import fs from 'fs'
-import * as LockFile from 'proper-lockfile'
-import _ from 'underscore'
 import {
 	ExpectedPackage,
 	StatusCode,
@@ -23,6 +21,7 @@ import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
 import { removeBasePath } from './pathJoin'
 import { FileEvent, FileWatcher, IFileWatcher } from './FileWatcher'
+import { updateJSONFileBatch } from './json-write-file'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -32,7 +31,6 @@ const fsReadFile = promisify(fs.readFile)
 const fsReaddir = promisify(fs.readdir)
 const fsRmDir = promisify(fs.rmdir)
 const fsStat = promisify(fs.stat)
-const fsWriteFile = promisify(fs.writeFile)
 const fsUnlink = promisify(fs.unlink)
 const fsLstat = promisify(fs.lstat)
 
@@ -423,73 +421,23 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		const LOCK_ATTEMPTS_COUNT = 10
 		const RETRY_TIMEOUT = 100 // ms
 
-		let lockCompromisedError: Error | null = null
-
-		// Retry up to 10 times at locking and writing the file:
-		for (let i = 0; i < LOCK_ATTEMPTS_COUNT; i++) {
-			lockCompromisedError = null
-
-			// Get file lock
-			let releaseLock: (() => Promise<void>) | undefined = undefined
-			try {
-				releaseLock = await LockFile.lock(this.deferRemovePackagesPath, {
-					onCompromised: (err) => {
-						// This is called if the lock somehow gets compromised
-						this.worker.logger.warn(`updatePackagesToRemove: Lock compromised: ${err}`)
-						lockCompromisedError = err
-					},
-				})
-			} catch (e) {
-				if (e instanceof Error && (e as any).code === 'ENOENT') {
-					// The file does not exist. Create an empty file and try again:
-					await fsWriteFile(this.deferRemovePackagesPath, '')
-					continue
-				} else if (e instanceof Error && (e as any).code === 'ELOCKED') {
-					// Already locked, try again later:
-					await sleep(RETRY_TIMEOUT)
-					continue
-				} else {
-					// Unknown error. Log and exit:
-					this.worker.logger.error(e)
-					return
+		try {
+			await updateJSONFileBatch<DelayPackageRemovalEntry[]>(
+				this.deferRemovePackagesPath,
+				(list) => {
+					return cbManipulateList(list ?? [])
+				},
+				{
+					retryCount: LOCK_ATTEMPTS_COUNT,
+					retryTimeout: RETRY_TIMEOUT,
+					logError: (error) => this.worker.logger.error(error),
+					logWarning: (message) => this.worker.logger.warn(message),
 				}
-			}
-			// At this point, we have acquired the lock.
-			try {
-				// Read and write to the file:
-				const oldList = await this.getPackagesToRemove()
-				const newList = cbManipulateList(clone(oldList))
-				if (!_.isEqual(oldList, newList)) {
-					if (lockCompromisedError) {
-						// The lock was compromised. Try again:
-						continue
-					}
-					await fsWriteFile(this.deferRemovePackagesPath, JSON.stringify(newList))
-				}
-
-				// Release the lock:
-				if (!lockCompromisedError) await releaseLock()
-				// Done, exit the function:
-				return
-			} catch (e) {
-				if (e instanceof Error && (e as any).code === 'ERELEASED') {
-					// Lock was already released. Something must have gone wrong (eg. someone deleted a folder),
-					// Log and try again:
-					this.worker.logger.warn(`updatePackagesToRemove: Lock was already released`)
-					continue
-				} else {
-					// Release the lock:
-					if (!lockCompromisedError) await releaseLock()
-					throw e
-				}
-			}
-		}
-		// At this point, the lock failed
-		this.worker.logger.error(
-			`updatePackagesToRemove: Failed to lock file "${this.deferRemovePackagesPath}" after ${LOCK_ATTEMPTS_COUNT} attempts`
-		)
-		if (lockCompromisedError) {
-			this.worker.logger.error(`updatePackagesToRemove: lockCompromisedError: ${lockCompromisedError}`)
+			)
+		} catch (e) {
+			// Not much we can do about it..
+			// Log and continue:
+			this.worker.logger.error(e)
 		}
 	}
 }
@@ -506,10 +454,4 @@ enum StatusCategory {
 	WARNING_LIMIT = 'warningLimit',
 	WATCHER = 'watcher',
 	FILE = 'file_',
-}
-function clone<T>(o: T): T {
-	return JSON.parse(JSON.stringify(o))
-}
-async function sleep(duration: number): Promise<void> {
-	return new Promise((r) => setTimeout(r, duration))
 }
