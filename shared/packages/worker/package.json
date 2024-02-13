@@ -7,7 +7,7 @@
     "scripts": {
         "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "__test": "jest"
+        "test": "jest --runInBand"
     },
     "engines": {
         "node": ">=14.18.0"
