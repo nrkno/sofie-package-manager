@@ -452,9 +452,9 @@ export function proxyFFMpegArguments(
 	// Check target to see if we should tell ffmpeg which format to use:
 	let targetPath = ''
 	if (isLocalFolderAccessorHandle(targetHandle)) {
-		targetPath = escapeFilePath(targetHandle.fullPath)
+		targetPath = targetHandle.fullPath
 	} else if (isFileShareAccessorHandle(targetHandle)) {
-		targetPath = escapeFilePath(targetHandle.fullPath)
+		targetPath = targetHandle.fullPath
 	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
 		targetPath = ''
 	} else {

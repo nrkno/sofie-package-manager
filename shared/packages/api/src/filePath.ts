@@ -1,5 +1,6 @@
 /**
- * Escape spaces in file path with double quotes on windows.
+ * Escape file path with double quotes on Windows.
+ * This is to be used when creating process arguments, to avoid issues with spaces in file paths.
  *
  * @param {string} path File path to be escaped.
  * @returns {string} Escaped file path.
