@@ -24,6 +24,7 @@ jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
 jest.mock('@parcel/watcher')
+jest.mock('proper-lockfile')
 
 const fs = fsOrg as any as typeof fsMockType
 const WND = WNDOrg as any as typeof WNDType
