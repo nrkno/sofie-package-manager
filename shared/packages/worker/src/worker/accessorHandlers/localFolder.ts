@@ -42,16 +42,18 @@ const fsWriteFile = promisify(fs.writeFile)
 const fsRename = promisify(fs.rename)
 const fsMkDir = promisify(fs.mkdir)
 
+export interface Content {
+	/** This is set when the class-instance is only going to be used for PackageContainer access.*/
+	onlyContainerAccess?: boolean
+	filePath?: string
+	path?: string
+}
+
 /** Accessor handle for accessing files in a local folder */
 export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
 	static readonly type = LocalFolderAccessorHandleType
 
-	private content: {
-		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
-		onlyContainerAccess?: boolean
-		filePath?: string
-		path?: string
-	}
+	private content: Content
 	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
 	constructor(
@@ -85,7 +87,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 	/** Full path to the package */
 	get fullPath(): string {
-		return path.join(this.folderPath, this.filePath)
+		return this.getFullPath(this.filePath)
 	}
 	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
 		if (this.accessor.type !== Accessor.AccessType.LOCAL_FOLDER) {
@@ -102,7 +104,30 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		if (!this.content.onlyContainerAccess) {
 			if (!this.filePath)
 				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
+
+			// Don't allow absolute file paths:
+			if (path.isAbsolute(this.filePath))
+				return {
+					success: false,
+					reason: {
+						user: `File path is an absolute path`,
+						tech: `File path "${this.filePath}" is an absolute path`,
+					},
+				}
+
+			// Ensure that the file path is not outside of the folder path:
+			const fullPath = path.resolve(this.fullPath)
+			const folderPath = path.resolve(this.folderPath)
+			if (!fullPath.startsWith(folderPath))
+				return {
+					success: false,
+					reason: {
+						user: `File path is outside of folder path`,
+						tech: `Full path "${fullPath}" does not start with "${folderPath}"`,
+					},
+				}
 		}
+
 		return { success: true }
 	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
