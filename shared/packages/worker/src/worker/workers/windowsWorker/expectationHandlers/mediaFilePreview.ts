@@ -13,7 +13,6 @@ import {
 	assertNever,
 	stringifyError,
 	startTimer,
-	escapeFilePath,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -221,10 +220,10 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 				let inputPath: string
 				if (isLocalFolderAccessorHandle(sourceHandle)) {
-					inputPath = escapeFilePath(sourceHandle.fullPath)
+					inputPath = sourceHandle.fullPath
 				} else if (isFileShareAccessorHandle(sourceHandle)) {
 					await sourceHandle.prepareFileAccess()
-					inputPath = escapeFilePath(sourceHandle.fullPath)
+					inputPath = sourceHandle.fullPath
 				} else if (isHTTPAccessorHandle(sourceHandle)) {
 					inputPath = sourceHandle.fullUrl
 				} else if (isHTTPProxyAccessorHandle(sourceHandle)) {

@@ -57,12 +57,12 @@ export function scanWithFFProbe(
 			let inputPath: string
 			let filePath: string
 			if (isLocalFolderAccessorHandle(sourceHandle)) {
-				inputPath = escapeFilePath(sourceHandle.fullPath)
-				filePath = escapeFilePath(sourceHandle.filePath)
+				inputPath = sourceHandle.fullPath
+				filePath = sourceHandle.filePath
 			} else if (isFileShareAccessorHandle(sourceHandle)) {
 				await sourceHandle.prepareFileAccess()
-				inputPath = escapeFilePath(sourceHandle.fullPath)
-				filePath = escapeFilePath(sourceHandle.filePath)
+				inputPath = sourceHandle.fullPath
+				filePath = sourceHandle.filePath
 			} else if (isHTTPAccessorHandle(sourceHandle)) {
 				inputPath = sourceHandle.fullUrl
 				filePath = sourceHandle.path
@@ -74,7 +74,15 @@ export function scanWithFFProbe(
 				throw new Error('Unknown handle')
 			}
 			// Use FFProbe to scan the file:
-			const args = ['-hide_banner', `-i`, inputPath, '-show_streams', '-show_format', '-print_format', 'json']
+			const args = [
+				'-hide_banner',
+				`-i`,
+				escapeFilePath(inputPath),
+				'-show_streams',
+				'-show_format',
+				'-print_format',
+				'json',
+			]
 			let ffProbeProcess: ChildProcess | undefined = undefined
 			onCancel(() => {
 				ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
