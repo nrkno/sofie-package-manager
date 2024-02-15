@@ -1,6 +1,7 @@
 import { promisify } from 'util'
 import fs from 'fs'
 import {
+	AccessorHandlerCheckHandleBasicResult,
 	AccessorHandlerCheckHandleReadResult,
 	AccessorHandlerCheckHandleWriteResult,
 	AccessorHandlerCheckPackageContainerWriteAccessResult,
@@ -114,17 +115,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	get packageName(): string {
 		return this.fullPath
 	}
-	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		const defaultResult = defaultCheckHandleRead(this.accessor)
-		if (defaultResult) return defaultResult
-		return this.checkAccessor()
-	}
-	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		const defaultResult = defaultCheckHandleWrite(this.accessor)
-		if (defaultResult) return defaultResult
-		return this.checkAccessor()
-	}
-	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
 		if (this.accessor.type !== Accessor.AccessType.FILE_SHARE) {
 			return {
 				success: false,
@@ -140,6 +131,16 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (!this.filePath)
 				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
 		}
+		return { success: true }
+	}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
+		return { success: true }
+	}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {

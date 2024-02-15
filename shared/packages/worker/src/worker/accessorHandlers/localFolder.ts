@@ -13,6 +13,7 @@ import {
 	AccessorHandlerTryPackageReadResult,
 	GenericAccessorHandle,
 	PackageOperation,
+	AccessorHandlerCheckHandleBasicResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -86,18 +87,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	get fullPath(): string {
 		return path.join(this.folderPath, this.filePath)
 	}
-
-	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		const defaultResult = defaultCheckHandleRead(this.accessor)
-		if (defaultResult) return defaultResult
-		return this.checkAccessor()
-	}
-	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		const defaultResult = defaultCheckHandleWrite(this.accessor)
-		if (defaultResult) return defaultResult
-		return this.checkAccessor()
-	}
-	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
 		if (this.accessor.type !== Accessor.AccessType.LOCAL_FOLDER) {
 			return {
 				success: false,
@@ -113,6 +103,16 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			if (!this.filePath)
 				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
 		}
+		return { success: true }
+	}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
+		return { success: true }
+	}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
