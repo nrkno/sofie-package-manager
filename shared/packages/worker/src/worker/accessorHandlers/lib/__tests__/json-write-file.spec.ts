@@ -1,9 +1,20 @@
 import { getTmpPath, updateJSONFile, updateJSONFileBatch } from '../json-write-file'
 import { promises as fs } from 'fs'
 
+const logWarning = jest.fn((message: string) => console.log('WARNING', message))
+const logError = jest.fn((message: any) => console.log('ERROR', message))
+
 const FILE_A = 'file_a.json'
 async function cleanup() {
+	logWarning.mockClear()
+	logError.mockClear()
+
 	await Promise.all([unlinkIfExists(FILE_A), unlinkIfExists(getLockPath(FILE_A)), unlinkIfExists(getTmpPath(FILE_A))])
+}
+
+const config = {
+	logError,
+	logWarning,
 }
 
 beforeEach(cleanup)
@@ -15,7 +26,7 @@ test('updateJSONFile: single write', async () => {
 			a: 1,
 		}
 	})
-	await updateJSONFile(FILE_A, cbManipulate)
+	await updateJSONFile(FILE_A, cbManipulate, config)
 
 	expect(cbManipulate).toBeCalledTimes(1)
 	expect(await readIfExists(FILE_A)).toBe(
@@ -23,6 +34,8 @@ test('updateJSONFile: single write', async () => {
 			a: 1,
 		})
 	)
+	expect(logWarning).toBeCalledTimes(0)
+	expect(logError).toBeCalledTimes(0)
 })
 
 test('updateJSONFile: 2 writes', async () => {
@@ -32,15 +45,17 @@ test('updateJSONFile: 2 writes', async () => {
 		return o
 	})
 
-	const p0 = updateJSONFile(FILE_A, cbManipulate)
+	const p0 = updateJSONFile(FILE_A, cbManipulate, config)
 	await sleep(5)
 
-	const p1 = updateJSONFile(FILE_A, cbManipulate)
+	const p1 = updateJSONFile(FILE_A, cbManipulate, config)
 
 	await Promise.all([p0, p1])
 
 	expect(cbManipulate).toBeCalledTimes(2)
 	expect(await readIfExists(FILE_A)).toBe(JSON.stringify(['a', 'a']))
+	expect(logWarning).toBeCalledTimes(0)
+	expect(logError).toBeCalledTimes(0)
 })
 test('updateJSONFile: 10 writes', async () => {
 	const cbManipulate = jest.fn((o) => {
@@ -50,6 +65,8 @@ test('updateJSONFile: 10 writes', async () => {
 	})
 
 	const config = {
+		logError,
+		logWarning,
 		retryTimeout: 30,
 		retryCount: 3,
 	}
@@ -77,6 +94,9 @@ test('updateJSONFile: 10 writes', async () => {
 
 	// Wait for the lock functions to finish retrying:
 	await sleep(config.retryTimeout * config.retryCount)
+
+	expect(logWarning).toBeCalledTimes(0)
+	expect(logError).toBeCalledTimes(0)
 })
 
 test('updateJSONFileBatch: single write', async () => {
@@ -85,7 +105,7 @@ test('updateJSONFileBatch: single write', async () => {
 			b: 1,
 		}
 	})
-	await updateJSONFileBatch(FILE_A, cbManipulate)
+	await updateJSONFileBatch(FILE_A, cbManipulate, config)
 
 	expect(cbManipulate).toBeCalledTimes(1)
 	expect(await readIfExists(FILE_A)).toBe(
@@ -93,6 +113,8 @@ test('updateJSONFileBatch: single write', async () => {
 			b: 1,
 		})
 	)
+	expect(logWarning).toBeCalledTimes(0)
+	expect(logError).toBeCalledTimes(0)
 })
 
 test('updateJSONFileBatch: 3 writes', async () => {
@@ -105,16 +127,19 @@ test('updateJSONFileBatch: 3 writes', async () => {
 		return o
 	})
 
-	const p0 = updateJSONFileBatch(FILE_A, cbManipulate)
+	const p0 = updateJSONFileBatch(FILE_A, cbManipulate, config)
 	await sleep(5)
 
-	const p1 = updateJSONFileBatch(FILE_A, cbManipulate)
-	const p2 = updateJSONFileBatch(FILE_A, cbManipulate)
+	const p1 = updateJSONFileBatch(FILE_A, cbManipulate, config)
+	const p2 = updateJSONFileBatch(FILE_A, cbManipulate, config)
 
 	await Promise.all([p0, p1, p2])
 
 	expect(cbManipulate).toBeCalledTimes(3)
 	expect(await readIfExists(FILE_A)).toBe(JSON.stringify(['a', 'a', 'a']))
+
+	expect(logWarning).toBeCalledTimes(0)
+	expect(logError).toBeCalledTimes(0)
 })
 test('updateJSONFileBatch: 20 writes', async () => {
 	const cbManipulate = jest.fn((o) => {
@@ -124,6 +149,8 @@ test('updateJSONFileBatch: 20 writes', async () => {
 	})
 
 	const config = {
+		logWarning,
+		logError,
 		retryTimeout: 30,
 		retryCount: 3,
 	}
@@ -139,6 +166,9 @@ test('updateJSONFileBatch: 20 writes', async () => {
 
 	expect(cbManipulate).toBeCalledTimes(20)
 	expect(await readIfExists(FILE_A)).toBe(JSON.stringify(expectResult))
+
+	expect(logWarning).toBeCalledTimes(0)
+	expect(logError).toBeCalledTimes(0)
 })
 
 async function readIfExists(filePath: string): Promise<string | undefined> {

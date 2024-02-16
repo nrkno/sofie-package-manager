@@ -13,29 +13,22 @@ export async function updateJSONFileBatch<T>(
 ): Promise<void> {
 	// Add manipulator callback to queue:
 
-	const existingBatches = updateJSONFileBatches.get(filePath)
-	let batches: BatchOperation[]
-	if (existingBatches) {
-		batches = existingBatches
-	} else {
-		batches = []
-		updateJSONFileBatches.set(filePath, batches)
-	}
-
-	// Find a batch operation that is open to accept new callbacks:
-	const openBatch = batches.find((batch) => batch.open)
+	const openBatch = updateJSONFileBatches.get(filePath)
 
 	if (!openBatch) {
 		// Start a new batch:
 
 		const newBatch: BatchOperation = {
-			open: true,
 			callbacks: [cbManipulate],
 			promise: updateJSONFile(
 				filePath,
 				(oldValue: T | undefined) => {
-					// At this point, we close the batch, so no more callbacks can be added:
-					newBatch.open = false
+					// At this point, no more callbacks can be added, so we close the batch:
+
+					// Guard against this being called multiple times:
+					if (updateJSONFileBatches.get(filePath) === newBatch) {
+						updateJSONFileBatches.delete(filePath)
+					}
 
 					// Execute all callbacks in the batch:
 					let value = oldValue
@@ -47,20 +40,9 @@ export async function updateJSONFileBatch<T>(
 				config
 			),
 		}
-		batches.push(newBatch)
+		updateJSONFileBatches.set(filePath, newBatch)
 
-		let caughtError: any = undefined
-		try {
-			await newBatch.promise
-		} catch (e) {
-			caughtError = e
-		}
-		// After finished executing, remove the batch:
-		const i = batches.indexOf(newBatch)
-		if (i === -1) throw new Error('Internal Error: Batch not found')
-		batches.splice(i, 1)
-
-		if (caughtError) throw caughtError
+		await newBatch.promise
 	} else {
 		// There is a batch open for new callbacks. Add the callback to the batch:
 		openBatch.callbacks.push(cbManipulate)
@@ -68,10 +50,8 @@ export async function updateJSONFileBatch<T>(
 	}
 }
 
-const updateJSONFileBatches = new Map<string, BatchOperation[]>()
+const updateJSONFileBatches = new Map<string, BatchOperation>()
 interface BatchOperation {
-	/** When true, new callbacks can be added */
-	open: boolean
 	/** Resolves when the batch operation has finished */
 	promise: Promise<void>
 	callbacks: ((oldValue: any | undefined) => any | undefined)[]
@@ -80,28 +60,41 @@ interface BatchOperation {
 /**
  * Read a JSON file, created by updateJSONFile()
  */
-export async function readJSONFile(filePath: string): Promise<
+export async function readJSONFile(
+	filePath: string,
+	logError?: (message: any) => void
+): Promise<
 	| {
 			str: string
 			value: any
 	  }
 	| undefined
 > {
-	{
+	// eslint-disable-next-line no-console
+	logError = logError ?? console.error
+
+	try {
 		const str = await readIfExists(filePath)
 		if (str !== undefined) {
 			return { str, value: str ? JSON.parse(str) : undefined }
 		}
+	} catch (e) {
+		// file data is corrupt, log and continue
+		logError(e)
 	}
 
 	// Second try; Check if there is a temporary file, to use instead?
-	{
+	try {
 		const tmpPath = getTmpPath(filePath)
 
 		const str = await readIfExists(tmpPath)
 		if (str !== undefined) {
 			return { str, value: str ? JSON.parse(str) : undefined }
 		}
+	} catch (e) {
+		logError(e)
+		// file data is corrupt, return undefined then
+		return undefined
 	}
 
 	return undefined
@@ -109,7 +102,7 @@ export async function readJSONFile(filePath: string): Promise<
 
 /**
  * A "safe" way to write JSON data to a file. Takes measures to avoid writing corrupt data to a file due to
- * 1. Multiple process writing to the same file (uses a lock file)
+ * 1. Multiple processes writing to the same file (uses a lock file)
  * 2. Writing corrupt files due to process exit (write to temporary file and rename)
  */
 export async function updateJSONFile<T>(
@@ -166,7 +159,7 @@ export async function updateJSONFile<T>(
 		// At this point, we have acquired the lock.
 		try {
 			// Read and write to the file:
-			const oldValue = await readJSONFile(filePath)
+			const oldValue = await readJSONFile(filePath, logError)
 
 			const newValue = cbManipulate(oldValue?.value)
 			const newValueStr = newValue !== undefined ? JSON.stringify(newValue) : ''
@@ -179,11 +172,13 @@ export async function updateJSONFile<T>(
 					continue
 				}
 
+				// Note: We can't unlink the file anywhere in here, or other calls to Lockfile can break
+				// by overwriting the file with an empty one.
+
 				// Write to a temporary file first, to avoid corrupting the file in case of a process exit:
 				await fs.writeFile(tmpFilePath, newValueStr)
 
 				// Rename file:
-
 				await rename(tmpFilePath, filePath)
 			}
 
