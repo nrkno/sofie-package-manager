@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/workforce",
-    "version": "1.43.2",
+    "version": "1.50.0",
     "main": "dist/index",
     "types": "dist/index",
     "files": [
@@ -13,7 +13,7 @@
         "__test": "jest"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.43.2"
+        "@sofie-package-manager/api": "1.50.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

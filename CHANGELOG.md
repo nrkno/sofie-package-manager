@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.50.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.10...v1.50.0) (2024-02-19)
+
+### Bug Fixes
+
+* don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
+* type error ([98efd29](https://github.com/nrkno/tv-automation-package-manager/commit/98efd29adedfc3e3a93a1dcb6a322b08dc7f9027))
+* don't error when trying to generate a preview for an audio-only file ([f7a9dc5](https://github.com/nrkno/tv-automation-package-manager/commit/f7a9dc5255049271b5e4b1c58bc901300867708b))
+* update dependency @sofie-automation/code-standard-preset to latest version, introduce ProtectedString & refactor ([db245bf](https://github.com/nrkno/tv-automation-package-manager/commit/db245bfca059bb33622512c8b4a6d828c80b9f7e))
+* add checks for FFPrope executable ([f1084e8](https://github.com/nrkno/tv-automation-package-manager/commit/f1084e84bb17968d39faf746ab841113137aeb14))
+* bad merge ([dca3763](https://github.com/nrkno/tv-automation-package-manager/commit/dca37639a2a12ce93c029acc5fdebba88e2c2187))
+* ignoring expectedPackages from core ([7e3f462](https://github.com/nrkno/tv-automation-package-manager/commit/7e3f462265412ad1602f0f6d81aa2c8b1fb9b0d0))
+* atem and ffmpeg linux ([87a5f35](https://github.com/nrkno/tv-automation-package-manager/commit/87a5f35a1aadbcb224e7ff3d3137a1155e450bc9))
+* Quote file paths in calls to ffmpeg on Windows [#132](https://github.com/nrkno/tv-automation-package-manager/issues/132) ([6625790](https://github.com/nrkno/tv-automation-package-manager/commit/6625790206d9f48d859da35087c158a40ed213ce))
+* remove double escaped file paths ([2f63f60](https://github.com/nrkno/tv-automation-package-manager/commit/2f63f60759edf0c06819f2a8802c78f2b3d383c0))
+
+
+### Features
+
+* implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+* r50 json config schema ([1a0d477](https://github.com/nrkno/tv-automation-package-manager/commit/1a0d47761746a25692862afa7c351147db29a790))
+* make PREPARE_FILE_ACCESS_TIMEOUT longer ([252d270](https://github.com/nrkno/tv-automation-package-manager/commit/252d2707c72b29bee214759cf83c54f5a6f3e9c9))
+* subscribe to separated core collections SOFIE-1926 ([281e579](https://github.com/nrkno/tv-automation-package-manager/commit/281e5796a5356061d2cbdd08a0a88de757a4fbdd))
+* generate audio waveform images for audio-only files (and don't try to generate previews for them) ([10e5747](https://github.com/nrkno/tv-automation-package-manager/commit/10e574757bcdd86a2a5aa9dade2ed34b5d0984f9))
+
+
+
+
+
 ## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
 
 
