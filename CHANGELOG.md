@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
+
+
+### Bug Fixes
+
+* Fixes a bug that causes files in local folders or network stores to not be removed as intended. ([d0d6b60](https://github.com/nrkno/tv-automation-package-manager/commit/d0d6b60b0e1725776ee0d4a8b9b3f2f073d7ead0))
+* improve operations logging ([112ae2d](https://github.com/nrkno/tv-automation-package-manager/commit/112ae2dca22d83dc009504116272fa38f3cd7849))
+
+
+
+
+
 ## [1.43.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0...v1.43.1) (2024-01-22)
 
 

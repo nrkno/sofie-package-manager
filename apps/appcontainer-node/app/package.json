@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/app",
-    "version": "1.43.1",
+    "version": "1.43.2",
     "description": "AppContainer-Node.js",
     "private": true,
     "scripts": {
@@ -10,10 +10,8 @@
         "__test": "jest",
         "start": "node dist/index.js"
     },
-    "devDependencies": {
-    },
     "dependencies": {
-        "@appcontainer-node/generic": "1.43.1"
+        "@appcontainer-node/generic": "1.43.2"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

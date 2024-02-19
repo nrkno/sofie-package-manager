@@ -1,6 +1,6 @@
 {
     "name": "@quantel-http-transformer-proxy/app",
-    "version": "1.43.0",
+    "version": "1.43.2",
     "description": "Proxy for a Quantel HTTP Transformer",
     "private": true,
     "scripts": {
@@ -9,10 +9,8 @@
         "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs quantel-http-transformer-proxy.exe && node ../../../scripts/copy-natives.js win32-x64",
         "start": "node dist/index.js"
     },
-    "devDependencies": {
-    },
     "dependencies": {
-        "@quantel-http-transformer-proxy/generic": "1.43.0"
+        "@quantel-http-transformer-proxy/generic": "1.43.2"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
