@@ -1,7 +1,7 @@
 import path from 'path'
 import { copyFile, mkdtemp, readdir } from 'fs/promises'
 import { runForEachFFMpegRelease, SamplesDir } from '../../../__tests__/ffmpegHelper'
-import rimraf from 'rimraf'
+import { rimraf } from 'rimraf'
 import { convertAudio, countFrames, createTGASequence, getStreamIndicies } from '../atem'
 import { tmpdir } from 'os'
 
