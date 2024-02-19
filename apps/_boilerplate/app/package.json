@@ -1,6 +1,6 @@
 {
     "name": "@boilerplate/app",
-    "version": "1.50.0-alpha.7",
+    "version": "1.50.0-alpha.10",
     "description": "Boilerplace",
     "private": true,
     "scripts": {

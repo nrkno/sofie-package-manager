@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/app",
-    "version": "1.50.0-alpha.9",
+    "version": "1.50.0-alpha.10",
     "description": "AppContainer-Node.js",
     "private": true,
     "scripts": {
@@ -11,7 +11,7 @@
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@appcontainer-node/generic": "1.50.0-alpha.9"
+        "@appcontainer-node/generic": "1.50.0-alpha.10"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
