@@ -1,4 +1,5 @@
-import { ExpectedPackageWrap, PackageManagerSettings } from '../../packageManager'
+import { ExpectedPackageWrap } from '../../packageManager'
+import { PackageManagerSettings } from '../../generated/options'
 import {
 	Accessor,
 	ExpectedPackage,
@@ -7,6 +8,10 @@ import {
 	hashObj,
 	literal,
 	assertNever,
+	ExpectationManagerId,
+	PackageContainerId,
+	protectString,
+	ExpectationId,
 } from '@sofie-package-manager/api'
 import {
 	ExpectedPackageWrapJSONData,
@@ -14,6 +19,7 @@ import {
 	ExpectedPackageWrapQuantel,
 	PriorityAdditions,
 } from './types'
+import { CORE_COLLECTION_ACCESSOR_ID } from './lib'
 
 type SomeClipCopyExpectation =
 	| Expectation.FileCopy
@@ -24,14 +30,22 @@ type SomeClipCopyExpectation =
 type SomeClipFileOnDiskCopyExpectation = Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify
 
 export function generateMediaFileCopy(
-	managerId: string,
+	managerId: ExpectationManagerId,
 	expWrap: ExpectedPackageWrap,
 	settings: PackageManagerSettings
 ): Expectation.FileCopy {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapMediaFile
 
+	const endRequirement: Expectation.FileCopy['endRequirement'] = {
+		targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
+		content: expWrapMediaFile.expectedPackage.content,
+		version: {
+			type: Expectation.Version.Type.FILE_ON_DISK,
+			...expWrapMediaFile.expectedPackage.version,
+		},
+	}
 	const exp: Expectation.FileCopy = {
-		id: '', // set later
+		id: protectString<ExpectationId>(hashObj(endRequirement)),
 		priority: expWrap.priority + PriorityAdditions.COPY,
 		managerId: managerId,
 		fromPackages: [
@@ -55,32 +69,33 @@ export function generateMediaFileCopy(
 			sources: expWrapMediaFile.sources,
 		},
 
-		endRequirement: {
-			targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
-			content: expWrapMediaFile.expectedPackage.content,
-			version: {
-				type: Expectation.Version.Type.FILE_ON_DISK,
-				...expWrapMediaFile.expectedPackage.version,
-			},
-		},
+		endRequirement: endRequirement,
 		workOptions: {
 			removeDelay: settings.delayRemoval,
 			allowWaitForCPU: false,
 			useTemporaryFilePath: settings.useTemporaryFilePath,
 		},
 	}
-	exp.id = hashObj(exp.endRequirement)
+
 	return exp
 }
 export function generateMediaFileVerify(
-	managerId: string,
+	managerId: ExpectationManagerId,
 	expWrap: ExpectedPackageWrap,
 	_settings: PackageManagerSettings
 ): Expectation.FileVerify {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapMediaFile
 
+	const endRequirement: Expectation.FileVerify['endRequirement'] = {
+		targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
+		content: expWrapMediaFile.expectedPackage.content,
+		version: {
+			type: Expectation.Version.Type.FILE_ON_DISK,
+			...expWrapMediaFile.expectedPackage.version,
+		},
+	}
 	const exp: Expectation.FileVerify = {
-		id: '', // set later
+		id: protectString<ExpectationId>(hashObj(endRequirement)),
 		priority: expWrap.priority + PriorityAdditions.COPY,
 		managerId: managerId,
 		fromPackages: [
@@ -102,22 +117,18 @@ export function generateMediaFileVerify(
 			sources: [],
 		},
 
-		endRequirement: {
-			targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
-			content: expWrapMediaFile.expectedPackage.content,
-			version: {
-				type: Expectation.Version.Type.FILE_ON_DISK,
-				...expWrapMediaFile.expectedPackage.version,
-			},
-		},
+		endRequirement,
 		workOptions: {
 			allowWaitForCPU: false,
 		},
 	}
-	exp.id = hashObj(exp.endRequirement)
+
 	return exp
 }
-export function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageWrap): Expectation.QuantelClipCopy {
+export function generateQuantelCopy(
+	managerId: ExpectationManagerId,
+	expWrap: ExpectedPackageWrap
+): Expectation.QuantelClipCopy {
 	const expWrapQuantelClip = expWrap as ExpectedPackageWrapQuantel
 
 	const content = expWrapQuantelClip.expectedPackage.content
@@ -135,8 +146,16 @@ export function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageW
 	}
 
 	const label = title && guid ? `${title} (${guid})` : title || guid
+	const endRequirement: Expectation.QuantelClipCopy['endRequirement'] = {
+		targets: expWrapQuantelClip.targets as [Expectation.SpecificPackageContainerOnPackage.QuantelClip],
+		content: content,
+		version: {
+			type: Expectation.Version.Type.QUANTEL_CLIP,
+			...expWrapQuantelClip.expectedPackage.version,
+		},
+	}
 	const exp: Expectation.QuantelClipCopy = {
-		id: '', // set later
+		id: protectString<ExpectationId>(hashObj(endRequirement)),
 		priority: expWrap.priority + PriorityAdditions.COPY,
 		managerId: managerId,
 		type: Expectation.Type.QUANTEL_CLIP_COPY,
@@ -161,20 +180,12 @@ export function generateQuantelCopy(managerId: string, expWrap: ExpectedPackageW
 			sources: expWrapQuantelClip.sources,
 		},
 
-		endRequirement: {
-			targets: expWrapQuantelClip.targets as [Expectation.SpecificPackageContainerOnPackage.QuantelClip],
-			content: content,
-			version: {
-				type: Expectation.Version.Type.QUANTEL_CLIP,
-				...expWrapQuantelClip.expectedPackage.version,
-			},
-		},
+		endRequirement,
 		workOptions: {
 			allowWaitForCPU: false,
 			// removeDelay: 0 // Not used by Quantel
 		},
 	}
-	exp.id = hashObj(exp.endRequirement)
 
 	return exp
 }
@@ -190,7 +201,7 @@ export function generatePackageScan(
 	}
 
 	return literal<Expectation.PackageScan>({
-		id: expectation.id + '_scan',
+		id: protectString<ExpectationId>(expectation.id + '_scan'),
 		priority: priority,
 		managerId: expectation.managerId,
 		type: Expectation.Type.PACKAGE_SCAN,
@@ -212,10 +223,10 @@ export function generatePackageScan(
 		endRequirement: {
 			targets: [
 				{
-					containerId: '__corePackageInfo',
+					containerId: protectString<PackageContainerId>('__corePackageInfo'),
 					label: 'Core package info',
 					accessors: {
-						coreCollection: {
+						[CORE_COLLECTION_ACCESSOR_ID]: {
 							type: Accessor.AccessType.CORE_PACKAGE_INFO,
 						},
 					},
@@ -229,8 +240,8 @@ export function generatePackageScan(
 			allowWaitForCPU: false,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 	})
 }
 export function generatePackageDeepScan(
@@ -238,7 +249,7 @@ export function generatePackageDeepScan(
 	settings: PackageManagerSettings
 ): Expectation.PackageDeepScan {
 	return literal<Expectation.PackageDeepScan>({
-		id: expectation.id + '_deepscan',
+		id: protectString<ExpectationId>(expectation.id + '_deepscan'),
 		priority: expectation.priority + PriorityAdditions.DEEP_SCAN,
 		managerId: expectation.managerId,
 		type: Expectation.Type.PACKAGE_DEEP_SCAN,
@@ -260,10 +271,10 @@ export function generatePackageDeepScan(
 		endRequirement: {
 			targets: [
 				{
-					containerId: '__corePackageInfo',
+					containerId: protectString<PackageContainerId>('__corePackageInfo'),
 					label: 'Core package info',
 					accessors: {
-						coreCollection: {
+						[CORE_COLLECTION_ACCESSOR_ID]: {
 							type: Accessor.AccessType.CORE_PACKAGE_INFO,
 						},
 					},
@@ -283,8 +294,8 @@ export function generatePackageDeepScan(
 			usesCPUCount: 1,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 	})
 }
 
@@ -294,7 +305,7 @@ export function generatePackageLoudness(
 	settings: PackageManagerSettings
 ): Expectation.PackageLoudnessScan {
 	return literal<Expectation.PackageLoudnessScan>({
-		id: expectation.id + '_loudness',
+		id: protectString<ExpectationId>(expectation.id + '_loudness'),
 		priority: expectation.priority + PriorityAdditions.LOUDNESS_SCAN,
 		managerId: expectation.managerId,
 		type: Expectation.Type.PACKAGE_LOUDNESS_SCAN,
@@ -316,10 +327,10 @@ export function generatePackageLoudness(
 		endRequirement: {
 			targets: [
 				{
-					containerId: '__corePackageInfo',
+					containerId: protectString<PackageContainerId>('__corePackageInfo'),
 					label: 'Core package info',
 					accessors: {
-						coreCollection: {
+						[CORE_COLLECTION_ACCESSOR_ID]: {
 							type: Accessor.AccessType.CORE_PACKAGE_INFO,
 						},
 					},
@@ -328,6 +339,8 @@ export function generatePackageLoudness(
 			content: null,
 			version: {
 				channels: packageSettings.channelSpec,
+				balanceDifference: packageSettings.balanceDifference ?? false,
+				inPhaseDifference: packageSettings.inPhaseDifference ?? false,
 			},
 		},
 		workOptions: {
@@ -336,19 +349,19 @@ export function generatePackageLoudness(
 			usesCPUCount: 1,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 	})
 }
 
 export function generateMediaFileThumbnail(
 	expectation: SomeClipFileOnDiskCopyExpectation,
-	packageContainerId: string,
+	packageContainerId: PackageContainerId,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFileThumbnail {
 	return literal<Expectation.MediaFileThumbnail>({
-		id: expectation.id + '_thumbnail',
+		id: protectString<ExpectationId>(expectation.id + '_thumbnail'),
 		priority: expectation.priority + PriorityAdditions.THUMBNAIL,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_THUMBNAIL,
@@ -391,18 +404,18 @@ export function generateMediaFileThumbnail(
 			removeDelay: 0, // The removal of the thumnail shouldn't be delayed
 			removePackageOnUnFulfill: true,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 	})
 }
 export function generateMediaFilePreview(
 	expectation: SomeClipFileOnDiskCopyExpectation,
-	packageContainerId: string,
+	packageContainerId: PackageContainerId,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
 ): Expectation.MediaFilePreview {
 	return literal<Expectation.MediaFilePreview>({
-		id: expectation.id + '_preview',
+		id: protectString<ExpectationId>(expectation.id + '_preview'),
 		priority: expectation.priority + PriorityAdditions.PREVIEW,
 		managerId: expectation.managerId,
 		type: Expectation.Type.MEDIA_FILE_PREVIEW,
@@ -444,19 +457,19 @@ export function generateMediaFilePreview(
 			removeDelay: 0, // The removal of the preview shouldn't be delayed
 			removePackageOnUnFulfill: true,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 	})
 }
 
 export function generateQuantelClipThumbnail(
 	expectation: Expectation.QuantelClipCopy,
-	packageContainerId: string,
+	packageContainerId: PackageContainerId,
 	settings: ExpectedPackage.SideEffectThumbnailSettings,
 	packageContainer: PackageContainer
 ): Expectation.QuantelClipThumbnail {
 	return literal<Expectation.QuantelClipThumbnail>({
-		id: expectation.id + '_thumbnail',
+		id: protectString<ExpectationId>(expectation.id + '_thumbnail'),
 		priority: expectation.priority + PriorityAdditions.THUMBNAIL,
 		managerId: expectation.managerId,
 		type: Expectation.Type.QUANTEL_CLIP_THUMBNAIL,
@@ -498,18 +511,18 @@ export function generateQuantelClipThumbnail(
 			removeDelay: 0, // The removal of the thumbnail shouldn't be delayed
 			removePackageOnUnFulfill: true,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 	})
 }
 export function generateQuantelClipPreview(
 	expectation: Expectation.QuantelClipCopy,
-	packageContainerId: string,
+	packageContainerId: PackageContainerId,
 	settings: ExpectedPackage.SideEffectPreviewSettings,
 	packageContainer: PackageContainer
 ): Expectation.QuantelClipPreview {
 	return literal<Expectation.QuantelClipPreview>({
-		id: expectation.id + '_preview',
+		id: protectString<ExpectationId>(expectation.id + '_preview'),
 		priority: expectation.priority + PriorityAdditions.PREVIEW,
 		managerId: expectation.managerId,
 		type: Expectation.Type.QUANTEL_CLIP_PREVIEW,
@@ -553,20 +566,28 @@ export function generateQuantelClipPreview(
 			removeDelay: 0, // The removal of the preview shouldn't be delayed
 			removePackageOnUnFulfill: true,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 	})
 }
 
 export function generateJsonDataCopy(
-	managerId: string,
+	managerId: ExpectationManagerId,
 	expWrap: ExpectedPackageWrap,
 	settings: PackageManagerSettings
 ): Expectation.JsonDataCopy {
 	const expWrapMediaFile = expWrap as ExpectedPackageWrapJSONData
 
+	const endRequirement: Expectation.JsonDataCopy['endRequirement'] = {
+		targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
+		content: expWrapMediaFile.expectedPackage.content,
+		version: {
+			type: Expectation.Version.Type.FILE_ON_DISK,
+			...expWrapMediaFile.expectedPackage.version,
+		},
+	}
 	const exp: Expectation.JsonDataCopy = {
-		id: '', // set later
+		id: protectString<ExpectationId>(hashObj(endRequirement)),
 		priority: expWrap.priority + PriorityAdditions.COPY,
 		managerId: managerId,
 		fromPackages: [
@@ -590,28 +611,20 @@ export function generateJsonDataCopy(
 			sources: expWrapMediaFile.sources,
 		},
 
-		endRequirement: {
-			targets: expWrapMediaFile.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
-			content: expWrapMediaFile.expectedPackage.content,
-			version: {
-				type: Expectation.Version.Type.FILE_ON_DISK,
-				...expWrapMediaFile.expectedPackage.version,
-			},
-		},
+		endRequirement,
 		workOptions: {
 			removeDelay: settings.delayRemoval,
 			useTemporaryFilePath: settings.useTemporaryFilePath,
 			allowWaitForCPU: false,
 		},
 	}
-	exp.id = hashObj(exp.endRequirement)
 	return exp
 }
 
 export function generatePackageCopyFileProxy(
 	expectation: Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy,
 	settings: PackageManagerSettings,
-	packageContainerId: string,
+	packageContainerId: PackageContainerId,
 	packageContainer: PackageContainer
 ): Expectation.FileCopyProxy | undefined {
 	let priority = expectation.priority + PriorityAdditions.COPY_PROXY
@@ -635,7 +648,7 @@ export function generatePackageCopyFileProxy(
 	if (!filePath) return undefined
 
 	return literal<Expectation.FileCopyProxy>({
-		id: expectation.id + '_proxy',
+		id: protectString<ExpectationId>(expectation.id + '_proxy'),
 		priority: priority,
 		managerId: expectation.managerId,
 		type: Expectation.Type.FILE_COPY_PROXY,
@@ -673,8 +686,8 @@ export function generatePackageCopyFileProxy(
 			allowWaitForCPU: false,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
-		dependsOnFullfilled: [expectation.id],
-		triggerByFullfilledIds: [expectation.id],
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
 
 		originalExpectation: expectation,
 	})

@@ -12,7 +12,7 @@ import {
 	AccessorHandlerRunCronJobResult,
 	PackageOperation,
 } from './genericHandle'
-import { Expectation, Accessor, AccessorOnPackage } from '@sofie-package-manager/api'
+import { Expectation, Accessor, AccessorOnPackage, AccessorId, escapeFilePath } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'
@@ -39,7 +39,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	constructor(
 		worker: GenericWorker,
-		public readonly accessorId: string,
+		public readonly accessorId: AccessorId,
 		private accessor: AccessorOnPackage.AtemMediaStore,
 		content: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 	) {
@@ -155,12 +155,11 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			}
 
 			const removeListeners = () => {
-				atem.off('stateChanged', successHandler)
+				atem.off('connected', successHandler)
 				atem.off('error', errorHandler)
 			}
 
-			atem.once('stateChanged', successHandler)
-
+			atem.once('connected', successHandler)
 			atem.once('error', errorHandler)
 		})
 	}
@@ -228,9 +227,11 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (typeof bankIndex !== 'number') {
 			throw new Error('bankIndex is undefined')
 		}
+		let aborted = false
 
 		const streamWrapper: PutPackageHandler = new PutPackageHandler(() => {
 			// can't really abort the write stream
+			aborted = true
 		})
 		streamWrapper.usingCustomProgressEvent = true
 
@@ -253,10 +254,12 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 						}
 						const { width, height } = info
 						await stream2Disk(sourceStream, inputFile)
+						if (aborted) return
 						streamWrapper.emit('progress', 0.2)
 
 						if (this.accessor.mediaType === 'still') {
 							await createTGASequence(inputFile, { width, height })
+							if (aborted) return
 							streamWrapper.emit('progress', 0.5)
 
 							const allTGAs = fs
@@ -274,10 +277,12 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 
 							const tgaPath = allTGAs[0]
 							await convertFrameToRGBA(tgaPath)
+							if (aborted) return
 							streamWrapper.emit('progress', 0.7)
 
 							const rgbaPath = tgaPath.replace('.tga', '.rgba')
 							const rgbaBuffer = await fsReadFile(rgbaPath)
+							if (aborted) return
 							await atem.uploadStill(
 								bankIndex,
 								rgbaBuffer,
@@ -287,6 +292,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 							streamWrapper.emit('progress', 1)
 						} else {
 							const duration = await countFrames(inputFile)
+							if (aborted) return
 							const maxDuration = atem.state.settings.mediaPool.maxFrames[bankIndex]
 							if (duration > maxDuration) {
 								throw new Error(`File is too long in duration (${duration} frames, max ${maxDuration})`)
@@ -294,6 +300,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 
 							streamWrapper.emit('progress', 0.3)
 							await createTGASequence(inputFile, { width, height })
+							if (aborted) return
 							streamWrapper.emit('progress', 0.4)
 
 							const allTGAs = fs
@@ -310,6 +317,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 								const tga = allTGAs[index]
 								streamWrapper.emit('progress', 0.5 + 0.1 * (index / allTGAs.length))
 								await convertFrameToRGBA(tga)
+								if (aborted) return
 							}
 							streamWrapper.emit('progress', 0.6)
 
@@ -318,17 +326,29 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 							})
 							const provideFrame = async function* (): AsyncGenerator<Buffer> {
 								for (let i = 0; i < allRGBAs.length; i++) {
+									if (aborted) throw new Error('Aborted')
+
+									streamWrapper.emit('progress', 0.61 + 0.29 * ((i - 0.5) / allRGBAs.length))
 									yield await fsReadFile(allRGBAs[i])
-									streamWrapper.emit('progress', 0.6 + 0.3 * (i / allRGBAs.length))
+									streamWrapper.emit('progress', 0.61 + 0.29 * (i / allRGBAs.length))
 								}
 							}
 
-							await atem.uploadClip(bankIndex, provideFrame(), this.getAtemClipName())
+							try {
+								await atem.uploadClip(bankIndex, provideFrame(), this.getAtemClipName())
+							} catch (e) {
+								if (`${e}`.match(/Aborted/)) {
+									return
+								} else throw e
+							}
+							if (aborted) return
 
 							const audioStreamIndicies = await getStreamIndicies(inputFile, 'audio')
 							if (audioStreamIndicies.length > 0) {
 								await convertAudio(inputFile)
 								await sleep(1000) // Helps avoid a lock-related "Code 5" error from the ATEM.
+
+								if (aborted) return
 								const audioBuffer = await fsReadFile(replaceFileExtension(inputFile, '.wav'))
 								await atem.uploadAudio(bankIndex, audioBuffer, `audio${this.accessor.bankIndex}`)
 							}
@@ -484,78 +504,84 @@ async function stream2Disk(sourceStream: NodeJS.ReadableStream, outputFile: stri
 	})
 }
 
-async function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
+export async function createTGASequence(inputFile: string, opts?: { width: number; height: number }): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '_%04d.tga')
-	const args = [`-i "${inputFile}"`]
+	const args = ['-i', escapeFilePath(inputFile)]
 	if (opts) {
-		args.push(`-vf scale=${opts.width}:${opts.height}`)
+		args.push('-vf', `scale=${opts.width}:${opts.height}`)
 	}
-	args.push(`"${outputFile}"`)
+	args.push(outputFile)
 
 	return ffmpeg(args)
 }
 
-async function convertFrameToRGBA(inputFile: string): Promise<string> {
+export async function convertFrameToRGBA(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.rgba')
-	const args = [`-i "${inputFile}"`, '-pix_fmt rgba', '-f rawvideo', `"${outputFile}"`]
+	const args = [`-i`, escapeFilePath(inputFile), '-pix_fmt', 'rgba', '-f', 'rawvideo', outputFile]
 	return ffmpeg(args)
 }
 
-async function convertAudio(inputFile: string): Promise<string> {
+export async function convertAudio(inputFile: string): Promise<string> {
 	const outputFile = replaceFileExtension(inputFile, '.wav')
 	const args = [
-		`-i "${inputFile}"`,
+		`-i`,
+		escapeFilePath(inputFile),
 		'-vn', // no video
-		'-ar 48000', // 48kHz sample rate
-		'-ac 2', // stereo audio
-		'-c:a pcm_s24le',
-		`"${outputFile}"`,
+		'-ar',
+		'48000', // 48kHz sample rate
+		'-ac',
+		'2', // stereo audio
+		'-c:a',
+		'pcm_s24le',
+		escapeFilePath(outputFile),
 	]
 
 	return ffmpeg(args)
 }
 
-async function countFrames(inputFile: string): Promise<number> {
-	return new Promise((resolve, reject) => {
-		const args = [
-			`-i "${inputFile}"`,
-			'-v error',
-			'-select_streams v:0',
-			'-count_frames',
-			'-show_entries stream=nb_read_frames',
-			'-print_format csv',
-		]
+export async function countFrames(inputFile: string): Promise<number> {
+	const args = [
+		'-i',
+		escapeFilePath(inputFile),
+		'-v',
+		'error',
+		'-select_streams',
+		'v:0',
+		'-count_frames',
+		'-show_entries',
+		'stream=nb_read_frames',
+		'-print_format',
+		'csv',
+	]
 
-		ffprobe(args)
-			.then((result) => {
-				const resultParts = result.split(',')
-				const durationFrames = parseInt(resultParts[1], 10)
-				resolve(durationFrames)
-			})
-			.catch((error) => reject(error))
-	})
+	const result = await ffprobe(args)
+
+	const resultParts = result.split(',')
+	return parseInt(resultParts[1], 10)
 }
 
-async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
-	return new Promise((resolve, reject) => {
-		const args = [
-			`-i "${inputFile}"`,
-			'-v error',
-			`-select_streams ${type === 'video' ? 'v' : 'a'}`,
-			'-show_entries stream=index',
-			'-of csv=p=0',
-		]
+export async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
+	const args = [
+		'-i',
+		escapeFilePath(inputFile),
+		'-v',
+		'error',
+		'-select_streams',
+		type === 'video' ? 'v' : 'a',
+		'-show_entries',
+		'stream=index',
+		'-of',
+		'csv=p=0',
+	]
 
-		ffprobe(args)
-			.then((result) => {
-				const resultParts = result
-					.split('\n')
-					.map((str) => parseInt(str, 10))
-					.filter((num) => !isNaN(num))
-				resolve(resultParts)
-			})
-			.catch((error) => reject(error))
-	})
+	const result = await ffprobe(args)
+
+	const resultParts = result
+		.split('\n')
+		.map((str) => parseInt(str, 10))
+		.filter((num) => !isNaN(num))
+
+	return resultParts
 }
 
 async function ffprobe(args: string[]): Promise<string> {
@@ -584,7 +610,7 @@ async function ffmpeg(args: string[]): Promise<string> {
 		const file = getFFMpegExecutable()
 		execFile(
 			file,
-			['-v error', ...args],
+			['-v', 'error', ...args],
 			{
 				maxBuffer: MAX_EXEC_BUFFER,
 				windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows

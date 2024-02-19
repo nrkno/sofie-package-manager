@@ -57,7 +57,7 @@ export class PackageProxyServer {
 		await this._setUpRoutes()
 	}
 	private async _setUpRoutes(): Promise<void> {
-		this.router.all('*', async (ctx, next) => {
+		this.router.all('(.*)', async (ctx, next) => {
 			// Intercept and authenticate:
 
 			const apiKey: string =

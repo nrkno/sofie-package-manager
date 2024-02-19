@@ -6,8 +6,9 @@ import {
 	hashObj,
 	waitTime,
 	Expectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isATEMAccessorHandle,
@@ -88,7 +89,7 @@ export async function isFileFulfilled(
 	_worker: GenericWorker,
 	lookupSource: LookupPackageContainer<UniversalVersion>,
 	lookupTarget: LookupPackageContainer<UniversalVersion>
-): Promise<ReturnTypeIsExpectationFullfilled> {
+): Promise<ReturnTypeIsExpectationFulfilled> {
 	if (!lookupTarget.ready)
 		return {
 			fulfilled: false,
@@ -136,7 +137,7 @@ export async function doFileCopyExpectation(
 	if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 	if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
-	const startTime = Date.now()
+	const timer = startTimer()
 
 	const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 	const actualSourceVersionHash = hashObj(actualSourceVersion)
@@ -197,7 +198,7 @@ export async function doFileCopyExpectation(
 			await targetHandle.finalizePackage(fileOperation)
 			await targetHandle.updateMetadata(actualSourceUVersion)
 
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			workInProgress._reportComplete(
 				actualSourceVersionHash,
 				{
@@ -295,7 +296,7 @@ export async function doFileCopyExpectation(
 						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(actualSourceUVersion)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
 							{
@@ -390,7 +391,7 @@ export async function doFileCopyExpectation(
 			await targetHandle.finalizePackage(fileOperation)
 			await targetHandle.updateMetadata(actualSourceUVersion)
 
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			workInProgress._reportComplete(
 				actualSourceVersionHash,
 				{

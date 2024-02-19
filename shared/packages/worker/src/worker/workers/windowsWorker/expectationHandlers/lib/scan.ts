@@ -1,5 +1,12 @@
 import { execFile, ChildProcess, spawn } from 'child_process'
-import { Expectation, assertNever, Accessor, AccessorOnPackage, LoggerInstance } from '@sofie-package-manager/api'
+import {
+	Expectation,
+	assertNever,
+	Accessor,
+	AccessorOnPackage,
+	LoggerInstance,
+	escapeFilePath,
+} from '@sofie-package-manager/api'
 import {
 	isQuantelClipAccessorHandle,
 	isLocalFolderAccessorHandle,
@@ -16,7 +23,7 @@ import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
 import { HTTPAccessorHandle } from '../../../../accessorHandlers/http'
 import { MAX_EXEC_BUFFER } from '../../../../lib/lib'
-import { getFFMpegExecutable } from './ffmpeg'
+import { getFFMpegExecutable, getFFProbeExecutable } from './ffmpeg'
 import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'
 
 export interface FFProbeScanResultStream {
@@ -29,7 +36,7 @@ export interface FFProbeScanResult {
 	// to be defined...
 	streams?: FFProbeScanResultStream[]
 	format?: {
-		duration: number
+		duration: string
 	}
 }
 export function scanWithFFProbe(
@@ -66,9 +73,16 @@ export function scanWithFFProbe(
 				assertNever(sourceHandle)
 				throw new Error('Unknown handle')
 			}
-			const file = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
 			// Use FFProbe to scan the file:
-			const args = ['-hide_banner', `-i "${inputPath}"`, '-show_streams', '-show_format', '-print_format', 'json']
+			const args = [
+				'-hide_banner',
+				`-i`,
+				escapeFilePath(inputPath),
+				'-show_streams',
+				'-show_format',
+				'-print_format',
+				'json',
+			]
 			let ffProbeProcess: ChildProcess | undefined = undefined
 			onCancel(() => {
 				ffProbeProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
@@ -77,7 +91,7 @@ export function scanWithFFProbe(
 			})
 
 			ffProbeProcess = execFile(
-				file,
+				getFFProbeExecutable(),
 				args,
 				{
 					maxBuffer: MAX_EXEC_BUFFER,
@@ -164,8 +178,10 @@ export function scanFieldOrder(
 		const file = getFFMpegExecutable()
 		const args = [
 			'-hide_banner',
-			'-filter:v idet',
-			`-frames:v ${targetVersion.fieldOrderScanDuration || 200}`,
+			'-filter:v',
+			'idet',
+			`-frames:v`,
+			`${targetVersion.fieldOrderScanDuration || 200}`,
 			'-an',
 			'-f',
 			'rawvideo',
@@ -214,6 +230,12 @@ export function scanFieldOrder(
 	})
 }
 
+export interface ScanMoreInfoResult {
+	scenes: number[]
+	freezes: ScanAnomaly[]
+	blacks: ScanAnomaly[]
+}
+
 export function scanMoreInfo(
 	sourceHandle:
 		| LocalFolderAccessorHandle<any>
@@ -229,16 +251,8 @@ export function scanMoreInfo(
 		progress: number
 	) => void,
 	logger: LoggerInstance
-): CancelablePromise<{
-	scenes: number[]
-	freezes: ScanAnomaly[]
-	blacks: ScanAnomaly[]
-}> {
-	return new CancelablePromise<{
-		scenes: number[]
-		freezes: ScanAnomaly[]
-		blacks: ScanAnomaly[]
-	}>(async (resolve, reject, onCancel) => {
+): CancelablePromise<ScanMoreInfoResult> {
+	return new CancelablePromise<ScanMoreInfoResult>(async (resolve, reject, onCancel) => {
 		let cancelled = false
 		let filterString = ''
 		if (targetVersion.blackDetection) {
@@ -263,7 +277,7 @@ export function scanMoreInfo(
 			if (filterString) {
 				filterString += ','
 			}
-			filterString += `"select='gt(scene,${targetVersion.sceneThreshold || 0.4})',showinfo"`
+			filterString += `select='gt(scene,${targetVersion.sceneThreshold || 0.4})',showinfo`
 		}
 
 		const args = ['-hide_banner']
@@ -272,8 +286,8 @@ export function scanMoreInfo(
 
 		args.push('-filter:v', filterString)
 		args.push('-an')
-		args.push('-f null')
-		args.push('-threads 1')
+		args.push('-f', 'null')
+		args.push('-threads', '1')
 		args.push('-')
 
 		let ffMpegProcess: ChildProcess | undefined = undefined
@@ -306,7 +320,7 @@ export function scanMoreInfo(
 
 		// ffProbeProcess.stdout.on('data', () => { lastProgressReportTimestamp = new Date() })
 		if (!ffMpegProcess.stderr) {
-			throw new Error('spawned ffprobe-process stdin is null!')
+			throw new Error('spawned ffmpeg-process stdin is null!')
 		}
 		let previousStringData = ''
 		let fileDuration: number | undefined = undefined
@@ -408,7 +422,7 @@ export function scanMoreInfo(
 				killFFMpeg()
 
 				reject(
-					`Error parsing FFProbe data. Error: "${err} ${
+					`Error parsing FFMpeg data. Error: "${err} ${
 						err && typeof err === 'object' ? (err as Error).stack : ''
 					}", context: "${context}" `
 				)
@@ -435,7 +449,7 @@ export function scanMoreInfo(
 						blacks,
 					})
 				} else {
-					reject(`FFProbe exited with code ${code} (${previousStringData})`)
+					reject(`FFMpeg exited with code ${code} (${previousStringData.trim()})`)
 				}
 			}
 		}
@@ -456,12 +470,13 @@ function scanLoudnessStream(
 		| HTTPProxyAccessorHandle<any>
 		| QuantelAccessorHandle<any>,
 	_previouslyScanned: FFProbeScanResult,
-	channelSpec: string
+	channelSpec: string,
+	filter?: string
 ): CancelablePromise<LoudnessScanResultForStream> {
 	return new CancelablePromise<LoudnessScanResultForStream>(async (resolve, reject, onCancel) => {
 		const stereoPairMatch = channelSpec.match(/^(\d+)\+(\d+)$/)
-		const singleChannel = Number.parseInt(channelSpec)
-		if (!stereoPairMatch && !Number.isInteger(singleChannel)) {
+		const singleTrack = Number.parseInt(channelSpec)
+		if (!stereoPairMatch && !Number.isInteger(singleTrack)) {
 			reject(`Invalid channel specification: ${channelSpec}`)
 			return
 		}
@@ -469,22 +484,19 @@ function scanLoudnessStream(
 		let filterString: string
 
 		if (stereoPairMatch) {
-			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,ebur128=peak=true[out]`
+			filterString = `[0:a:${stereoPairMatch[1]}][0:a:${stereoPairMatch[2]}]join=inputs=2:channel_layout=stereo,`
 		} else {
-			filterString = `[0:a:${singleChannel}]ebur128=peak=true[out]`
+			filterString = `[0:a:${singleTrack}]`
 		}
 
+		if (filter) {
+			filterString += filter + ','
+		}
+
+		filterString += 'ebur128=peak=true[out]'
+
 		const file = getFFMpegExecutable()
-		const args = [
-			'-nostats',
-			'-filter_complex',
-			JSON.stringify(filterString),
-			'-map',
-			JSON.stringify('[out]'),
-			'-f',
-			'null',
-			'-',
-		]
+		const args = ['-nostats', '-filter_complex', filterString, '-map', '[out]', '-f', 'null', '-']
 
 		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
 
@@ -564,6 +576,15 @@ export function scanLoudness(
 	) => void
 ): CancelablePromise<LoudnessScanResult> {
 	return new CancelablePromise<LoudnessScanResult>(async (resolve, _reject, onCancel) => {
+		async function getStreamIntegratedLoudness(channelSpec: `${number}` | `${number}+${number}`, filter: string) {
+			const resultPromise = scanLoudnessStream(sourceHandle, previouslyScanned, channelSpec, filter)
+			onCancel(() => {
+				resultPromise.cancel()
+			})
+			const result = await resultPromise
+			return result.success ? result.integrated : undefined
+		}
+
 		if (!targetVersion.channels.length) {
 			resolve({
 				channels: {},
@@ -583,7 +604,40 @@ export function scanLoudness(
 				onCancel(() => {
 					resultPromise.cancel()
 				})
-				const result = await resultPromise
+				let result = await resultPromise
+
+				if (result.success && result.layout === 'stereo') {
+					let leftLoudness: number | undefined
+					if (targetVersion.inPhaseDifference) {
+						/** Measure loudness of only left channel and measure loudness of left+right mix and subtract */
+						leftLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=1*c0')
+						const sumLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=0.5*c0+0.5*c1')
+
+						if (leftLoudness !== undefined && sumLoudness !== undefined) {
+							const inPhaseDifference = sumLoudness - leftLoudness
+							result = {
+								...result,
+								inPhaseDifference,
+							}
+						}
+					}
+
+					if (targetVersion.balanceDifference) {
+						if (leftLoudness === undefined) {
+							leftLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=1*c0')
+						}
+						const rightLoudness = await getStreamIntegratedLoudness(channelSpec, 'pan=1c|c0=1*c1')
+
+						if (leftLoudness !== undefined && rightLoudness !== undefined) {
+							const balanceDifference = rightLoudness - leftLoudness
+							result = {
+								...result,
+								balanceDifference,
+							}
+						}
+					}
+				}
+
 				packageScanResult[channelSpec] = result
 			} catch (e) {
 				packageScanResult[channelSpec] = {
@@ -611,21 +665,21 @@ async function getFFMpegInputArgsFromAccessorHandle(
 ): Promise<string[]> {
 	const args: string[] = []
 	if (isLocalFolderAccessorHandle(sourceHandle)) {
-		args.push(`-i "${sourceHandle.fullPath}"`)
+		args.push(`-i`, escapeFilePath(sourceHandle.fullPath))
 	} else if (isFileShareAccessorHandle(sourceHandle)) {
 		await sourceHandle.prepareFileAccess()
-		args.push(`-i "${sourceHandle.fullPath}"`)
+		args.push(`-i`, escapeFilePath(sourceHandle.fullPath))
 	} else if (isHTTPAccessorHandle(sourceHandle)) {
-		args.push(`-i "${sourceHandle.fullUrl}"`)
+		args.push(`-i`, sourceHandle.fullUrl)
 	} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-		args.push(`-i "${sourceHandle.fullUrl}"`)
+		args.push(`-i`, sourceHandle.fullUrl)
 	} else if (isQuantelClipAccessorHandle(sourceHandle)) {
 		const httpStreamURL = await sourceHandle.getTransformerStreamURL()
 
 		if (!httpStreamURL.success) throw new Error(`Source Clip not found (${httpStreamURL.reason.tech})`)
 
-		args.push('-seekable 0')
-		args.push(`-i "${httpStreamURL.fullURL}"`)
+		args.push('-seekable', '0')
+		args.push(`-i`, httpStreamURL.fullURL)
 	} else {
 		assertNever(sourceHandle)
 	}

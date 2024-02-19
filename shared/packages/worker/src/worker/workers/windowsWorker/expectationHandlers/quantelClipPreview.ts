@@ -7,10 +7,11 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -89,11 +90,11 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		_wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
@@ -151,7 +152,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -222,7 +223,7 @@ export const QuantelClipPreview: ExpectationWindowsHandler = {
 						await targetHandle.finalizePackage(quantelOperation)
 						await targetHandle.updateMetadata(metadata)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
 							{

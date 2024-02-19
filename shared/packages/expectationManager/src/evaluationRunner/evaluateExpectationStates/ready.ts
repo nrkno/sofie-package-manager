@@ -70,7 +70,7 @@ export async function evaluateExpectationStateReady({
 				status: wipInfo.properties,
 			})
 		} catch (error) {
-			runner.logger.warn(`Error in READY: ${stringifyError(error)}`)
+			runner.logger.warn(`Error in READY: exp "${trackedExp.id}": ${stringifyError(error)}`)
 			// There was an error
 			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,

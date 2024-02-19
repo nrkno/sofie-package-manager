@@ -25,7 +25,7 @@ export async function evaluateExpectationStateWaiting({
 	if (trackedExp.session.assignedWorker) {
 		try {
 			// First, check if it is already fulfilled:
-			const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
+			const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFulfilled(
 				trackedExp.exp,
 				false
 			)
@@ -34,7 +34,7 @@ export async function evaluateExpectationStateWaiting({
 				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
 				})
-				if (tracker.trackedExpectationAPI.onExpectationFullfilled(trackedExp)) {
+				if (tracker.trackedExpectationAPI.onExpectationFulfilled(trackedExp)) {
 					// Something was triggered, run again ASAP:
 					trackedExp.session.triggerOtherExpectationsAgain = true
 				}
@@ -66,7 +66,7 @@ export async function evaluateExpectationStateWaiting({
 				} else {
 					// Not ready to start
 					if (readyToStart.isWaitingForAnother) {
-						// Not ready to start because it's waiting for another expectation to be fullfilled first
+						// Not ready to start because it's waiting for another expectation to be fulfilled first
 						// Stay here in WAITING state:
 						tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 							reason: readyToStart.reason,
@@ -84,7 +84,7 @@ export async function evaluateExpectationStateWaiting({
 			}
 		} catch (error) {
 			// There was an error, clearly it's not ready to start
-			runner.logger.warn(`Error in WAITING: ${stringifyError(error)}`)
+			runner.logger.warn(`Error in WAITING: exp "${trackedExp.id}": ${stringifyError(error)}`)
 
 			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,

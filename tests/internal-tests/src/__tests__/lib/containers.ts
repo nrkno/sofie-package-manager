@@ -1,12 +1,26 @@
-import { Accessor, AccessorOnPackage, Expectation, literal } from '@sofie-package-manager/api'
+import {
+	Accessor,
+	AccessorId,
+	AccessorOnPackage,
+	Expectation,
+	PackageContainerId,
+	literal,
+	protectString,
+} from '@sofie-package-manager/api'
 
-export function getLocalSource(containerId: string, filePath: string) {
-	// : Expectation.SpecificPackageContainerOnPackage.FileSource
+export const LOCAL0 = protectString<AccessorId>('local0')
+export const SHARE0 = protectString<AccessorId>('share0')
+export const QUANTEL0 = protectString<AccessorId>('quantel0')
+
+export function getLocalSource(
+	containerId: PackageContainerId,
+	filePath: string
+): Expectation.SpecificPackageContainerOnPackage.FileSource {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
 		accessors: {
-			local0: literal<AccessorOnPackage.LocalFolder>({
+			[LOCAL0]: literal<AccessorOnPackage.LocalFolder>({
 				type: Accessor.AccessType.LOCAL_FOLDER,
 				filePath: filePath,
 				folderPath: `/sources/${containerId}/`,
@@ -16,14 +30,14 @@ export function getLocalSource(containerId: string, filePath: string) {
 	}
 }
 export function getLocalTarget(
-	containerId: string,
+	containerId: PackageContainerId,
 	filePath: string
 ): Expectation.SpecificPackageContainerOnPackage.FileTarget {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
 		accessors: {
-			local0: literal<AccessorOnPackage.LocalFolder>({
+			[LOCAL0]: literal<AccessorOnPackage.LocalFolder>({
 				type: Accessor.AccessType.LOCAL_FOLDER,
 				filePath: filePath,
 				folderPath: `/targets/${containerId}/`,
@@ -35,14 +49,14 @@ export function getLocalTarget(
 }
 
 export function getFileShareSource(
-	containerId: string,
+	containerId: PackageContainerId,
 	filePath: string
 ): Expectation.SpecificPackageContainerOnPackage.FileSource {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
 		accessors: {
-			share0: literal<AccessorOnPackage.FileShare>({
+			[SHARE0]: literal<AccessorOnPackage.FileShare>({
 				type: Accessor.AccessType.FILE_SHARE,
 				filePath: filePath,
 				folderPath: `\\\\networkShare\\sources\\${containerId}\\`,
@@ -52,14 +66,14 @@ export function getFileShareSource(
 	}
 }
 export function getFileShareTarget(
-	containerId: string,
+	containerId: PackageContainerId,
 	filePath: string
 ): Expectation.SpecificPackageContainerOnPackage.FileTarget {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
 		accessors: {
-			share0: literal<AccessorOnPackage.FileShare>({
+			[SHARE0]: literal<AccessorOnPackage.FileShare>({
 				type: Accessor.AccessType.FILE_SHARE,
 				filePath: filePath,
 				folderPath: `\\\\networkShare\\${containerId}\\`,
@@ -69,12 +83,14 @@ export function getFileShareTarget(
 		},
 	}
 }
-export function getQuantelSource(containerId: string): Expectation.SpecificPackageContainerOnPackage.QuantelClip {
+export function getQuantelSource(
+	containerId: PackageContainerId
+): Expectation.SpecificPackageContainerOnPackage.QuantelClip {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
 		accessors: {
-			quantel0: literal<AccessorOnPackage.Quantel>({
+			[QUANTEL0]: literal<AccessorOnPackage.Quantel>({
 				type: Accessor.AccessType.QUANTEL,
 				quantelGatewayUrl: 'http://192.168.0.1',
 				ISAUrls: ['127.0.0.1'],
@@ -87,14 +103,14 @@ export function getQuantelSource(containerId: string): Expectation.SpecificPacka
 	}
 }
 export function getQuantelTarget(
-	containerId: string,
+	containerId: PackageContainerId,
 	serverId: number
 ): Expectation.SpecificPackageContainerOnPackage.QuantelClip {
 	return {
 		containerId: containerId,
 		label: `Label ${containerId}`,
 		accessors: {
-			quantel0: literal<AccessorOnPackage.Quantel>({
+			[QUANTEL0]: literal<AccessorOnPackage.Quantel>({
 				type: Accessor.AccessType.QUANTEL,
 				quantelGatewayUrl: 'http://192.168.0.1',
 				ISAUrls: ['127.0.0.1'],

@@ -16,8 +16,10 @@ import {
 	Reason,
 	ReturnTypeDoYouSupportExpectation,
 	assertNever,
+	AccessorId,
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
+	escapeFilePath,
 } from '@sofie-package-manager/api'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
@@ -50,7 +52,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 				reason: {
 					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the source PackageContainers`,
 					tech: `Worker doesn't have access to any of the source packageContainers (${checks.sources
-						.map((o) => `${o.containerId} "${o.label}"`)
+						.map((o) => `"${o.containerId}": "${o.label}"`)
 						.join(', ')})`,
 				},
 			}
@@ -75,7 +77,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 				reason: {
 					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the target PackageContainers`,
 					tech: `Worker doesn't have access to any of the target packageContainers (${checks.targets
-						.map((o) => o.containerId)
+						.map((o) => `"${o.containerId}": "${o.label}"`)
 						.join(', ')})`,
 				},
 			}
@@ -128,7 +130,7 @@ export interface LookupChecks {
 
 	customCheck?: (
 		packageContainer: PackageContainerOnPackage,
-		accessorId: string,
+		accessorId: AccessorId,
 		accessor: AccessorOnPackage.Any
 	) => { success: true } | { success: false; reason: Reason }
 }
@@ -366,18 +368,28 @@ export function previewFFMpegArguments(input: string, seekableSource: boolean, m
 	return [
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
-		seekableSource ? undefined : '-seekable 0',
-		`-i "${input}"`, // Input file path
-		'-f webm', // format: webm
+		seekableSource ? undefined : '-seekable',
+		seekableSource ? undefined : '0',
+		`-i`,
+		escapeFilePath(input), // Input file path
+		'-f',
+		'webm', // format: webm
 		'-an', // blocks all audio streams
-		'-c:v libvpx-vp9', // encoder for video (use VP9)
-		`-b:v ${metadata.version.bitrate || '40k'}`,
-		'-auto-alt-ref 1',
-		`-vf scale=${metadata.version.width || 320}:${metadata.version.height || -1}`, // Scale to resolution
+		'-c:v',
+		'libvpx-vp9', // encoder for video (use VP9)
+		`-b:v`,
+		`${metadata.version.bitrate || '40k'}`,
+		'-auto-alt-ref',
+		'1',
+		`-vf`,
+		`scale=${metadata.version.width || 320}:${metadata.version.height || -1}`, // Scale to resolution
 
-		'-threads 1', // Number of threads to use
-		'-cpu-used 5', // Sacrifice quality for speed, used in combination with -deadline realtime
-		'-deadline realtime', // Encoder speed/quality and cpu use (best, good, realtime)
+		'-threads',
+		'1', // Number of threads to use
+		'-cpu-used',
+		'5', // Sacrifice quality for speed, used in combination with -deadline realtime
+		'-deadline',
+		'realtime', // Encoder speed/quality and cpu use (best, good, realtime)
 	].filter(Boolean) as string[] // remove undefined values
 }
 
@@ -388,16 +400,34 @@ interface ThumbnailMetadata {
 	}
 }
 /** Returns arguments for FFMpeg to generate a thumbnail image file */
-export function thumbnailFFMpegArguments(input: string, metadata: ThumbnailMetadata, seekTimeCode?: string): string[] {
+export function thumbnailFFMpegArguments(
+	input: string,
+	metadata: ThumbnailMetadata,
+	seekTimeCode?: string,
+	hasVideoStream?: boolean
+): string[] {
 	return [
 		'-hide_banner',
-		seekTimeCode ? `-ss ${seekTimeCode}` : undefined,
-		`-i "${input}"`,
-		`-f image2`,
-		'-frames:v 1',
-		`-vf ${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}`,
-		'-threads 1',
-	].filter(Boolean) as string[] // remove undefined values
+		...(hasVideoStream && seekTimeCode ? [`-ss`, `${seekTimeCode}`] : []),
+		`-i`,
+		escapeFilePath(input),
+		`-f`,
+		`image2`,
+		'-frames:v',
+		'1',
+		...(hasVideoStream
+			? [
+					`-vf`,
+					`${!seekTimeCode ? 'thumbnail,' : ''}scale=${metadata.version.width}:${metadata.version.height}`, // Creates a thumbnail of the video.
+			  ]
+			: [
+					'-filter_complex',
+					'showwavespic=s=640x240:split_channels=1:colors=white', // Creates an image of the audio waveform.
+			  ]),
+
+		'-threads',
+		'1',
+	]
 }
 
 /** Returns arguments for FFMpeg to generate a proxy video file */
@@ -410,10 +440,13 @@ export function proxyFFMpegArguments(
 		'-hide_banner',
 		'-y', // Overwrite output files without asking.
 		seekableSource ? undefined : '-seekable 0',
-		`-i "${input}"`, // Input file path
+		`-i`,
+		escapeFilePath(input), // Input file path
 
-		'-c copy', // Stream copy, no transcoding
-		'-threads 1', // Number of threads to use
+		'-c',
+		'copy', // Stream copy, no transcoding
+		'-threads',
+		'1', // Number of threads to use
 	]
 
 	// Check target to see if we should tell ffmpeg which format to use:

@@ -7,7 +7,7 @@ import {
 	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
@@ -17,6 +17,20 @@ import { WorkerStatusReport, WorkforceStatusReport } from './statusReport'
 import { LogLevel } from './logger'
 import { ExpectedPackage, StatusCode } from './inputApi'
 import { Statuses } from './status'
+import {
+	AppContainerId,
+	AppId,
+	AppType,
+	PackageContainerId,
+	ExpectedPackageId,
+	ExpectationManagerId,
+	MonitorId,
+	WorkerAgentId,
+	WorkforceId,
+	WorkInProgressLocalId,
+} from './ids'
+import { DataId, LockId } from './dataStorage'
+import { PartyId } from './websocketConnection'
 
 /** Contains textual descriptions for statuses. */
 export type Reason = ExpectedPackageStatusAPI.Reason
@@ -24,24 +38,31 @@ export type Reason = ExpectedPackageStatusAPI.Reason
  * This file contains API definitions for the methods used to communicate between the Workforce, Worker and Expectation-Manager.
  */
 
+export interface MethodsInterfaceBase {
+	/** Id of the party that calls the methods */
+	id: PartyId
+}
+
 /** Methods used by ExpectationManager and WorkForce */
 export namespace WorkForceExpectationManager {
 	/** Methods on WorkForce, called by ExpectationManager */
-	export interface WorkForce {
+	export interface WorkForce extends MethodsInterfaceBase {
+		id: ExpectationManagerId
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
-		setLogLevelOfApp: (appId: string, logLevel: LogLevel) => Promise<void>
-		_debugKillApp(appId: string): Promise<void>
+		setLogLevelOfApp: (appId: AppId, logLevel: LogLevel) => Promise<void>
+		_debugKillApp(appId: AppId): Promise<void>
 		_debugSendKillConnections(): Promise<void>
 		getStatusReport: () => Promise<WorkforceStatusReport>
 
 		requestResourcesForExpectation: (exp: Expectation.Any) => Promise<boolean>
 		requestResourcesForPackageContainer: (packageContainer: PackageContainerExpectation) => Promise<boolean>
 
-		registerExpectationManager: (managerId: string, url: string) => Promise<void>
+		registerExpectationManager: (managerId: ExpectationManagerId, url: string) => Promise<void>
 	}
 	/** Methods on ExpectationManager, called by WorkForce */
 	// eslint-disable-next-line @typescript-eslint/no-empty-interface
-	export interface ExpectationManager {
+	export interface ExpectationManager extends MethodsInterfaceBase {
+		id: WorkforceId
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
 		_debugSendKillConnections: () => Promise<void>
@@ -53,38 +74,41 @@ export namespace WorkForceExpectationManager {
 /** Methods used by WorkForce and WorkerAgent */
 export namespace WorkForceWorkerAgent {
 	/** Methods on WorkerAgent, called by WorkForce */
-	export interface WorkerAgent {
+	export interface WorkerAgent extends MethodsInterfaceBase {
+		id: WorkforceId
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
 		_debugSendKillConnections: () => Promise<void>
 		getStatusReport: () => Promise<WorkerStatusReport>
 
-		expectationManagerAvailable: (id: string, url: string) => Promise<void>
-		expectationManagerGone: (id: string) => Promise<void>
+		expectationManagerAvailable: (id: ExpectationManagerId, url: string) => Promise<void>
+		expectationManagerGone: (id: ExpectationManagerId) => Promise<void>
 	}
 	/** Methods on WorkForce, called by WorkerAgent */
-	export interface WorkForce {
-		getExpectationManagerList: () => Promise<{ id: string; url: string }[]>
+	export interface WorkForce extends MethodsInterfaceBase {
+		id: WorkerAgentId
+		getExpectationManagerList: () => Promise<{ id: ExpectationManagerId; url: string }[]>
 	}
 }
 
 /** Methods used by ExpectedManager and WorkerAgent */
 export namespace ExpectationManagerWorkerAgent {
 	/** Methods on WorkerAgent, called by ExpectedManager */
-	export interface WorkerAgent {
+	export interface WorkerAgent extends MethodsInterfaceBase {
+		id: ExpectationManagerId
 		doYouSupportExpectation: (exp: Expectation.Any) => Promise<ReturnTypeDoYouSupportExpectation>
 		getCostForExpectation: (exp: Expectation.Any) => Promise<ExpectationCost>
 		isExpectationReadyToStartWorkingOn: (
 			exp: Expectation.Any
 		) => Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
-		isExpectationFullfilled: (
+		isExpectationFulfilled: (
 			exp: Expectation.Any,
-			wasFullfilled: boolean
-		) => Promise<ReturnTypeIsExpectationFullfilled>
+			wasFulfilled: boolean
+		) => Promise<ReturnTypeIsExpectationFulfilled>
 		workOnExpectation: (exp: Expectation.Any, cost: ExpectationCost, timeout: number) => Promise<WorkInProgressInfo>
 		removeExpectation: (exp: Expectation.Any) => Promise<ReturnTypeRemoveExpectation>
 
-		cancelWorkInProgress: (wipId: number) => Promise<void>
+		cancelWorkInProgress: (wipId: WorkInProgressLocalId) => Promise<void>
 
 		// PackageContainer-related methods:
 		doYouSupportPackageContainer: (
@@ -97,27 +121,37 @@ export namespace ExpectationManagerWorkerAgent {
 			packageContainer: PackageContainerExpectation
 		) => Promise<ReturnTypeSetupPackageContainerMonitors>
 		disposePackageContainerMonitors: (
-			packageContainerId: string
+			packageContainerId: PackageContainerId
 		) => Promise<ReturnTypeDisposePackageContainerMonitors>
 	}
 	/** Methods on ExpectedManager, called by WorkerAgent */
-	export interface ExpectationManager {
+	export interface ExpectationManager extends MethodsInterfaceBase {
+		id: WorkerAgentId
 		messageFromWorker: (message: MessageFromWorkerPayload.Any) => Promise<any>
 
 		// Events emitted from a workInProgress:
-		wipEventProgress: (wipId: number, actualVersionHash: string | null, progress: number) => Promise<void>
-		wipEventDone: (wipId: number, actualVersionHash: string, reason: Reason, result: any) => Promise<void>
-		wipEventError: (wipId: number, reason: Reason) => Promise<void>
+		wipEventProgress: (
+			wipId: WorkInProgressLocalId,
+			actualVersionHash: string | null,
+			progress: number
+		) => Promise<void>
+		wipEventDone: (
+			wipId: WorkInProgressLocalId,
+			actualVersionHash: string,
+			reason: Reason,
+			result: any
+		) => Promise<void>
+		wipEventError: (wipId: WorkInProgressLocalId, reason: Reason) => Promise<void>
 
 		monitorStatus: (
-			packageContainerId: string,
-			monitorId: string,
+			packageContainerId: PackageContainerId,
+			monitorId: MonitorId,
 			status: StatusCode,
 			reason: Reason
 		) => Promise<void>
 	}
 	export interface WorkInProgressInfo {
-		wipId: number
+		wipId: WorkInProgressLocalId
 		properties: WorkInProgressProperties
 	}
 	export interface WorkInProgressProperties {
@@ -132,7 +166,10 @@ export namespace ExpectationManagerWorkerAgent {
 		startCost: number
 		reason: Reason
 	}
-	export type MessageFromWorker = (managerId: string, message: MessageFromWorkerPayload.Any) => Promise<any>
+	export type MessageFromWorker = (
+		managerId: ExpectationManagerId,
+		message: MessageFromWorkerPayload.Any
+	) => Promise<any>
 	export type MessageFromWorkerSerialized = (message: MessageFromWorkerPayload.Any) => Promise<ReplyToWorker>
 
 	// eslint-disable-next-line @typescript-eslint/no-namespace
@@ -148,14 +185,14 @@ export namespace ExpectationManagerWorkerAgent {
 			arguments: [
 				//
 				type: string,
-				packageIds: string[]
+				packageIds: ExpectedPackageId[]
 			]
 		}
 		export interface UpdatePackageInfo extends Base {
 			type: 'updatePackageInfo'
 			arguments: [
 				type: string,
-				packageId: string,
+				packageId: ExpectedPackageId,
 				expectedContentVersionHash: string,
 				actualContentVersionHash: string,
 				payload: any
@@ -166,7 +203,7 @@ export namespace ExpectationManagerWorkerAgent {
 			arguments: [
 				//
 				type: string,
-				packageId: string,
+				packageId: ExpectedPackageId,
 				removeDelay: number | undefined
 			]
 		}
@@ -174,8 +211,8 @@ export namespace ExpectationManagerWorkerAgent {
 			type: 'reportFromMonitorPackages'
 			arguments: [
 				//
-				containerId: string,
-				monitorId: string,
+				containerId: PackageContainerId,
+				monitorId: MonitorId,
 				expectedPackages: ExpectedPackage.Any[]
 			]
 		}
@@ -189,34 +226,36 @@ export namespace ExpectationManagerWorkerAgent {
 /** Methods used by WorkForce and AppContainer */
 export namespace WorkForceAppContainer {
 	/** Methods on AppContainer, called by WorkForce */
-	export interface AppContainer {
+	export interface AppContainer extends MethodsInterfaceBase {
+		id: WorkforceId
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
 		_debugSendKillConnections: () => Promise<void>
 
 		requestAppTypeForExpectation: (
 			exp: Expectation.Any
-		) => Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }>
+		) => Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }>
 		requestAppTypeForPackageContainer: (
 			packageContainer: PackageContainerExpectation
-		) => Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }>
+		) => Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }>
 
-		spinUp: (
-			appType: 'worker' // | other
-		) => Promise<string>
-		spinDown: (appId: string, reason: string) => Promise<void>
-		getRunningApps: () => Promise<{ appId: string; appType: string }[]>
+		spinUp: (appType: AppType) => Promise<AppId>
+		spinDown: (appId: AppId, reason: string) => Promise<void>
+		getRunningApps: () => Promise<{ appId: AppId; appType: AppType }[]>
 	}
 	/** Methods on WorkForce, called by AppContainer */
-	export interface WorkForce {
-		registerAvailableApps: (availableApps: { appType: string }[]) => Promise<void>
+	export interface WorkForce extends MethodsInterfaceBase {
+		id: AppContainerId
+
+		registerAvailableApps: (availableApps: { appType: AppType }[]) => Promise<void>
 	}
 }
 
 /** Methods used by AppContainer and WorkerAgent */
 export namespace AppContainerWorkerAgent {
 	/** Methods on WorkerAgent, called by AppContainer */
-	export interface WorkerAgent {
+	export interface WorkerAgent extends MethodsInterfaceBase {
+		id: AppContainerId
 		setLogLevel: (logLevel: LogLevel) => Promise<void>
 		_debugKill: () => Promise<void>
 
@@ -227,13 +266,15 @@ export namespace AppContainerWorkerAgent {
 		setSpinDownTime: (spinDownTime: number) => Promise<void>
 	}
 	/** Methods on AppContainer, called by WorkerAgent */
-	export interface AppContainer {
+	export interface AppContainer extends MethodsInterfaceBase {
+		id: WorkerAgentId
+
 		ping: () => Promise<void>
 		requestSpinDown: () => Promise<void>
-		/** Aquire a write lock, the returned id is then used in workerStorageWrite to write */
-		workerStorageWriteLock: (dataId: string, customTimeout?: number) => Promise<{ lockId: string; current: any }>
-		workerStorageReleaseLock: (dataId: string, lockId: string) => Promise<void>
-		workerStorageWrite: (dataId: string, lockId: string, data: string) => Promise<void>
-		workerStorageRead: (dataId: string) => Promise<any>
+		/** Acquire a write lock, the returned id is then used in workerStorageWrite to write */
+		workerStorageWriteLock: (dataId: DataId, customTimeout?: number) => Promise<{ lockId: LockId; current: any }>
+		workerStorageReleaseLock: (dataId: DataId, lockId: LockId) => Promise<void>
+		workerStorageWrite: (dataId: DataId, lockId: LockId, data: string) => Promise<void>
+		workerStorageRead: (dataId: DataId) => Promise<any>
 	}
 }

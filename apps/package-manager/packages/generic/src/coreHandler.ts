@@ -6,33 +6,35 @@ import {
 	Observer,
 	Collection,
 	CoreCredentials,
+	StatusCode as SofieStatusCode,
+	protectString,
+	unprotectString,
+	PeripheralDeviceForDevice,
+	PeripheralDeviceId,
+	PeripheralDeviceCommand,
+	ExternalPeripheralDeviceAPI,
+	PeripheralDeviceAPI,
 } from '@sofie-automation/server-core-integration'
-import {
-	PeripheralDeviceCategory,
-	PeripheralDeviceType,
-	PERIPHERAL_SUBTYPE_PROCESS,
-} from '@sofie-automation/shared-lib/dist/peripheralDevice/peripheralDeviceAPI'
-import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
-import { protectString, unprotectString, ProtectedString } from '@sofie-automation/shared-lib/dist/lib/protectedString'
-import { PeripheralDevicePublic } from '@sofie-automation/shared-lib/dist/core/model/peripheralDevice'
-import { PeripheralDeviceId } from '@sofie-automation/shared-lib/dist/core/model/Ids'
 
 import { DeviceConfig } from './connector'
 
-import fs from 'fs'
-import path from 'path'
 import {
 	LoggerInstance,
 	PackageManagerConfig,
 	ProcessHandler,
 	StatusCode,
 	Statuses,
+	Status,
 	stringifyError,
 	hashObj,
 	setLogLevel,
 	getLogLevel,
 	ensureValidValue,
 	DEFAULT_LOG_LEVEL,
+	ExpectationId,
+	PackageContainerId,
+	AppId,
+	CoreProtectedString,
 } from '@sofie-package-manager/api'
 import {
 	DEFAULT_DELAY_REMOVAL_PACKAGE,
@@ -40,8 +42,6 @@ import {
 	PACKAGE_MANAGER_DEVICE_CONFIG,
 } from './configManifest'
 import { PackageManagerHandler } from './packageManager'
-import { ExternalPeripheralDeviceAPI } from '@sofie-automation/server-core-integration/dist/lib/methods'
-import { PeripheralDeviceCommand } from '@sofie-automation/shared-lib/dist/core/model/PeripheralDeviceCommand'
 import { getCredentials } from './credentials'
 import { FakeCore } from './fakeCore'
 
@@ -104,7 +104,7 @@ export class CoreHandler {
 
 		this.processHandler = processHandler
 
-		this.core = new CoreConnection(this.getCoreConnectionOptions('Package manager', 'PackageManager'))
+		this.core = new CoreConnection(this.getCoreConnectionOptions())
 
 		this.core.onConnected(() => {
 			this.logger.info('Core Connected!')
@@ -155,24 +155,22 @@ export class CoreHandler {
 		this.logger.info('Core: Setting up subscriptions..')
 		this.logger.info('DeviceId: ' + this.core.deviceId)
 		await Promise.all([
-			this.core.autoSubscribe('peripheralDevices', {
-				_id: this.core.deviceId,
-			}),
-			this.core.autoSubscribe('studioOfDevice', this.core.deviceId),
-			this.core.autoSubscribe('expectedPackagesForDevice', this.core.deviceId, undefined),
-			// this.core.autoSubscribe('timelineForDevice', this.core.deviceId),
+			this.core.autoSubscribe('peripheralDeviceForDevice', this.core.deviceId),
 			this.core.autoSubscribe('peripheralDeviceCommands', this.core.deviceId),
+			this.core.autoSubscribe('packageManagerPlayoutContext', this.core.deviceId),
+			this.core.autoSubscribe('packageManagerPackageContainers', this.core.deviceId),
+			this.core.autoSubscribe('packageManagerExpectedPackages', this.core.deviceId, undefined),
 		])
 
 		this.logger.info('Core: Subscriptions are set up!')
 
 		// setup observers
-		const observer = this.core.observe('peripheralDevices')
+		const observer = this.core.observe('peripheralDeviceForDevice')
 		observer.added = (id: string) => this.onDeviceChanged(protectString(id))
 		observer.changed = (id: string) => this.onDeviceChanged(protectString(id))
 		this.setupObserverForPeripheralDeviceCommands()
 
-		const peripheralDevices = this.core.getCollection<PeripheralDevicePublic>('peripheralDevices')
+		const peripheralDevices = this.core.getCollection<PeripheralDeviceForDevice>('peripheralDeviceForDevice')
 		if (peripheralDevices) {
 			peripheralDevices.find({}).forEach((device) => {
 				this.onDeviceChanged(device._id)
@@ -192,7 +190,8 @@ export class CoreHandler {
 		await this.updateCoreStatus()
 		await this.core.destroy()
 	}
-	getCoreConnectionOptions(name: string, subDeviceId: string): CoreOptions {
+	getCoreConnectionOptions(): CoreOptions {
+		const subDeviceId = 'PackageManager'
 		let credentials: CoreCredentials
 
 		if (this._deviceOptions.deviceId && this._deviceOptions.deviceToken) {
@@ -212,16 +211,17 @@ export class CoreHandler {
 		const options: CoreOptions = {
 			...credentials,
 
-			deviceCategory: PeripheralDeviceCategory.PACKAGE_MANAGER,
-			deviceType: PeripheralDeviceType.PACKAGE_MANAGER,
-			deviceSubType: PERIPHERAL_SUBTYPE_PROCESS,
+			deviceCategory: PeripheralDeviceAPI.PeripheralDeviceCategory.PACKAGE_MANAGER,
+			deviceType: PeripheralDeviceAPI.PeripheralDeviceType.PACKAGE_MANAGER,
 
-			deviceName: name,
+			deviceName: 'Package manager',
 			watchDog: this._coreConfig ? this._coreConfig.watchdog : true,
 
 			configManifest: PACKAGE_MANAGER_DEVICE_CONFIG,
 
-			versions: this._getVersions().versions,
+			documentationUrl: 'https://github.com/nrkno/sofie-package-manager',
+
+			versions: this._getVersions(),
 		}
 		return options
 	}
@@ -230,15 +230,11 @@ export class CoreHandler {
 	}
 	onDeviceChanged(id: PeripheralDeviceId): void {
 		if (id === this.core.deviceId) {
-			const col = this.core.getCollection<PeripheralDevicePublic>('peripheralDevices')
-			if (!col) throw new Error('collection "peripheralDevices" not found!')
+			const col = this.core.getCollection<PeripheralDeviceForDevice>('peripheralDeviceForDevice')
+			if (!col) throw new Error('collection "peripheralDeviceForDevice" not found!')
 
 			const device = col.findOne(id)
-			if (device) {
-				this.deviceSettings = device.settings || {}
-			} else {
-				this.deviceSettings = {}
-			}
+			this.deviceSettings = device?.deviceSettings || {}
 
 			const logLevel = this.deviceSettings['logLevel'] ?? DEFAULT_LOG_LEVEL
 			if (logLevel !== getLogLevel()) {
@@ -339,7 +335,7 @@ export class CoreHandler {
 	}
 	getCollection<
 		DBObj extends {
-			_id: ProtectedString<any> | string
+			_id: CoreProtectedString<any> | string
 		} = never
 	>(collectionName: string): Collection<DBObj> {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
@@ -357,7 +353,6 @@ export class CoreHandler {
 	}
 	private setupObserverForPeripheralDeviceCommands(): void {
 		const observer = this.core.observe('peripheralDeviceCommands')
-		this.killProcess(0)
 		this._observers.push(observer)
 
 		const addedChangedCommand = (id: string) => {
@@ -389,16 +384,12 @@ export class CoreHandler {
 			}
 		})
 	}
-	killProcess(actually: number): boolean {
-		if (actually === 1) {
-			this.logger.info('KillProcess command received, shutting down in 1000ms!')
-			setTimeout(() => {
-				// eslint-disable-next-line no-process-exit
-				process.exit(0)
-			}, 1000)
-			return true
-		}
-		return false
+	killProcess(): void {
+		this.logger.info('KillProcess command received, shutting down in 1000ms!')
+		setTimeout(() => {
+			// eslint-disable-next-line no-process-exit
+			process.exit(0)
+		}, 1000)
 	}
 	pingResponse(message: string): void {
 		this.core.setPingResponse(message)
@@ -416,10 +407,6 @@ export class CoreHandler {
 		this.statuses = statuses
 		await this.updateCoreStatus()
 	}
-	/** Do a self-test. Throws if something is not working as it should */
-	public checkIfWorking(): void {
-		if (this._getVersions().hadError) throw new Error('Error in getVersions()')
-	}
 	private async updateCoreStatus(): Promise<any> {
 		let statusCode = SofieStatusCode.GOOD
 		const messages: Array<string> = []
@@ -434,7 +421,7 @@ export class CoreHandler {
 		}
 
 		if (statusCode === SofieStatusCode.GOOD) {
-			for (const status of Object.values(this.statuses)) {
+			for (const status of Object.values<Status | null>(this.statuses)) {
 				if (status && status.statusCode !== StatusCode.GOOD) {
 					statusCode = Math.max(statusCode, status.statusCode)
 					messages.push(status.message)
@@ -452,50 +439,24 @@ export class CoreHandler {
 			})
 		}
 	}
-	private _getVersions(): {
-		hadError: boolean
-		versions: { [packageName: string]: string }
-	} {
-		let hadError = false
+	private _getVersions(): { [packageName: string]: string } {
 		const versions: { [packageName: string]: string } = {}
-
-		const entrypointDir = path.dirname((require as any).main.filename)
 
 		versions['_process'] = process.env.npm_package_version || packageJson?.version || 'N/A'
 
-		const dirNames = ['@sofie-automation/server-core-integration']
-		try {
-			const nodeModulesDirectories = fs.readdirSync(path.join(entrypointDir, '../node_modules'))
-			for (const dir of nodeModulesDirectories) {
-				try {
-					if (dirNames.includes(dir)) {
-						let file = path.join(entrypointDir, '../node_modules', dir, 'package.json')
-						file = fs.readFileSync(file, 'utf8')
-						const json = JSON.parse(file)
-						versions[dir] = json.version || 'N/A'
-					}
-				} catch (e) {
-					this.logger.error(`Error in _getVersions, dir "${dir}": ${stringifyError(e)}`)
-					hadError = true
-				}
-			}
-		} catch (e) {
-			this.logger.error(`Error in _getVersions: ${stringifyError(e)}`)
-			hadError = true
-		}
-		return { hadError, versions }
+		return versions
 	}
 
-	restartExpectation(workId: string): void {
+	restartExpectation(workId: ExpectationId): void {
 		return this._packageManagerHandler?.restartExpectation(workId)
 	}
 	restartAllExpectations(): void {
 		return this._packageManagerHandler?.restartAllExpectations()
 	}
-	abortExpectation(workId: string): void {
+	abortExpectation(workId: ExpectationId): void {
 		return this._packageManagerHandler?.abortExpectation(workId)
 	}
-	restartPackageContainer(containerId: string): void {
+	restartPackageContainer(containerId: PackageContainerId): void {
 		return this._packageManagerHandler?.restartPackageContainer(containerId)
 	}
 	troubleshoot(): any {
@@ -504,7 +465,7 @@ export class CoreHandler {
 	async getExpetationManagerStatus(): Promise<any> {
 		return this._packageManagerHandler?.getExpetationManagerStatus()
 	}
-	async debugKillApp(appId: string): Promise<void> {
+	async debugKillApp(appId: AppId): Promise<void> {
 		return this._packageManagerHandler?.debugKillApp(appId)
 	}
 }

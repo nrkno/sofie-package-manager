@@ -1,15 +1,16 @@
+import { PackageContainerId, ExpectationManagerId } from './ids'
 import { PackageContainer } from './inputApi'
 
 /*
- * This file contains definitions for Package Container Expectations, an internal datastructure upon which the Package Manager operates.
+ * This file contains definitions for Package Container Expectations, an internal data structure upon which the Package Manager operates.
  */
 
 /** A PackageContainerExpectation defines what functionality to run for a Package Container. */
 export interface PackageContainerExpectation extends PackageContainer {
 	/** ID of the PackageContainer */
-	id: string
+	id: PackageContainerId
 	/** ID of the manager that created the expectation */
-	managerId: string
+	managerId: ExpectationManagerId
 	/** Defines which cronjobs are expected to run */
 	cronjobs: {
 		/** How often the cronjob should run (approximately) */

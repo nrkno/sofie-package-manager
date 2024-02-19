@@ -9,6 +9,9 @@
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
+    "peerDependencies": {
+        "@sofie-automation/shared-lib": "*"
+    },
     "dependencies": {
         "@sofie-package-manager/api": "1.43.2",
         "@sofie-package-manager/worker": "1.43.2",

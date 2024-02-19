@@ -10,7 +10,8 @@
         "test": "jest"
     },
     "peerDependencies": {
-        "@sofie-automation/server-core-integration": "*"
+        "@sofie-automation/server-core-integration": "*",
+        "@sofie-automation/shared-lib": "*"
     },
     "dependencies": {
         "@parcel/watcher": "^2.3.0",

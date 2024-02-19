@@ -1,3 +1,5 @@
+import { startTimer } from '@sofie-package-manager/api'
+
 export function waitTime(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -7,9 +9,9 @@ export function waitTime(ms: number): Promise<void> {
  * Useful in unit-tests as a way to wait until a predicate is fulfilled.
  */
 export async function waitUntil(expectFcn: () => void, maxWaitTime: number): Promise<void> {
+	const timer = startTimer()
 	const previousErrors: string[] = []
 
-	const startTime = Date.now()
 	while (true) {
 		await waitTime(100)
 		try {
@@ -26,8 +28,9 @@ export async function waitUntil(expectFcn: () => void, maxWaitTime: number): Pro
 				previousErrors.push(errorStr)
 			}
 
-			let waitedTime = Date.now() - startTime
+			const waitedTime = timer.get()
 			if (waitedTime > maxWaitTime) {
+				console.log(`waitUntil: waited for ${waitedTime} ms, giving up (maxWaitTime: ${maxWaitTime}).`)
 				console.log(`Previous errors: \n${previousErrors.join('\n')}`)
 
 				throw err
@@ -35,4 +38,29 @@ export async function waitUntil(expectFcn: () => void, maxWaitTime: number): Pro
 			// else ignore error and try again later
 		}
 	}
+}
+
+export function describeForAllPlatforms(name: string, cbOnce: () => void, cbPerPlatform: (platform: string) => void) {
+	describe(name, () => {
+		cbOnce()
+		let orgProcessPlatform: any
+		const platforms = ['win32', 'darwin', 'linux']
+
+		for (const platform of platforms) {
+			describe(platform, () => {
+				beforeAll(async () => {
+					orgProcessPlatform = process.platform
+					Object.defineProperty(process, 'platform', {
+						value: platform,
+					})
+				})
+				afterAll(() => {
+					Object.defineProperty(process, 'platform', {
+						value: orgProcessPlatform,
+					})
+				})
+				cbPerPlatform(platform)
+			})
+		}
+	})
 }

@@ -1,7 +1,7 @@
 import { ExpectedPackageWrap } from '../../packageManager'
-import { ExpectedPackage, Expectation } from '@sofie-package-manager/api'
+import { ExpectedPackage, Expectation, PackageContainerId } from '@sofie-package-manager/api'
 
-export type GenerateExpectation = Expectation.Base & {
+export type GenerateExpectation = Expectation.Any & {
 	sideEffect?: ExpectedPackage.Base['sideEffect']
 	external?: boolean
 }
@@ -9,7 +9,7 @@ export type GenerateExpectation = Expectation.Base & {
 export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageMediaFile
 	sources: {
-		containerId: string
+		containerId: PackageContainerId
 		label: string
 		accessors: NonNullable<ExpectedPackage.ExpectedPackageMediaFile['sources'][0]['accessors']>
 	}[]
@@ -17,7 +17,7 @@ export interface ExpectedPackageWrapMediaFile extends ExpectedPackageWrap {
 export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageQuantelClip
 	sources: {
-		containerId: string
+		containerId: PackageContainerId
 		label: string
 		accessors: NonNullable<ExpectedPackage.ExpectedPackageQuantelClip['sources'][0]['accessors']>
 	}[]
@@ -25,7 +25,7 @@ export interface ExpectedPackageWrapQuantel extends ExpectedPackageWrap {
 export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
 	expectedPackage: ExpectedPackage.ExpectedPackageJSONData
 	sources: {
-		containerId: string
+		containerId: PackageContainerId
 		label: string
 		accessors: NonNullable<ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']>
 	}[]

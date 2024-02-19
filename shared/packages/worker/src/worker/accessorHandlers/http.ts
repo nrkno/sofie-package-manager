@@ -19,6 +19,8 @@ import {
 	PackageContainerExpectation,
 	assertNever,
 	Reason,
+	AccessorId,
+	MonitorId,
 } from '@sofie-package-manager/api'
 import { GenericWorker } from '../worker'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
@@ -38,7 +40,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
 		worker: GenericWorker,
-		public readonly accessorId: string,
+		public readonly accessorId: AccessorId,
 		private accessor: AccessorOnPackage.HTTP,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
 		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -183,17 +185,17 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
 	): Promise<SetupPackageContainerMonitorsResult> {
-		const resultingMonitors: { [monitorId: string]: MonitorInProgress } = {}
+		const resultingMonitors: Record<MonitorId, MonitorInProgress> = {}
 		const monitorIds = Object.keys(
 			packageContainerExp.monitors
 		) as (keyof PackageContainerExpectation['monitors'])[]
-		for (const monitorId of monitorIds) {
-			if (monitorId === 'packages') {
+		for (const monitorIdStr of monitorIds) {
+			if (monitorIdStr === 'packages') {
 				// todo: implement monitors
 				throw new Error('Not implemented yet')
 			} else {
 				// Assert that cronjob is of type "never", to ensure that all types of monitors are handled:
-				assertNever(monitorId)
+				assertNever(monitorIdStr)
 			}
 		}
 

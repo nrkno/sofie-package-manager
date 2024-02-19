@@ -1,4 +1,8 @@
 import {
+	PackageContainerId,
+	MonitorId,
+	WorkerAgentId,
+	WorkInProgressLocalId,
 	StatusCode,
 	ExpectationManagerWorkerAgent,
 	AdapterClient,
@@ -15,29 +19,38 @@ export class ExpectationManagerAPI
 	extends AdapterClient<ExpectationManagerWorkerAgent.WorkerAgent, ExpectationManagerWorkerAgent.ExpectationManager>
 	implements ExpectationManagerWorkerAgent.ExpectationManager
 {
-	constructor(logger: LoggerInstance) {
-		super(logger.category('ExpectationManagerAPI'), 'workerAgent')
+	constructor(public id: WorkerAgentId, logger: LoggerInstance) {
+		super(logger.category('ExpectationManagerAPI'), id, 'workerAgent')
 	}
 
 	async messageFromWorker(message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any): Promise<any> {
 		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts
 		return this._sendMessage('messageFromWorker', message)
 	}
-	async wipEventProgress(wipId: number, actualVersionHash: string | null, progress: number): Promise<void> {
+	async wipEventProgress(
+		wipId: WorkInProgressLocalId,
+		actualVersionHash: string | null,
+		progress: number
+	): Promise<void> {
 		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts
 		return this._sendMessage('wipEventProgress', wipId, actualVersionHash, progress)
 	}
-	async wipEventDone(wipId: number, actualVersionHash: string, reason: Reason, result: unknown): Promise<void> {
+	async wipEventDone(
+		wipId: WorkInProgressLocalId,
+		actualVersionHash: string,
+		reason: Reason,
+		result: unknown
+	): Promise<void> {
 		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts
 		return this._sendMessage('wipEventDone', wipId, actualVersionHash, reason, result)
 	}
-	async wipEventError(wipId: number, reason: Reason): Promise<void> {
+	async wipEventError(wipId: WorkInProgressLocalId, reason: Reason): Promise<void> {
 		// This call is ultimately received at shared/packages/expectationManager/src/workerAgentApi.ts
 		return this._sendMessage('wipEventError', wipId, reason)
 	}
 	async monitorStatus(
-		packageContainerId: string,
-		monitorId: string,
+		packageContainerId: PackageContainerId,
+		monitorId: MonitorId,
 		status: StatusCode,
 		reason: Reason
 	): Promise<void> {

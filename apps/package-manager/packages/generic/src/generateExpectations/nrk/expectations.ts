@@ -1,11 +1,17 @@
+import { ExpectedPackageWrap, PackageContainers } from '../../packageManager'
+import { PackageManagerSettings } from '../../generated/options'
 import {
-	ActivePlaylist,
-	ActiveRundown,
-	ExpectedPackageWrap,
-	PackageContainers,
-	PackageManagerSettings,
-} from '../../packageManager'
-import { ExpectedPackage, PackageContainer, Expectation, hashObj, LoggerInstance } from '@sofie-package-manager/api'
+	ExpectedPackage,
+	PackageContainer,
+	Expectation,
+	hashObj,
+	LoggerInstance,
+	ExpectationManagerId,
+	ExpectationId,
+	objectEntries,
+	objectValues,
+	objectSize,
+} from '@sofie-package-manager/api'
 import { GenerateExpectation, PriorityMagnitude } from './types'
 
 import {
@@ -24,26 +30,33 @@ import {
 } from './expectations-lib'
 import { getSmartbullExpectedPackages, shouldBeIgnored } from './smartbull'
 import { TEMPORARY_STORAGE_ID } from './lib'
+import {
+	PackageManagerActivePlaylist,
+	PackageManagerActiveRundown,
+	// eslint-disable-next-line node/no-extraneous-import
+} from '@sofie-automation/shared-lib/dist/package-manager/publications'
+// eslint-disable-next-line node/no-extraneous-import
+import { RundownId } from '@sofie-automation/shared-lib/dist/core/model/Ids'
 
 /** Generate and return the appropriate Expectations based on the provided expectedPackages */
 export function getExpectations(
 	logger: LoggerInstance,
-	managerId: string,
+	managerId: ExpectationManagerId,
 	packageContainers: PackageContainers,
-	_activePlaylist: ActivePlaylist,
-	activeRundowns: ActiveRundown[],
+	_activePlaylist: PackageManagerActivePlaylist | null,
+	activeRundowns: PackageManagerActiveRundown[],
 	expectedPackages: ExpectedPackageWrap[],
 	settings: PackageManagerSettings
-): { [id: string]: Expectation.Any } {
+): Record<ExpectationId, Expectation.Any> {
 	const expectations: ExpectationCollection = {}
 
 	// Note: All of this is a preliminary implementation!
 	// A blueprint-like plug-in architecture might be a future idea
 
 	/** If set, we should first copy media to a temporary storage and use that for side-effects  */
-	const useTemporaryStorage = packageContainers[TEMPORARY_STORAGE_ID] as PackageContainer | undefined
+	const useTemporaryStorage = packageContainers[TEMPORARY_STORAGE_ID]
 
-	// Sort, so that we handle the high-prio first:
+	// Sort, so that we handle the high-priority first:
 	expectedPackages.sort((a, b) => {
 		// Lowest first: (lower is better)
 		if (a.priority > b.priority) return 1
@@ -51,7 +64,7 @@ export function getExpectations(
 		return 0
 	})
 	// Prepare:
-	const activeRundownMap = new Map<string, ActiveRundown>()
+	const activeRundownMap = new Map<RundownId, PackageManagerActiveRundown>()
 	for (const activeRundown of activeRundowns) {
 		activeRundownMap.set(activeRundown._id, activeRundown)
 	}
@@ -73,16 +86,16 @@ export function getExpectations(
 	// Add side-effects from the initial expectations:
 	injectSideEffectExpectations(logger, packageContainers, settings, expectations, useTemporaryStorage)
 
-	const returnExpectations: { [id: string]: Expectation.Any } = {}
-	for (const [id, exp] of Object.entries(expectations)) {
-		returnExpectations[id] = exp as any
+	const returnExpectations: ExpectationCollection = {}
+	for (const [id, exp] of objectEntries(expectations)) {
+		returnExpectations[id] = exp
 	}
 	return returnExpectations
 }
 /** Generate and return the most basic expectations based on the provided expectedPackages */
 function getBasicExpectations(
 	_logger: LoggerInstance,
-	managerId: string,
+	managerId: ExpectationManagerId,
 	expectedPackages: ExpectedPackageWrap[],
 	settings: PackageManagerSettings
 ) {
@@ -97,11 +110,11 @@ function getBasicExpectations(
 		if (shouldBeIgnored(packageWrap)) continue
 
 		// Verify that the expectedPackage has any source and target accessors:
-		const hasAnySourceAccessors = !!packageWrap.sources.find((source) => source.accessors.length > 0)
-		const hasAnyTargetAccessors = !!packageWrap.targets.find((target) => target.accessors.length > 0)
+		const hasAnySourceAccessors = !!packageWrap.sources.find((source) => objectSize(source.accessors) > 0)
+		const hasAnyTargetAccessors = !!packageWrap.targets.find((target) => objectSize(target.accessors) > 0)
 
 		// No need to generate an expectation if there are no accessors:
-		if (!hasAnySourceAccessors || !hasAnyTargetAccessors) {
+		if (hasAnySourceAccessors || hasAnyTargetAccessors) {
 			if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.MEDIA_FILE) {
 				if (packageWrap.sources.length === 0) {
 					// If there are no sources defined, just verify that the file exists on the target:
@@ -136,21 +149,24 @@ function injectSideEffectExpectations(
 	if (!useTemporaryStorage) {
 		for (const expectation of groupExpectations(expectations)) {
 			// Get side-effects and add them to the expectations:
-			copyProps(expectations, getSideEffectOfExpectation(_logger, packageContainers, settings, expectation))
+			copyExpectationCollection(
+				expectations,
+				getSideEffectOfExpectation(_logger, packageContainers, settings, expectation)
+			)
 		}
 	} else {
-		const temoraryStorageExpectations: ExpectationCollection = {}
+		const temporaryStorageExpectations: ExpectationCollection = {}
 		for (const expectation0 of groupExpectations(expectations)) {
 			// We need to copy the expectation to a temporary storage,
-			// get those expectations and put them in temoraryStorageExpectations:
-			copyProps(
-				temoraryStorageExpectations,
+			// get those expectations and put them in temporaryStorageExpectations:
+			copyExpectationCollection(
+				temporaryStorageExpectations,
 				getCopyToTemporaryStorage(_logger, useTemporaryStorage, settings, expectation0)
 			)
 		}
 
-		// Okay, now let's generate the side-effects from the temoraryStorageExpectations instead:
-		for (const [id, expectation] of Object.entries(temoraryStorageExpectations)) {
+		// Okay, now let's generate the side-effects from the temporaryStorageExpectations instead:
+		for (const [id, expectation] of objectEntries(temporaryStorageExpectations)) {
 			// get side-effects:
 			const resultingExpectations: ExpectationCollection = getSideEffectOfExpectation(
 				_logger,
@@ -158,11 +174,11 @@ function injectSideEffectExpectations(
 				settings,
 				expectation
 			)
-			if (Object.keys(resultingExpectations).length > 0) {
+			if (objectSize(resultingExpectations) > 0) {
 				// Add the CopyToTemporaryStorage expectation:
 				expectations[id] = expectation
 
-				copyProps(expectations, resultingExpectations)
+				copyExpectationCollection(expectations, resultingExpectations)
 			}
 		}
 	}
@@ -176,7 +192,7 @@ function groupExpectations(expectations: ExpectationCollection): GenerateExpecta
 	const groupedExpectations: GenerateExpectation[] = []
 
 	const handledSources = new Set<string>()
-	for (const expectation of Object.values(expectations)) {
+	for (const expectation of objectValues(expectations)) {
 		let alreadyHandled = false
 		for (const fromPackage of expectation.fromPackages) {
 			const key = hashObj(fromPackage)
@@ -230,9 +246,7 @@ function getSideEffectOfExpectation(
 		}
 
 		if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-			const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
-				| PackageContainer
-				| undefined
+			const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId]
 
 			if (packageContainer) {
 				const thumbnail = generateMediaFileThumbnail(
@@ -246,9 +260,7 @@ function getSideEffectOfExpectation(
 		}
 
 		if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-			const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
-				| PackageContainer
-				| undefined
+			const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
 
 			if (packageContainer) {
 				const preview = generateMediaFilePreview(
@@ -283,9 +295,7 @@ function getSideEffectOfExpectation(
 		}
 
 		if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
-			const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId] as
-				| PackageContainer
-				| undefined
+			const packageContainer = packageContainers[expectation0.sideEffect.thumbnailContainerId]
 
 			if (packageContainer) {
 				const thumbnail = generateQuantelClipThumbnail(
@@ -299,9 +309,7 @@ function getSideEffectOfExpectation(
 		}
 
 		if (expectation0.sideEffect?.previewContainerId && expectation0.sideEffect?.previewPackageSettings) {
-			const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId] as
-				| PackageContainer
-				| undefined
+			const packageContainer = packageContainers[expectation0.sideEffect.previewContainerId]
 
 			if (packageContainer) {
 				const preview = generateQuantelClipPreview(
@@ -358,7 +366,7 @@ function getCopyToTemporaryStorage(
 
 function addExpectation(
 	logger: LoggerInstance,
-	activeRundownMap: Map<string, ActiveRundown>,
+	activeRundownMap: Map<RundownId, PackageManagerActiveRundown>,
 	expectations: ExpectationCollection,
 	packageWrap: ExpectedPackageWrap,
 	exp: Expectation.Any
@@ -396,13 +404,13 @@ function addExpectation(
 }
 /** Returns a priority for an expectation. */
 function getPriority(
-	activeRundownMap: Map<string, ActiveRundown>,
+	activeRundownMap: Map<RundownId, PackageManagerActiveRundown>,
 	packageWrap: ExpectedPackageWrap,
 	exp: Expectation.Any
 ): number {
 	// Returns the initial priority, based on the expectedPackage
 
-	const activeRundown: ActiveRundown | undefined = packageWrap.expectedPackage.rundownId
+	const activeRundown: PackageManagerActiveRundown | undefined = packageWrap.expectedPackage.rundownId
 		? activeRundownMap.get(packageWrap.expectedPackage.rundownId)
 		: undefined
 
@@ -416,9 +424,10 @@ function getPriority(
 		return exp.priority + PriorityMagnitude.OTHER
 	}
 }
-interface ExpectationCollection {
-	[id: string]: GenerateExpectation
-}
-function copyProps<T>(org: { [key: string]: T }, add: { [key: string]: T }): void {
-	Object.entries(add).forEach(([key, value]) => (org[key] = value))
+type ExpectationCollection = Record<ExpectationId, GenerateExpectation>
+
+function copyExpectationCollection(org: ExpectationCollection, add: ExpectationCollection): void {
+	for (const [key, value] of objectEntries(add)) {
+		org[key] = value
+	}
 }

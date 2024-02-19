@@ -4,11 +4,12 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
@@ -29,6 +30,8 @@ import {
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
+import { CancelablePromise } from '../../../lib/cancelablePromise'
+import { scanWithFFProbe, FFProbeScanResult } from './lib/scan'
 
 /**
  * Generates a thumbnail image from a source video file, and stores the resulting file into the target PackageContainer
@@ -45,6 +48,14 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
 					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+				},
+			}
+		if (windowsWorker.testFFProbe)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker (FFProbe)',
+					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
 				},
 			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
@@ -77,11 +88,11 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		_wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
@@ -139,7 +150,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Create a thumbnail from the source media file
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -148,9 +159,11 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		let ffMpegProcess: FFMpegProcess | undefined
+		let ffProbeProcess: CancelablePromise<any> | undefined
 		const workInProgress = new WorkInProgress({ workLabel: 'Generating thumbnail' }, async () => {
 			// On cancel
 			ffMpegProcess?.cancel()
+			ffProbeProcess?.cancel()
 		}).do(async () => {
 			if (
 				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
@@ -220,8 +233,15 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 					throw new Error(`Unsupported Target AccessHandler`)
 				}
 
+				// Scan with FFProbe:
+				ffProbeProcess = scanWithFFProbe(sourceHandle)
+				const ffProbeScan: FFProbeScanResult = await ffProbeProcess
+				ffProbeProcess = undefined
+				const hasVideoStream =
+					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
+
 				// Use FFMpeg to generate the thumbnail:
-				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode)
+				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode, hasVideoStream)
 
 				const fileOperation = await targetHandle.prepareForOperation('Generate thumbnail', lookupSource.handle)
 
@@ -236,7 +256,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(metadata)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							sourceVersionHash,
 							{

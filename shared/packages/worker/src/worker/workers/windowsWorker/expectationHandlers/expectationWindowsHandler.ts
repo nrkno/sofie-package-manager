@@ -3,7 +3,7 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@sofie-package-manager/api'
@@ -27,12 +27,12 @@ export interface ExpectationWindowsHandler extends ExpectationHandler {
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
 	) => Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
-	isExpectationFullfilled: (
+	isExpectationFulfilled: (
 		exp: Expectation.Any,
-		wasFullfilled: boolean,
+		wasFulfilled: boolean,
 		genericWorker: GenericWorker,
 		windowsWorker: WindowsWorker
-	) => Promise<ReturnTypeIsExpectationFullfilled>
+	) => Promise<ReturnTypeIsExpectationFulfilled>
 	workOnExpectation: (
 		exp: Expectation.Any,
 		genericWorker: GenericWorker,

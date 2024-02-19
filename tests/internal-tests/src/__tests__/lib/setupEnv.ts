@@ -16,6 +16,16 @@ import {
 	DataStore,
 	LoggerInstance,
 	Statuses,
+	ExpectationId,
+	PackageContainerId,
+	ExpectedPackageId,
+	protectString,
+	WorkerAgentId,
+	DataId,
+	LockId,
+	objectKeys,
+	ExpectationManagerId,
+	AppContainerId,
 } from '@sofie-package-manager/api'
 import {
 	ExpectationManager,
@@ -62,7 +72,7 @@ const defaultTestConfig: SingleAppConfig = {
 		chaosMonkey: false,
 	},
 	worker: {
-		workerId: 'worker',
+		workerId: protectString<WorkerAgentId>('worker'),
 		workforceURL: null,
 		appContainerURL: null,
 		resourceId: '',
@@ -77,7 +87,7 @@ const defaultTestConfig: SingleAppConfig = {
 		transformerURL: '',
 	},
 	appContainer: {
-		appContainerId: 'appContainer0',
+		appContainerId: protectString<AppContainerId>('appContainer0'),
 		workforceURL: null,
 		port: 0,
 		maxRunningApps: 1,
@@ -107,7 +117,7 @@ export async function setupExpectationManager(
 
 	const expectationManager = new ExpectationManager(
 		logger,
-		'manager0',
+		protectString<ExpectationManagerId>('manager0'),
 		{ type: 'internal' },
 		undefined,
 		{ type: 'internal' },
@@ -134,7 +144,7 @@ export async function setupExpectationManager(
 	const workerAgents: Worker.WorkerAgent[] = []
 	let workerI = 0
 	const addWorker = async () => {
-		const workerId = defaultTestConfig.worker.workerId + '_' + workerI++
+		const workerId = protectString<WorkerAgentId>(defaultTestConfig.worker.workerId + '_' + workerI++)
 		const workerAgent = new Worker.WorkerAgent(logger, {
 			...defaultTestConfig,
 			worker: {
@@ -151,7 +161,7 @@ export async function setupExpectationManager(
 
 		return workerId
 	}
-	const removeWorker = async (workerId: string) => {
+	const removeWorker = async (workerId: WorkerAgentId) => {
 		const index = workerAgents.findIndex((wa) => wa.id === workerId)
 		if (index !== -1) {
 			const workerAgent = workerAgents[index]
@@ -219,7 +229,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 				}
 			},
 			reportExpectationStatus: (
-				expectationId: string,
+				expectationId: ExpectationId,
 				_expectaction: Expectation.Any | null,
 				actualVersionHash: string | null,
 				statusInfo: {
@@ -230,31 +240,36 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			) => {
 				if (debugLogging) console.log('reportExpectationStatus', expectationId, actualVersionHash, statusInfo)
 
-				if (!expectationStatuses[expectationId]) {
-					expectationStatuses[expectationId] = {
+				let o = expectationStatuses[expectationId]
+				if (!o) {
+					o = {
 						actualVersionHash: null,
 						statusInfo: {},
 					}
+					expectationStatuses[expectationId] = o
 				}
-				const o = expectationStatuses[expectationId]
+
 				if (actualVersionHash) o.actualVersionHash = actualVersionHash
 				if (statusInfo.status) o.statusInfo.status = statusInfo.status
 				if (statusInfo.progress) o.statusInfo.progress = statusInfo.progress
 				if (statusInfo.statusReason) o.statusInfo.statusReason = statusInfo.statusReason
 			},
 			reportPackageContainerPackageStatus: (
-				containerId: string,
-				packageId: string,
+				containerId: PackageContainerId,
+				packageId: ExpectedPackageId,
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			) => {
 				if (debugLogging)
 					console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
-				if (!containerStatuses[containerId]) {
-					containerStatuses[containerId] = {
+
+				let container = containerStatuses[containerId]
+				if (!container) {
+					container = {
 						packages: {},
 					}
+					containerStatuses[containerId] = container
 				}
-				const container = containerStatuses[containerId]
+
 				container.packages[packageId] = {
 					packageStatus: packageStatus,
 				}
@@ -308,8 +323,13 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			}
 			setLogFilterFunction(() => true)
 			em.expectationManager.resetWork()
-			Object.keys(expectationStatuses).forEach((id) => delete expectationStatuses[id])
-			Object.keys(containerStatuses).forEach((id) => delete containerStatuses[id])
+			objectKeys(expectationStatuses).forEach((key: ExpectationId) => {
+				delete expectationStatuses[key]
+			})
+			objectKeys(containerStatuses).forEach((key: PackageContainerId) => {
+				delete containerStatuses[key]
+			})
+
 			coreApi.reset()
 		},
 		terminate: () => {
@@ -337,13 +357,14 @@ export interface TestEnviromnent {
 	containerStatuses: ContainerStatuses
 	reset: () => void
 	terminate: () => void
-	addWorker: () => Promise<string>
-	removeWorker: (id: string) => Promise<void>
+	addWorker: () => Promise<WorkerAgentId>
+	removeWorker: (id: WorkerAgentId) => Promise<void>
 	setLogFilterFunction: (filter: (level: string, ...args: any[]) => boolean) => void
 }
 
-export interface ExpectationStatuses {
-	[expectationId: string]: {
+export type ExpectationStatuses = Record<
+	ExpectationId,
+	{
 		actualVersionHash: string | null
 		statusInfo: {
 			status?: string
@@ -351,16 +372,18 @@ export interface ExpectationStatuses {
 			statusReason?: Reason
 		}
 	}
-}
-export interface ContainerStatuses {
-	[containerId: string]: {
-		packages: {
-			[packageId: string]: {
+>
+export type ContainerStatuses = Record<
+	PackageContainerId,
+	{
+		packages: Record<
+			ExpectedPackageId,
+			{
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			}
-		}
+		>
 	}
-}
+>
 
 /** This is a mock of the AppContainer, used in unit tests */
 class MockAppContainer {
@@ -374,10 +397,11 @@ class MockAppContainer {
 	}
 
 	getWorkerAgentHook(): Hook<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent> {
-		return (_clientId: string, _clientMethods: AppContainerWorkerAgent.WorkerAgent) => {
+		return (clientId: WorkerAgentId, _clientMethods: Omit<AppContainerWorkerAgent.WorkerAgent, 'id'>) => {
 			// On connection from a workerAgent
 
 			const workerAgentMethods: AppContainerWorkerAgent.AppContainer = {
+				id: clientId,
 				ping: async () => {
 					// do nothing
 				},
@@ -386,18 +410,18 @@ class MockAppContainer {
 				},
 
 				workerStorageWriteLock: async (
-					dataId: string,
+					dataId: DataId,
 					customTimeout?: number
-				): Promise<{ lockId: string; current: any | undefined }> => {
+				): Promise<{ lockId: LockId; current: any | undefined }> => {
 					return this.workerStorage.getWriteLock(dataId, customTimeout)
 				},
-				workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
+				workerStorageReleaseLock: async (dataId: DataId, lockId: LockId): Promise<void> => {
 					return this.workerStorage.releaseLock(dataId, lockId)
 				},
-				workerStorageWrite: async (dataId: string, lockId: string, data: string): Promise<void> => {
+				workerStorageWrite: async (dataId: DataId, lockId: LockId, data: string): Promise<void> => {
 					return this.workerStorage.write(dataId, lockId, data)
 				},
-				workerStorageRead: async (dataId: string): Promise<any> => {
+				workerStorageRead: async (dataId: DataId): Promise<any> => {
 					return this.workerStorage.read(dataId)
 				},
 			}

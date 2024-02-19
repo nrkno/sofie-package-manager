@@ -1,10 +1,12 @@
 import {
+	ExpectationManagerId,
+	PackageContainerId,
 	ExpectationManagerWorkerAgent,
 	AdapterServer,
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeRemoveExpectation,
 	AdapterServerOptions,
 	PackageContainerExpectation,
@@ -12,6 +14,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	ReturnTypeSetupPackageContainerMonitors,
 	ReturnTypeDisposePackageContainerMonitors,
+	WorkInProgressLocalId,
 } from '@sofie-package-manager/api'
 
 /**
@@ -24,6 +27,7 @@ export class WorkerAgentAPI
 	implements ExpectationManagerWorkerAgent.WorkerAgent
 {
 	constructor(
+		public id: ExpectationManagerId,
 		methods: ExpectationManagerWorkerAgent.ExpectationManager,
 		options: AdapterServerOptions<ExpectationManagerWorkerAgent.WorkerAgent>
 	) {
@@ -44,12 +48,12 @@ export class WorkerAgentAPI
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
 		return this._sendMessage('isExpectationReadyToStartWorkingOn', exp)
 	}
-	async isExpectationFullfilled(
+	async isExpectationFulfilled(
 		exp: Expectation.Any,
-		wasFullfilled: boolean
-	): Promise<ReturnTypeIsExpectationFullfilled> {
+		wasFulfilled: boolean
+	): Promise<ReturnTypeIsExpectationFulfilled> {
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
-		return this._sendMessage('isExpectationFullfilled', exp, wasFullfilled)
+		return this._sendMessage('isExpectationFulfilled', exp, wasFulfilled)
 	}
 	async workOnExpectation(
 		exp: Expectation.Any,
@@ -64,7 +68,7 @@ export class WorkerAgentAPI
 		return this._sendMessage('removeExpectation', exp)
 	}
 
-	async cancelWorkInProgress(wipId: number): Promise<void> {
+	async cancelWorkInProgress(wipId: WorkInProgressLocalId): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
 		return this._sendMessage('cancelWorkInProgress', wipId)
 	}
@@ -89,7 +93,7 @@ export class WorkerAgentAPI
 		return this._sendMessage('setupPackageContainerMonitors', packageContainer)
 	}
 	async disposePackageContainerMonitors(
-		packageContainerId: string
+		packageContainerId: PackageContainerId
 	): Promise<ReturnTypeDisposePackageContainerMonitors> {
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
 		return this._sendMessage('disposePackageContainerMonitors', packageContainerId)

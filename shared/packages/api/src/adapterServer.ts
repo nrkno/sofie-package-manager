@@ -1,4 +1,5 @@
 import { promiseTimeout, stringifyError } from './lib'
+import { MethodsInterfaceBase } from './methods'
 import { ACTION_TIMEOUT, MessageBase } from './websocketConnection'
 import { ClientConnection } from './websocketServer'
 
@@ -7,8 +8,8 @@ import { ClientConnection } from './websocketServer'
  * or (in the case where they run in the same process) hook directly into the AdapterServer, to call the methods directly.
  * @see {@link ./adapterClient.ts}
  */
-export abstract class AdapterServer<ME, OTHER> {
-	protected _sendMessage: (type: keyof OTHER, ...args: any[]) => Promise<any>
+export abstract class AdapterServer<ME extends MethodsInterfaceBase, OTHER extends MethodsInterfaceBase> {
+	protected _sendMessage: (type: keyof Omit<OTHER, 'id'>, ...args: any[]) => Promise<any>
 
 	public readonly type: string
 
@@ -36,8 +37,8 @@ export abstract class AdapterServer<ME, OTHER> {
 				}
 			})
 		} else {
-			const clientHook: OTHER = options.hookMethods
-			this._sendMessage = async (type: keyof OTHER, ...args: any[]) => {
+			const clientHook: Omit<OTHER, 'id'> = options.hookMethods
+			this._sendMessage = async (type: keyof Omit<OTHER, 'id'>, ...args: any[]) => {
 				const fcn = clientHook[type] as unknown as (...args: any[]) => any
 				if (fcn) {
 					try {
@@ -61,6 +62,6 @@ export abstract class AdapterServer<ME, OTHER> {
 	}
 }
 /** Options for the AdapterServer */
-export type AdapterServerOptions<OTHER> =
+export type AdapterServerOptions<OTHER extends MethodsInterfaceBase> =
 	| { type: 'websocket'; clientConnection: ClientConnection }
-	| { type: 'internal'; hookMethods: OTHER }
+	| { type: 'internal'; hookMethods: Omit<OTHER, 'id'> }

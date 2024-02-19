@@ -4,6 +4,7 @@ import {
 	AdapterServerOptions,
 	LogLevel,
 	Statuses,
+	WorkforceId,
 } from '@sofie-package-manager/api'
 
 /**
@@ -16,6 +17,7 @@ export class ExpectationManagerAPI
 	implements WorkForceExpectationManager.ExpectationManager
 {
 	constructor(
+		public id: WorkforceId,
 		methods: WorkForceExpectationManager.WorkForce,
 		options: AdapterServerOptions<WorkForceExpectationManager.ExpectationManager>
 	) {

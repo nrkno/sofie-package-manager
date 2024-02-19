@@ -1,34 +1,12 @@
-import { DeviceConfigManifest, ConfigManifestEntryType } from '@sofie-automation/server-core-integration'
-import { LogLevel, DEFAULT_LOG_LEVEL } from '@sofie-package-manager/api'
+import { DeviceConfigManifest, JSONBlobStringify, JSONSchema } from '@sofie-automation/server-core-integration'
 
-export const DEFAULT_DELAY_REMOVAL_PACKAGE = 21600000
-export const DEFAULT_DELAY_REMOVAL_PACKAGE_INFO = 21600000
+import ConfigSchemaJSON = require('./$schemas/options.json')
 
 export const PACKAGE_MANAGER_DEVICE_CONFIG: DeviceConfigManifest = {
-	deviceConfig: [
-		{
-			id: 'logLevel',
-			name: 'Log level',
-			type: ConfigManifestEntryType.ENUM,
-			values: LogLevel,
-			defaultVal: DEFAULT_LOG_LEVEL,
-		},
-		{
-			id: 'delayRemoval',
-			name: 'Delay removal of packages (milliseconds)',
-			type: ConfigManifestEntryType.INT,
-			defaultVal: DEFAULT_DELAY_REMOVAL_PACKAGE,
-		},
-		{
-			id: 'delayRemovalPackageInfo',
-			name: 'Delay removal of package scan results (milliseconds)',
-			type: ConfigManifestEntryType.INT,
-			defaultVal: DEFAULT_DELAY_REMOVAL_PACKAGE_INFO,
-		},
-		{
-			id: 'useTemporaryFilePath',
-			name: 'Use temporary file paths when copying',
-			type: ConfigManifestEntryType.BOOLEAN,
-		},
-	],
+	deviceConfigSchema: JSONBlobStringify<JSONSchema>(ConfigSchemaJSON as any),
+	subdeviceManifest: {},
 }
+
+export type ConfigSchema = typeof ConfigSchemaJSON
+export const DEFAULT_DELAY_REMOVAL_PACKAGE = ConfigSchemaJSON.properties.delayRemoval.default
+export const DEFAULT_DELAY_REMOVAL_PACKAGE_INFO = ConfigSchemaJSON.properties.delayRemovalPackageInfo.default

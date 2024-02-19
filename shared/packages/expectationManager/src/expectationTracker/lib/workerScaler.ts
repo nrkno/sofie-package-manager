@@ -64,7 +64,7 @@ export class WorkerScaler {
 				exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY
 
 			/** Not supported by any worker */
-			const notSupportedByAnyWorker: boolean = Object.keys(exp.availableWorkers).length === 0
+			const notSupportedByAnyWorker: boolean = exp.availableWorkers.size === 0
 			/** No worker has had time to work on it lately */
 			const notAssignedToAnyWorker: boolean =
 				!!exp.noWorkerAssignedTime &&

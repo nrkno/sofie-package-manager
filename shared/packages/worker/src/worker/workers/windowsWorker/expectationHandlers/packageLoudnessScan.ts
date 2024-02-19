@@ -7,10 +7,11 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { isCorePackageInfoAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -44,6 +45,14 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
 				},
 			}
+		if (windowsWorker.testFFProbe)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker (FFProbe)',
+					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
+				},
+			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 		})
@@ -75,11 +84,11 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		wasFullfilled: boolean,
+		wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupLoudnessSources(worker, exp)
@@ -113,7 +122,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 			exp.endRequirement.version
 		)
 		if (packageInfoSynced.needsUpdate) {
-			if (wasFullfilled) {
+			if (wasFulfilled) {
 				// Remove the outdated scan result:
 				await lookupTarget.handle.removePackageInfo(PackageInfoType.Loudness, exp)
 			}
@@ -125,7 +134,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source media file and upload the results to Core
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupLoudnessSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -190,7 +199,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 			)
 			await targetHandle.finalizePackage(scanOperation)
 
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			workInProgress._reportComplete(
 				sourceVersionHash,
 				{

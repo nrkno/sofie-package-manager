@@ -4,7 +4,7 @@ import {
 	Expectation,
 	ExpectationManagerWorkerAgent,
 	ReturnTypeDoYouSupportExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	WorkForceWorkerAgent,
@@ -28,6 +28,15 @@ import {
 	deferGets,
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
+	protectString,
+	ExpectationManagerId,
+	MonitorId,
+	PackageContainerId,
+	WorkerAgentId,
+	DataId,
+	isProtectedString,
+	WorkInProgressLocalId,
+	objectEntries,
 } from '@sofie-package-manager/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -48,41 +57,42 @@ export class WorkerAgent {
 	// private _busyMethodCount = 0
 	private workforceAPI: WorkforceAPI
 	private appContainerAPI: AppContainerAPI
-	private wipI = 0
+	private _wipI = 0
 	private currentJobs: CurrentJob[] = []
-	public readonly id: string
+	public readonly id: WorkerAgentId
 	private workForceConnectionOptions: ClientConnectionOptions
 	private appContainerConnectionOptions: ClientConnectionOptions
 
-	private expectationManagers: {
-		[id: string]: {
+	private expectationManagers: Map<
+		ExpectationManagerId,
+		{
 			url: string
 			api: ExpectationManagerAPI
 		}
-	} = {}
-	private expectationManagerHooks: {
-		[managerId: string]: Hook<
-			ExpectationManagerWorkerAgent.ExpectationManager,
-			ExpectationManagerWorkerAgent.WorkerAgent
-		>
-	} = {}
+	> = new Map()
+	private expectationManagerHooks: Map<
+		ExpectationManagerId,
+		Hook<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
+	> = new Map()
 	private terminated = false
 	private spinDownTime = 0
 	private intervalCheckTimer: NodeJS.Timer | null = null
 	private lastWorkTime = 0
-	private activeMonitors: { [containerId: string]: { [monitorId: string]: MonitorInProgress } } = {}
+	private activeMonitors: Map<PackageContainerId, Map<MonitorId, MonitorInProgress>> = new Map()
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private cpuTracker = new CPUTracker()
 	private logger: LoggerInstance
 
-	private workerStorageDeferRead = deferGets(async (dataId: string) => {
+	private workerStorageDeferRead = deferGets(async (dataId: DataId) => {
 		return this.appContainerAPI.workerStorageRead(dataId)
 	})
 
 	constructor(logger: LoggerInstance, private config: WorkerConfig) {
 		this.logger = logger.category('WorkerAgent')
-		this.workforceAPI = new WorkforceAPI(this.logger)
+		this.id = config.worker.workerId
+
+		this.workforceAPI = new WorkforceAPI(this.id, this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('Worker: Workforce disconnected')
 		})
@@ -109,7 +119,7 @@ export class WorkerAgent {
 			this.logger.error(`WorkerAgent: WorkforceAPI error event: ${stringifyError(err)}`)
 		})
 
-		this.appContainerAPI = new AppContainerAPI(this.logger)
+		this.appContainerAPI = new AppContainerAPI(this.id, this.logger)
 		this.appContainerAPI.on('disconnected', () => {
 			this.logger.warn('Worker: AppContainer disconnected')
 		})
@@ -121,7 +131,6 @@ export class WorkerAgent {
 			this.logger.error(`WorkerAgent: AppContainerAPI error event: ${stringifyError(err)}`)
 		})
 
-		this.id = config.worker.workerId
 		this.workForceConnectionOptions = this.config.worker.workforceURL
 			? {
 					type: 'websocket',
@@ -148,13 +157,13 @@ export class WorkerAgent {
 					localNetworkIds: this.config.worker.networkIds,
 				},
 				config: this.config.worker,
-				workerStorageRead: async (dataId: string) => {
+				workerStorageRead: async (dataId: DataId) => {
 					// return this.appContainerAPI.workerStorageRead(dataId)
 
 					return this.workerStorageDeferRead(dataId, dataId)
 				},
 				workerStorageWrite: async (
-					dataId: string,
+					dataId: DataId,
 					customTimeout: number | undefined,
 					cb: (current: any | undefined) => Promise<any> | any
 				) => {
@@ -183,10 +192,13 @@ export class WorkerAgent {
 				},
 			},
 
-			async (managerId: string, message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
+			async (
+				managerId: ExpectationManagerId,
+				message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any
+			) => {
 				// Forward the message to the expectationManager:
 
-				const manager = this.expectationManagers[managerId]
+				const manager = this.expectationManagers.get(managerId)
 				if (!manager) throw new Error(`ExpectationManager "${managerId}" not found`)
 
 				return manager.api.messageFromWorker(message)
@@ -205,7 +217,15 @@ export class WorkerAgent {
 		const pAppContainer = new Promise<void>((resolve, reject) => {
 			this.initAppContainerAPIPromise = { resolve, reject }
 		})
-		await this.appContainerAPI.init(this.id, this.appContainerConnectionOptions, this)
+		await this.appContainerAPI.init(this.appContainerConnectionOptions, {
+			setLogLevel: async (logLevel: LogLevel) => this.setLogLevel(logLevel),
+			_debugKill: async () => this._debugKill(),
+
+			doYouSupportExpectation: async (exp: Expectation.Any) => this.doYouSupportExpectation(exp),
+			doYouSupportPackageContainer: async (packageContainer: PackageContainerExpectation) =>
+				this.doYouSupportPackageContainer(packageContainer),
+			setSpinDownTime: async (spinDownTime: number) => this.setSpinDownTime(spinDownTime),
+		})
 		// Wait for this.appContainerAPI to be ready before continuing:
 		await pAppContainer
 
@@ -216,7 +236,16 @@ export class WorkerAgent {
 		const pWorkForce = new Promise<void>((resolve, reject) => {
 			this.initWorkForceAPIPromise = { resolve, reject }
 		})
-		await this.workforceAPI.init(this.id, this.workForceConnectionOptions, this)
+		await this.workforceAPI.init(this.workForceConnectionOptions, {
+			setLogLevel: async (logLevel: LogLevel) => this.setLogLevel(logLevel),
+			_debugKill: async () => this._debugKill(),
+			_debugSendKillConnections: async () => this._debugSendKillConnections(),
+			getStatusReport: async () => this.getStatusReport(),
+
+			expectationManagerAvailable: async (id: ExpectationManagerId, url: string) =>
+				this.expectationManagerAvailable(id, url),
+			expectationManagerGone: async (id: ExpectationManagerId) => this.expectationManagerGone(id),
+		})
 		// Wait for this.workforceAPI to be ready before continuing:
 		await pWorkForce
 
@@ -228,7 +257,7 @@ export class WorkerAgent {
 		this.terminated = true
 		this.workforceAPI.terminate()
 
-		for (const expectationManager of Object.values(this.expectationManagers)) {
+		for (const expectationManager of this.expectationManagers.values()) {
 			expectationManager.api.terminate()
 		}
 		for (const currentJob of this.currentJobs) {
@@ -247,10 +276,10 @@ export class WorkerAgent {
 		this.workforceAPI.hook(hook)
 	}
 	hookToExpectationManager(
-		managerId: string,
+		managerId: ExpectationManagerId,
 		hook: Hook<ExpectationManagerWorkerAgent.ExpectationManager, ExpectationManagerWorkerAgent.WorkerAgent>
 	): void {
-		this.expectationManagerHooks[managerId] = hook
+		this.expectationManagerHooks.set(managerId, hook)
 	}
 	hookToAppContainer(hook: Hook<AppContainerWorkerAgent.AppContainer, AppContainerWorkerAgent.WorkerAgent>): void {
 		this.appContainerAPI.hook(hook)
@@ -281,16 +310,16 @@ export class WorkerAgent {
 		this.IDidSomeWork()
 		return this._worker.doYouSupportPackageContainer(packageContainer)
 	}
-	async expectationManagerAvailable(id: string, url: string): Promise<void> {
-		const existing = this.expectationManagers[id]
+	async expectationManagerAvailable(managerId: ExpectationManagerId, url: string): Promise<void> {
+		const existing = this.expectationManagers.get(managerId)
 		if (existing) {
 			existing.api.terminate()
 		}
 
-		await this.connectToExpectationManager(id, url)
+		await this.connectToExpectationManager(managerId, url)
 	}
-	async expectationManagerGone(id: string): Promise<void> {
-		delete this.expectationManagers[id]
+	async expectationManagerGone(managerId: ExpectationManagerId): Promise<void> {
+		this.expectationManagers.delete(managerId)
 	}
 	public async setLogLevel(logLevel: LogLevel): Promise<void> {
 		setLogLevel(logLevel)
@@ -311,11 +340,11 @@ export class WorkerAgent {
 	async getStatusReport(): Promise<WorkerStatusReport> {
 		const activeMonitors: WorkerStatusReport['activeMonitors'] = []
 
-		for (const [containerId, monitors] of Object.entries(this.activeMonitors)) {
-			for (const [monitorId, monitor] of Object.entries(monitors)) {
+		for (const [containerId, monitors] of this.activeMonitors.entries()) {
+			for (const [monitorId, monitor] of monitors.entries()) {
 				activeMonitors.push({
-					containerId,
-					monitorId,
+					containerId: containerId,
+					monitorId: monitorId,
 					label: monitor.properties.label,
 				})
 			}
@@ -361,22 +390,24 @@ export class WorkerAgent {
 		}
 	}
 
-	private async connectToExpectationManager(id: string, url: string): Promise<void> {
-		this.logger.info(`Worker: Connecting to Expectation Manager "${id}" at url "${url}"`)
-		const expectedManager = (this.expectationManagers[id] = {
+	private async connectToExpectationManager(managerId: ExpectationManagerId, url: string): Promise<void> {
+		this.logger.info(`Worker: Connecting to Expectation Manager "${managerId}" at url "${url}"`)
+		const expectationManager = {
 			url: url,
-			api: new ExpectationManagerAPI(this.logger),
-		})
-		expectedManager.api.on('disconnected', () => {
+			api: new ExpectationManagerAPI(this.id, this.logger),
+		}
+		expectationManager.api.on('disconnected', () => {
 			this.logger.warn('Worker: ExpectationManager disconnected')
 		})
-		expectedManager.api.on('connected', () => {
+		expectationManager.api.on('connected', () => {
 			this.logger.info('Worker: ExpectationManager connected')
 		})
-		expectedManager.api.on('error', (err) => {
+		expectationManager.api.on('error', (err) => {
 			this.logger.error(`WorkerAgent: ExpectationManagerAPI error event: ${stringifyError(err)}`)
 		})
-		const methods: ExpectationManagerWorkerAgent.WorkerAgent = literal<ExpectationManagerWorkerAgent.WorkerAgent>({
+		this.expectationManagers.set(managerId, expectationManager)
+
+		const methods = literal<Omit<ExpectationManagerWorkerAgent.WorkerAgent, 'id'>>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {
 				return this._worker.doYouSupportExpectation(exp)
 			},
@@ -408,12 +439,12 @@ export class WorkerAgent {
 			): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 				return this._worker.isExpectationReadyToStartWorkingOn(exp)
 			},
-			isExpectationFullfilled: async (
+			isExpectationFulfilled: async (
 				exp: Expectation.Any,
-				wasFullfilled: boolean
-			): Promise<ReturnTypeIsExpectationFullfilled> => {
+				wasFulfilled: boolean
+			): Promise<ReturnTypeIsExpectationFulfilled> => {
 				this.IDidSomeWork()
-				return this._worker.isExpectationFullfilled(exp, wasFullfilled)
+				return this._worker.isExpectationFulfilled(exp, wasFulfilled)
 			},
 			workOnExpectation: async (
 				exp: Expectation.Any,
@@ -439,7 +470,7 @@ export class WorkerAgent {
 					cancelled: false,
 					lastUpdated: Date.now(),
 					progress: 0,
-					wipId: this.wipI++,
+					wipId: this.getNextWipId(),
 					workInProgress: null,
 					timeoutInterval: setInterval(() => {
 						if (currentJob.cancelled && currentJob.timeoutInterval) {
@@ -501,7 +532,7 @@ export class WorkerAgent {
 						if (currentJob.cancelled) return // Don't send updates on cancelled work
 						currentJob.lastUpdated = Date.now()
 						currentJob.progress = progress
-						expectedManager.api
+						expectationManager.api
 							.wipEventProgress(currentJob.wipId, actualVersionHash, progress)
 							.catch((err) => {
 								if (!this.terminated) {
@@ -520,7 +551,7 @@ export class WorkerAgent {
 							}): ${stringifyError(error)}`
 						)
 
-						expectedManager.api
+						expectationManager.api
 							.wipEventError(currentJob.wipId, {
 								user: 'Work aborted due to an error',
 								tech: error,
@@ -542,7 +573,7 @@ export class WorkerAgent {
 							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), done. (${this.currentJobs.length})`
 						)
 
-						expectedManager.api
+						expectationManager.api
 							.wipEventDone(currentJob.wipId, actualVersionHash, reason, result)
 							.catch((err) => {
 								if (!this.terminated) {
@@ -571,7 +602,7 @@ export class WorkerAgent {
 				this.IDidSomeWork()
 				return this._worker.removeExpectation(exp)
 			},
-			cancelWorkInProgress: async (wipId: number): Promise<void> => {
+			cancelWorkInProgress: async (wipId: WorkInProgressLocalId): Promise<void> => {
 				this.IDidSomeWork()
 				return this.cancelJob(wipId)
 			},
@@ -591,16 +622,19 @@ export class WorkerAgent {
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeSetupPackageContainerMonitors> => {
 				this.IDidSomeWork()
-				if (!this.activeMonitors[packageContainer.id]) {
-					this.activeMonitors[packageContainer.id] = {}
+
+				let activeMonitor = this.activeMonitors.get(packageContainer.id)
+				if (activeMonitor === undefined) {
+					activeMonitor = new Map()
+					this.activeMonitors.set(packageContainer.id, activeMonitor)
 				}
 
 				const result = await this._worker.setupPackageContainerMonitors(packageContainer)
 				if (result.success) {
-					const returnMonitors: { [monitorId: string]: MonitorProperties } = {}
+					const returnMonitors: Record<MonitorId, MonitorProperties> = {}
 
-					for (const [monitorId, monitorInProgress] of Object.entries(result.monitors)) {
-						this.activeMonitors[packageContainer.id][monitorId] = monitorInProgress
+					for (const [monitorId, monitorInProgress] of objectEntries(result.monitors)) {
+						activeMonitor.set(monitorId, monitorInProgress)
 						returnMonitors[monitorId] = monitorInProgress.properties
 
 						monitorInProgress.removeAllListeners('error') // Replace any temporary listeners
@@ -608,7 +642,7 @@ export class WorkerAgent {
 							this.logger.error(
 								`WorkerAgent.methods.setupPackageContainerMonitors: ${JSON.stringify(internalError)}`
 							)
-							expectedManager.api
+							expectationManager.api
 								.monitorStatus(packageContainer.id, monitorId, StatusCode.FATAL, {
 									user: 'Internal Error',
 									tech: stringifyError(internalError),
@@ -624,7 +658,7 @@ export class WorkerAgent {
 								})
 						})
 						monitorInProgress.on('status', (status: StatusCode, reason: Reason) => {
-							expectedManager.api
+							expectationManager.api
 								.monitorStatus(packageContainer.id, monitorId, status, reason)
 								.catch((err) => {
 									if (!this.terminated) {
@@ -647,17 +681,18 @@ export class WorkerAgent {
 				}
 			},
 			disposePackageContainerMonitors: async (
-				packageContainerId: string
+				packageContainerId: PackageContainerId
 			): Promise<ReturnTypeDisposePackageContainerMonitors> => {
 				this.IDidSomeWork()
 				let errorReason: Reason | null = null
 
-				const activeMonitors = this.activeMonitors[packageContainerId] || {}
+				const activeMonitors = this.activeMonitors.get(packageContainerId)
+				if (!activeMonitors) return { success: true } // nothing to dispose of
 
-				for (const [monitorId, monitor] of Object.entries(activeMonitors)) {
+				for (const [monitorId, monitor] of activeMonitors.entries()) {
 					try {
 						await monitor.stop()
-						delete this.activeMonitors[monitorId]
+						activeMonitors.delete(monitorId)
 					} catch (err) {
 						errorReason = {
 							user: 'Unable to stop monitor',
@@ -670,7 +705,7 @@ export class WorkerAgent {
 			},
 		})
 		// Wrap the methods, so that we can cut off communication upon termination: (this is used in tests)
-		for (const key of Object.keys(methods) as Array<keyof ExpectationManagerWorkerAgent.WorkerAgent>) {
+		for (const key of Object.keys(methods) as Array<keyof Omit<ExpectationManagerWorkerAgent.WorkerAgent, 'id'>>) {
 			const fcn = methods[key] as any
 			methods[key] = ((...args: any[]) => {
 				if (this.terminated)
@@ -686,44 +721,44 @@ export class WorkerAgent {
 		// Connect to the ExpectationManager:
 		if (url === '__internal') {
 			// This is used for an internal connection:
-			const managerHookHook = this.expectationManagerHooks[id]
+			const managerHookHook = this.expectationManagerHooks.get(managerId)
 
 			if (!managerHookHook)
 				throw new Error(
-					`WorkerAgent.connectToExpectationManager: manager hook not found for manager "${id}", call hookToExpectationManager() first!`
+					`WorkerAgent.connectToExpectationManager: manager hook not found for manager "${managerId}", call hookToExpectationManager() first!`
 				)
-			expectedManager.api.hook(managerHookHook)
+			expectationManager.api.hook(managerHookHook)
 		}
 
 		const connectionOptions: ClientConnectionOptions =
-			url === '__internal' ? { type: 'internal' } : { type: 'websocket', url: expectedManager.url }
+			url === '__internal' ? { type: 'internal' } : { type: 'websocket', url: expectationManager.url }
 
-		await expectedManager.api.init(this.id, connectionOptions, methods)
+		await expectationManager.api.init(connectionOptions, methods)
 	}
 
-	private async updateListOfExpectationManagers(newExpectationManagers: { id: string; url: string }[]) {
-		const ids: { [id: string]: true } = {}
+	private async updateListOfExpectationManagers(newExpectationManagers: { id: ExpectationManagerId; url: string }[]) {
+		const ids = new Set<ExpectationManagerId>()
 		for (const newEm of newExpectationManagers) {
-			ids[newEm.id] = true
+			ids.add(newEm.id)
 
-			const em = this.expectationManagers[newEm.id]
+			const em = this.expectationManagers.get(newEm.id)
 			if (!em || em.url !== newEm.url) {
 				// added or changed
 				await this.expectationManagerAvailable(newEm.id, newEm.url)
 			}
 		}
 		// Removed
-		for (const id of Object.keys(this.expectationManagers)) {
-			if (!ids[id]) {
+		for (const id of this.expectationManagers.keys()) {
+			if (!ids.has(id)) {
 				// removed
 				await this.expectationManagerGone(id)
 			}
 		}
 	}
-	private async cancelJob(currentJobOrId: CurrentJob | number): Promise<void> {
-		let wipId: number
+	private async cancelJob(currentJobOrId: CurrentJob | WorkInProgressLocalId): Promise<void> {
+		let wipId: WorkInProgressLocalId
 		let currentJob: CurrentJob | undefined
-		if (typeof currentJobOrId === 'number') {
+		if (isProtectedString(currentJobOrId)) {
 			wipId = currentJobOrId
 			currentJob = this.currentJobs.find((job) => job.wipId === wipId)
 		} else {
@@ -757,7 +792,7 @@ export class WorkerAgent {
 				this.IDidSomeWork() // so that we won't ask again until later
 
 				// Don's spin down if a monitor is active
-				if (!Object.keys(this.activeMonitors).length) {
+				if (!this.activeMonitors.size) {
 					this.logger.debug(`Worker: is idle, requesting spinning down`)
 
 					if (this.appContainerAPI.connected) {
@@ -784,6 +819,9 @@ export class WorkerAgent {
 	private IDidSomeWork() {
 		this.lastWorkTime = Date.now()
 	}
+	private getNextWipId(): WorkInProgressLocalId {
+		return protectString<WorkInProgressLocalId>(`${this._wipI++}`)
+	}
 }
 interface CurrentJob {
 	cost: ExpectationManagerWorkerAgent.ExpectationCost
@@ -791,6 +829,6 @@ interface CurrentJob {
 	lastUpdated: number
 	progress: number
 	timeoutInterval: NodeJS.Timeout | null
-	wipId: number
+	wipId: WorkInProgressLocalId
 	workInProgress: IWorkInProgress | null
 }

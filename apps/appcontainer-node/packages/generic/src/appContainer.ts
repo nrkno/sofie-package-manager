@@ -24,7 +24,18 @@ import {
 	DataStore,
 	literal,
 	WorkForceAppContainer,
+	mapEntries,
+	findValue,
+	AppContainerId,
+	AppType,
+	AppId,
+	WorkerAgentId,
+	unprotectString,
+	DataId,
+	LockId,
+	protectString,
 } from '@sofie-package-manager/api'
+
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
 
@@ -37,16 +48,17 @@ const MAX_APP_ID = 10000000
 
 export class AppContainer {
 	private workforceAPI: WorkforceAPI
-	private id: string
+	private id: AppContainerId
 	private workForceConnectionOptions: ClientConnectionOptions
 	private appId = 0
 	private usedInspectPorts = new Set<number>()
 	private busyPorts = new Set<number>()
 
-	private apps: {
-		[appId: string]: {
+	private apps: Map<
+		AppId,
+		{
 			process: cp.ChildProcess
-			appType: string
+			appType: AppType
 			/** Set to true when the process is about to be killed */
 			toBeKilled: boolean
 			restarts: number
@@ -58,10 +70,8 @@ export class AppContainer {
 			lastPing: number
 			start: number
 		}
-	} = {}
-	private availableApps: {
-		[appType: string]: AvailableAppInfo
-	} = {}
+	> = new Map()
+	private availableApps: Map<AppType, AvailableAppInfo> = new Map()
 	private websocketServer?: WebsocketServer
 
 	private monitorAppsTimer: NodeJS.Timer | undefined
@@ -77,6 +87,7 @@ export class AppContainer {
 
 	constructor(logger: LoggerInstance, private config: AppContainerProcessConfig) {
 		this.logger = logger.category('AppContainer')
+		this.id = config.appContainer.appContainerId
 
 		this.workerStorage = new DataStore(this.logger, WORKER_DATA_LOCK_TIMEOUT)
 
@@ -92,22 +103,21 @@ export class AppContainer {
 
 						switch (client.clientType) {
 							case 'workerAgent': {
-								const workForceMethods = this.getWorkerAgentAPI(client.clientId)
-								const api = new WorkerAgentAPI(workForceMethods, {
+								const clientId = client.clientId as WorkerAgentId
+								const workForceMethods = this.getWorkerAgentAPI(clientId)
+								const api = new WorkerAgentAPI(this.id, workForceMethods, {
 									type: 'websocket',
 									clientConnection: client,
 								})
-								const app = this.apps[client.clientId]
+								const app = this.apps.get(clientId)
 								if (!app) {
-									throw new Error(
-										`Unknown app "${client.clientId}" just connected to the appContainer`
-									)
+									throw new Error(`Unknown app "${clientId}" just connected to the appContainer`)
 								}
 								client.once('close', () => {
-									this.logger.warn(`Connection to Worker "${client.clientId}" closed`)
+									this.logger.warn(`Connection to Worker "${clientId}" closed`)
 									app.workerAgentApi = null
 
-									this.workerStorage.releaseLockForTag(client.clientId)
+									this.workerStorage.releaseLockForTag(unprotectString(clientId))
 								})
 								this.logger.info(`Connection to Worker "${client.clientId}" established`)
 								app.workerAgentApi = api
@@ -141,7 +151,7 @@ export class AppContainer {
 			})
 		}
 
-		this.workforceAPI = new WorkforceAPI(this.logger)
+		this.workforceAPI = new WorkforceAPI(this.id, this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('Workforce disconnected')
 		})
@@ -150,11 +160,8 @@ export class AppContainer {
 
 			this.workforceAPI
 				.registerAvailableApps(
-					Object.entries(this.availableApps).map((o) => {
-						const appType: string = o[0]
-						return {
-							appType: appType,
-						}
+					mapEntries(this.availableApps, (appType: AppType) => {
+						return { appType }
 					})
 				)
 				.then(() => {
@@ -169,7 +176,6 @@ export class AppContainer {
 			this.logger.error(`WorkforceAPI error event: ${stringifyError(err)}`)
 		})
 
-		this.id = config.appContainer.appContainerId
 		this.workForceConnectionOptions = this.config.appContainer.workforceURL
 			? {
 					type: 'websocket',
@@ -188,7 +194,7 @@ export class AppContainer {
 		await this.setupAvailableApps()
 		// Note: if we later change this.setupAvailableApps to run on an interval
 		// don't throw here:
-		if (Object.keys(this.availableApps).length === 0) {
+		if (this.availableApps.size === 0) {
 			throw new Error(`AppContainer found no apps upon init. (Check if there are any Worker executables?)`)
 		}
 
@@ -197,9 +203,8 @@ export class AppContainer {
 		}
 
 		await this.workforceAPI.init(
-			this.id,
 			this.workForceConnectionOptions,
-			literal<WorkForceAppContainer.AppContainer>({
+			literal<Omit<WorkForceAppContainer.AppContainer, 'id'>>({
 				setLogLevel: this.setLogLevel.bind(this),
 				_debugKill: this._debugKill.bind(this),
 				_debugSendKillConnections: this._debugSendKillConnections.bind(this),
@@ -225,13 +230,15 @@ export class AppContainer {
 		this.logger.info(`Initialized`)
 	}
 	/** Return the API-methods that the AppContainer exposes to the WorkerAgent */
-	private getWorkerAgentAPI(clientId: string): AppContainerWorkerAgent.AppContainer {
+	private getWorkerAgentAPI(clientId: WorkerAgentId): AppContainerWorkerAgent.AppContainer {
 		return {
+			id: clientId,
 			ping: async (): Promise<void> => {
-				this.apps[clientId].lastPing = Date.now()
+				const app = this.apps.get(clientId)
+				if (app) app.lastPing = Date.now()
 			},
 			requestSpinDown: async (): Promise<void> => {
-				const app = this.apps[clientId]
+				const app = this.apps.get(clientId)
 				if (app) {
 					if (this.getAppCount(app.appType) > this.config.appContainer.minRunningApps) {
 						this.spinDown(clientId, `Requested by app`).catch((error) => {
@@ -241,32 +248,32 @@ export class AppContainer {
 				}
 			},
 			workerStorageWriteLock: async (
-				dataId: string,
+				dataId: DataId,
 				customTimeout?: number
-			): Promise<{ lockId: string; current: any | undefined }> => {
-				return this.workerStorage.getWriteLock(dataId, customTimeout, clientId)
+			): Promise<{ lockId: LockId; current: any | undefined }> => {
+				return this.workerStorage.getWriteLock(dataId, customTimeout, unprotectString(clientId))
 			},
-			workerStorageReleaseLock: async (dataId: string, lockId: string): Promise<void> => {
+			workerStorageReleaseLock: async (dataId: DataId, lockId: LockId): Promise<void> => {
 				return this.workerStorage.releaseLock(dataId, lockId)
 			},
-			workerStorageWrite: async (dataId: string, lockId: string, data: string): Promise<void> => {
+			workerStorageWrite: async (dataId: DataId, lockId: LockId, data: string): Promise<void> => {
 				return this.workerStorage.write(dataId, lockId, data)
 			},
-			workerStorageRead: async (dataId: string): Promise<any> => {
+			workerStorageRead: async (dataId: DataId): Promise<any> => {
 				return this.workerStorage.read(dataId)
 			},
 		}
 	}
 
-	private getAppCount(appType: string): number {
+	private getAppCount(appType: AppType): number {
 		let count = 0
-		for (const app of Object.values(this.apps)) {
+		for (const app of this.apps.values()) {
 			if (app.appType === appType) count++
 		}
 		return count
 	}
 	private async setupAvailableApps() {
-		const getWorkerArgs = (appId: string): string[] => {
+		const getWorkerArgs = (appId: AppId): string[] => {
 			return [
 				`--workerId=${appId}`,
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
@@ -299,13 +306,14 @@ export class AppContainer {
 			process.execPath.endsWith('node') // linux
 		) {
 			// Process runs as a node process, we're probably in development mode.
-			this.availableApps['worker'] = {
+			const appType = protectString<AppType>('worker')
+			this.availableApps.set(appType, {
 				file: process.execPath,
-				args: (appId: string) => {
+				args: (appId: AppId) => {
 					return [path.resolve('.', '../../worker/app/dist/index.js'), ...getWorkerArgs(appId)]
 				},
 				cost: 0,
-			}
+			})
 		} else {
 			// Process is a compiled executable
 			// Look for the worker executable(s) in the same folder:
@@ -315,19 +323,21 @@ export class AppContainer {
 
 			;(await fs.promises.readdir(dirPath)).forEach((fileName) => {
 				if (fileName.match(/worker/i)) {
-					this.availableApps[fileName] = {
+					// We use the filename to identify the appType:
+					const appType: AppType = protectString<AppType>(fileName)
+					this.availableApps.set(appType, {
 						file: path.join(dirPath, fileName),
-						args: (appId: string) => {
+						args: (appId: AppId) => {
 							return [...getWorkerArgs(appId)]
 						},
 						cost: 0,
-					}
+					})
 				}
 			})
 		}
 
 		this.logger.info(`Available apps`)
-		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
+		for (const [appType, availableApp] of this.availableApps.entries()) {
 			this.logger.info(`${appType}: ${availableApp.file}`)
 		}
 	}
@@ -361,9 +371,9 @@ export class AppContainer {
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any
-	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
 		this.logger.debug(`Got request for resources, for exp "${exp.id}"`)
-		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
+		if (this.apps.size >= this.config.appContainer.maxRunningApps) {
 			this.logger.debug(`Is already at our limit, no more resources available`)
 			// If we're at our limit, we can't possibly run anything else
 			return {
@@ -375,31 +385,32 @@ export class AppContainer {
 			}
 		}
 
-		const availableAppNames = Object.keys(this.availableApps)
-		if (availableAppNames.length === 0) {
+		if (this.availableApps.size === 0) {
 			this.logger.error('No apps available')
 		} else {
-			this.logger.debug(`Available apps: ${availableAppNames.join(', ')}`)
+			this.logger.debug(`Available apps: ${Array.from(this.availableApps.keys()).join(', ')}`)
 		}
 
-		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
+		for (const [appType, availableApp] of this.availableApps.entries()) {
 			// Do we already have any instance of the appType running?
-			let runningApp = Object.values(this.apps).find((app) => {
+			let runningApp = Array.from(this.apps.values()).find((app) => {
 				return app.appType === appType
 			})
 
 			if (!runningApp) {
-				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
+				const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
 
 				// wait for the app to connect to us:
 				await tryAfewTimes(async () => {
-					if (this.apps[newAppId].workerAgentApi) {
+					const app = this.apps.get(newAppId)
+					if (!app) throw new Error(`Worker "${newAppId}" not found`)
+					if (app.workerAgentApi) {
 						return true
 					}
 					await waitTime(200)
 					return false
 				}, 10)
-				runningApp = this.apps[newAppId]
+				runningApp = this.apps.get(newAppId)
 				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
 			}
 			if (runningApp?.workerAgentApi) {
@@ -426,9 +437,9 @@ export class AppContainer {
 
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
-	): Promise<{ success: true; appType: string; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
 		this.logger.debug(`Got request for resources, for packageContainer "${packageContainer.id}"`)
-		if (Object.keys(this.apps).length >= this.config.appContainer.maxRunningApps) {
+		if (this.apps.size >= this.config.appContainer.maxRunningApps) {
 			this.logger.debug(`Is already at our limit, no more resources available`)
 			// If we're at our limit, we can't possibly run anything else
 			return {
@@ -440,31 +451,32 @@ export class AppContainer {
 			}
 		}
 
-		const availableAppNames = Object.keys(this.availableApps)
-		if (availableAppNames.length === 0) {
+		if (this.availableApps.size === 0) {
 			this.logger.error('No apps available')
 		} else {
-			this.logger.debug(`Available apps: ${availableAppNames.join(', ')}`)
+			this.logger.debug(`Available apps: ${Array.from(this.availableApps.keys()).join(', ')}`)
 		}
 
-		for (const [appType, availableApp] of Object.entries(this.availableApps)) {
+		for (const [appType, availableApp] of this.availableApps.entries()) {
 			// Do we already have any instance of the appType running?
-			let runningApp = Object.values(this.apps).find((app) => {
+			let runningApp = findValue(this.apps, (_, app) => {
 				return app.appType === appType
 			})
 
 			if (!runningApp) {
-				const newAppId = await this.spinUp(appType, true) // todo: make it not die too soon
+				const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
 
 				// wait for the app to connect to us:
 				await tryAfewTimes(async () => {
-					if (this.apps[newAppId].workerAgentApi) {
+					const app = this.apps.get(newAppId)
+					if (!app) throw new Error(`Worker "${newAppId}" not found`)
+					if (app.workerAgentApi) {
 						return true
 					}
 					await waitTime(200)
 					return false
 				}, 10)
-				runningApp = this.apps[newAppId]
+				runningApp = this.apps.get(newAppId)
 				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
 			}
 			if (runningApp?.workerAgentApi) {
@@ -488,11 +500,11 @@ export class AppContainer {
 			},
 		}
 	}
-	private getNewAppId(): string {
-		const newAppId = `${this.id}_${this.appId++}`
+	private getNewAppId(): AppId {
+		const newAppId = protectString<AppId>(`${this.id}_${this.appId++}`)
 
-		if (this.apps[newAppId] !== undefined) {
-			const existingApp = this.apps[newAppId]
+		const existingApp = this.apps.get(newAppId)
+		if (existingApp !== undefined) {
 			throw new Error(
 				`New AppId "${newAppId}" is still being used by an existing process, existing process is "${
 					existingApp.appType
@@ -507,8 +519,11 @@ export class AppContainer {
 
 		return newAppId
 	}
-	async spinUp(appType: string, longSpinDownTime = false): Promise<string> {
-		const availableApp = this.availableApps[appType]
+	async spinUp(appType: AppType, longSpinDownTime = false): Promise<AppId> {
+		return this._spinUp(appType, longSpinDownTime)
+	}
+	private async _spinUp(appType: AppType, longSpinDownTime = false): Promise<AppId> {
+		const availableApp = this.availableApps.get(appType)
 		if (!availableApp) throw new Error(`Unknown appType "${appType}"`)
 
 		const appId = this.getNewAppId()
@@ -516,7 +531,7 @@ export class AppContainer {
 		this.logger.debug(`Spinning up app "${appId}" of type "${appType}"`)
 
 		const child = this.setupChildProcess(appType, appId, availableApp)
-		this.apps[appId] = {
+		this.apps.set(appId, {
 			process: child,
 			appType: appType,
 			toBeKilled: false,
@@ -527,11 +542,11 @@ export class AppContainer {
 			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
 			workerAgentApi: null,
 			start: Date.now(),
-		}
+		})
 		return appId
 	}
-	async spinDown(appId: string, reason: string): Promise<void> {
-		const app = this.apps[appId]
+	async spinDown(appId: AppId, reason: string): Promise<void> {
+		const app = this.apps.get(appId)
 		if (!app) throw new Error(`App "${appId}" not found`)
 
 		this.logger.verbose(`Spinning down app "${appId}" due to: ${reason}`)
@@ -544,11 +559,11 @@ export class AppContainer {
 
 		app.workerAgentApi = null
 		app.process.removeAllListeners()
-		delete this.apps[appId]
+		this.apps.delete(appId)
 	}
 	/** This is used to kill all ChildProcesses when terminating */
 	private killAllApps() {
-		Object.entries(this.apps).forEach(([appId, app]) => {
+		this.apps.forEach((app, appId) => {
 			app.toBeKilled = true
 			const success = app.process.kill()
 			if (!success)
@@ -557,19 +572,17 @@ export class AppContainer {
 			app.workerAgentApi = null
 			app.process.removeAllListeners()
 		})
-		this.apps = {}
+		this.apps.clear()
 	}
-	async getRunningApps(): Promise<{ appId: string; appType: string }[]> {
-		return Object.entries(this.apps).map((o) => {
-			const [appId, app] = o
-
+	async getRunningApps(): Promise<{ appId: AppId; appType: AppType }[]> {
+		return mapEntries(this.apps, (appId, app) => {
 			return {
 				appId: appId,
 				appType: app.appType,
 			}
 		})
 	}
-	private setupChildProcess(appType: string, appId: string, availableApp: AvailableAppInfo): cp.ChildProcess {
+	private setupChildProcess(appType: AppType, appId: AppId, availableApp: AvailableAppInfo): cp.ChildProcess {
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
@@ -619,7 +632,7 @@ export class AppContainer {
 		})
 		child.once('exit', (code) => {
 			if (inspectPort) this.usedInspectPorts.delete(inspectPort)
-			const app = this.apps[appId]
+			const app = this.apps.get(appId)
 			if (app) {
 				if (!app.toBeKilled) {
 					// Try to restart the application
@@ -650,7 +663,7 @@ export class AppContainer {
 		return child
 	}
 	private monitorApps() {
-		for (const [appId, app] of Object.entries(this.apps)) {
+		for (const [appId, app] of this.apps.entries()) {
 			if (app.monitorPing) {
 				if (Date.now() - app.lastPing > APPCONTAINER_PING_TIME * 2.5) {
 					// The app seems to have crashed.
@@ -675,13 +688,13 @@ export class AppContainer {
 		})
 	}
 	private async spinUpMinimumApps(): Promise<void> {
-		for (const appType of Object.keys(this.availableApps)) {
+		for (const appType of this.availableApps.keys()) {
 			while (this.getAppCount(appType) < this.config.appContainer.minRunningApps) {
-				await this.spinUp(appType)
+				await this._spinUp(appType)
 			}
 		}
 	}
-	private logFromApp(appId: string, appType: string, data: any, defaultLog: LeveledLogMethod): void {
+	private logFromApp(appId: AppId, appType: AppType, data: any, defaultLog: LeveledLogMethod): void {
 		const messages = `${data}`.split('\n')
 
 		for (const message of messages) {
@@ -761,7 +774,7 @@ export class AppContainer {
 }
 interface AvailableAppInfo {
 	file: string
-	args: (appId: string) => string[]
+	args: (appId: AppId) => string[]
 	/** Some kind of value, how much it costs to run it, per minute */
 	cost: number
 }

@@ -19,7 +19,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 		trackedExp
 	)
 
-	const availableWorkersCount = Object.keys(trackedExp.availableWorkers).length
+	const availableWorkersCount = trackedExp.availableWorkers.size
 	if (availableWorkersCount > 0) {
 		if (hasQueriedAnyone) {
 			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
@@ -40,7 +40,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 			})
 		}
 	} else {
-		if (!Object.keys(trackedExp.queriedWorkers).length) {
+		if (!trackedExp.queriedWorkers.size) {
 			if (!workerCount) {
 				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
@@ -69,7 +69,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 					user: `Found no workers who supports this Expectation, due to: ${trackedExp.noAvailableWorkersReason.user}`,
 					tech: `Found no workers who supports this Expectation: "${
 						trackedExp.noAvailableWorkersReason.tech
-					}", have asked workers: [${Object.keys(trackedExp.queriedWorkers).join(',')}]`,
+					}", have asked workers: [${Array.from(trackedExp.queriedWorkers.keys()).join(',')}]`,
 				},
 				// Don't update the package status, since we don't know anything about the package yet:
 				dontUpdatePackage: true,

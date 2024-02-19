@@ -17,9 +17,9 @@ export async function evaluateExpectationStateFulfilled({
 	timeSinceLastEvaluation,
 }: EvaluateContext): Promise<void> {
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.FULFILLED)
-	// TODO: Some monitor that is able to invalidate if it isn't fullfilled anymore?
+	// TODO: Some monitor that is able to invalidate if it isn't fulfilled anymore?
 
-	if (timeSinceLastEvaluation > tracker.getFullfilledWaitTime()) {
+	if (timeSinceLastEvaluation > tracker.getFulfilledWaitTime()) {
 		if (!trackedExp.session) trackedExp.session = {}
 		await manager.workerAgents.assignWorkerToSession(trackedExp)
 		if (trackedExp.session.assignedWorker) {
@@ -39,12 +39,12 @@ export async function evaluateExpectationStateFulfilled({
 
 				if (!notFulfilledReason) {
 					// Check if it is still fulfilled:
-					const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFullfilled(
+					const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFulfilled(
 						trackedExp.exp,
 						true
 					)
 					if (!fulfilled.fulfilled) {
-						// It appears like it's not fullfilled anymore
+						// It appears like it's not fulfilled anymore
 						notFulfilledReason = fulfilled.reason
 					}
 				}
@@ -67,11 +67,11 @@ export async function evaluateExpectationStateFulfilled({
 					})
 				} else {
 					// Yes it is still fullfiled
-					// No need to update the tracked state, since it's already fullfilled:
+					// No need to update the tracked state, since it's already fulfilled:
 					// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
 				}
 			} catch (error) {
-				runner.logger.warn(`Error in FULFILLED: ${stringifyError(error)}`)
+				runner.logger.warn(`Error in FULFILLED: exp "${trackedExp.id}": ${stringifyError(error)}`)
 				// Do nothing, hopefully some will be available at a later iteration
 				// todo: Is this the right thing to do?
 				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
@@ -79,8 +79,7 @@ export async function evaluateExpectationStateFulfilled({
 						user: `Can't check if fulfilled, due to an error`,
 						tech: `Error from worker ${trackedExp.session.assignedWorker.id}: ${stringifyError(error)}`,
 					},
-					// Should we se this here?
-					// dontUpdatePackage: true,
+					dontUpdatePackage: true,
 				})
 			}
 		} else {

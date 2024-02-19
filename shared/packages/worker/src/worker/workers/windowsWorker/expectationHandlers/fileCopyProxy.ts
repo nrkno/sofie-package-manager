@@ -9,11 +9,13 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	Reason,
 	stringifyError,
+	AccessorId,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -61,11 +63,11 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 
 		return isFileReadyToStartWorkingOn(worker, lookupSource, lookupTarget)
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		_wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isFileCopyProxy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
@@ -89,7 +91,7 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 			const sourceHandle = lookupSource.handle
 			const targetHandle = lookupTarget.handle
 
-			const startTime = Date.now()
+			const timer = startTimer()
 
 			if (
 				lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
@@ -141,7 +143,7 @@ export const FileCopyProxy: ExpectationWindowsHandler = {
 							await targetHandle.finalizePackage(fileOperation)
 							await targetHandle.updateMetadata(actualSourceUVersion)
 
-							const duration = Date.now() - startTime
+							const duration = timer.get()
 							wip._reportComplete(
 								actualSourceVersionHash,
 								{
@@ -253,7 +255,7 @@ async function lookupCopyTargets(
 
 function checkAccessorForQuantelFiles(
 	_packageContainer: PackageContainerOnPackage,
-	accessorId: string,
+	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any
 ): { success: true } | { success: false; reason: Reason } {
 	if (accessor.type === Accessor.AccessType.QUANTEL) {

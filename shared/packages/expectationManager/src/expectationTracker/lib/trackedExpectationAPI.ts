@@ -110,7 +110,7 @@ export class TrackedExpectationAPI {
 		workerAgent: WorkerAgentAPI,
 		trackedExp: TrackedExpectation
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
-		// First check if the Expectation depends on the fullfilled-status of another Expectation:
+		// First check if the Expectation depends on the fulfilled-status of another Expectation:
 		const waitingFor = this.isExpectationWaitingForOther(trackedExp)
 
 		if (waitingFor) {
@@ -128,10 +128,10 @@ export class TrackedExpectationAPI {
 	}
 	/** Checks if the expectation is waiting for another expectation, and returns the awaited Expectation, otherwise null */
 	public isExpectationWaitingForOther(trackedExp: TrackedExpectation): TrackedExpectation | null {
-		if (trackedExp.exp.dependsOnFullfilled?.length) {
-			// Check if those are fullfilled:
+		if (trackedExp.exp.dependsOnFulfilled?.length) {
+			// Check if those are fulfilled:
 			let waitingFor: TrackedExpectation | undefined = undefined
-			for (const id of trackedExp.exp.dependsOnFullfilled) {
+			for (const id of trackedExp.exp.dependsOnFulfilled) {
 				const trackedExp = this.tracker.trackedExpectations.get(id)
 				if (trackedExp && trackedExp.state !== ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
 					waitingFor = trackedExp
@@ -145,14 +145,14 @@ export class TrackedExpectationAPI {
 		return null
 	}
 	/**
-	 * To be called when trackedExp.status turns fullfilled.
-	 * Triggers any other expectations that listens to (are dependant on) the fullfilled one.
+	 * To be called when trackedExp.status turns fulfilled.
+	 * Triggers any other expectations that listens to (are dependant on) the fulfilled one.
 	 * @returns true if any other expectations where triggered (ie evaluation should run again ASAP)
 	 */
-	public onExpectationFullfilled(fullfilledExp: TrackedExpectation): boolean {
+	public onExpectationFulfilled(fulfilledExp: TrackedExpectation): boolean {
 		let hasTriggeredSomething = false
-		if (fullfilledExp.state === ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
-			const expectationsToTrigger = this.tracker.listeningExpectations.getListeningExpectations(fullfilledExp.id)
+		if (fulfilledExp.state === ExpectedPackageStatusAPI.WorkStatusState.FULFILLED) {
+			const expectationsToTrigger = this.tracker.listeningExpectations.getListeningExpectations(fulfilledExp.id)
 
 			// Go through the listening expectations and mark them to be re-evaluated ASAP:
 			for (const id of expectationsToTrigger) {

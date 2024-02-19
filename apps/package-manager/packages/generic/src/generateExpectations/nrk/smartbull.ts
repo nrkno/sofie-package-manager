@@ -11,7 +11,7 @@ export function shouldBeIgnored(packageWrap: ExpectedPackageWrap): boolean {
 	else return false
 }
 export function expectedPackageIsSmartbull(packageWrap: ExpectedPackageWrap): boolean {
-	return !!packageWrap.expectedPackage._id.match(/smartbull_auto_clip/)
+	return !!packageWrap.expectedPackage._id.includes('smartbull_auto_clip')
 }
 export function expectedPackageIsSmartbullSource(packageWrap: ExpectedPackageWrap): boolean {
 	if (expectedPackageIsSmartbull(packageWrap)) return false

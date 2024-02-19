@@ -6,6 +6,8 @@ import {
 	WorkforceStatusReport,
 	Expectation,
 	PackageContainerExpectation,
+	ExpectationManagerId,
+	AppId,
 } from '@sofie-package-manager/api'
 
 /**
@@ -17,11 +19,11 @@ export class WorkforceAPI
 	extends AdapterClient<WorkForceExpectationManager.ExpectationManager, WorkForceExpectationManager.WorkForce>
 	implements WorkForceExpectationManager.WorkForce
 {
-	constructor(logger: LoggerInstance) {
-		super(logger.category('WorkforceAPI'), 'expectationManager')
+	constructor(public id: ExpectationManagerId, logger: LoggerInstance) {
+		super(logger.category('WorkforceAPI'), id, 'expectationManager')
 	}
 
-	async registerExpectationManager(managerId: string, url: string): Promise<void> {
+	async registerExpectationManager(managerId: ExpectationManagerId, url: string): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('registerExpectationManager', managerId, url)
 	}
@@ -33,11 +35,11 @@ export class WorkforceAPI
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('setLogLevel', logLevel)
 	}
-	async setLogLevelOfApp(appId: string, logLevel: LogLevel): Promise<void> {
+	async setLogLevelOfApp(appId: AppId, logLevel: LogLevel): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('setLogLevelOfApp', appId, logLevel)
 	}
-	async _debugKillApp(appId: string): Promise<void> {
+	async _debugKillApp(appId: AppId): Promise<void> {
 		// Note: This call is ultimately received in shared/packages/workforce/src/workforce.ts
 		return this._sendMessage('_debugKillApp', appId)
 	}

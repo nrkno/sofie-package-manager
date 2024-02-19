@@ -7,10 +7,11 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isCorePackageInfoAccessorHandle,
@@ -62,11 +63,11 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		wasFullfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupCopyTargets(worker, exp)
@@ -135,7 +136,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupCopySources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -227,7 +228,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 								await targetHandle.finalizePackage(saveOperation)
 
 								if (wasCancelled) return
-								const duration = Date.now() - startTime
+								const duration = timer.get()
 								workInProgress._reportComplete(
 									actualSourceVersionHash,
 									{
@@ -298,7 +299,7 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 								await targetHandle.finalizePackage(fileOperation)
 								await targetHandle.updateMetadata(actualSourceUVersion)
 
-								const duration = Date.now() - startTime
+								const duration = timer.get()
 								workInProgress._reportComplete(
 									actualSourceVersionHash,
 									{

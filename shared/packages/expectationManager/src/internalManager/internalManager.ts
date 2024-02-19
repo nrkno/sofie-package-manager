@@ -7,6 +7,11 @@ import {
 	Reason,
 	removeUndefinedProperties,
 	stringifyError,
+	ExpectationManagerId,
+	WorkerAgentId,
+	WorkInProgressLocalId,
+	PackageContainerId,
+	MonitorId,
 } from '@sofie-package-manager/api'
 
 import { WorkerAgentAPI } from '../workerAgentApi'
@@ -46,7 +51,7 @@ export class InternalManager {
 
 	constructor(
 		logger: LoggerInstance,
-		public readonly managerId: string,
+		public readonly managerId: ExpectationManagerId,
 		serverOptions: ExpectationManagerServerOptions,
 		/** At what url the ExpectationManager can be reached on */
 		serverAccessBaseUrl: string | undefined,
@@ -117,11 +122,11 @@ export class InternalManager {
 		ExpectationManagerWorkerAgent.ExpectationManager,
 		ExpectationManagerWorkerAgent.WorkerAgent
 	> {
-		return (clientId: string, clientMethods: ExpectationManagerWorkerAgent.WorkerAgent) => {
+		return (clientId: WorkerAgentId, clientMethods) => {
 			// On connection from a workerAgent
 
 			const workerAgentMethods = this.getWorkerAgentAPI(clientId)
-			const api = new WorkerAgentAPI(workerAgentMethods, {
+			const api = new WorkerAgentAPI(this.managerId, workerAgentMethods, {
 				type: 'internal',
 				hookMethods: clientMethods,
 			})
@@ -130,7 +135,7 @@ export class InternalManager {
 			return workerAgentMethods
 		}
 	}
-	removeWorkerAgentHook(clientId: string): void {
+	removeWorkerAgentHook(clientId: WorkerAgentId): void {
 		const workerAgent = this.workerAgents.get(clientId)
 		if (!workerAgent) throw new Error(`WorkerAgent "${clientId}" not found!`)
 
@@ -142,8 +147,9 @@ export class InternalManager {
 	}
 
 	/** Return the API-methods that the ExpectationManager exposes to the WorkerAgent */
-	public getWorkerAgentAPI(clientId: string): ExpectationManagerWorkerAgent.ExpectationManager {
+	public getWorkerAgentAPI(clientId: WorkerAgentId): ExpectationManagerWorkerAgent.ExpectationManager {
 		return {
+			id: clientId,
 			messageFromWorker: async (
 				message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any
 			): Promise<any> => {
@@ -151,26 +157,26 @@ export class InternalManager {
 			},
 
 			wipEventProgress: async (
-				wipId: number,
+				wipId: WorkInProgressLocalId,
 				actualVersionHash: string | null,
 				progress: number
 			): Promise<void> => {
 				await this.tracker.worksInProgress.onWipEventProgress(clientId, wipId, actualVersionHash, progress)
 			},
 			wipEventDone: async (
-				wipId: number,
+				wipId: WorkInProgressLocalId,
 				actualVersionHash: string,
 				reason: Reason,
 				result: any
 			): Promise<void> => {
 				await this.tracker.worksInProgress.onWipEventDone(clientId, wipId, actualVersionHash, reason, result)
 			},
-			wipEventError: async (wipId: number, reason: Reason): Promise<void> => {
+			wipEventError: async (wipId: WorkInProgressLocalId, reason: Reason): Promise<void> => {
 				await this.tracker.worksInProgress.onWipEventError(clientId, wipId, reason)
 			},
 			monitorStatus: async (
-				packageContainerId: string,
-				monitorId: string,
+				packageContainerId: PackageContainerId,
+				monitorId: MonitorId,
 				status: StatusCode,
 				reason: Reason
 			) => {

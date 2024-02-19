@@ -7,10 +7,11 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import { isCorePackageInfoAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -35,6 +36,14 @@ export const PackageScan: ExpectationWindowsHandler = {
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
 					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+				},
+			}
+		if (windowsWorker.testFFProbe)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker (FFProbe)',
+					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
 				},
 			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
@@ -68,11 +77,11 @@ export const PackageScan: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		wasFullfilled: boolean,
+		wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupScanSources(worker, exp)
@@ -106,7 +115,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 			exp.endRequirement.version
 		)
 		if (packageInfoSynced.needsUpdate) {
-			if (wasFullfilled) {
+			if (wasFulfilled) {
 				// Remove the outdated scan result:
 				await lookupTarget.handle.removePackageInfo(PackageInfoType.Scan, exp)
 			}
@@ -118,7 +127,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source package and upload the results to Core
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupScanSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -174,7 +183,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 
 			await targetHandle.finalizePackage(scanOperation)
 
-			const duration = Date.now() - startTime
+			const duration = timer.get()
 			workInProgress._reportComplete(
 				sourceVersionHash,
 				{

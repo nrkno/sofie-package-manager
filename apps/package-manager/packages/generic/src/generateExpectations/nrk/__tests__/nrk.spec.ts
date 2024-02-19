@@ -1,15 +1,29 @@
-import { Accessor, Expectation, ExpectedPackage, literal, LoggerInstance } from '@sofie-package-manager/api'
-import * as NRK from '..'
 import {
-	ActivePlaylist,
-	ActiveRundown,
-	ExpectedPackageWrap,
-	PackageContainers,
-	PackageManagerSettings,
-	wrapExpectedPackage,
-} from '../../../packageManager'
+	Accessor,
+	AccessorId,
+	Expectation,
+	ExpectationManagerId,
+	ExpectedPackage,
+	ExpectedPackageId,
+	literal,
+	LoggerInstance,
+	objectSize,
+	objectValues,
+	PackageContainerId,
+	protectString,
+} from '@sofie-package-manager/api'
+import {
+	PackageManagerActivePlaylist,
+	PackageManagerActiveRundown,
+	// eslint-disable-next-line node/no-extraneous-import
+} from '@sofie-automation/shared-lib/dist/package-manager/publications'
+import * as NRK from '..'
+import { ExpectedPackageWrap, PackageContainers, wrapExpectedPackage } from '../../../packageManager'
+import { PackageManagerSettings } from '../../../generated/options'
+import * as Core from '@sofie-automation/server-core-integration'
 
 describe('Generate expectations - NRK', () => {
+	const MANAGER_ID = protectString<ExpectationManagerId>('test')
 	test('Wrap package', () => {
 		const o = setup()
 
@@ -35,7 +49,7 @@ describe('Generate expectations - NRK', () => {
 
 		const expectations = NRK.api.getExpectations(
 			o.logger,
-			'test',
+			MANAGER_ID,
 			o.packageContainers,
 			o.activePlaylist,
 			o.activeRundowns,
@@ -43,7 +57,7 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(0)
+		expect(objectSize(expectations)).toBe(0)
 	})
 	test('Simple package', () => {
 		const o = setup()
@@ -52,7 +66,7 @@ describe('Generate expectations - NRK', () => {
 
 		const expectations = NRK.api.getExpectations(
 			o.logger,
-			'test',
+			MANAGER_ID,
 			o.packageContainers,
 			o.activePlaylist,
 			o.activeRundowns,
@@ -60,15 +74,14 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(6) // copy, scan, deep-scan, thumbnail, preview, loudness
-		// expect(expectations).toMatchSnapshot()
+		expect(objectSize(expectations)).toBe(6) // copy, scan, deep-scan, thumbnail, preview, loudness
 
-		const eCopy = Object.values(expectations).find((e) => e.type === Expectation.Type.FILE_COPY)
-		const eScan = Object.values(expectations).find((e) => e.type === Expectation.Type.PACKAGE_SCAN)
-		const eDeepScan = Object.values(expectations).find((e) => e.type === Expectation.Type.PACKAGE_DEEP_SCAN)
-		const eLoudness = Object.values(expectations).find((e) => e.type === Expectation.Type.PACKAGE_LOUDNESS_SCAN)
-		const eThumbnail = Object.values(expectations).find((e) => e.type === Expectation.Type.MEDIA_FILE_THUMBNAIL)
-		const ePreview = Object.values(expectations).find((e) => e.type === Expectation.Type.MEDIA_FILE_PREVIEW)
+		const eCopy = objectValues(expectations).find((e) => e.type === Expectation.Type.FILE_COPY)
+		const eScan = objectValues(expectations).find((e) => e.type === Expectation.Type.PACKAGE_SCAN)
+		const eDeepScan = objectValues(expectations).find((e) => e.type === Expectation.Type.PACKAGE_DEEP_SCAN)
+		const eLoudness = objectValues(expectations).find((e) => e.type === Expectation.Type.PACKAGE_LOUDNESS_SCAN)
+		const eThumbnail = objectValues(expectations).find((e) => e.type === Expectation.Type.MEDIA_FILE_THUMBNAIL)
+		const ePreview = objectValues(expectations).find((e) => e.type === Expectation.Type.MEDIA_FILE_PREVIEW)
 
 		expect(eCopy).toBeTruthy()
 		expect(eScan).toBeTruthy()
@@ -86,7 +99,7 @@ describe('Generate expectations - NRK', () => {
 				o.packageContainers,
 				{
 					...copy(o.packages.simpleMedia),
-					_id: 'a',
+					_id: protectString<ExpectedPackageId>('a'),
 				},
 				true
 			),
@@ -94,7 +107,7 @@ describe('Generate expectations - NRK', () => {
 				o.packageContainers,
 				{
 					...copy(o.packages.simpleMedia),
-					_id: 'b',
+					_id: protectString<ExpectedPackageId>('b'),
 				},
 				true
 			),
@@ -102,7 +115,7 @@ describe('Generate expectations - NRK', () => {
 
 		const expectations = NRK.api.getExpectations(
 			o.logger,
-			'test',
+			MANAGER_ID,
 			o.packageContainers,
 			o.activePlaylist,
 			o.activeRundowns,
@@ -110,9 +123,9 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(6) // copy, scan, deep-scan, thumbnail, preview, loudness
+		expect(objectSize(expectations)).toBe(6) // copy, scan, deep-scan, thumbnail, preview, loudness
 
-		const eCopy = Object.values(expectations).find((e) => e.type === Expectation.Type.FILE_COPY)
+		const eCopy = objectValues(expectations).find((e) => e.type === Expectation.Type.FILE_COPY)
 		expect(eCopy).toBeTruthy()
 		expect(eCopy?.fromPackages).toHaveLength(2)
 	})
@@ -125,7 +138,7 @@ describe('Generate expectations - NRK', () => {
 				o.packageContainers,
 				{
 					...copy(o.packages.simpleMedia),
-					_id: 'a',
+					_id: protectString<ExpectedPackageId>('a'),
 				},
 				{
 					priority: 2,
@@ -135,7 +148,7 @@ describe('Generate expectations - NRK', () => {
 				o.packageContainers,
 				{
 					...copy(o.packages.simpleMedia2),
-					_id: 'b',
+					_id: protectString<ExpectedPackageId>('b'),
 				},
 				{
 					priority: 1,
@@ -145,7 +158,7 @@ describe('Generate expectations - NRK', () => {
 
 		const expectations = NRK.api.getExpectations(
 			o.logger,
-			'test',
+			MANAGER_ID,
 			o.packageContainers,
 			o.activePlaylist,
 			o.activeRundowns,
@@ -153,9 +166,9 @@ describe('Generate expectations - NRK', () => {
 			o.settings
 		)
 
-		expect(Object.keys(expectations)).toHaveLength(12) // 2x (copy, scan, deep-scan, thumbnail, preview, loudness)
+		expect(objectSize(expectations)).toBe(12) // 2x (copy, scan, deep-scan, thumbnail, preview, loudness)
 
-		const sorted = Object.values(expectations).sort((a, b) => {
+		const sorted = objectValues(expectations).sort((a, b) => {
 			// Lowest first: (lower is better)
 			if (a.priority > b.priority) return 1
 			if (a.priority < b.priority) return -1
@@ -195,22 +208,22 @@ function setup() {
 	} as any as LoggerInstance
 	const managerId = 'mockManager'
 	// const packageContainers: PackageContainers,
-	const activePlaylist: ActivePlaylist = {
-		_id: 'playlist',
+	const activePlaylist: PackageManagerActivePlaylist = {
+		_id: Core.protectString('playlist'),
 		active: true,
 		rehearsal: false,
 	}
-	const activeRundowns: ActiveRundown[] = [
+	const activeRundowns: PackageManagerActiveRundown[] = [
 		{
-			_id: 'rundown0',
+			_id: Core.protectString('rundown0'),
 			_rank: 0,
 		},
 		{
-			_id: 'rundown1',
+			_id: Core.protectString('rundown1'),
 			_rank: 1,
 		},
 		{
-			_id: 'rundown2',
+			_id: Core.protectString('rundown2'),
 			_rank: 2,
 		},
 	]
@@ -218,59 +231,60 @@ function setup() {
 		delayRemoval: 0,
 		useTemporaryFilePath: false,
 	}
-	const packageContainers: PackageContainers = {
-		source0: {
-			label: 'Source 0',
-			accessors: {
-				local: literal<Accessor.LocalFolder>({
-					type: Accessor.AccessType.LOCAL_FOLDER,
-					folderPath: 'C:\\source0',
-					label: 'Local',
-					allowRead: true,
-					allowWrite: true,
-				}),
-			},
-		},
-		target0: {
-			label: 'Target 0',
-			accessors: {
-				local: literal<Accessor.LocalFolder>({
-					type: Accessor.AccessType.LOCAL_FOLDER,
-					folderPath: 'C:\\target',
-					label: 'Local',
-					allowRead: true,
-					allowWrite: true,
-				}),
-			},
-		},
-		previews: {
-			label: 'Target  for Previews',
-			accessors: {
-				local: literal<Accessor.LocalFolder>({
-					type: Accessor.AccessType.LOCAL_FOLDER,
-					folderPath: 'C:\\targetPreviews',
-					label: 'Local',
-					allowRead: true,
-					allowWrite: true,
-				}),
-			},
-		},
-		thumbnails: {
-			label: 'Target for Thumbnails',
-			accessors: {
-				local: literal<Accessor.LocalFolder>({
-					type: Accessor.AccessType.LOCAL_FOLDER,
-					folderPath: 'C:\\targetThumbnails',
-					label: 'Local',
-					allowRead: true,
-					allowWrite: true,
-				}),
-			},
+	const packageContainers: PackageContainers = {}
+
+	packageContainers[protectString<PackageContainerId>('source0')] = {
+		label: 'Source 0',
+		accessors: {
+			[protectString<AccessorId>('local')]: literal<Accessor.LocalFolder>({
+				type: Accessor.AccessType.LOCAL_FOLDER,
+				folderPath: 'C:\\source0',
+				label: 'Local',
+				allowRead: true,
+				allowWrite: true,
+			}),
 		},
 	}
+	packageContainers[protectString<PackageContainerId>('target0')] = {
+		label: 'Target 0',
+		accessors: {
+			[protectString<AccessorId>('local')]: literal<Accessor.LocalFolder>({
+				type: Accessor.AccessType.LOCAL_FOLDER,
+				folderPath: 'C:\\target',
+				label: 'Local',
+				allowRead: true,
+				allowWrite: true,
+			}),
+		},
+	}
+	packageContainers[protectString<PackageContainerId>('previews')] = {
+		label: 'Target  for Previews',
+		accessors: {
+			[protectString<AccessorId>('local')]: literal<Accessor.LocalFolder>({
+				type: Accessor.AccessType.LOCAL_FOLDER,
+				folderPath: 'C:\\targetPreviews',
+				label: 'Local',
+				allowRead: true,
+				allowWrite: true,
+			}),
+		},
+	}
+	packageContainers[protectString<PackageContainerId>('thumbnails')] = {
+		label: 'Target for Thumbnails',
+		accessors: {
+			[protectString<AccessorId>('local')]: literal<Accessor.LocalFolder>({
+				type: Accessor.AccessType.LOCAL_FOLDER,
+				folderPath: 'C:\\targetThumbnails',
+				label: 'Local',
+				allowRead: true,
+				allowWrite: true,
+			}),
+		},
+	}
+
 	const packages = {
 		simpleMedia: literal<ExpectedPackage.ExpectedPackageMediaFile>({
-			_id: 'simpleMedia',
+			_id: protectString<ExpectedPackageId>('simpleMedia'),
 			contentVersionHash: 'hash0',
 			layers: ['target0'],
 			type: ExpectedPackage.PackageType.MEDIA_FILE,
@@ -280,16 +294,16 @@ function setup() {
 			version: {},
 			sources: [
 				{
-					containerId: 'source0',
+					containerId: protectString<PackageContainerId>('source0'),
 					accessors: {},
 				},
 			],
 			sideEffect: {
-				previewContainerId: 'previews',
+				previewContainerId: protectString<PackageContainerId>('previews'),
 				previewPackageSettings: {
 					path: 'simpleMedia-preview.webm',
 				},
-				thumbnailContainerId: 'thumbnails',
+				thumbnailContainerId: protectString<PackageContainerId>('thumbnails'),
 				thumbnailPackageSettings: {
 					path: 'simpleMedia-thumbnail.webm',
 				},
@@ -299,7 +313,7 @@ function setup() {
 			},
 		}),
 		simpleMedia2: literal<ExpectedPackage.ExpectedPackageMediaFile>({
-			_id: 'simpleMedia2',
+			_id: protectString<ExpectedPackageId>('simpleMedia2'),
 			contentVersionHash: 'hash0',
 			layers: ['target0'],
 			type: ExpectedPackage.PackageType.MEDIA_FILE,
@@ -309,16 +323,16 @@ function setup() {
 			version: {},
 			sources: [
 				{
-					containerId: 'source0',
+					containerId: protectString<PackageContainerId>('source0'),
 					accessors: {},
 				},
 			],
 			sideEffect: {
-				previewContainerId: 'previews',
+				previewContainerId: protectString<PackageContainerId>('previews'),
 				previewPackageSettings: {
 					path: 'simpleMedia2-preview.webm',
 				},
-				thumbnailContainerId: 'thumbnails',
+				thumbnailContainerId: protectString<PackageContainerId>('thumbnails'),
 				thumbnailPackageSettings: {
 					path: 'simpleMedia2-thumbnail.webm',
 				},
@@ -350,7 +364,7 @@ function wrap(
 	if (externalProps) {
 		// default:
 		wrapped.external = false
-		wrapped.playoutDeviceId = 'device0'
+		wrapped.playoutDeviceId = Core.protectString('device0')
 
 		if (typeof externalProps === 'object') {
 			wrapped = {

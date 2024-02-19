@@ -1,17 +1,18 @@
+import { PackageContainerId } from '@sofie-package-manager/api'
 import { TrackedPackageContainerExpectation } from '../../lib/trackedPackageContainerExpectation'
 
 /** Storage for Tracked PackageContainerExpectations*/
 export class TrackedPackageContainersStorage {
-	private trackedPackageContainers: { [id: string]: TrackedPackageContainerExpectation } = {}
+	private trackedPackageContainers: Map<PackageContainerId, TrackedPackageContainerExpectation> = new Map()
 
 	private cacheIsDirty = true
-	private cacheIds: string[] = []
+	private cacheIds: PackageContainerId[] = []
 	private cacheList: TrackedPackageContainerExpectation[] = []
 
-	public get(containerId: string): TrackedPackageContainerExpectation | undefined {
-		return this.trackedPackageContainers[containerId]
+	public get(containerId: PackageContainerId): TrackedPackageContainerExpectation | undefined {
+		return this.trackedPackageContainers.get(containerId)
 	}
-	public getIds(): string[] {
+	public getIds(): PackageContainerId[] {
 		this.updateCache()
 		return this.cacheIds
 	}
@@ -23,26 +24,26 @@ export class TrackedPackageContainersStorage {
 		return this.cacheList
 	}
 	/** Add or Update a tracked PackageContainer */
-	public upsert(containerId: string, trackedPackageContainer: TrackedPackageContainerExpectation): void {
+	public upsert(containerId: PackageContainerId, trackedPackageContainer: TrackedPackageContainerExpectation): void {
 		if (trackedPackageContainer.id !== containerId)
 			throw new Error(`Internal Error: upsert: id not matching packageContainer id!`)
 
-		this.trackedPackageContainers[containerId] = trackedPackageContainer
+		this.trackedPackageContainers.set(containerId, trackedPackageContainer)
 		this.cacheIsDirty = true
 	}
-	public remove(containerId: string): void {
-		delete this.trackedPackageContainers[containerId]
+	public remove(containerId: PackageContainerId): void {
+		this.trackedPackageContainers.delete(containerId)
 		this.cacheIsDirty = true
 	}
 	public clear(): void {
-		this.trackedPackageContainers = {}
+		this.trackedPackageContainers.clear()
 		this.cacheIsDirty = true
 	}
 
 	private updateCache(): void {
 		if (!this.cacheIsDirty) return
 
-		this.cacheList = Object.values(this.trackedPackageContainers)
+		this.cacheList = Array.from(this.trackedPackageContainers.values())
 		this.cacheIds = this.cacheList.map((e) => e.id)
 
 		this.cacheIsDirty = false

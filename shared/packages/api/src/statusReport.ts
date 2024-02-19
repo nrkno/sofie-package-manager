@@ -1,20 +1,32 @@
+import {
+	AppContainerId,
+	AppType,
+	PackageContainerId,
+	ExpectationId,
+	ExpectationManagerId,
+	MonitorId,
+	WorkInProgressId,
+	WorkerAgentId,
+	WorkInProgressLocalId,
+} from './ids'
+
 export interface WorkforceStatusReport {
 	workerAgents: WorkerStatusReport[]
 	expectationManagers: {
-		id: string
+		id: ExpectationManagerId
 		url?: string
 	}[]
 	appContainers: {
-		id: string
+		id: AppContainerId
 		initialized: boolean
 
 		availableApps: {
-			appType: string
+			appType: AppType
 		}[]
 	}[]
 }
 export interface ExpectationManagerStatusReport {
-	id: string
+	id: ExpectationManagerId
 	updated: number
 	expectationStatistics: {
 		countTotal: number
@@ -32,23 +44,23 @@ export interface ExpectationManagerStatusReport {
 	}
 	times: { [key: string]: number }
 	workerAgents: {
-		workerId: string
+		workerId: WorkerAgentId
 	}[]
 	worksInProgress: {
-		id: string
+		id: WorkInProgressId
 		lastUpdated: number
-		workerId: string
+		workerId: WorkerAgentId
 		cost: number
 		label: string
 		progress: number
-		expectationId: string
+		expectationId: ExpectationId
 	}[]
 }
 export interface WorkerStatusReport {
-	id: string
+	id: WorkerAgentId
 	activeMonitors: {
-		containerId: string
-		monitorId: string
+		containerId: PackageContainerId
+		monitorId: MonitorId
 		label: string
 	}[]
 
@@ -56,7 +68,7 @@ export interface WorkerStatusReport {
 		cost: number
 		startCost: number
 		cancelled: boolean
-		wipId: number
+		wipId: WorkInProgressLocalId
 		progress: number
 		lastUpdated: number
 	}[]

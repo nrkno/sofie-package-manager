@@ -6,7 +6,7 @@ import {
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
@@ -36,9 +36,9 @@ import { FileVerify } from './expectationHandlers/fileVerify'
 export class WindowsWorker extends GenericWorker {
 	static readonly type = 'windowsWorker'
 
-	/** null = all is well */
+	/** Contains the result of testing the FFMpeg executable. null = all is well, otherwise contains error message */
 	public testFFMpeg: null | string = 'Not initialized'
-	/** null = all is well */
+	/** Contains the result of testing the FFProbe executable. null = all is well, otherwise contains error message */
 	public testFFProbe: null | string = 'Not initialized'
 
 	private monitor: NodeJS.Timer | undefined
@@ -49,9 +49,6 @@ export class WindowsWorker extends GenericWorker {
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
 		super(logger.category('WindowsWorker'), agentAPI, sendMessageToManager, WindowsWorker.type)
-		if (process.platform !== 'win32' && process.env.JEST_WORKER_ID === undefined) {
-			throw new Error('The Worker is a Windows-only application')
-		}
 		this.logger.debug(`Worker started`)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
@@ -85,11 +82,11 @@ export class WindowsWorker extends GenericWorker {
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
 		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
 	}
-	async isExpectationFullfilled(
+	async isExpectationFulfilled(
 		exp: Expectation.Any,
-		wasFullfilled: boolean
-	): Promise<ReturnTypeIsExpectationFullfilled> {
-		return this.getExpectationHandler(exp).isExpectationFullfilled(exp, wasFullfilled, this, this)
+		wasFulfilled: boolean
+	): Promise<ReturnTypeIsExpectationFulfilled> {
+		return this.getExpectationHandler(exp).isExpectationFulfilled(exp, wasFulfilled, this, this)
 	}
 	async workOnExpectation(exp: Expectation.Any, progressTimeout: number): Promise<IWorkInProgress> {
 		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this, progressTimeout)

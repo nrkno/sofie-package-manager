@@ -189,7 +189,7 @@ function deleteMock(path: string, orgPath?: string, dir?: MockDirectory): void {
 export function __printAllFiles(): string {
 	const getPaths = (dir: MockDirectory, indent: string): string => {
 		const strs: any[] = []
-		for (const [name, file] of Object.entries(dir.content)) {
+		for (const [name, file] of Object.entries<MockAny>(dir.content)) {
 			if (file.isDirectory) {
 				strs.push(`${indent}${name}/`)
 				strs.push(getPaths(file, indent + '  '))
@@ -231,7 +231,7 @@ const errors = {
 }
 function fixPath(path: string) {
 	const mountedDrives = wndMock.__mountedDrives
-	for (const [driveLetter, mountedPath] of Object.entries(mountedDrives)) {
+	for (const [driveLetter, mountedPath] of Object.entries<wndMock0.DriveInfo>(mountedDrives)) {
 		path = path.replace(new RegExp(`^${driveLetter}:`), mountedPath.path)
 	}
 
@@ -289,8 +289,10 @@ export function __emitter(): EventEmitter {
 fs.__emitter = __emitter
 
 export enum constants {
-	R_OK = 2,
-	W_OK = 4,
+	F_OK = 0,
+	X_OK = 1,
+	W_OK = 2,
+	R_OK = 4,
 }
 fs.constants = constants
 
@@ -487,7 +489,9 @@ fs.close = close
 export function copyFile(source: string, destination: string, callback: (error: any, result?: any) => void): void {
 	source = fixPath(source)
 	destination = fixPath(destination)
+	const destinationFolder = destination.replace(/[^\\/]+$/, '')
 	if (DEBUG_LOG) console.log('fs.copyFile', source, destination)
+
 	fsMockEmitter.emit('copyFile', source, destination)
 	fs.__cb('copyFile', () => {
 		try {
@@ -495,6 +499,10 @@ export function copyFile(source: string, destination: string, callback: (error: 
 			if (DEBUG_LOG) console.log('source', source)
 			if (DEBUG_LOG) console.log('mockFile', mockFile)
 			if (DEBUG_LOG) console.log('destination', destination)
+
+			const destinationFolderMock = getMock(destinationFolder)
+			if (!destinationFolderMock.accessWrite) throw new Error(`Not allowed to write to "${destinationFolder}"`)
+
 			setMock(destination, mockFile, false)
 
 			callback(undefined, null)
@@ -534,7 +542,7 @@ export function createWriteStream(path: string, _options?: BufferEncoding | unde
 }
 fs.createWriteStream = createWriteStream
 
-const DEBUG_STREAMS = true
+const DEBUG_STREAMS = false
 class FSReadStream extends Readable {
 	constructor(public path: string) {
 		if (DEBUG_STREAMS) console.log('READ created')
@@ -560,6 +568,9 @@ class FSReadStream extends Readable {
 		if (DEBUG_STREAMS) console.log('READ pipe')
 		return super.pipe(destination, options)
 	}
+	close() {
+		// nothing?
+	}
 }
 class FSWriteStream extends Writable {
 	constructor(public path: string) {
@@ -578,7 +589,7 @@ class FSWriteStream extends Writable {
 		const obj = JSON.parse(chunkStr)
 
 		if (obj.sourcePath) {
-			console.log('COPY', obj.sourcePath, this.path)
+			if (DEBUG_STREAMS) console.log('COPY', obj.sourcePath, this.path)
 			copyFile(obj.sourcePath, this.path, (error, _result) => {
 				if (error) {
 					// this.emit('error', error)
@@ -595,6 +606,9 @@ class FSWriteStream extends Writable {
 	_final(callback: () => void) {
 		if (DEBUG_STREAMS) console.log('WRITE final')
 		callback()
+	}
+	close() {
+		// nothing?
 	}
 }
 

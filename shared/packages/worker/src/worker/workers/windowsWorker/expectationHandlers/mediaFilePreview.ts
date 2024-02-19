@@ -7,11 +7,12 @@ import {
 	Expectation,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeGetCostFortExpectation,
-	ReturnTypeIsExpectationFullfilled,
+	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	assertNever,
 	stringifyError,
+	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -28,6 +29,8 @@ import {
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
 import { WindowsWorker } from '../windowsWorker'
+import { scanWithFFProbe, FFProbeScanResult } from './lib/scan'
+import { CancelablePromise } from '../../../lib/cancelablePromise'
 
 /**
  * Generates a low-res preview video of a source video file, and stores the resulting file into the target PackageContainer
@@ -44,6 +47,14 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
 					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+				},
+			}
+		if (windowsWorker.testFFProbe)
+			return {
+				support: false,
+				reason: {
+					user: 'There is an issue with the Worker (FFProbe)',
+					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
 				},
 			}
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
@@ -77,11 +88,11 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			ready: true,
 		}
 	},
-	isExpectationFullfilled: async (
+	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		_wasFullfilled: boolean,
+		_wasFulfilled: boolean,
 		worker: GenericWorker
-	): Promise<ReturnTypeIsExpectationFullfilled> => {
+	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
@@ -142,7 +153,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
-		const startTime = Date.now()
+		const timer = startTimer()
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
@@ -178,9 +189,11 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				throw new Error(`Target AccessHandler type is wrong`)
 
 			let ffMpegProcess: FFMpegProcess | undefined
+			let ffProbeProcess: CancelablePromise<any> | undefined
 			const workInProgress = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
 				// On cancel
 				ffMpegProcess?.cancel()
+				ffProbeProcess?.cancel()
 			}).do(async () => {
 				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
 				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
@@ -220,6 +233,24 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					throw new Error(`Unsupported Target AccessHandler`)
 				}
 
+				// Scan with FFProbe:
+				ffProbeProcess = scanWithFFProbe(sourceHandle)
+				const ffProbeScan: FFProbeScanResult = await ffProbeProcess
+				ffProbeProcess = undefined
+				const hasVideoStream =
+					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
+				if (!hasVideoStream) {
+					workInProgress._reportComplete(
+						actualSourceVersionHash,
+						{
+							user: `Preview generation skipped due to file having no video streams`,
+							tech: `Completed at ${Date.now()}`,
+						},
+						undefined
+					)
+					return
+				}
+
 				const args = previewFFMpegArguments(inputPath, true, metadata)
 
 				const fileOperation = await targetHandle.prepareForOperation('Generate preview', lookupSource.handle)
@@ -235,7 +266,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(metadata)
 
-						const duration = Date.now() - startTime
+						const duration = timer.get()
 						workInProgress._reportComplete(
 							actualSourceVersionHash,
 							{

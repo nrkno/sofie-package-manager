@@ -4,6 +4,8 @@ import {
 	PackageContainerExpectation,
 	Reason,
 	HelpfulEventEmitter,
+	AccessorId,
+	MonitorId,
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
 } from '@sofie-package-manager/api'
@@ -16,7 +18,7 @@ import { MonitorInProgress } from '../lib/monitorInProgress'
 export abstract class GenericAccessorHandle<Metadata> {
 	constructor(
 		protected worker: GenericWorker,
-		public readonly accessorId: string,
+		public readonly accessorId: AccessorId,
 		protected _accessor: AccessorOnPackage.Any,
 		protected _content: unknown,
 		public readonly type: string
@@ -228,7 +230,7 @@ export type AccessorHandlerCheckPackageContainerWriteAccessResult = AccessorHand
 export type AccessorHandlerRunCronJobResult = Promise<AccessorHandlerResultGeneric>
 export type SetupPackageContainerMonitorsResult =
 	| (AccessorHandlerResultSuccess & {
-			monitors: { [monitorId: string]: MonitorInProgress }
+			monitors: Record<MonitorId, MonitorInProgress>
 	  })
 	| AccessorHandlerResultBad
 /**

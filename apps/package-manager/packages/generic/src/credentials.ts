@@ -1,6 +1,4 @@
-import { CoreCredentials } from '@sofie-automation/server-core-integration'
-// eslint-disable-next-line node/no-extraneous-import
-import { protectString } from '@sofie-automation/shared-lib/dist/lib/protectedString'
+import { CoreCredentials, PeripheralDeviceId, protectString } from '@sofie-automation/server-core-integration'
 import { nanoid } from 'nanoid'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -16,7 +14,7 @@ export function getCredentials(name: string): CoreCredentials {
 	let credentials: CoreCredentials = store.get('CoreCredentials')
 	if (!credentials) {
 		credentials = {
-			deviceId: protectString(nanoid()),
+			deviceId: protectString<PeripheralDeviceId>(nanoid()),
 			deviceToken: nanoid(),
 		}
 		store.set('CoreCredentials', credentials)

@@ -1,7 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import { assertNever, ExpectationManagerStatusReport } from '@sofie-package-manager/api'
-
 import { InternalManager } from '../internalManager'
 
 /**  */
@@ -47,7 +46,7 @@ export class StatusReportCache {
 					workerId: workerId,
 				}
 			}),
-			worksInProgress: Object.entries(this.manager.tracker.worksInProgress.getWorksInProgress()).map(
+			worksInProgress: Array.from(this.manager.tracker.worksInProgress.getWorksInProgress().entries()).map(
 				([id, wip]) => {
 					return {
 						id: id,
@@ -83,7 +82,7 @@ export class StatusReportCache {
 				expectationStatistics.countAborted++
 			} else assertNever(exp.state)
 
-			if (Object.keys(exp.availableWorkers).length === 0) {
+			if (exp.availableWorkers.size === 0) {
 				expectationStatistics.countNoAvailableWorkers++
 			}
 			if (

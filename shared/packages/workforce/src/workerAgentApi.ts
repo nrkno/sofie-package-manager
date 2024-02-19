@@ -4,6 +4,8 @@ import {
 	AdapterServerOptions,
 	LogLevel,
 	WorkerStatusReport,
+	ExpectationManagerId,
+	WorkforceId,
 } from '@sofie-package-manager/api'
 
 /**
@@ -16,6 +18,7 @@ export class WorkerAgentAPI
 	implements WorkForceWorkerAgent.WorkerAgent
 {
 	constructor(
+		public id: WorkforceId,
 		methods: WorkForceWorkerAgent.WorkForce,
 		options: AdapterServerOptions<WorkForceWorkerAgent.WorkerAgent>
 	) {
@@ -35,10 +38,10 @@ export class WorkerAgentAPI
 		return this._sendMessage('getStatusReport')
 	}
 
-	async expectationManagerAvailable(id: string, url: string): Promise<void> {
+	async expectationManagerAvailable(id: ExpectationManagerId, url: string): Promise<void> {
 		return this._sendMessage('expectationManagerAvailable', id, url)
 	}
-	async expectationManagerGone(id: string): Promise<void> {
+	async expectationManagerGone(id: ExpectationManagerId): Promise<void> {
 		return this._sendMessage('expectationManagerGone', id)
 	}
 }

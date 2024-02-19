@@ -1,5 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
+import { PackageContainerId, ExpectedPackageId, AccessorId } from './ids'
 
 // import { assertTrue, EnumExtends, assertEnumValuesExtends } from './lib'
 /* eslint-disable @typescript-eslint/no-namespace */
@@ -42,7 +43,7 @@ export namespace ExpectedPackage {
 	/** Generic (used in extends) */
 	export interface Base {
 		/** Unique id of the expectedPackage */
-		_id: string
+		_id: ExpectedPackageId
 		/** Reference to which timeline-layer(s) the Package is going to be used in.
 		 * (Used to route the package to the right playout-device (targets))
 		 */
@@ -72,23 +73,26 @@ export namespace ExpectedPackage {
 		 */
 		sources: {
 			/** Reference to a PackageContainer */
-			containerId: string
+			containerId: PackageContainerId
 			/** Locally defined Accessors, these are combined (deep extended) with the PackageContainer (if it is found) Accessors */
-			accessors: { [accessorId: string]: AccessorOnPackage.Any }
+			accessors: Record<AccessorId, AccessorOnPackage.Any>
 		}[]
 
 		/** The sideEffect is used by the Package Manager to generate extra artifacts, such as thumbnails & previews */
 		sideEffect: {
 			/** Which container previews are to be put into */
-			previewContainerId?: string | null
+			previewContainerId?: PackageContainerId | null // null is used to disable the sideEffect
 			previewPackageSettings?: SideEffectPreviewSettings | null
 
 			/** Which container thumbnails are to be put into */
-			thumbnailContainerId?: string | null
+			thumbnailContainerId?: PackageContainerId | null // null is used to disable the sideEffect
 			thumbnailPackageSettings?: SideEffectThumbnailSettings | null
 
 			/** Should the package be scanned for loudness */
 			loudnessPackageSettings?: SideEffectLoudnessSettings
+
+			/** Other custom configuration */
+			[key: string]: any
 		}
 	}
 	export interface SideEffectPreviewSettings {
@@ -112,6 +116,12 @@ export namespace ExpectedPackage {
 		 * f.g. ["0", "0+1"] (for single stream stereo and discreet channel stereo) and then select the correct measurement in the
 		 * blueprints based on the context */
 		channelSpec: SideEffectLoudnessSettingsChannelSpec[]
+
+		/** Calculate phase difference between stereo channels in the tracks */
+		inPhaseDifference?: boolean
+
+		/** Calculate balance difference between stereo channels in the tracks */
+		balanceDifference?: boolean
 	}
 
 	export type SideEffectLoudnessSettingsChannelSpec = `${number}` | `${number}+${number}`
@@ -129,9 +139,9 @@ export namespace ExpectedPackage {
 			checkSumType?: 'sha' | 'md5' | 'whatever'
 		}
 		sources: {
-			containerId: string
+			containerId: PackageContainerId
 			accessors: {
-				[accessorId: string]:
+				[accessorId: AccessorId]:
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTP
@@ -158,8 +168,8 @@ export namespace ExpectedPackage {
 			cloneId?: number
 		}
 		sources: {
-			containerId: string
-			accessors: { [accessorId: string]: AccessorOnPackage.Quantel }
+			containerId: PackageContainerId
+			accessors: { [accessorId: AccessorId]: AccessorOnPackage.Quantel }
 		}[]
 	}
 
@@ -171,9 +181,9 @@ export namespace ExpectedPackage {
 		}
 		version: any // {}
 		sources: {
-			containerId: string
+			containerId: PackageContainerId
 			accessors: {
-				[accessorId: string]:
+				[accessorId: AccessorId]:
 					| AccessorOnPackage.HTTP
 					| AccessorOnPackage.HTTPProxy
 					| AccessorOnPackage.LocalFolder
@@ -194,7 +204,7 @@ export interface PackageContainer {
 	label: string
 
 	/** A list of ways to access the PackageContainer. Note: The accessors are different ways to access THE SAME PackageContainer. */
-	accessors: { [accessorId: string]: Accessor.Any }
+	accessors: { [accessorId: AccessorId]: Accessor.Any }
 }
 
 /** Defines different ways of accessing a PackageContainer.
@@ -355,10 +365,10 @@ export namespace AccessorOnPackage {
 }
 
 export interface PackageContainerOnPackage extends Omit<PackageContainer, 'accessors'> {
-	containerId: string
+	containerId: PackageContainerId
 	/** Short name, for displaying to user */
 	label: string
 
-	accessors: { [accessorId: string]: AccessorOnPackage.Any }
+	accessors: { [accessorId: AccessorId]: AccessorOnPackage.Any }
 }
 // Note: Not re-exporting ExpectedPackageStatusAPI in this file, since that is purely a Sofie-Core API
