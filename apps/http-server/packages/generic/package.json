@@ -10,7 +10,7 @@
         "__test": "jest"
     },
     "dependencies": {
-        "@koa/cors": "^4.0.0",
+        "@koa/cors": "^5.0.0",
         "@sofie-package-manager/api": "1.43.2",
         "koa": "^2.14.1",
         "koa-bodyparser": "^4.3.0",
