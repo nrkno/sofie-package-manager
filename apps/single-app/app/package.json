@@ -10,8 +10,6 @@
         "__test": "jest",
         "start": "node --inspect dist/index.js"
     },
-    "devDependencies": {
-    },
     "dependencies": {
         "@appcontainer-node/generic": "1.50.0-alpha.9",
         "@http-server/generic": "1.50.0-alpha.8",

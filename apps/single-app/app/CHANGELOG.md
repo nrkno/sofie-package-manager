@@ -41,6 +41,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Features
 
 * implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
+## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
+
+**Note:** Version bump only for package @single-app/app
 
 
 

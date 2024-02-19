@@ -25,6 +25,7 @@ import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
 import { removeBasePath } from './pathJoin'
 import { FileEvent, FileWatcher, IFileWatcher } from './FileWatcher'
+import { updateJSONFileBatch } from './json-write-file'
 
 export const LocalFolderAccessorHandleType = 'localFolder'
 export const FileShareAccessorHandleType = 'fileShare'
@@ -34,7 +35,6 @@ const fsReadFile = promisify(fs.readFile)
 const fsReaddir = promisify(fs.readdir)
 const fsRmDir = promisify(fs.rmdir)
 const fsStat = promisify(fs.stat)
-const fsWriteFile = promisify(fs.writeFile)
 const fsUnlink = promisify(fs.unlink)
 const fsLstat = promisify(fs.lstat)
 
@@ -57,48 +57,36 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 	/** Schedule the package for later removal */
 	async delayPackageRemoval(filePath: string, ttl: number): Promise<void> {
-		const packagesToRemove = await this.getPackagesToRemove()
+		await this.updatePackagesToRemove((packagesToRemove) => {
+			// Search for a pre-existing entry:
+			let alreadyExists = false
+			for (const entry of packagesToRemove) {
+				if (entry.filePath === filePath) {
+					// extend the TTL if it was found:
+					entry.removeTime = Date.now() + ttl
 
-		// Search for a pre-existing entry:
-		let found = false
-		for (const entry of packagesToRemove) {
-			if (entry.filePath === filePath) {
-				// extend the TTL if it was found:
-				entry.removeTime = Date.now() + ttl
-
-				found = true
-				break
+					alreadyExists = true
+					break
+				}
 			}
-		}
-		if (!found) {
-			packagesToRemove.push({
-				filePath: filePath,
-				removeTime: Date.now() + ttl,
-			})
-		}
-
-		await this.storePackagesToRemove(packagesToRemove)
+			if (!alreadyExists) {
+				packagesToRemove.push({
+					filePath: filePath,
+					removeTime: Date.now() + ttl,
+				})
+			}
+			return packagesToRemove
+		})
 	}
 	/** Clear a scheduled later removal of a package */
 	async clearPackageRemoval(filePath: string): Promise<void> {
-		const packagesToRemove = await this.getPackagesToRemove()
-
-		let found = false
-		for (let i = 0; i < packagesToRemove.length; i++) {
-			const entry = packagesToRemove[i]
-			if (entry.filePath === filePath) {
-				packagesToRemove.splice(i, 1)
-				found = true
-				break
-			}
-		}
-		if (found) {
-			await this.storePackagesToRemove(packagesToRemove)
-		}
+		await this.updatePackagesToRemove((packagesToRemove) => {
+			return packagesToRemove.filter((entry) => entry.filePath !== filePath)
+		})
 	}
 	/** Remove any packages that are due for removal */
 	async removeDuePackages(): Promise<Reason | null> {
-		let packagesToRemove = await this.getPackagesToRemove()
+		const packagesToRemove = await this.getPackagesToRemove()
 
 		const removedFilePaths: string[] = []
 		for (const entry of packagesToRemove) {
@@ -116,21 +104,14 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			}
 		}
 
-		// Fetch again, to decrease the risk of race-conditions:
-		packagesToRemove = await this.getPackagesToRemove()
-		let changed = false
-		// Remove paths from array:
-		for (let i = 0; i < packagesToRemove.length; i++) {
-			const entry = packagesToRemove[i]
-			if (removedFilePaths.includes(entry.filePath)) {
-				packagesToRemove.splice(i, 1)
-				changed = true
-				break
-			}
+		if (removedFilePaths.length > 0) {
+			// Update the list of packages to remove:
+			await this.updatePackagesToRemove((packagesToRemove) => {
+				// Remove the entries of the files we removed:
+				return packagesToRemove.filter((entry) => !removedFilePaths.includes(entry.filePath))
+			})
 		}
-		if (changed) {
-			await this.storePackagesToRemove(packagesToRemove)
-		}
+
 		return null
 	}
 	/** Unlink (remove) a file, if it exists. Returns true if it did exist */
@@ -436,8 +417,34 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 		}
 		return packagesToRemove
 	}
-	private async storePackagesToRemove(packagesToRemove: DelayPackageRemovalEntry[]): Promise<void> {
-		await fsWriteFile(this.deferRemovePackagesPath, JSON.stringify(packagesToRemove))
+	/** Update the deferred-remove-packages list */
+	private async updatePackagesToRemove(
+		cbManipulateList: (list: DelayPackageRemovalEntry[]) => DelayPackageRemovalEntry[]
+	): Promise<void> {
+		// Note: It is high likelihood that several processes will try to write to this file at the same time
+		// Therefore, we need to lock the file while writing to it.
+
+		const LOCK_ATTEMPTS_COUNT = 10
+		const RETRY_TIMEOUT = 100 // ms
+
+		try {
+			await updateJSONFileBatch<DelayPackageRemovalEntry[]>(
+				this.deferRemovePackagesPath,
+				(list) => {
+					return cbManipulateList(list ?? [])
+				},
+				{
+					retryCount: LOCK_ATTEMPTS_COUNT,
+					retryTimeout: RETRY_TIMEOUT,
+					logError: (error) => this.worker.logger.error(error),
+					logWarning: (message) => this.worker.logger.warn(message),
+				}
+			)
+		} catch (e) {
+			// Not much we can do about it..
+			// Log and continue:
+			this.worker.logger.error(e)
+		}
 	}
 }
 

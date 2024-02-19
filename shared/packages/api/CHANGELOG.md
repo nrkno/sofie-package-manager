@@ -44,12 +44,16 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * implement phase and balance measurements ([c1b7077](https://github.com/nrkno/tv-automation-package-manager/commit/c1b7077c548b12f45f6854cdf507f9b9cd94b009))
 * r50 json config schema ([1a0d477](https://github.com/nrkno/tv-automation-package-manager/commit/1a0d47761746a25692862afa7c351147db29a790))
+## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
+
+**Note:** Version bump only for package @sofie-package-manager/api
 
 
 
 
 
 # [1.50.0-alpha.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.6...v1.50.0-alpha.7) (2023-09-08)
+# [1.43.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0-alpha.2...v1.43.0) (2024-01-11)
 
 **Note:** Version bump only for package @sofie-package-manager/api
 

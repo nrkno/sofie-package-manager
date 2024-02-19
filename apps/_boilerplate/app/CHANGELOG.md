@@ -12,6 +12,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [1.50.0-alpha.6](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.5...v1.50.0-alpha.6) (2023-09-04)
+## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
 
 **Note:** Version bump only for package @boilerplate/app
 

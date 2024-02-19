@@ -32,6 +32,15 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [1.50.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.42.0...v1.50.0-alpha.0) (2023-05-10)
+## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
+
+**Note:** Version bump only for package @package-manager/app
+
+
+
+
+
+## [1.43.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0...v1.43.1) (2024-01-22)
 
 **Note:** Version bump only for package @package-manager/app
 

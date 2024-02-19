@@ -42,6 +42,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Bug Fixes
 
 * don't update the package status if a fulfilled status check fails with an error ([a362fec](https://github.com/nrkno/tv-automation-package-manager/commit/a362fec55b9fea6db18c15a1759cf142f2441573))
+## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
+
+**Note:** Version bump only for package @sofie-package-manager/expectation-manager
 
 
 
@@ -88,6 +91,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [1.50.0-alpha.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.6...v1.50.0-alpha.7) (2023-09-08)
+## [1.43.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0...v1.43.1) (2024-01-22)
 
 **Note:** Version bump only for package @sofie-package-manager/expectation-manager
 

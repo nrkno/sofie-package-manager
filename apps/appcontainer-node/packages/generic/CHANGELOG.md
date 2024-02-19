@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 # [1.50.0-alpha.9](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.50.0-alpha.9) (2024-01-30)
+## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
+
+**Note:** Version bump only for package @appcontainer-node/generic
+
+
+
+
+
+## [1.43.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.0...v1.43.1) (2024-01-22)
+
+**Note:** Version bump only for package @appcontainer-node/generic
 
 
 
