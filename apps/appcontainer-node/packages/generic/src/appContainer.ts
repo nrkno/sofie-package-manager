@@ -765,7 +765,7 @@ export class AppContainer {
 					_.isEmpty(messageData) ? undefined : messageData
 				)
 			} catch (err) {
-				this.logger.error(err)
+				this.logger.error(stringifyError(err))
 				// Fallback:
 				defaultLog(`${appId} stdout: ${message}`)
 			}

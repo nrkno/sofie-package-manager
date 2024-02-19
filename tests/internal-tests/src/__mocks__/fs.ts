@@ -2,6 +2,7 @@
 import wndMock0 from 'windows-network-drive' // Note: this is a mocked module
 import { EventEmitter } from 'events' // Note: this is a mocked module
 import { Readable, Writable } from 'stream'
+import { promisify } from 'util'
 // import * as Path from 'path'
 
 import type { WNDMockType } from './windows-network-drive'
@@ -615,6 +616,20 @@ class FSWriteStream extends Writable {
 interface FileAccess {
 	accessRead: boolean
 	accessWrite: boolean
+}
+
+fs.promises = {
+	stat: promisify(stat),
+	access: promisify(access),
+	unlink: promisify(unlink),
+	mkdir: promisify(mkdir),
+	readdir: promisify(readdir),
+	lstat: promisify(lstat),
+	writeFile: promisify(writeFile),
+	readFile: promisify(readFile),
+	open: promisify(open),
+	copyFile: promisify(copyFile),
+	rename: promisify(rename),
 }
 
 module.exports = fs

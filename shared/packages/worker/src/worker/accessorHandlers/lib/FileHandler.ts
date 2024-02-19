@@ -436,14 +436,14 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 				{
 					retryCount: LOCK_ATTEMPTS_COUNT,
 					retryTimeout: RETRY_TIMEOUT,
-					logError: (error) => this.worker.logger.error(error),
+					logError: (error) => this.worker.logger.error(stringifyError(error)),
 					logWarning: (message) => this.worker.logger.warn(message),
 				}
 			)
 		} catch (e) {
 			// Not much we can do about it..
 			// Log and continue:
-			this.worker.logger.error(e)
+			this.worker.logger.error(stringifyError(e))
 		}
 	}
 }

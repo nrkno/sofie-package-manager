@@ -69,7 +69,6 @@ export const FileCopy: ExpectationWindowsHandler = {
 		const lookupTarget = await lookupCopyTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
-		worker.logger
 		const workInProgress = await doFileCopyExpectation(exp, lookupSource, lookupTarget)
 		if (workInProgress === null) {
 			throw new Error(

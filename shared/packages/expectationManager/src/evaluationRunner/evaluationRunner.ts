@@ -326,7 +326,7 @@ export class EvaluationRunner {
 					.withConcurrency(this.tracker.constants.PARALLEL_CONCURRENCY)
 					.handleError(async (error, trackedExp) => {
 						// Log the error
-						this.logger.error(error.name + error.message)
+						this.logger.error(stringifyError(error))
 						if (trackedExp.session) {
 							// Mark the expectation so that it won't be evaluated again this round:
 							trackedExp.session.hadError = true
