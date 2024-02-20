@@ -19,6 +19,7 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 			'/njs', // Specifies that there is no job summary.
 			// '/mt', // multi-threading
 			// '/z', // Copies files in restartable mode.
+			'/copy:DA', // Copies the data, attributes, but no timestamps. (default is /copy:DAT)
 			srcFolder,
 			dstFolder,
 			srcFileName,
