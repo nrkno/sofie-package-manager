@@ -12,6 +12,9 @@
     "engines": {
         "node": ">=14.18.0"
     },
+    "devDependencies": {
+        "type-fest": "3.13.1"
+    },
     "dependencies": {
         "@sofie-package-manager/api": "1.50.0",
         "@sofie-package-manager/worker": "1.50.0",
