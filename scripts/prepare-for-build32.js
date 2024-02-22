@@ -7,7 +7,7 @@ const os = require('os')
 const exec = promisify(cp.exec)
 
 const fse = require('fs-extra')
-const mkdirp = require('mkdirp')
+const { mkdirp } = require('mkdirp')
 
 const fseCopy = promisify(fse.copy)
 
