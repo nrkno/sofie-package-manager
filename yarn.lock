@@ -1377,18 +1377,28 @@
   resolved "https://registry.yarnpkg.com/@sofie-automation/eslint-plugin/-/eslint-plugin-0.1.1.tgz#32cbb94fc3dd35e2dbcb95239512d2ec65133c54"
   integrity sha512-Abl0/5KDQrktJ0YoA8ULXygi2s5Q7tADsrhDnighzdR745eeYuP8MlW17NCVxzGbwkm+UKNPtGA+TRixTKJCFw==
 
-"@sofie-automation/server-core-integration@1.50.0-nightly-release50-20230627-124025-83abcdc.0":
-  version "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
-  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.50.0-nightly-release50-20230627-124025-83abcdc.0.tgz#90cf6f79dfe5095cd6c0b6c4933462ad63ee6d0f"
-  integrity sha512-XkWnhtzwXpY1bO/ILxtgEm94BiYQI+q69kuHcGZ2rlA8MpE8gkYnEUpDEeokjpAMN2WDreYihAq/CQX8UMgvfg==
+"@sofie-automation/server-core-integration@1.50.0":
+  version "1.50.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/server-core-integration/-/server-core-integration-1.50.0.tgz#6fefe5846248ecfa849061aec9bc1987e569c815"
+  integrity sha512-5eEI1dnWkFhQqR7Br+m8N8yNiP6E9CdbLgSlh1xRqBHP8CXVs5X2JMz/HPWHHnVsVwhqfYs7PJvSze84F9cvXg==
   dependencies:
-    "@sofie-automation/shared-lib" "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
+    "@sofie-automation/shared-lib" "1.50.0"
     ejson "^2.2.3"
     eventemitter3 "^4.0.7"
     faye-websocket "^0.11.4"
     got "^11.8.6"
     tslib "^2.4.0"
     underscore "^1.13.4"
+
+"@sofie-automation/shared-lib@1.50.0":
+  version "1.50.0"
+  resolved "https://registry.yarnpkg.com/@sofie-automation/shared-lib/-/shared-lib-1.50.0.tgz#f2b01aa92e0399edf986ea72f115a87a85a8ee6f"
+  integrity sha512-LlPbwbQAUiay6J17cUciBT8+rVifNyrT8pZbnMNEXHdbe5ZPFjvUWZrBT8InNl8ymbM3/Ty5nOFEjNlY8PAL9g==
+  dependencies:
+    "@mos-connection/model" "^3.0.4"
+    timeline-state-resolver-types "9.0.0"
+    tslib "^2.4.0"
+    type-fest "^2.19.0"
 
 "@sofie-automation/shared-lib@1.50.0-nightly-release50-20230627-124025-83abcdc.0":
   version "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
@@ -8454,6 +8464,13 @@ timeline-state-resolver-types@8.0.0-nightly-release50-20230615-051635-c51460271.
   dependencies:
     tslib "^2.5.1"
 
+timeline-state-resolver-types@9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/timeline-state-resolver-types/-/timeline-state-resolver-types-9.0.0.tgz#54051f9dbaa3791008188755872e5d4950c27cc1"
+  integrity sha512-awiwztg+HJoczcZZ+o19OeUgta08kpa81BohmsEN+rNRxtkeDvL219E/pFfILQREnMZHnOPGfMBkl93106VFHw==
+  dependencies:
+    tslib "^2.5.1"
+
 timers-ext@^0.1.7:
   version "0.1.7"
   resolved "https://registry.yarnpkg.com/timers-ext/-/timers-ext-0.1.7.tgz#6f57ad8578e07a3fb9f91d9387d65647555e25c6"
@@ -8566,12 +8583,7 @@ tslib@^1.13.0, tslib@^1.8.1:
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
 
-tslib@^2.1.0, tslib@^2.3.0, tslib@^2.3.1, tslib@^2.4.0:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.6.1.tgz#fd8c9a0ff42590b25703c0acb3de3d3f4ede0410"
-  integrity sha512-t0hLfiEKfMUoqhG+U1oid7Pva4bbDPHYfJNiB7BiIjRkj1pyC++4N3huJfqY6aRH6VTB0rvtzQwjM4K6qpfOig==
-
-tslib@^2.5.1:
+tslib@^2.1.0, tslib@^2.3.0, tslib@^2.3.1, tslib@^2.4.0, tslib@^2.5.1:
   version "2.6.2"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.6.2.tgz#703ac29425e7b37cd6fd456e92404d46d1f3e4ae"
   integrity sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==
