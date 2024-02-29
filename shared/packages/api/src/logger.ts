@@ -101,7 +101,9 @@ export function setupLogger(
 		})
 		if (initialLogLevel) setLogLevel(initialLogLevel, true)
 
-		logger.info('Logging to', logPath)
+		if (handleProcess) {
+			logger.info(`Logging to "${logPath}"`)
+		}
 	} else {
 		const transportConsole = new Winston.transports.Console({
 			level: logLevel,

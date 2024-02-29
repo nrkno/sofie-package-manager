@@ -7,6 +7,7 @@ import path from 'path'
 
 const fsCopyFile = promisify(fs.copyFile)
 const fsMkdir = promisify(fs.mkdir)
+const fsStat = promisify(fs.stat)
 
 const child_process: any = jest.createMockFromModule('child_process')
 
@@ -173,7 +174,13 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 			const source = path.join(sourceFolder, file)
 			const destination = path.join(destinationFolder, file)
 
-			await fsMkdir(destinationFolder) // robocopy automatically creates the destination folder
+			try {
+				await fsStat(destinationFolder)
+			} catch (e) {
+				if (`${e}`.match(/ENOENT/)) {
+					await fsMkdir(destinationFolder) // robocopy automatically creates the destination folder
+				} else throw e
+			}
 
 			await fsCopyFile(source, destination)
 		}
@@ -270,4 +277,5 @@ async function netUse(commandString: string): Promise<{ stdout: string; stderr: 
 		return { stdout, stderr }
 	}
 }
+
 module.exports = child_process

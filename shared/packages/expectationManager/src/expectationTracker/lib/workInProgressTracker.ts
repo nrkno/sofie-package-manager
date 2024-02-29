@@ -121,11 +121,8 @@ export class WorkInProgressTracker {
 					},
 				})
 
-				if (this.tracker.trackedExpectationAPI.onExpectationFulfilled(wip.trackedExp)) {
-					// Something was triggered, run again asap.
-					// We should reevaluate asap, so that any other expectation which might be waiting on this work could start.
-					this.tracker.triggerEvaluationNow()
-				}
+				// Trigger another evaluation ASAP, since a worker is free now, another expectation might be able to start:
+				this.tracker.triggerEvaluationNow()
 			} else {
 				// Expectation not in WORKING state, ignore
 			}

@@ -57,6 +57,9 @@ export class WorkerScaler {
 		this.waitingExpectations = []
 
 		for (const exp of this.tracker.trackedExpectations.list()) {
+			/** The expectation is waiting on another expectation */
+			const isWaitingForOther = this.tracker.trackedExpectationAPI.isExpectationWaitingForOther(exp)
+
 			/** The expectation is waiting for a worker */
 			const isWaiting: boolean =
 				exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
@@ -64,17 +67,16 @@ export class WorkerScaler {
 				exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY
 
 			/** Not supported by any worker */
-			const notSupportedByAnyWorker: boolean = exp.availableWorkers.size === 0
+			const notSupportedByAnyWorker = exp.availableWorkers.size === 0
+
 			/** No worker has had time to work on it lately */
-			const notAssignedToAnyWorker: boolean =
+			const notAssignedToAnyWorkerForSomeTime: boolean =
 				!!exp.noWorkerAssignedTime &&
 				Date.now() - exp.noWorkerAssignedTime > this.tracker.constants.SCALE_UP_TIME
 
-			if (
-				isWaiting &&
-				(notSupportedByAnyWorker || notAssignedToAnyWorker) &&
-				!this.tracker.trackedExpectationAPI.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
-			) {
+			// Is the expectation waiting for resources?
+			if (!isWaitingForOther && (isWaiting || notSupportedByAnyWorker || notAssignedToAnyWorkerForSomeTime)) {
+				// Add a second round of waiting, to ensure that we don't scale up prematurely:
 				if (!exp.waitingForWorkerTime) {
 					this.logger.silly(
 						`Starting to track how long expectation "${expLabel(exp)}" has been waiting for a worker`
@@ -84,6 +86,8 @@ export class WorkerScaler {
 			} else {
 				exp.waitingForWorkerTime = null
 			}
+
+			// If the expectation has been waiting for long enough:
 			if (exp.waitingForWorkerTime) {
 				const hasBeenWaitingFor = Date.now() - exp.waitingForWorkerTime
 				if (
