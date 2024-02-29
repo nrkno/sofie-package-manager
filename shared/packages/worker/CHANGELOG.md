@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.50.1...v1.50.2-alpha.0) (2024-02-29)
+
+
+### Bug Fixes
+
+* robocopy should not copy timstamps ([5856e55](https://github.com/nrkno/sofie-package-manager/commit/5856e5576c60747427712f6a005244150c7b6956))
+
+
+
+
+
 # [1.50.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.10...v1.50.0) (2024-02-19)
 
 **Note:** Version bump only for package @sofie-package-manager/worker

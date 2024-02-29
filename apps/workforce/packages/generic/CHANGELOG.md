@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.50.1...v1.50.2-alpha.0) (2024-02-29)
+
+**Note:** Version bump only for package @workforce/generic
+
+
+
+
+
 # [1.50.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.10...v1.50.0) (2024-02-19)
 
 **Note:** Version bump only for package @workforce/generic

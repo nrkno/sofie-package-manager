@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.1...v1.50.2-alpha.0) (2024-02-29)
+
+
+### Bug Fixes
+
+* fix an issue where workers wheren't scaled up properly when expectations where waiting ([81f354c](https://github.com/nrkno/tv-automation-package-manager/commit/81f354c301e587eba6f80b4f33b7fe3ebe14bf49))
+* robocopy should not copy timstamps ([5856e55](https://github.com/nrkno/tv-automation-package-manager/commit/5856e5576c60747427712f6a005244150c7b6956))
+
+
+
+
+
 ## [1.50.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0...v1.50.1) (2024-02-22)
 
 **Note:** Version bump only for package package-manager-monorepo

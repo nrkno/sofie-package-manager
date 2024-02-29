@@ -1,6 +1,6 @@
 {
     "name": "@http-server/app",
-    "version": "1.50.0",
+    "version": "1.50.2-alpha.0",
     "description": "Upload to and serve proxies of packages",
     "private": true,
     "scripts": {
@@ -11,7 +11,7 @@
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@http-server/generic": "1.50.0"
+        "@http-server/generic": "1.50.2-alpha.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
