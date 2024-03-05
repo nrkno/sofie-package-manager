@@ -1,6 +1,5 @@
 import { GenericWorker } from '../../../worker'
 import { getStandardCost } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	hashObj,
@@ -28,23 +27,19 @@ import {
 } from './lib'
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
-import { WindowsWorker } from '../windowsWorker'
+import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
 
 export const QuantelClipPreview: ExpectationWindowsHandler = {
-	doYouSupportExpectation(
-		exp: Expectation.Any,
-		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
-	): ReturnTypeDoYouSupportExpectation {
-		if (windowsWorker.testFFMpeg)
+	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+		if (worker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
-					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
 				},
 			}
-		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(worker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
 		})

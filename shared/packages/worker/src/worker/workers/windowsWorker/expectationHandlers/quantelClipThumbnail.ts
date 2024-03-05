@@ -14,7 +14,6 @@ import {
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
@@ -24,27 +23,23 @@ import {
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
-import { WindowsWorker } from '../windowsWorker'
+import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
 import { getSourceHTTPHandle, QuantelClipMetadata } from './lib/quantel'
 
 /**
  * Generates a thumbnail image from a source quantel clip, and stores the resulting file into the target PackageContainer
  */
 export const QuantelThumbnail: ExpectationWindowsHandler = {
-	doYouSupportExpectation(
-		exp: Expectation.Any,
-		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
-	): ReturnTypeDoYouSupportExpectation {
-		if (windowsWorker.testFFMpeg)
+	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+		if (worker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
-					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
 				},
 			}
-		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(worker, {
 			sources: exp.startRequirement.sources,
 		})
 	},

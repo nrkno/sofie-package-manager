@@ -1,6 +1,5 @@
 import { GenericWorker } from '../../../worker'
 import { UniversalVersion, getStandardCost, compareActualExpectVersions } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	Expectation,
@@ -18,6 +17,7 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { ExpectationWindowsHandler } from '../windowsWorker'
 
 /**
  * Verifies that a file exists on the target. Doesn't actually perform any work, just verifies that the file exists on the target,

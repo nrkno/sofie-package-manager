@@ -1,6 +1,5 @@
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	hashObj,
@@ -26,35 +25,31 @@ import {
 	scanMoreInfo,
 	scanWithFFProbe,
 } from './lib/scan'
-import { WindowsWorker } from '../windowsWorker'
+import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
 
 /**
  * Performs a "deep scan" of the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
  * The "deep scan" differs from the usual scan in that it does things that takes a bit longer, like scene-detection, field order detection etc..
  */
 export const PackageDeepScan: ExpectationWindowsHandler = {
-	doYouSupportExpectation(
-		exp: Expectation.Any,
-		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
-	): ReturnTypeDoYouSupportExpectation {
-		if (windowsWorker.testFFMpeg)
+	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+		if (worker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
-					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
 				},
 			}
-		if (windowsWorker.testFFProbe)
+		if (worker.testFFProbe)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFProbe)',
-					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
+					tech: `Cannot access FFProbe executable: ${worker.testFFProbe}`,
 				},
 			}
-		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(worker, {
 			sources: exp.startRequirement.sources,
 		})
 	},
@@ -134,8 +129,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 	},
 	workOnExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker,
-		_: WindowsWorker,
+		worker: WindowsWorker,
 		progressTimeout: number
 	): Promise<IWorkInProgress> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)

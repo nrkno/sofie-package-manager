@@ -1,6 +1,5 @@
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	hashObj,
@@ -18,41 +17,37 @@ import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { isAnFFMpegSupportedSourceAccessor, isAnFFMpegSupportedSourceAccessorHandle, scanWithFFProbe } from './lib/scan'
-import { WindowsWorker } from '../windowsWorker'
+import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
 import { PackageInfoType } from './lib/coreApi'
 
 /**
  * Scans the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
  */
 export const PackageScan: ExpectationWindowsHandler = {
-	doYouSupportExpectation(
-		exp: Expectation.Any,
-		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
-	): ReturnTypeDoYouSupportExpectation {
-		if (windowsWorker.testFFMpeg)
+	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+		if (worker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
-					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
 				},
 			}
-		if (windowsWorker.testFFProbe)
+		if (worker.testFFProbe)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFProbe)',
-					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
+					tech: `Cannot access FFProbe executable: ${worker.testFFProbe}`,
 				},
 			}
-		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(worker, {
 			sources: exp.startRequirement.sources,
 		})
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: WindowsWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
@@ -60,7 +55,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: WindowsWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 

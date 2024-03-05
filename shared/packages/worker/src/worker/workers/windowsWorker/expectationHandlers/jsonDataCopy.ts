@@ -1,6 +1,5 @@
 import { GenericWorker } from '../../../worker'
 import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, getStandardCost } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	hashObj,
@@ -24,6 +23,7 @@ import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
 import { PackageInfoType } from './lib/coreApi'
+import { ExpectationWindowsHandler } from '../windowsWorker'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer

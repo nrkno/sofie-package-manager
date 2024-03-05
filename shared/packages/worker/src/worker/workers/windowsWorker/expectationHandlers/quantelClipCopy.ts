@@ -1,6 +1,5 @@
 import { GenericWorker } from '../../../worker'
 import { compareUniversalVersions, getStandardCost, makeUniversalVersion } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	hashObj,
@@ -16,6 +15,7 @@ import {
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { ExpectationWindowsHandler } from '../windowsWorker'
 
 export const QuantelClipCopy: ExpectationWindowsHandler = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {

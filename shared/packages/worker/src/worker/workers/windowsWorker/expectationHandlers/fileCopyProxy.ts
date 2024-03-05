@@ -1,6 +1,5 @@
 import { GenericWorker } from '../../../worker'
 import { UniversalVersion, makeUniversalVersion, getStandardCost } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	AccessorOnPackage,
@@ -33,6 +32,7 @@ import {
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
+import { ExpectationWindowsHandler } from '../windowsWorker'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer.

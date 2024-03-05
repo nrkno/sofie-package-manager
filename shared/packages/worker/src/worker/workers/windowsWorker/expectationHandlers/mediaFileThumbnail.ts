@@ -13,7 +13,6 @@ import {
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { GenericWorker } from '../../../worker'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
@@ -29,7 +28,7 @@ import {
 	thumbnailFFMpegArguments,
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
-import { WindowsWorker } from '../windowsWorker'
+import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import { scanWithFFProbe, FFProbeScanResult } from './lib/scan'
 
@@ -37,28 +36,24 @@ import { scanWithFFProbe, FFProbeScanResult } from './lib/scan'
  * Generates a thumbnail image from a source video file, and stores the resulting file into the target PackageContainer
  */
 export const MediaFileThumbnail: ExpectationWindowsHandler = {
-	doYouSupportExpectation(
-		exp: Expectation.Any,
-		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
-	): ReturnTypeDoYouSupportExpectation {
-		if (windowsWorker.testFFMpeg)
+	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+		if (worker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
-					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
 				},
 			}
-		if (windowsWorker.testFFProbe)
+		if (worker.testFFProbe)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFProbe)',
-					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
+					tech: `Cannot access FFProbe executable: ${worker.testFFProbe}`,
 				},
 			}
-		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(worker, {
 			sources: exp.startRequirement.sources,
 		})
 	},
