@@ -12,7 +12,7 @@ import {
 	startTimer,
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
@@ -59,14 +59,14 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -86,7 +86,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		_wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -141,7 +141,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Create a thumbnail from the source media file
 
@@ -283,7 +283,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) {
@@ -321,7 +321,7 @@ interface Metadata {
 }
 
 async function lookupThumbnailSources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
@@ -337,7 +337,7 @@ async function lookupThumbnailSources(
 	)
 }
 async function lookupThumbnailTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.MediaFileThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(

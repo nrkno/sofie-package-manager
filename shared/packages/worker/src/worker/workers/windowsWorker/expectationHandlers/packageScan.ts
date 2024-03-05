@@ -1,5 +1,5 @@
 import { getStandardCost } from '../lib/lib'
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import {
 	Accessor,
 	hashObj,
@@ -75,7 +75,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -119,7 +119,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source package and upload the results to Core
 		const timer = startTimer()
@@ -191,7 +191,7 @@ export const PackageScan: ExpectationWindowsHandler = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupScanTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -225,7 +225,7 @@ function isPackageScan(exp: Expectation.Any): exp is Expectation.PackageScan {
 type Metadata = any // not used
 
 async function lookupScanSources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.PackageScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
@@ -241,7 +241,7 @@ async function lookupScanSources(
 	)
 }
 async function lookupScanTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.PackageScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(

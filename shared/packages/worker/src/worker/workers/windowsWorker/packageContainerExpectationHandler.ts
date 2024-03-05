@@ -11,19 +11,19 @@ import {
 } from '@sofie-package-manager/api'
 
 import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
-import { GenericWorker } from '../../worker'
+import { BaseWorker } from '../../worker'
 import { lookupAccessorHandles, LookupChecks } from './expectationHandlers/lib'
 import { findBestAccessorOnPackageContainer } from './lib/lib'
 
 export async function doYouSupportPackageContainer(
 	packageContainer: PackageContainerExpectation,
-	genericWorker: GenericWorker
+	genericWorker: BaseWorker
 ): Promise<ReturnTypeDoYouSupportPackageContainer> {
 	return checkWorkerHasAccessToPackageContainer(genericWorker, packageContainer.id, packageContainer)
 }
 export async function runPackageContainerCronJob(
 	packageContainer: PackageContainerExpectation,
-	genericWorker: GenericWorker
+	genericWorker: BaseWorker
 ): Promise<ReturnTypeRunPackageContainerCronJob> {
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'cronjob')
 	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
@@ -35,7 +35,7 @@ export async function runPackageContainerCronJob(
 }
 export async function setupPackageContainerMonitors(
 	packageContainer: PackageContainerExpectation,
-	genericWorker: GenericWorker
+	genericWorker: BaseWorker
 ): Promise<SetupPackageContainerMonitorsResult> {
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
 	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
@@ -51,7 +51,7 @@ export async function setupPackageContainerMonitors(
 }
 
 function checkWorkerHasAccessToPackageContainer(
-	genericWorker: GenericWorker,
+	genericWorker: BaseWorker,
 	containerId: PackageContainerId,
 	packageContainer: PackageContainer
 ): ReturnTypeDoYouSupportPackageContainer {
@@ -78,7 +78,7 @@ function checkWorkerHasAccessToPackageContainer(
 }
 
 async function lookupPackageContainer(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	packageContainer: PackageContainerExpectation,
 	forWhat: 'cronjob' | 'monitor'
 ): Promise<LookupPackageContainer> {

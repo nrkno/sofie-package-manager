@@ -1,4 +1,4 @@
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import { getStandardCost } from '../lib/lib'
 import {
 	Accessor,
@@ -59,14 +59,14 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -86,7 +86,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		_wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -144,7 +144,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			}
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
@@ -293,7 +293,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
@@ -336,7 +336,7 @@ interface Metadata {
 }
 
 async function lookupPreviewSources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
@@ -352,7 +352,7 @@ async function lookupPreviewSources(
 	)
 }
 async function lookupPreviewTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(

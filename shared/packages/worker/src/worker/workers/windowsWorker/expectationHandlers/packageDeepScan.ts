@@ -1,5 +1,5 @@
 import { getStandardCost } from '../lib/lib'
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import {
 	Accessor,
 	hashObj,
@@ -55,7 +55,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
@@ -63,7 +63,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -83,7 +83,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -307,7 +307,7 @@ export const PackageDeepScan: ExpectationWindowsHandler = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupDeepScanTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -341,7 +341,7 @@ function isPackageDeepScan(exp: Expectation.Any): exp is Expectation.PackageDeep
 type Metadata = any // not used
 
 async function lookupDeepScanSources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
@@ -357,7 +357,7 @@ async function lookupDeepScanSources(
 	)
 }
 async function lookupDeepScanTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(

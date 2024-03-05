@@ -9,7 +9,7 @@ import {
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
 } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 
 /**
@@ -17,7 +17,7 @@ import { MonitorInProgress } from '../lib/monitorInProgress'
  */
 export abstract class GenericAccessorHandle<Metadata> {
 	constructor(
-		protected worker: GenericWorker,
+		protected worker: BaseWorker,
 		public readonly accessorId: AccessorId,
 		protected _accessor: AccessorOnPackage.Any,
 		protected _content: unknown,

@@ -6,10 +6,10 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 import { IWorkInProgress } from './workInProgress'
 
-export interface ExpectationHandler<TWorker extends GenericWorker> {
+export interface ExpectationHandler<TWorker extends BaseWorker> {
 	/**
 	 * Does the Expectation-handler supports this expectation?
 	 * This includes things like:

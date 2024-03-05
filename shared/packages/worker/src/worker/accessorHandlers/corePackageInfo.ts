@@ -21,7 +21,7 @@ import {
 	protectString,
 	ExpectedPackageId,
 } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 
 /**
  * Accessor handle for accessing data store in Sofie Core.
@@ -37,7 +37,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	// @ts-expect-error unused variable
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
-		worker: GenericWorker,
+		worker: BaseWorker,
 		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.CorePackageCollection,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types

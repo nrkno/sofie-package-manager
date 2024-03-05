@@ -13,7 +13,7 @@ import {
 	startTimer,
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
@@ -45,14 +45,14 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -85,7 +85,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		_wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -140,7 +140,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Fetch the Thumbnail from the Quantel HTTP-transformer and put it on the target
 
@@ -241,7 +241,7 @@ export const QuantelThumbnail: ExpectationWindowsHandler = {
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) {
@@ -338,7 +338,7 @@ async function getThumbnailURL(
 type Metadata = QuantelClipMetadata
 
 async function lookupThumbnailSources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.QuantelClipThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
@@ -354,7 +354,7 @@ async function lookupThumbnailSources(
 	)
 }
 async function lookupThumbnailTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.QuantelClipThumbnail
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(

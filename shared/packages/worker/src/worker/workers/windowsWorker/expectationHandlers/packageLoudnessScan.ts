@@ -1,5 +1,5 @@
 import { getStandardCost } from '../lib/lib'
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import {
 	Accessor,
 	hashObj,
@@ -54,7 +54,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
@@ -62,7 +62,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -82,7 +82,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -126,7 +126,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source media file and upload the results to Core
 		const timer = startTimer()
@@ -207,7 +207,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupLoudnessTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -241,7 +241,7 @@ function isPackageLoudnessScan(exp: Expectation.Any): exp is Expectation.Package
 type Metadata = any // not used
 
 async function lookupLoudnessSources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.PackageLoudnessScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
@@ -257,7 +257,7 @@ async function lookupLoudnessSources(
 	)
 }
 async function lookupLoudnessTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.PackageLoudnessScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(

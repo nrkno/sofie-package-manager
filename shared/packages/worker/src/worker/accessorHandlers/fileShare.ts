@@ -28,7 +28,7 @@ import {
 	AccessorId,
 	MonitorId,
 } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
 import networkDrive from 'windows-network-drive'
 import { exec } from 'child_process'
@@ -67,7 +67,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
 	constructor(
-		worker: GenericWorker,
+		worker: BaseWorker,
 		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.FileShare,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -107,7 +107,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	get fullPath(): string {
 		return this.getFullPath(this.filePath)
 	}
-	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+	static doYouSupportAccess(worker: BaseWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.FileShare
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}

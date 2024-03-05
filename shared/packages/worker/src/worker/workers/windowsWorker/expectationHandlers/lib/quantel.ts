@@ -4,10 +4,10 @@ import { AccessorId, Expectation, literal, protectString } from '@sofie-package-
 import { getAccessorHandle, isHTTPProxyAccessorHandle } from '../../../../accessorHandlers/accessor'
 import { GenericAccessorHandle } from '../../../../accessorHandlers/genericHandle'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
-import { GenericWorker } from '../../../../worker'
+import { BaseWorker } from '../../../../worker'
 
 export function getSourceHTTPHandle(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	sourceHandle: GenericAccessorHandle<any>,
 	thumbnailURL: { baseURL: string; url: string }
 ): HTTPProxyAccessorHandle<any> {

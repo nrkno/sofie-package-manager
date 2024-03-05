@@ -6,7 +6,7 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { Diff } from 'deep-diff'
 import {
@@ -27,7 +27,7 @@ import { HTTPProxyAccessorHandle } from '../../../accessorHandlers/httpProxy'
 
 /** Check that a worker has access to the packageContainers through its accessors */
 export function checkWorkerHasAccessToPackageContainersOnPackage(
-	genericWorker: GenericWorker,
+	genericWorker: BaseWorker,
 	checks: {
 		sources?: PackageContainerOnPackage[]
 		targets?: PackageContainerOnPackage[]
@@ -136,7 +136,7 @@ export interface LookupChecks {
 }
 /** Go through the Accessors and return the best one that we can use for the expectation */
 export async function lookupAccessorHandles<Metadata>(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	packageContainers: PackageContainerOnPackage[],
 	expectationContent: unknown,
 	expectationWorkOptions: unknown,

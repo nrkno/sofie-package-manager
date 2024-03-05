@@ -13,7 +13,7 @@ import {
 	assertNever,
 	stringifyError,
 } from '@sofie-package-manager/api'
-import { GenericWorker, GenericWorkerAgentAPI } from '../../worker'
+import { BaseWorker, GenericWorkerAgentAPI } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
 import { FileCopyProxy } from './expectationHandlers/fileCopyProxy'
 import { PackageScan } from './expectationHandlers/packageScan'
@@ -35,7 +35,7 @@ import { FileVerify } from './expectationHandlers/fileVerify'
 export type ExpectationWindowsHandler = ExpectationHandler<WindowsWorker>
 
 /** This is a type of worker that runs on a windows machine */
-export class WindowsWorker extends GenericWorker {
+export class WindowsWorker extends BaseWorker {
 	static readonly type = 'windowsWorker'
 
 	/** Contains the result of testing the FFMpeg executable. null = all is well, otherwise contains error message */
