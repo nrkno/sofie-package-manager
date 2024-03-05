@@ -17,12 +17,12 @@ import {
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { ExpectationWindowsHandler } from '../windowsWorker'
+import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
 /**
  * Verifies that a file exists on the target. Doesn't actually perform any work, just verifies that the file exists on the target,
  */
-export const FileVerify: ExpectationWindowsHandler = {
+export const FileVerify: ExpectationHandlerGenericWorker = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: undefined,

@@ -22,10 +22,10 @@ import tmp from 'tmp'
 import * as fs from 'fs'
 import * as path from 'path'
 import { promisify } from 'util'
-import { UniversalVersion } from '../workers/windowsWorker/lib/lib'
+import { UniversalVersion } from '../workers/genericWorker/lib/lib'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
-import { getFFMpegExecutable, getFFProbeExecutable } from '../workers/windowsWorker/expectationHandlers/lib/ffmpeg'
+import { getFFMpegExecutable, getFFProbeExecutable } from '../workers/genericWorker/expectationHandlers/lib/ffmpeg'
 
 const fsReadFile = promisify(fs.readFile)
 

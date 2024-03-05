@@ -15,23 +15,24 @@ import {
 import { isCorePackageInfoAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { DeepScanResult, FieldOrder, PackageInfoType, ScanAnomaly } from './lib/coreApi'
 import { CancelablePromise } from '../../../lib/cancelablePromise'
 import {
 	FFProbeScanResult,
 	isAnFFMpegSupportedSourceAccessor,
 	isAnFFMpegSupportedSourceAccessorHandle,
-	scanLoudness,
+	scanFieldOrder,
+	scanMoreInfo,
 	scanWithFFProbe,
 } from './lib/scan'
-import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
-import { LoudnessScanResult, PackageInfoType } from './lib/coreApi'
+import { ExpectationHandlerGenericWorker, GenericWorker } from '../genericWorker'
 
 /**
  * Performs a "deep scan" of the source package and saves the result file into the target PackageContainer (a Sofie Core collection)
  * The "deep scan" differs from the usual scan in that it does things that takes a bit longer, like scene-detection, field order detection etc..
  */
-export const PackageLoudnessScan: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+export const PackageDeepScan: ExpectationHandlerGenericWorker = {
+	doYouSupportExpectation(exp: Expectation.Any, worker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		if (worker.testFFMpeg)
 			return {
 				support: false,
@@ -56,7 +57,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
-		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 
@@ -64,11 +65,11 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		exp: Expectation.Any,
 		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
-		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupLoudnessSources(worker, exp)
+		const lookupSource = await lookupDeepScanSources(worker, exp)
 		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
-		const lookupTarget = await lookupLoudnessSources(worker, exp)
+		const lookupTarget = await lookupDeepScanSources(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
@@ -84,9 +85,9 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		wasFulfilled: boolean,
 		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
-		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupLoudnessSources(worker, exp)
+		const lookupSource = await lookupDeepScanSources(worker, exp)
 		if (!lookupSource.ready)
 			return {
 				fulfilled: false,
@@ -95,7 +96,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 					tech: `Not able to access source: ${lookupSource.reason.tech}`,
 				},
 			}
-		const lookupTarget = await lookupLoudnessTargets(worker, exp)
+		const lookupTarget = await lookupDeepScanTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
@@ -110,7 +111,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		const packageInfoSynced = await lookupTarget.handle.findUnUpdatedPackageInfo(
-			PackageInfoType.Loudness,
+			PackageInfoType.DeepScan,
 			exp,
 			exp.startRequirement.content,
 			actualSourceVersion,
@@ -119,26 +120,30 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		if (packageInfoSynced.needsUpdate) {
 			if (wasFulfilled) {
 				// Remove the outdated scan result:
-				await lookupTarget.handle.removePackageInfo(PackageInfoType.Loudness, exp)
+				await lookupTarget.handle.removePackageInfo(PackageInfoType.DeepScan, exp)
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
 			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
-		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+	workOnExpectation: async (
+		exp: Expectation.Any,
+		worker: GenericWorker,
+		progressTimeout: number
+	): Promise<IWorkInProgress> => {
+		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Scan the source media file and upload the results to Core
 		const timer = startTimer()
 
-		const lookupSource = await lookupLoudnessSources(worker, exp)
+		const lookupSource = await lookupDeepScanSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
-		const lookupTarget = await lookupLoudnessTargets(worker, exp)
+		const lookupTarget = await lookupDeepScanTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
 		let currentProcess: CancelablePromise<any> | undefined
-		const workInProgress = new WorkInProgress({ workLabel: 'Scanning file (loudness)' }, async () => {
+		const workInProgress = new WorkInProgress({ workLabel: 'Deep Scanning file' }, async () => {
 			// On cancel
 			currentProcess?.cancel()
 		}).do(async () => {
@@ -149,7 +154,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 				lookupTarget.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO
 			)
 				throw new Error(
-					`PackageLoudnessScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+					`PackageDeepScan.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
 				)
 
 			if (!isAnFFMpegSupportedSourceAccessorHandle(sourceHandle))
@@ -168,30 +173,125 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 			// Scan with FFProbe:
 			currentProcess = scanWithFFProbe(sourceHandle)
 			const ffProbeScan: FFProbeScanResult = await currentProcess
-			const hasAudioStream =
-				ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'audio')
+			const hasVideoStream =
+				ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
 			workInProgress._reportProgress(sourceVersionHash, 0.1)
 			currentProcess = undefined
-			let result: LoudnessScanResult | undefined = undefined
 
-			if (hasAudioStream) {
-				currentProcess = scanLoudness(sourceHandle, ffProbeScan, exp.endRequirement.version, (progress) => {
-					workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
-				})
-				result = await currentProcess
+			// Scan field order:
+			let resultFieldOrder = FieldOrder.Unknown
+			if (hasVideoStream) {
+				currentProcess = scanFieldOrder(sourceHandle, exp.endRequirement.version)
+				resultFieldOrder = await currentProcess
+				currentProcess = undefined
 			}
 			workInProgress._reportProgress(sourceVersionHash, 0.2)
 
+			// Scan more info:
+			let resultBlacks: ScanAnomaly[] = []
+			let resultFreezes: ScanAnomaly[] = []
+			let resultScenes: number[] = []
+			if (hasVideoStream) {
+				let hasGottenProgress = false
+
+				currentProcess = new CancelablePromise<{
+					scenes: number[]
+					freezes: ScanAnomaly[]
+					blacks: ScanAnomaly[]
+				}>(async (resolve, reject, onCancel) => {
+					let isDone = false
+					let ignoreNextCancelError = false
+
+					const scanMoreInfoProcess = scanMoreInfo(
+						sourceHandle,
+						ffProbeScan,
+						exp.endRequirement.version,
+						(progress) => {
+							hasGottenProgress = true
+							workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+						},
+						worker.logger.category('scanMoreInfo')
+					)
+					onCancel(() => {
+						scanMoreInfoProcess.cancel()
+					})
+
+					scanMoreInfoProcess.then(
+						(result) => {
+							isDone = true
+							resolve(result)
+						},
+						(error) => {
+							if (`${error}`.match(/cancelled/i) && ignoreNextCancelError) {
+								// ignore this
+								ignoreNextCancelError = false
+							} else {
+								reject(error)
+							}
+						}
+					)
+
+					// Guard against an edge case where we don't get any progress reports:
+					setTimeout(() => {
+						if (!isDone && currentProcess && !hasGottenProgress) {
+							// If we haven't gotten any progress yet, we probably won't get any.
+
+							// 2023-09-20: There seems to be some bug in the FFMpeg scan where it won't output any progress
+							// if the scene detection is on.
+							// Let's abort and try again without scene detection:
+
+							ignoreNextCancelError = true
+							currentProcess.cancel()
+
+							const scanMoreInfoProcessSecondTry = scanMoreInfo(
+								sourceHandle,
+								ffProbeScan,
+								{
+									...exp.endRequirement.version,
+									scenes: false, // no scene detection
+								},
+								(progress) => {
+									hasGottenProgress = true
+									workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
+								},
+								worker.logger.category('scanMoreInfo')
+							)
+
+							scanMoreInfoProcessSecondTry.then(
+								(result) => resolve(result),
+								(error) => reject(error)
+							)
+						}
+					}, progressTimeout * 0.5)
+				})
+
+				const result = await currentProcess
+
+				resultBlacks = result.blacks
+				resultFreezes = result.freezes
+				resultScenes = result.scenes
+				currentProcess = undefined
+			}
+			workInProgress._reportProgress(sourceVersionHash, 0.99)
+
+			const deepScan: DeepScanResult = {
+				field_order: resultFieldOrder,
+				blacks: resultBlacks,
+				freezes: resultFreezes,
+				scenes: resultScenes,
+			}
+
 			// all done:
-			const scanOperation = await targetHandle.prepareForOperation('Loudness scan', sourceHandle)
+			const scanOperation = await targetHandle.prepareForOperation('Deep scan', sourceHandle)
 			await targetHandle.updatePackageInfo(
-				PackageInfoType.Loudness,
+				PackageInfoType.DeepScan,
 				exp,
 				exp.startRequirement.content,
 				actualSourceVersion,
 				exp.endRequirement.version,
-				result
+				deepScan
 			)
+
 			await targetHandle.finalizePackage(scanOperation)
 
 			const duration = timer.get()
@@ -208,8 +308,8 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		return workInProgress
 	},
 	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
-		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupTarget = await lookupLoudnessTargets(worker, exp)
+		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		const lookupTarget = await lookupDeepScanTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return {
 				removed: false,
@@ -221,7 +321,7 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		try {
-			await lookupTarget.handle.removePackageInfo(PackageInfoType.Loudness, exp)
+			await lookupTarget.handle.removePackageInfo(PackageInfoType.DeepScan, exp)
 		} catch (err) {
 			return {
 				removed: false,
@@ -235,14 +335,14 @@ export const PackageLoudnessScan: ExpectationWindowsHandler = {
 		return { removed: true }
 	},
 }
-function isPackageLoudnessScan(exp: Expectation.Any): exp is Expectation.PackageLoudnessScan {
-	return exp.type === Expectation.Type.PACKAGE_LOUDNESS_SCAN
+function isPackageDeepScan(exp: Expectation.Any): exp is Expectation.PackageDeepScan {
+	return exp.type === Expectation.Type.PACKAGE_DEEP_SCAN
 }
 type Metadata = any // not used
 
-async function lookupLoudnessSources(
+async function lookupDeepScanSources(
 	worker: BaseWorker,
-	exp: Expectation.PackageLoudnessScan
+	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
 		worker,
@@ -256,9 +356,9 @@ async function lookupLoudnessSources(
 		}
 	)
 }
-async function lookupLoudnessTargets(
+async function lookupDeepScanTargets(
 	worker: BaseWorker,
-	exp: Expectation.PackageLoudnessScan
+	exp: Expectation.PackageDeepScan
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
 		worker,

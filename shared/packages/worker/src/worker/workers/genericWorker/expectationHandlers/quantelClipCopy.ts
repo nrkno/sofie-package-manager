@@ -15,9 +15,9 @@ import {
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
-import { ExpectationWindowsHandler } from '../windowsWorker'
+import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
-export const QuantelClipCopy: ExpectationWindowsHandler = {
+export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,

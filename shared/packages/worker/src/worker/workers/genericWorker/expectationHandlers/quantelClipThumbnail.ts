@@ -23,14 +23,14 @@ import {
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
-import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
+import { ExpectationHandlerGenericWorker, GenericWorker } from '../genericWorker'
 import { getSourceHTTPHandle, QuantelClipMetadata } from './lib/quantel'
 
 /**
  * Generates a thumbnail image from a source quantel clip, and stores the resulting file into the target PackageContainer
  */
-export const QuantelThumbnail: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
+	doYouSupportExpectation(exp: Expectation.Any, worker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		if (worker.testFFMpeg)
 			return {
 				support: false,

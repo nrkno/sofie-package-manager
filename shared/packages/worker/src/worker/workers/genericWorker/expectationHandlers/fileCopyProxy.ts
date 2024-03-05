@@ -32,13 +32,13 @@ import {
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
-import { ExpectationWindowsHandler } from '../windowsWorker'
+import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer.
  * The result is intended to be a proxy, used for other operations such as scanning, thuumbnail generation etc.
  */
-export const FileCopyProxy: ExpectationWindowsHandler = {
+export const FileCopyProxy: ExpectationHandlerGenericWorker = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,

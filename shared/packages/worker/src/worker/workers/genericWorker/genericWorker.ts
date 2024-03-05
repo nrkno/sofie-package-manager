@@ -32,11 +32,11 @@ import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { FileVerify } from './expectationHandlers/fileVerify'
 
-export type ExpectationWindowsHandler = ExpectationHandler<WindowsWorker>
+export type ExpectationHandlerGenericWorker = ExpectationHandler<GenericWorker>
 
 /** This is a type of worker that runs on a windows machine */
-export class WindowsWorker extends BaseWorker {
-	static readonly type = 'windowsWorker'
+export class GenericWorker extends BaseWorker {
+	static readonly type = 'genericWorker'
 
 	/** Contains the result of testing the FFMpeg executable. null = all is well, otherwise contains error message */
 	public testFFMpeg: null | string = 'Not initialized'
@@ -50,7 +50,7 @@ export class WindowsWorker extends BaseWorker {
 		agentAPI: GenericWorkerAgentAPI,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
-		super(logger.category('WindowsWorker'), agentAPI, sendMessageToManager, WindowsWorker.type)
+		super(logger.category('GenericWorker'), agentAPI, sendMessageToManager, GenericWorker.type)
 		this.logger.debug(`Worker started`)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
@@ -96,7 +96,7 @@ export class WindowsWorker extends BaseWorker {
 	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
 		return this.getExpectationHandler(exp).removeExpectation(exp, this)
 	}
-	private getExpectationHandler(exp: Expectation.Any): ExpectationWindowsHandler {
+	private getExpectationHandler(exp: Expectation.Any): ExpectationHandlerGenericWorker {
 		switch (exp.type) {
 			case Expectation.Type.FILE_COPY:
 				return FileCopy

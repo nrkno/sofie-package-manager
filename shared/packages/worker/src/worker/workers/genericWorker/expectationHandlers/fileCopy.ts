@@ -17,12 +17,12 @@ import {
 import { IWorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'
-import { ExpectationWindowsHandler } from '../windowsWorker'
+import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
  */
-export const FileCopy: ExpectationWindowsHandler = {
+export const FileCopy: ExpectationHandlerGenericWorker = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,

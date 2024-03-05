@@ -29,7 +29,7 @@ import {
 	MonitorId,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
-import { WindowsWorker } from '../workers/windowsWorker/windowsWorker'
+import { GenericWorker } from '../workers/genericWorker/genericWorker'
 import networkDrive from 'windows-network-drive'
 import { exec } from 'child_process'
 import { FileShareAccessorHandleType, GenericFileAccessorHandle } from './lib/FileHandler'
@@ -414,9 +414,9 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		let handlingDone = false
 
-		if (!this.disableDriveMapping && this.worker.type === WindowsWorker.type) {
+		if (!this.disableDriveMapping && this.worker.type === GenericWorker.type) {
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
-			const windowsWorker = this.worker as WindowsWorker
+			const genericWorker = this.worker as GenericWorker
 
 			const STORE_DRIVELETTERS = protectString<DataId>(
 				`fileShare_driveLetters_${this.worker.agentAPI.location.localComputerId}`
@@ -497,7 +497,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 						if (!handlingDone) {
 							// Find next free drive letter:
-							const freeDriveLetter = windowsWorker.agentAPI.config.windowsDriveLetters?.find(
+							const freeDriveLetter = genericWorker.agentAPI.config.windowsDriveLetters?.find(
 								(driveLetter) => !mappedDriveLetters[driveLetter]
 							)
 
@@ -568,7 +568,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		if (!handlingDone) {
 			// We're reverting to accessing through the direct path instead
-			if (this.worker.type === WindowsWorker.type && this.accessor.userName) {
+			if (this.worker.type === GenericWorker.type && this.accessor.userName) {
 				// Try to add the credentials to the share in Windows:
 				const setupCredentialsCommand = `net use "${folderPath}" /user:${this.accessor.userName} ${this.accessor.password}`
 				try {

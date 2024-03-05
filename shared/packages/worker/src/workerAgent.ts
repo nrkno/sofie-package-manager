@@ -45,7 +45,7 @@ import { ExpectationManagerAPI } from './expectationManagerApi'
 import { MonitorInProgress } from './worker/lib/monitorInProgress'
 import { IWorkInProgress } from './worker/lib/workInProgress'
 import { BaseWorker } from './worker/worker'
-import { WindowsWorker } from './worker/workers/windowsWorker/windowsWorker'
+import { GenericWorker } from './worker/workers/genericWorker/genericWorker'
 import { WorkforceAPI } from './workforceApi'
 
 /** The WorkerAgent is a front for a Worker (@see GenericWorker).
@@ -148,7 +148,7 @@ export class WorkerAgent {
 					type: 'internal',
 			  }
 		// Todo: Different types of workers:
-		this._worker = new WindowsWorker(
+		this._worker = new GenericWorker(
 			this.logger,
 			{
 				location: {

@@ -27,10 +27,10 @@ import {
 } from './lib'
 import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
-import { ExpectationWindowsHandler, WindowsWorker } from '../windowsWorker'
+import { ExpectationHandlerGenericWorker, GenericWorker } from '../genericWorker'
 
-export const QuantelClipPreview: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, worker: WindowsWorker): ReturnTypeDoYouSupportExpectation {
+export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
+	doYouSupportExpectation(exp: Expectation.Any, worker: GenericWorker): ReturnTypeDoYouSupportExpectation {
 		if (worker.testFFMpeg)
 			return {
 				support: false,

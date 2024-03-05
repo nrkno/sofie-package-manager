@@ -29,7 +29,7 @@ import {
 import { BaseWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
-import { compareResourceIds } from '../workers/windowsWorker/lib/lib'
+import { compareResourceIds } from '../workers/genericWorker/lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 import { mkdirp } from 'mkdirp'
 

@@ -23,12 +23,12 @@ import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { PackageReadStream, PutPackageHandler } from '../../../accessorHandlers/genericHandle'
 import { PackageInfoType } from './lib/coreApi'
-import { ExpectationWindowsHandler } from '../windowsWorker'
+import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
  */
-export const JsonDataCopy: ExpectationWindowsHandler = {
+export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
