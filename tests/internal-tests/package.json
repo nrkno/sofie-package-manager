@@ -4,7 +4,7 @@
     "description": "Internal tests",
     "private": true,
     "scripts": {
-        "__build": "yarn rimraf dist && yarn build:main",
+        "__build": "run -T rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest --runInBand --forceExit"
     },

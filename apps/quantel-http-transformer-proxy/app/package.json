@@ -4,7 +4,7 @@
     "description": "Proxy for a Quantel HTTP Transformer",
     "private": true,
     "scripts": {
-        "build": "yarn rimraf dist && yarn build:main",
+        "build": "run -T rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs quantel-http-transformer-proxy.exe && node ../../../scripts/copy-natives.js win32-x64",
         "start": "node dist/index.js"

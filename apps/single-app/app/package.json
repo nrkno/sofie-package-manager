@@ -4,7 +4,7 @@
     "description": "Package Manager, http-proxy etc.. all in one application",
     "private": true,
     "scripts": {
-        "build": "yarn rimraf dist && yarn build:main",
+        "build": "run -T rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs package-manager-single-app.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",

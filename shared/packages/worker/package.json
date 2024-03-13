@@ -5,7 +5,7 @@
     "types": "dist/index.d.ts",
     "license": "MIT",
     "scripts": {
-        "build": "yarn rimraf dist && yarn build:main",
+        "build": "run -T rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest --runInBand"
     },
