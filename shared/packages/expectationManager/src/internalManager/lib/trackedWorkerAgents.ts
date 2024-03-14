@@ -36,7 +36,10 @@ export class TrackedWorkerAgents {
 	 * Asks the Workers if they support a certain Expectation.
 	 * Updates trackedExp.availableWorkers to reflect the result.
 	 */
-	public async updateAvailableWorkersForExpectation(trackedExp: TrackedExpectation): Promise<{
+	public async updateAvailableWorkersForExpectation(
+		trackedExp: TrackedExpectation,
+		criticalWorkerPoolSize: number
+	): Promise<{
 		hasQueriedAnyone: boolean
 		workerCount: number
 	}> {
@@ -47,8 +50,16 @@ export class TrackedWorkerAgents {
 
 		let hasQueriedAnyone = false
 		await Promise.all(
-			workerAgents.map(async ({ workerId, workerAgent }) => {
+			workerAgents.map(async ({ workerId, workerAgent }, index, allWorkers) => {
 				if (!workerAgent.connected) return
+				if (
+					!trackedExp.exp.statusReport.requiredForPlayout &&
+					// 1 - criticalWorkerPoolSize, so that the "criticalPool" consists of the "freshest" workers
+					index / (allWorkers.length - 1) > 1 - criticalWorkerPoolSize
+				) {
+					trackedExp.availableWorkers.delete(workerId)
+					return
+				}
 
 				// Only ask each worker once, or after a certain time has passed:
 				const queriedWorker = trackedExp.queriedWorkers.get(workerId)
@@ -103,6 +114,10 @@ export class TrackedWorkerAgents {
 		let countInfinite = 0
 
 		const workerIds = Array.from(trackedExp.availableWorkers.keys())
+
+		if (trackedExp.exp.statusReport.requiredForPlayout) {
+			// TODO: decimate the workerIds
+		}
 
 		let noCostReason: Reason = {
 			user: `${workerIds.length} workers are currently busy`,

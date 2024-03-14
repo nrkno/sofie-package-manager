@@ -82,7 +82,8 @@ export class Connector {
 			config.packageManager.accessUrl || undefined,
 			workForceConnectionOptions,
 			config.packageManager.concurrency,
-			config.packageManager.chaosMonkey
+			config.packageManager.chaosMonkey,
+			config.packageManager.criticalWorkerPoolSize
 		)
 	}
 

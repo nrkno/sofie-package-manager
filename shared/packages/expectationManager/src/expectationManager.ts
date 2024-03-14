@@ -136,6 +136,7 @@ export class ExpectationManager {
 export interface ExpectationManagerOptions {
 	constants?: Partial<ExpectationTrackerConstants>
 	chaosMonkey?: boolean
+	criticalWorkerPoolSize?: number
 }
 
 export type ExpectationManagerServerOptions =
