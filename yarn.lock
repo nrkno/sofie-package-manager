@@ -601,7 +601,6 @@ __metadata:
     "@types/koa-router": ^7.4.0
     "@types/koa__cors": ^4.0.0
     "@types/mime-types": ^2.1.0
-    "@types/mkdirp": ^1.0.1
     "@types/node": ^14.14.31
     "@types/underscore": ^1.10.24
     "@types/yargs": ^17.0.24
@@ -610,7 +609,6 @@ __metadata:
     koa-range: ^0.3.0
     koa-router: ^8.0.8
     mime-types: ^2.1.28
-    mkdirp: ^3.0.1
     pechkin: ^1.0.1
     pretty-bytes: ^5.5.0
     tslib: ^2.1.0
@@ -1824,7 +1822,6 @@ __metadata:
     "@types/koa-router": ^7.4.4
     "@types/koa__cors": ^4.0.0
     "@types/mime-types": ^2.1.0
-    "@types/mkdirp": ^1.0.1
     "@types/node": ^14.14.31
     "@types/underscore": ^1.10.24
     "@types/xml2js": ^0.4.7
@@ -1836,7 +1833,6 @@ __metadata:
     koa-ratelimit: ^5.0.1
     koa-router: ^12.0.0
     mime-types: ^2.1.28
-    mkdirp: ^3.0.1
     pretty-bytes: ^5.5.0
     tslib: ^2.1.0
     underscore: ^1.12.0
@@ -2007,7 +2003,6 @@ __metadata:
     deep-diff: ^1.0.2
     form-data: ^4.0.0
     jest-mock-extended: ^3.0.5
-    mkdirp: ^3.0.1
     node-fetch: ^2.6.1
     proper-lockfile: ^4.1.2
     tmp: ~0.2.1
@@ -2446,15 +2441,6 @@ __metadata:
   version: 1.2.2
   resolution: "@types/minimist@npm:1.2.2"
   checksum: b8da83c66eb4aac0440e64674b19564d9d86c80ae273144db9681e5eeff66f238ade9515f5006ffbfa955ceff8b89ad2bd8ec577d7caee74ba101431fb07045d
-  languageName: node
-  linkType: hard
-
-"@types/mkdirp@npm:^1.0.1":
-  version: 1.0.2
-  resolution: "@types/mkdirp@npm:1.0.2"
-  dependencies:
-    "@types/node": "*"
-  checksum: 72dedfb2d250f0e44ec964ac68ff6a4a03d7d9d6e83ae1d5ba6d212791af69cf051a5fac59846826242d099de56a18c8e0581861792fae8b845b3c9ad67ecdeb
   languageName: node
   linkType: hard
 
@@ -8653,15 +8639,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mkdirp@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "mkdirp@npm:3.0.1"
-  bin:
-    mkdirp: dist/cjs/src/bin.js
-  checksum: 972deb188e8fb55547f1e58d66bd6b4a3623bf0c7137802582602d73e6480c1c2268dcbafbfb1be466e00cc7e56ac514d7fd9334b7cf33e3e2ab547c16f83a8d
-  languageName: node
-  linkType: hard
-
 "modify-values@npm:^1.0.0":
   version: 1.0.1
   resolution: "modify-values@npm:1.0.1"
@@ -9614,7 +9591,6 @@ __metadata:
     json-schema-to-typescript: ^10.1.5
     lerna: ^6.6.1
     lint-staged: ^15.2.2
-    mkdirp: ^3.0.1
     node-fetch: ^2.6.9
     pkg: ^5.8.0
     rimraf: ^5.0.5

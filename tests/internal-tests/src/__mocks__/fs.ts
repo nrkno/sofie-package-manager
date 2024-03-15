@@ -361,7 +361,17 @@ export function unlink(path: string, callback: (error: any, result?: any) => voi
 }
 fs.unlink = unlink
 
-export function mkdir(path: string, callback: (error: any, result?: any) => void): void {
+export function mkdir(path: string, callback: (error: any, result?: any) => void): void
+export function mkdir(path: string, opts: { recursive?: boolean }, callback: (error: any, result?: any) => void): void
+export function mkdir(
+	path: string,
+	optsOrCallback: { recursive?: boolean } | ((error: any, result?: any) => void),
+	callback?: (error: any, result?: any) => void
+): void {
+	if (typeof optsOrCallback === 'function') {
+		callback = optsOrCallback
+	}
+
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.mkdir', path)
 	fsMockEmitter.emit('mkdir', path)
@@ -377,9 +387,9 @@ export function mkdir(path: string, callback: (error: any, result?: any) => void
 			false
 		)
 
-		return callback(undefined, null)
+		return callback?.(undefined, null)
 	} catch (err) {
-		callback(err)
+		callback?.(err)
 	}
 }
 fs.mkdir = mkdir

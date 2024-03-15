@@ -18,7 +18,6 @@ import { waitUntil, waitTime, describeForAllPlatforms } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
 import { WorkerAgent } from '@sofie-package-manager/worker'
 jest.mock('fs')
-jest.mock('mkdirp')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
@@ -311,9 +310,7 @@ describeForAllPlatforms(
 
 			// Wait until the work have been aborted, and restarted:
 			await waitUntil(() => {
-				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(
-					expect.stringMatching(/new|waiting/)
-				)
+				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
 			}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 			// Add another worker:

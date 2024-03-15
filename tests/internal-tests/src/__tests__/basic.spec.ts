@@ -27,7 +27,6 @@ import {
 	getQuantelTarget,
 } from './lib/containers'
 jest.mock('fs')
-jest.mock('mkdirp')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
@@ -264,17 +263,12 @@ describeForAllPlatforms(
 					},
 					startRequirement: {
 						sources: [
-							getLocalSource(
-								SOURCE0,
-								'myData0.json'
-							) as Expectation.SpecificPackageContainerOnPackage.JSONDataSource,
+							getLocalSource(SOURCE0, 'myData0.json') as Expectation.SpecificPackageContainerOnPackage.JSONDataSource,
 						],
 					},
 					endRequirement: {
 						targets: [
-							getCorePackageInfoTarget(
-								TARGET1
-							) as Expectation.SpecificPackageContainerOnPackage.JSONDataTarget,
+							getCorePackageInfoTarget(TARGET1) as Expectation.SpecificPackageContainerOnPackage.JSONDataTarget,
 						],
 						content: {},
 						version: { type: Expectation.Version.Type.JSON_DATA },

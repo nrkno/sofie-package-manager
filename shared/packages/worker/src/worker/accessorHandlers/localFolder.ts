@@ -31,7 +31,6 @@ import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { compareResourceIds } from '../workers/windowsWorker/lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
-import { mkdirp } from 'mkdirp'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -40,6 +39,7 @@ const fsClose = promisify(fs.close)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 const fsRename = promisify(fs.rename)
+const fsMkDir = promisify(fs.mkdir)
 
 /** Accessor handle for accessing files in a local folder */
 export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
@@ -216,7 +216,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 
 		const fullPath = this.workOptions.useTemporaryFilePath ? this.temporaryFilePath : this.fullPath
 
-		await mkdirp(path.dirname(fullPath)) // Create folder if it doesn't exist
+		await fsMkDir(path.dirname(fullPath), { recursive: true }) // Create folder if it doesn't exist
 
 		// Remove the file if it exists:
 		if (await this.unlinkIfExists(fullPath))
