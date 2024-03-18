@@ -95,14 +95,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/generator@npm:7.18.2":
-  version: 7.18.2
-  resolution: "@babel/generator@npm:7.18.2"
+"@babel/generator@npm:7.23.0":
+  version: 7.23.0
+  resolution: "@babel/generator@npm:7.23.0"
   dependencies:
-    "@babel/types": ^7.18.2
-    "@jridgewell/gen-mapping": ^0.3.0
+    "@babel/types": ^7.23.0
+    "@jridgewell/gen-mapping": ^0.3.2
+    "@jridgewell/trace-mapping": ^0.3.17
     jsesc: ^2.5.1
-  checksum: d0661e95532ddd97566d41fec26355a7b28d1cbc4df95fe80cc084c413342935911b48db20910708db39714844ddd614f61c2ec4cca3fb10181418bdcaa2e7a3
+  checksum: 8efe24adad34300f1f8ea2add420b28171a646edc70f2a1b3e1683842f23b8b7ffa7e35ef0119294e1901f45bfea5b3dc70abe1f10a1917ccdfb41bed69be5f1
   languageName: node
   linkType: hard
 
@@ -206,14 +207,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/helper-string-parser@npm:^7.18.10, @babel/helper-string-parser@npm:^7.23.4":
+"@babel/helper-string-parser@npm:^7.22.5, @babel/helper-string-parser@npm:^7.23.4":
   version: 7.23.4
   resolution: "@babel/helper-string-parser@npm:7.23.4"
   checksum: c0641144cf1a7e7dc93f3d5f16d5327465b6cf5d036b48be61ecba41e1eece161b48f46b7f960951b67f8c3533ce506b16dece576baef4d8b3b49f8c65410f90
   languageName: node
   linkType: hard
 
-"@babel/helper-validator-identifier@npm:^7.18.6, @babel/helper-validator-identifier@npm:^7.22.20":
+"@babel/helper-validator-identifier@npm:^7.22.20":
   version: 7.22.20
   resolution: "@babel/helper-validator-identifier@npm:7.22.20"
   checksum: 136412784d9428266bcdd4d91c32bcf9ff0e8d25534a9d94b044f77fe76bc50f941a90319b05aafd1ec04f7d127cd57a179a3716009ff7f3412ef835ada95bdc
@@ -249,12 +250,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/parser@npm:7.18.4":
-  version: 7.18.4
-  resolution: "@babel/parser@npm:7.18.4"
+"@babel/parser@npm:7.23.0":
+  version: 7.23.0
+  resolution: "@babel/parser@npm:7.23.0"
   bin:
     parser: ./bin/babel-parser.js
-  checksum: e05b2dc720c4b200e088258f3c2a2de5041c140444edc38181d1217b10074e881a7133162c5b62356061f26279f08df5a06ec14c5842996ee8601ad03c57a44f
+  checksum: 453fdf8b9e2c2b7d7b02139e0ce003d1af21947bbc03eb350fb248ee335c9b85e4ab41697ddbdd97079698de825a265e45a0846bb2ed47a2c7c1df833f42a354
   languageName: node
   linkType: hard
 
@@ -459,18 +460,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/types@npm:7.19.0":
-  version: 7.19.0
-  resolution: "@babel/types@npm:7.19.0"
+"@babel/types@npm:7.23.0":
+  version: 7.23.0
+  resolution: "@babel/types@npm:7.23.0"
   dependencies:
-    "@babel/helper-string-parser": ^7.18.10
-    "@babel/helper-validator-identifier": ^7.18.6
+    "@babel/helper-string-parser": ^7.22.5
+    "@babel/helper-validator-identifier": ^7.22.20
     to-fast-properties: ^2.0.0
-  checksum: 9b346715a68aeede70ba9c685a144b0b26c53bcd595d448e24c8fa8df4d5956a5712e56ebadb7c85dcc32f218ee42788e37b93d50d3295c992072224cb3ef3fe
+  checksum: 215fe04bd7feef79eeb4d33374b39909ce9cad1611c4135a4f7fdf41fe3280594105af6d7094354751514625ea92d0875aba355f53e86a92600f290e77b0e604
   languageName: node
   linkType: hard
 
-"@babel/types@npm:^7.0.0, @babel/types@npm:^7.18.2, @babel/types@npm:^7.22.15, @babel/types@npm:^7.22.5, @babel/types@npm:^7.23.0, @babel/types@npm:^7.23.6, @babel/types@npm:^7.23.9, @babel/types@npm:^7.3.0, @babel/types@npm:^7.3.3":
+"@babel/types@npm:^7.0.0, @babel/types@npm:^7.22.15, @babel/types@npm:^7.22.5, @babel/types@npm:^7.23.0, @babel/types@npm:^7.23.6, @babel/types@npm:^7.23.9, @babel/types@npm:^7.3.0, @babel/types@npm:^7.3.3":
   version: 7.23.9
   resolution: "@babel/types@npm:7.23.9"
   dependencies:
@@ -2787,6 +2788,48 @@ __metadata:
     "@sofie-package-manager/workforce": 1.50.0
   languageName: unknown
   linkType: soft
+
+"@yao-pkg/pkg-fetch@npm:3.5.9":
+  version: 3.5.9
+  resolution: "@yao-pkg/pkg-fetch@npm:3.5.9"
+  dependencies:
+    chalk: ^4.1.2
+    fs-extra: ^9.1.0
+    https-proxy-agent: ^5.0.0
+    node-fetch: ^2.6.6
+    progress: ^2.0.3
+    semver: ^7.3.5
+    tar-fs: ^2.1.1
+    yargs: ^16.2.0
+  bin:
+    pkg-fetch: lib-es5/bin.js
+  checksum: 9d314aa7f1f4ba586344efd8d69a81d654ddc90563de75b9b0a274f124e41d4c76c37055e9b907d9480e888ce99c98ef1d1f4630a2a0483b2a7c496dd7f0b329
+  languageName: node
+  linkType: hard
+
+"@yao-pkg/pkg@npm:^5.11.5":
+  version: 5.11.5
+  resolution: "@yao-pkg/pkg@npm:5.11.5"
+  dependencies:
+    "@babel/generator": 7.23.0
+    "@babel/parser": 7.23.0
+    "@babel/types": 7.23.0
+    "@yao-pkg/pkg-fetch": 3.5.9
+    chalk: ^4.1.2
+    fs-extra: ^9.1.0
+    globby: ^11.1.0
+    into-stream: ^6.0.0
+    is-core-module: 2.9.0
+    minimist: ^1.2.6
+    multistream: ^4.1.0
+    prebuild-install: 7.1.1
+    resolve: ^1.22.0
+    stream-meter: ^1.0.4
+  bin:
+    pkg: lib-es5/bin.js
+  checksum: aa9af3f7aed54ba6ef8d5dfcc8ef771a80363f4a2d1f7e6b58902d1b0b3ddbbb9af834e7940bb85543605fec2ae9a7b8005b0db40a0cb6aea97b83fedded64a2
+  languageName: node
+  linkType: hard
 
 "@yarnpkg/lockfile@npm:^1.1.0":
   version: 1.1.0
@@ -9606,6 +9649,7 @@ __metadata:
     "@sofie-automation/shared-lib": 1.50.0
     "@types/jest": ^29.2.5
     "@types/rimraf": ^3.0.0
+    "@yao-pkg/pkg": ^5.11.5
     deep-extend: ^0.6.0
     find: ^0.3.0
     fs-extra: ^11.1.0
@@ -9616,7 +9660,6 @@ __metadata:
     lint-staged: ^15.2.2
     mkdirp: ^3.0.1
     node-fetch: ^2.6.9
-    pkg: ^5.8.0
     rimraf: ^5.0.5
     ts-jest: ^29.0.3
     typescript: ~4.9
@@ -9914,24 +9957,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pkg-fetch@npm:3.4.2":
-  version: 3.4.2
-  resolution: "pkg-fetch@npm:3.4.2"
-  dependencies:
-    chalk: ^4.1.2
-    fs-extra: ^9.1.0
-    https-proxy-agent: ^5.0.0
-    node-fetch: ^2.6.6
-    progress: ^2.0.3
-    semver: ^7.3.5
-    tar-fs: ^2.1.1
-    yargs: ^16.2.0
-  bin:
-    pkg-fetch: lib-es5/bin.js
-  checksum: e0f73cedf6cb8882e4d998700031443e6542d213f9817d66deb03fb89c122ca7f7505f11401f85a760a2d3951f9b793d0f78782be220c46c56ccf70f9915812a
-  languageName: node
-  linkType: hard
-
 "pkg-prebuilds@npm:^0.2.1":
   version: 0.2.1
   resolution: "pkg-prebuilds@npm:0.2.1"
@@ -9941,35 +9966,6 @@ __metadata:
     pkg-prebuilds-copy: bin/copy.mjs
     pkg-prebuilds-verify: bin/verify.mjs
   checksum: ba4c802200558d5aa89e96e474976633c1f964ef0b2035a70dfde4b83af782a6624f33b4b83c19dd85db7aa9097e259a55ad53d63d55d62ac5d524997f3bbd17
-  languageName: node
-  linkType: hard
-
-"pkg@npm:^5.8.0":
-  version: 5.8.1
-  resolution: "pkg@npm:5.8.1"
-  dependencies:
-    "@babel/generator": 7.18.2
-    "@babel/parser": 7.18.4
-    "@babel/types": 7.19.0
-    chalk: ^4.1.2
-    fs-extra: ^9.1.0
-    globby: ^11.1.0
-    into-stream: ^6.0.0
-    is-core-module: 2.9.0
-    minimist: ^1.2.6
-    multistream: ^4.1.0
-    pkg-fetch: 3.4.2
-    prebuild-install: 7.1.1
-    resolve: ^1.22.0
-    stream-meter: ^1.0.4
-  peerDependencies:
-    node-notifier: ">=9.0.1"
-  peerDependenciesMeta:
-    node-notifier:
-      optional: true
-  bin:
-    pkg: lib-es5/bin.js
-  checksum: 5e750e716c3426706ea1fbd26832faf6a3ab8376b99f20aeb9c40fd48ad48e7b51375cd077b77669f3bfbefee69cc8111f49e0ca39e353fd0fc2dff95a57f822
   languageName: node
   linkType: hard
 

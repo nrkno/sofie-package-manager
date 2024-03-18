@@ -97,45 +97,15 @@
                 "target0"
             ],
             "sideEffect": {
-                "previewContainerId": null,
-                "previewPackageSettings": null,
+                "previewContainerId": "thumbnails0_local",
+                "previewPackageSettings": {
+                    "path": "test2.webm"
+                },
                 "thumbnailContainerId": "thumbnails0_local",
                 "thumbnailPackageSettings": {
                     "path": "test2.png"
-                },
-                "loudnessPackageSettings": {
-                    "channelSpec": [
-                        "0",
-                        "0+1"
-                    ],
-                    "inPhaseDifference": true,
-                    "balanceDifference": true
                 }
             }
-        },
-        {
-            "type": "json_data",
-            "_id": "json0",
-            "contentVersionHash": "abc1234",
-            "content": {
-                "path": "test.json"
-            },
-            "version": {},
-            "sources": [
-                {
-                    "containerId": "http0",
-                    "accessors": {
-                        "local": {
-                            "type": "http",
-                            "isImmutable": true
-                        }
-                    }
-                }
-            ],
-            "layers": [
-                "core0"
-            ],
-            "sideEffect": {}
         }
     ]
 }
