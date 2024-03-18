@@ -38,7 +38,7 @@ export class TrackedWorkerAgents {
 	 */
 	public async updateAvailableWorkersForExpectation(
 		trackedExp: TrackedExpectation,
-		criticalWorkerPoolSize: number
+		criticalWorkerPoolRatio: number
 	): Promise<{
 		hasQueriedAnyone: boolean
 		workerCount: number
@@ -49,15 +49,17 @@ export class TrackedWorkerAgents {
 		// workers, but instead just ask until we have got an enough number of available workers.
 
 		let hasQueriedAnyone = false
+		const criticalWorkerPool = (1 - criticalWorkerPoolRatio) * workerAgents.length
+		const criticalWorkerPoolFirstIndex = Math.floor(criticalWorkerPool)
 		await Promise.all(
-			workerAgents.map(async ({ workerId, workerAgent }, index, allWorkers) => {
+			workerAgents.map(async ({ workerId, workerAgent }, workerIndex) => {
 				if (!workerAgent.connected) return
-				if (
-					!trackedExp.exp.statusReport.requiredForPlayout &&
-					// 1 - criticalWorkerPoolSize, so that the "criticalPool" consists of the "freshest" workers
-					index / (allWorkers.length - 1) > 1 - criticalWorkerPoolSize
-				) {
+				if (!trackedExp.exp.statusReport.requiredForPlayout && workerIndex >= criticalWorkerPoolFirstIndex) {
 					trackedExp.availableWorkers.delete(workerId)
+					trackedExp.noAvailableWorkersReason = {
+						user: 'Worker reserved for requiredForPlayout expectations',
+						tech: `Worker "${workerId}" is within the pool of critical expectation workers, currently that size is ${criticalWorkerPool} out of ${workerAgents.length} total`,
+					}
 					return
 				}
 
