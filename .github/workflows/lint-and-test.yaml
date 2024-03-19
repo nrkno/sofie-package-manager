@@ -77,6 +77,7 @@ jobs:
 
       - name: Prepare Environment
         run: |
+          corepack enable
           yarn
           yarn build
         env:
