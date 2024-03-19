@@ -68,7 +68,7 @@
         "underscore": "^1.13.6"
     },
     "engines": {
-        "node": ">=12.11.0"
+        "node": ">=18"
     },
     "dependencies": {
         "@sofie-automation/server-core-integration": "1.50.0",
@@ -83,5 +83,5 @@
             "eslint"
         ]
     },
-    "packageManager": "yarn@3.6.0"
+    "packageManager": "yarn@4.1.1"
 }
