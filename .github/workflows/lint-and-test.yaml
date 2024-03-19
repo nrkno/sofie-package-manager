@@ -19,13 +19,13 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Cache node_modules
         uses: actions/cache@v4
@@ -61,9 +61,6 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Use Node.js ${{ matrix.node_version }}
         uses: actions/setup-node@v4
         with:
@@ -75,9 +72,11 @@ jobs:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Prepare Environment
         run: |
-          corepack enable
           yarn
           yarn build
         env:
