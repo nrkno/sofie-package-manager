@@ -24,7 +24,6 @@ jobs:
 
       - name: Prepare Environment
         run: |
-          yarn config set network-timeout 100000 -g
           yarn
           yarn build
         env:
@@ -66,7 +65,6 @@ jobs:
       - name: Prepare Environment
         if: ${{ steps.do-publish.outputs.publish }}
         run: |
-          yarn config set network-timeout 100000 -g
           yarn
         env:
           CI: true

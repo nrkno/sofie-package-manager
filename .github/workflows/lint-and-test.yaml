@@ -35,7 +35,6 @@ jobs:
 
       - name: Prepare Environment
         run: |
-          yarn config set network-timeout 100000 -g
           yarn
         env:
           CI: true
@@ -73,7 +72,6 @@ jobs:
 
       - name: Prepare Environment
         run: |
-          yarn config set network-timeout 100000 -g
           yarn
           yarn build
         env:

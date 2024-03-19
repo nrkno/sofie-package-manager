@@ -32,7 +32,6 @@ jobs:
           PKG_CACHE_PATH: ${{ runner.temp }}
         run: |
           # try and avoid timeout errors
-          yarn config set network-timeout 100000 -g
 
           yarn do:build-win32:ci
 
