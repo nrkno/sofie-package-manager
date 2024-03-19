@@ -105,8 +105,11 @@
                 },
                 "loudnessPackageSettings": {
                     "channelSpec": [
-                        "0"
-                    ]
+                        "0",
+                        "0+1"
+                    ],
+                    "inPhaseDifference": true,
+                    "balanceDifference": true
                 }
             }
         },
