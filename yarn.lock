@@ -6744,13 +6744,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"is-primitive@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "is-primitive@npm:3.0.1"
-  checksum: 10/c4da6a6e6d487f31d85b9259b67695fffcc75dca6c9612b0a002e3050c734227b9911be09b877539ec6309710229c19f4edd0f9e26ed2a67924ee0916baf0bed
-  languageName: node
-  linkType: hard
-
 "is-promise@npm:^2.2.2":
   version: 2.2.2
   resolution: "is-promise@npm:2.2.2"
@@ -10821,12 +10814,11 @@ __metadata:
   linkType: hard
 
 "set-value@npm:^3.0.1":
-  version: 4.1.0
-  resolution: "set-value@npm:4.1.0"
+  version: 3.0.3
+  resolution: "set-value@npm:3.0.3"
   dependencies:
     is-plain-object: "npm:^2.0.4"
-    is-primitive: "npm:^3.0.1"
-  checksum: 10/67eebb0d78be89242478daf8ab5357c59a35add1d7bdccdb56236e6004128a79bdf298c952e286b60b63ed17b24dcdb399734fbdacc9b76e7fd2e3e01546a42e
+  checksum: 10/88bc0883e0c2dabdaeadf8ac27b74342f4c3a359ab6daa74bc9438162059144abdd0a31899e28df30cc7382e447ee07315eff74255b35cd5810ec434c7b21316
   languageName: node
   linkType: hard
 
