@@ -76,10 +76,10 @@
     "expectedPackages": [
         {
             "type": "media_file",
-            "_id": "test9902",
+            "_id": "test",
             "contentVersionHash": "abc1234",
             "content": {
-                "filePath": "test2.mxf"
+                "filePath": "amb.mp4"
             },
             "version": {},
             "sources": [
@@ -88,7 +88,7 @@
                     "accessors": {
                         "local": {
                             "type": "local_folder",
-                            "filePath": "test2.mxf"
+                            "filePath": "amb.mp4"
                         }
                     }
                 }
@@ -97,15 +97,42 @@
                 "target0"
             ],
             "sideEffect": {
-                "previewContainerId": "thumbnails0_local",
-                "previewPackageSettings": {
-                    "path": "test2.webm"
-                },
+                "previewContainerId": null,
+                "previewPackageSettings": null,
                 "thumbnailContainerId": "thumbnails0_local",
                 "thumbnailPackageSettings": {
-                    "path": "test2.png"
+                    "path": "thumbnail.png"
+                },
+                "loudnessPackageSettings": {
+                    "channelSpec": [
+                        "0"
+                    ]
                 }
             }
+        },
+        {
+            "type": "json_data",
+            "_id": "json0",
+            "contentVersionHash": "abc1234",
+            "content": {
+                "path": "test.json"
+            },
+            "version": {},
+            "sources": [
+                {
+                    "containerId": "http0",
+                    "accessors": {
+                        "local": {
+                            "type": "http",
+                            "isImmutable": true
+                        }
+                    }
+                }
+            ],
+            "layers": [
+                "core0"
+            ],
+            "sideEffect": {}
         }
     ]
 }
