@@ -43,6 +43,12 @@ export function initializeLogger(config: { process: ProcessConfig }): void {
 	process.on('warning', (e: any) => {
 		processLogger.error(`Unhandled warning: ${stringifyError(e)}`)
 	})
+
+	const initialLogLevel = config.process.logLevel
+	if (initialLogLevel && isLogLevel(initialLogLevel)) {
+		processLogger.info(`Setting log level to ${logLevel}`)
+		setLogLevel(initialLogLevel)
+	}
 }
 export function getLogLevel(): LogLevel {
 	if (!loggerContainer) throw new Error('Logging has not been set up! initializeLogger() must be called first.')

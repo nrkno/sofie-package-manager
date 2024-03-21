@@ -3,14 +3,7 @@ import * as QuantelHTTPTransformerProxy from '@quantel-http-transformer-proxy/ge
 import * as PackageManager from '@package-manager/generic'
 import * as Workforce from '@sofie-package-manager/workforce'
 import * as AppConatainerNode from '@appcontainer-node/generic'
-import {
-	getSingleAppConfig,
-	ProcessHandler,
-	setupLogger,
-	initializeLogger,
-	setLogLevel,
-	isLogLevel,
-} from '@sofie-package-manager/api'
+import { getSingleAppConfig, ProcessHandler, setupLogger, initializeLogger } from '@sofie-package-manager/api'
 
 export async function startSingleApp(): Promise<void> {
 	const config = await getSingleAppConfig()
@@ -18,11 +11,6 @@ export async function startSingleApp(): Promise<void> {
 	const logger = setupLogger(config, 'single-app')
 	const baseLogger = setupLogger(config, '')
 
-	const logLevel = config.process.logLevel
-	if (logLevel && isLogLevel(logLevel)) {
-		logger.info(`Setting log level to ${logLevel}`)
-		setLogLevel(logLevel)
-	}
 	// Override some of the arguments, as they arent used in the single-app
 	config.packageManager.port = 0 // 0 = Set the packageManager port to whatever is available
 	config.packageManager.accessUrl = 'ws:127.0.0.1'
