@@ -24,7 +24,7 @@ import {
 	INNER_ACTION_TIMEOUT,
 	AccessorId,
 } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { rebaseUrl } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
@@ -47,7 +47,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	// @ts-expect-error unused variable
 	private workOptions: any
 	constructor(
-		worker: GenericWorker,
+		worker: BaseWorker,
 		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.Quantel,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -66,7 +66,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		this.workOptions = workOptions
 	}
-	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+	static doYouSupportAccess(worker: BaseWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.Quantel
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}

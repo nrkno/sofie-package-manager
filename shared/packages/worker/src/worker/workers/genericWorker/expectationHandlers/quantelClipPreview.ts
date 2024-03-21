@@ -1,6 +1,5 @@
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import { getStandardCost } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	hashObj,
@@ -10,15 +9,14 @@ import {
 	ReturnTypeIsExpectationFulfilled,
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
-	assertNever,
 	stringifyError,
 	startTimer,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
-	isHTTPAccessorHandle,
 	isHTTPProxyAccessorHandle,
 	isLocalFolderAccessorHandle,
+	isQuantelClipAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import {
@@ -27,53 +25,37 @@ import {
 	LookupPackageContainer,
 	previewFFMpegArguments,
 } from './lib'
+import { getSourceHTTPHandle } from './lib/quantel'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
-import { WindowsWorker } from '../windowsWorker'
-import { scanWithFFProbe, FFProbeScanResult } from './lib/scan'
-import { CancelablePromise } from '../../../lib/cancelablePromise'
+import { ExpectationHandlerGenericWorker, GenericWorker } from '../genericWorker'
 
-/**
- * Generates a low-res preview video of a source video file, and stores the resulting file into the target PackageContainer
- */
-export const MediaFilePreview: ExpectationWindowsHandler = {
-	doYouSupportExpectation(
-		exp: Expectation.Any,
-		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
-	): ReturnTypeDoYouSupportExpectation {
-		if (windowsWorker.testFFMpeg)
+export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
+	doYouSupportExpectation(exp: Expectation.Any, worker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+		if (worker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
-					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
 				},
 			}
-		if (windowsWorker.testFFProbe)
-			return {
-				support: false,
-				reason: {
-					user: 'There is an issue with the Worker (FFProbe)',
-					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
-				},
-			}
-		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(worker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
 		})
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
-		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
-		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
@@ -84,6 +66,21 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 		if (!tryReading.success)
 			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
 
+		// This is a bit special, as we use the Quantel HTTP-transformer to get a HLS-stream of the video:
+		if (!isQuantelClipAccessorHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
+
+		const httpStreamURL = await lookupSource.handle.getTransformerStreamURL()
+		if (!httpStreamURL.success)
+			return {
+				ready: false,
+				reason: httpStreamURL.reason,
+			}
+		const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, httpStreamURL)
+
+		const tryReadingHTTP = await sourceHTTPHandle.tryPackageRead()
+		if (!tryReadingHTTP.success)
+			return { ready: false, sourceExists: tryReadingHTTP.packageExists, reason: tryReadingHTTP.reason }
+
 		return {
 			ready: true,
 		}
@@ -91,9 +88,9 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		_wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
-		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready)
@@ -109,7 +106,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			return {
 				fulfilled: false,
 				reason: {
-					user: `Not able to access target, due to ${lookupTarget.reason.user}`,
+					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
 				},
 			}
@@ -143,14 +140,11 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 				},
 			}
 		} else {
-			return {
-				fulfilled: true,
-				// reason: { user: `Preview already matches preview file`, tech: `Preview already matches preview file` },
-			}
+			return { fulfilled: true }
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
-		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
+		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
 		const timer = startTimer()
@@ -163,24 +157,14 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 		const sourceHandle = lookupSource.handle
 		const targetHandle = lookupTarget.handle
-
 		if (
-			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-				lookupSource.accessor.type === Accessor.AccessType.HTTP ||
-				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
+			lookupSource.accessor.type === Accessor.AccessType.QUANTEL &&
 			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
 				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
 				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
 		) {
 			// We can read the source and write the preview directly.
-			if (
-				!isLocalFolderAccessorHandle(sourceHandle) &&
-				!isFileShareAccessorHandle(sourceHandle) &&
-				!isHTTPAccessorHandle(sourceHandle) &&
-				!isHTTPProxyAccessorHandle(sourceHandle)
-			)
-				throw new Error(`Source AccessHandler type is wrong`)
+			if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 			if (
 				!isLocalFolderAccessorHandle(targetHandle) &&
 				!isFileShareAccessorHandle(targetHandle) &&
@@ -188,19 +172,21 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			)
 				throw new Error(`Target AccessHandler type is wrong`)
 
+			// This is a bit special, as we use the Quantel HTTP-transformer to get a HLS-stream of the video:
+			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
+			if (!httpStreamURL.success) throw new Error(httpStreamURL.reason.tech)
+			const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, httpStreamURL)
+
 			let ffMpegProcess: FFMpegProcess | undefined
-			let ffProbeProcess: CancelablePromise<any> | undefined
 			const workInProgress = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
 				// On cancel
 				ffMpegProcess?.cancel()
-				ffProbeProcess?.cancel()
 			}).do(async () => {
-				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
-				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
+				const issueReadPackage = await sourceHandle.checkPackageReadAccess()
+				if (!issueReadPackage.success) throw new Error(issueReadPackage.reason.tech)
 
 				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
 				const actualSourceVersionHash = hashObj(actualSourceVersion)
-				// const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
 				const metadata: Metadata = {
 					sourceVersionHash: actualSourceVersionHash,
@@ -218,52 +204,18 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 
 				await targetHandle.removePackage('Prepare for preview generation')
 
-				let inputPath: string
-				if (isLocalFolderAccessorHandle(sourceHandle)) {
-					inputPath = sourceHandle.fullPath
-				} else if (isFileShareAccessorHandle(sourceHandle)) {
-					await sourceHandle.prepareFileAccess()
-					inputPath = sourceHandle.fullPath
-				} else if (isHTTPAccessorHandle(sourceHandle)) {
-					inputPath = sourceHandle.fullUrl
-				} else if (isHTTPProxyAccessorHandle(sourceHandle)) {
-					inputPath = sourceHandle.fullUrl
-				} else {
-					assertNever(sourceHandle)
-					throw new Error(`Unsupported Target AccessHandler`)
-				}
-
-				// Scan with FFProbe:
-				ffProbeProcess = scanWithFFProbe(sourceHandle)
-				const ffProbeScan: FFProbeScanResult = await ffProbeProcess
-				ffProbeProcess = undefined
-				const hasVideoStream =
-					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
-				if (!hasVideoStream) {
-					workInProgress._reportComplete(
-						actualSourceVersionHash,
-						{
-							user: `Preview generation skipped due to file having no video streams`,
-							tech: `Completed at ${Date.now()}`,
-						},
-						undefined
-					)
-					return
-				}
-
-				const args = previewFFMpegArguments(inputPath, true, metadata)
-
-				const fileOperation = await targetHandle.prepareForOperation('Generate preview', lookupSource.handle)
+				const args = previewFFMpegArguments(sourceHTTPHandle.fullUrl, false, metadata)
+				const quantelOperation = await targetHandle.prepareForOperation('Generate preview', lookupSource.handle)
 
 				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
-					// actualSourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
 						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
-						await targetHandle.finalizePackage(fileOperation)
+
+						await targetHandle.finalizePackage(quantelOperation)
 						await targetHandle.updateMetadata(metadata)
 
 						const duration = timer.get()
@@ -286,7 +238,7 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 					async (progress: number) => {
 						workInProgress._reportProgress(actualSourceVersionHash, progress)
 					}
-					//,worker.logger.debug
+					// ,worker.logger.debug
 				)
 				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
 			})
@@ -294,12 +246,12 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			return workInProgress
 		} else {
 			throw new Error(
-				`MediaFilePreview.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+				`QuantelClipPreview.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
-		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
 		const lookupTarget = await lookupPreviewTargets(worker, exp)
@@ -325,24 +277,21 @@ export const MediaFilePreview: ExpectationWindowsHandler = {
 			}
 		}
 
-		return {
-			removed: true,
-			// reason: { user: ``, tech: `Removed preview file "${exp.endRequirement.content.filePath}" from target` },
-		}
+		return { removed: true }
 	},
 }
-function isMediaFilePreview(exp: Expectation.Any): exp is Expectation.MediaFilePreview {
-	return exp.type === Expectation.Type.MEDIA_FILE_PREVIEW
+function isQuantelClipPreview(exp: Expectation.Any): exp is Expectation.QuantelClipPreview {
+	return exp.type === Expectation.Type.QUANTEL_CLIP_PREVIEW
 }
 
 interface Metadata {
 	sourceVersionHash: string
-	version: Expectation.Version.MediaFilePreview
+	version: Expectation.Version.QuantelClipPreview
 }
 
 async function lookupPreviewSources(
-	worker: GenericWorker,
-	exp: Expectation.MediaFilePreview
+	worker: BaseWorker,
+	exp: Expectation.QuantelClipPreview
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
 		worker,
@@ -357,8 +306,8 @@ async function lookupPreviewSources(
 	)
 }
 async function lookupPreviewTargets(
-	worker: GenericWorker,
-	exp: Expectation.MediaFilePreview
+	worker: BaseWorker,
+	exp: Expectation.QuantelClipPreview
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
 		worker,

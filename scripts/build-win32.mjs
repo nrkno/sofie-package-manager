@@ -3,7 +3,7 @@
 import { promisify } from 'util'
 import cp from 'child_process'
 import path from 'path'
-import pkg from 'pkg'
+import pkg from '@yao-pkg/pkg'
 import glob0 from 'glob'
 import fse from 'fs-extra'
 import { createRequire } from 'module'
@@ -32,7 +32,6 @@ if (!executableName) {
 	// Extract the JSON:
 	const m = list.stdout.match(/\[\n[\w\W]*\]/g)
 	const str = m[0]
-
 
 	let packages
 	try {
@@ -101,17 +100,14 @@ if (!executableName) {
 	}
 
 	if (assets.length > 0) {
-		extraArgs.push(
-			'--assets',
-			assets.join(',')
-		)
+		extraArgs.push('--assets', assets.join(','))
 	}
 
 	await pkg.exec([
 		path.join(basePath, './dist/index.js'),
 		// '--debug',
 		'--targets',
-		'node16-win-x64',
+		'node18-win-x64',
 		'--output',
 		binaryOutputPath,
 		...extraArgs,

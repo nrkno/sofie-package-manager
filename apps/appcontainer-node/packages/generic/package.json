@@ -5,7 +5,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "yarn rimraf dist && yarn build:main",
+        "build": "run -T rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
@@ -22,7 +22,7 @@
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
-        "node": ">=14.18.0"
+        "node": ">=18"
     },
     "lint-staged": {
         "*.{js,css,json,md,scss}": [

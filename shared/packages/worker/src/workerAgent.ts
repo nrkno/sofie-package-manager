@@ -44,8 +44,8 @@ import { CPUTracker } from './cpuTracker'
 import { ExpectationManagerAPI } from './expectationManagerApi'
 import { MonitorInProgress } from './worker/lib/monitorInProgress'
 import { IWorkInProgress } from './worker/lib/workInProgress'
-import { GenericWorker } from './worker/worker'
-import { WindowsWorker } from './worker/workers/windowsWorker/windowsWorker'
+import { BaseWorker } from './worker/worker'
+import { GenericWorker } from './worker/workers/genericWorker/genericWorker'
 import { WorkforceAPI } from './workforceApi'
 
 /** The WorkerAgent is a front for a Worker (@see GenericWorker).
@@ -53,7 +53,7 @@ import { WorkforceAPI } from './workforceApi'
  */
 
 export class WorkerAgent {
-	private _worker: GenericWorker
+	private _worker: BaseWorker
 	// private _busyMethodCount = 0
 	private workforceAPI: WorkforceAPI
 	private appContainerAPI: AppContainerAPI
@@ -148,7 +148,7 @@ export class WorkerAgent {
 					type: 'internal',
 			  }
 		// Todo: Different types of workers:
-		this._worker = new WindowsWorker(
+		this._worker = new GenericWorker(
 			this.logger,
 			{
 				location: {

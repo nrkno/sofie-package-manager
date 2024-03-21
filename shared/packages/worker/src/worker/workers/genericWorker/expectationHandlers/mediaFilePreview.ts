@@ -1,3 +1,5 @@
+import { BaseWorker } from '../../../worker'
+import { getStandardCost } from '../lib/lib'
 import {
 	Accessor,
 	hashObj,
@@ -11,9 +13,6 @@ import {
 	stringifyError,
 	startTimer,
 } from '@sofie-package-manager/api'
-import { getStandardCost } from '../lib/lib'
-import { GenericWorker } from '../../../worker'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	isFileShareAccessorHandle,
 	isHTTPAccessorHandle,
@@ -23,61 +22,57 @@ import {
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import {
 	checkWorkerHasAccessToPackageContainersOnPackage,
-	formatTimeCode,
 	lookupAccessorHandles,
 	LookupPackageContainer,
-	thumbnailFFMpegArguments,
+	previewFFMpegArguments,
 } from './lib'
 import { FFMpegProcess, spawnFFMpeg } from './lib/ffmpeg'
-import { WindowsWorker } from '../windowsWorker'
-import { CancelablePromise } from '../../../lib/cancelablePromise'
+import { ExpectationHandlerGenericWorker, GenericWorker } from '../genericWorker'
 import { scanWithFFProbe, FFProbeScanResult } from './lib/scan'
+import { CancelablePromise } from '../../../lib/cancelablePromise'
 
 /**
- * Generates a thumbnail image from a source video file, and stores the resulting file into the target PackageContainer
+ * Generates a low-res preview video of a source video file, and stores the resulting file into the target PackageContainer
  */
-export const MediaFileThumbnail: ExpectationWindowsHandler = {
-	doYouSupportExpectation(
-		exp: Expectation.Any,
-		genericWorker: GenericWorker,
-		windowsWorker: WindowsWorker
-	): ReturnTypeDoYouSupportExpectation {
-		if (windowsWorker.testFFMpeg)
+export const MediaFilePreview: ExpectationHandlerGenericWorker = {
+	doYouSupportExpectation(exp: Expectation.Any, worker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+		if (worker.testFFMpeg)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
-					tech: `Cannot access FFMpeg executable: ${windowsWorker.testFFMpeg}`,
+					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
 				},
 			}
-		if (windowsWorker.testFFProbe)
+		if (worker.testFFProbe)
 			return {
 				support: false,
 				reason: {
 					user: 'There is an issue with the Worker (FFProbe)',
-					tech: `Cannot access FFProbe executable: ${windowsWorker.testFFProbe}`,
+					tech: `Cannot access FFProbe executable: ${worker.testFFProbe}`,
 				},
 			}
-		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
+		return checkWorkerHasAccessToPackageContainersOnPackage(worker, {
 			sources: exp.startRequirement.sources,
+			targets: exp.endRequirement.targets,
 		})
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
-		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
-		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupThumbnailSources(worker, exp)
+		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
-		const lookupTarget = await lookupThumbnailTargets(worker, exp)
+		const lookupTarget = await lookupPreviewTargets(worker, exp)
 		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
@@ -91,11 +86,11 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		_wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
-		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
-		const lookupSource = await lookupThumbnailSources(worker, exp)
+		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready)
 			return {
 				fulfilled: false,
@@ -104,7 +99,7 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 					tech: `Not able to access source: ${lookupSource.reason.tech}`,
 				},
 			}
-		const lookupTarget = await lookupThumbnailTargets(worker, exp)
+		const lookupTarget = await lookupPreviewTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
@@ -132,91 +127,91 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 		if (!metadata) {
 			return {
 				fulfilled: false,
-				reason: { user: `The thumbnail needs to be re-generated`, tech: `No thumbnail metadata file found` },
+				reason: { user: `The preview needs to be re-generated`, tech: `No preview metadata file found` },
 			}
 		} else if (metadata.sourceVersionHash !== actualSourceVersionHash) {
 			return {
 				fulfilled: false,
 				reason: {
-					user: `The thumbnail needs to be re-generated`,
-					tech: `Thumbnail version doesn't match thumbnail file`,
+					user: `The preview needs to be re-generated`,
+					tech: `Preview version doesn't match source file`,
 				},
 			}
 		} else {
-			return { fulfilled: true }
+			return {
+				fulfilled: true,
+				// reason: { user: `Preview already matches preview file`, tech: `Preview already matches preview file` },
+			}
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
-		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		// Create a thumbnail from the source media file
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
+		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		// Copies the file from Source to Target
 
 		const timer = startTimer()
 
-		const lookupSource = await lookupThumbnailSources(worker, exp)
+		const lookupSource = await lookupPreviewSources(worker, exp)
 		if (!lookupSource.ready) throw new Error(`Can't start working due to source: ${lookupSource.reason.tech}`)
 
-		const lookupTarget = await lookupThumbnailTargets(worker, exp)
+		const lookupTarget = await lookupPreviewTargets(worker, exp)
 		if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 
-		let ffMpegProcess: FFMpegProcess | undefined
-		let ffProbeProcess: CancelablePromise<any> | undefined
-		const workInProgress = new WorkInProgress({ workLabel: 'Generating thumbnail' }, async () => {
-			// On cancel
-			ffMpegProcess?.cancel()
-			ffProbeProcess?.cancel()
-		}).do(async () => {
-			if (
-				(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-					lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
-					lookupTarget.accessor.type === Accessor.AccessType.HTTP ||
-					lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
-				(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
-					lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
-					lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
-			) {
-				const sourceHandle = lookupSource.handle
-				const targetHandle = lookupTarget.handle
-				if (
-					!isLocalFolderAccessorHandle(sourceHandle) &&
-					!isHTTPAccessorHandle(sourceHandle) &&
-					!isFileShareAccessorHandle(sourceHandle) &&
-					!isHTTPProxyAccessorHandle(sourceHandle)
-				)
-					throw new Error(`Source AccessHandler type is wrong`)
-				if (
-					!isLocalFolderAccessorHandle(targetHandle) &&
-					!isFileShareAccessorHandle(targetHandle) &&
-					!isHTTPProxyAccessorHandle(targetHandle)
-				)
-					throw new Error(`Target AccessHandler type is wrong`)
+		const sourceHandle = lookupSource.handle
+		const targetHandle = lookupTarget.handle
 
+		if (
+			(lookupSource.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupSource.accessor.type === Accessor.AccessType.FILE_SHARE ||
+				lookupSource.accessor.type === Accessor.AccessType.HTTP ||
+				lookupSource.accessor.type === Accessor.AccessType.HTTP_PROXY) &&
+			(lookupTarget.accessor.type === Accessor.AccessType.LOCAL_FOLDER ||
+				lookupTarget.accessor.type === Accessor.AccessType.FILE_SHARE ||
+				lookupTarget.accessor.type === Accessor.AccessType.HTTP_PROXY)
+		) {
+			// We can read the source and write the preview directly.
+			if (
+				!isLocalFolderAccessorHandle(sourceHandle) &&
+				!isFileShareAccessorHandle(sourceHandle) &&
+				!isHTTPAccessorHandle(sourceHandle) &&
+				!isHTTPProxyAccessorHandle(sourceHandle)
+			)
+				throw new Error(`Source AccessHandler type is wrong`)
+			if (
+				!isLocalFolderAccessorHandle(targetHandle) &&
+				!isFileShareAccessorHandle(targetHandle) &&
+				!isHTTPProxyAccessorHandle(targetHandle)
+			)
+				throw new Error(`Target AccessHandler type is wrong`)
+
+			let ffMpegProcess: FFMpegProcess | undefined
+			let ffProbeProcess: CancelablePromise<any> | undefined
+			const workInProgress = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
+				// On cancel
+				ffMpegProcess?.cancel()
+				ffProbeProcess?.cancel()
+			}).do(async () => {
 				const tryReadPackage = await sourceHandle.checkPackageReadAccess()
-				if (!tryReadPackage.success) {
-					throw new Error(tryReadPackage.reason.tech)
-				}
+				if (!tryReadPackage.success) throw new Error(tryReadPackage.reason.tech)
 
 				const actualSourceVersion = await sourceHandle.getPackageActualVersion()
-				const sourceVersionHash = hashObj(actualSourceVersion)
+				const actualSourceVersionHash = hashObj(actualSourceVersion)
+				// const actualSourceUVersion = makeUniversalVersion(actualSourceVersion)
 
 				const metadata: Metadata = {
-					sourceVersionHash: sourceVersionHash,
+					sourceVersionHash: actualSourceVersionHash,
 					version: {
 						...{
 							// Default values:
-							type: Expectation.Version.Type.MEDIA_FILE_THUMBNAIL,
-							width: 256,
+							type: Expectation.Version.Type.MEDIA_FILE_PREVIEW,
+							bitrate: '40k',
+							width: 320,
 							height: -1,
-							seekTime: 0,
 						},
 						...exp.endRequirement.version,
 					},
 				}
 
-				await targetHandle.removePackage('Prepare for thumbnail generation')
-
-				const seekTime = exp.endRequirement.version.seekTime
-
-				const seekTimeCode: string | undefined = seekTime !== undefined ? formatTimeCode(seekTime) : undefined
+				await targetHandle.removePackage('Prepare for preview generation')
 
 				let inputPath: string
 				if (isLocalFolderAccessorHandle(sourceHandle)) {
@@ -239,28 +234,38 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 				ffProbeProcess = undefined
 				const hasVideoStream =
 					ffProbeScan.streams && ffProbeScan.streams.some((stream) => stream.codec_type === 'video')
+				if (!hasVideoStream) {
+					workInProgress._reportComplete(
+						actualSourceVersionHash,
+						{
+							user: `Preview generation skipped due to file having no video streams`,
+							tech: `Completed at ${Date.now()}`,
+						},
+						undefined
+					)
+					return
+				}
 
-				// Use FFMpeg to generate the thumbnail:
-				const args = thumbnailFFMpegArguments(inputPath, metadata, seekTimeCode, hasVideoStream)
+				const args = previewFFMpegArguments(inputPath, true, metadata)
 
-				const fileOperation = await targetHandle.prepareForOperation('Generate thumbnail', lookupSource.handle)
+				const fileOperation = await targetHandle.prepareForOperation('Generate preview', lookupSource.handle)
 
 				ffMpegProcess = await spawnFFMpeg(
 					args,
 					targetHandle,
+					// actualSourceVersionHash,
 					async () => {
 						// Called when ffmpeg has finished
 						worker.logger.debug(`FFMpeg finished [PID=${ffMpegProcess?.pid}]: ${args.join(' ')}`)
 						ffMpegProcess = undefined
-
 						await targetHandle.finalizePackage(fileOperation)
 						await targetHandle.updateMetadata(metadata)
 
 						const duration = timer.get()
 						workInProgress._reportComplete(
-							sourceVersionHash,
+							actualSourceVersionHash,
 							{
-								user: `Thumbnail generation completed in ${Math.round(duration / 100) / 10}s`,
+								user: `Preview generation completed in ${Math.round(duration / 100) / 10}s`,
 								tech: `Completed at ${Date.now()}`,
 							},
 							undefined
@@ -274,23 +279,25 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 						workInProgress._reportError(err)
 					},
 					async (progress: number) => {
-						workInProgress._reportProgress(sourceVersionHash, progress)
+						workInProgress._reportProgress(actualSourceVersionHash, progress)
 					}
-					// ,worker.logger.debug
+					//,worker.logger.debug
 				)
 				worker.logger.debug(`FFMpeg started [PID=${ffMpegProcess.pid}]: ${args.join(' ')}`)
-			} else {
-				throw new Error(
-					`MediaFileThumbnail.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
-				)
-			}
-		})
+			})
 
-		return workInProgress
+			return workInProgress
+		} else {
+			throw new Error(
+				`MediaFilePreview.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
+			)
+		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
-		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
-		const lookupTarget = await lookupThumbnailTargets(worker, exp)
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+		if (!isMediaFilePreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
+		// Remove the file on the location
+
+		const lookupTarget = await lookupPreviewTargets(worker, exp)
 		if (!lookupTarget.ready) {
 			return {
 				removed: false,
@@ -313,21 +320,24 @@ export const MediaFileThumbnail: ExpectationWindowsHandler = {
 			}
 		}
 
-		return { removed: true }
+		return {
+			removed: true,
+			// reason: { user: ``, tech: `Removed preview file "${exp.endRequirement.content.filePath}" from target` },
+		}
 	},
 }
-function isMediaFileThumbnail(exp: Expectation.Any): exp is Expectation.MediaFileThumbnail {
-	return exp.type === Expectation.Type.MEDIA_FILE_THUMBNAIL
+function isMediaFilePreview(exp: Expectation.Any): exp is Expectation.MediaFilePreview {
+	return exp.type === Expectation.Type.MEDIA_FILE_PREVIEW
 }
 
 interface Metadata {
 	sourceVersionHash: string
-	version: Expectation.Version.MediaFileThumbnail
+	version: Expectation.Version.MediaFilePreview
 }
 
-async function lookupThumbnailSources(
-	worker: GenericWorker,
-	exp: Expectation.MediaFileThumbnail
+async function lookupPreviewSources(
+	worker: BaseWorker,
+	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
 		worker,
@@ -341,9 +351,9 @@ async function lookupThumbnailSources(
 		}
 	)
 }
-async function lookupThumbnailTargets(
-	worker: GenericWorker,
-	exp: Expectation.MediaFileThumbnail
+async function lookupPreviewTargets(
+	worker: BaseWorker,
+	exp: Expectation.MediaFilePreview
 ): Promise<LookupPackageContainer<Metadata>> {
 	return lookupAccessorHandles<Metadata>(
 		worker,

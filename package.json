@@ -18,7 +18,7 @@
         "reset": "node scripts/reset.js",
         "build": "lerna run build --stream",
         "build:changed": "lerna run build --since head --exclude-dependents --stream",
-        "lint": "lerna exec --parallel --no-bail -- eslint . --ext .ts,.tsx",
+        "lint": "lerna exec --parallel --no-bail -- run -T eslint . --ext .ts,.tsx",
         "lintfix": "yarn lint --fix",
         "lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
         "test": "yarn test:prepare && lerna run test --stream",
@@ -42,13 +42,16 @@
         "do:build-win32": "yarn install && yarn build && yarn build-win32 && yarn gather-built && yarn sign-executables",
         "do:build-win32:ci": "yarn install && yarn build && yarn build-win32:ci && yarn gather-built",
         "verify:build-win32": "node scripts/verify-build-win32.mjs",
-        "precommit": "lint-staged",
-        "generate-schema-types": "node scripts/schema-types.mjs"
+        "precommit": "run -T lint-staged",
+        "generate-schema-types": "node scripts/schema-types.mjs",
+        "prettier": "cd $INIT_CWD && \"$PROJECT_CWD/node_modules/.bin/prettier\"",
+        "eslint": "cd $INIT_CWD && \"$PROJECT_CWD/node_modules/.bin/eslint\""
     },
     "devDependencies": {
         "@sofie-automation/code-standard-preset": "^2.5.1",
         "@types/jest": "^29.2.5",
         "@types/rimraf": "^3.0.0",
+        "@yao-pkg/pkg": "^5.11.5",
         "deep-extend": "^0.6.0",
         "find": "^0.3.0",
         "fs-extra": "^11.1.0",
@@ -56,23 +59,20 @@
         "jest": "^29.3.1",
         "json-schema-to-typescript": "^10.1.5",
         "lerna": "^6.6.1",
+        "lint-staged": "^15.2.2",
         "mkdirp": "^3.0.1",
         "node-fetch": "^2.6.9",
-        "pkg": "^5.8.0",
         "rimraf": "^5.0.5",
         "ts-jest": "^29.0.3",
         "typescript": "~4.9",
         "underscore": "^1.13.6"
     },
-    "resolutions": {
-        "**/data-store/set-value": "^4.1.0"
-    },
     "engines": {
-        "node": ">=12.11.0"
+        "node": ">=18"
     },
     "dependencies": {
         "@sofie-automation/server-core-integration": "1.50.0",
-        "@sofie-automation/shared-lib": "1.50.0-nightly-release50-20230627-124025-83abcdc.0"
+        "@sofie-automation/shared-lib": "1.50.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {
@@ -82,5 +82,6 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
-    }
+    },
+    "packageManager": "yarn@4.1.1"
 }

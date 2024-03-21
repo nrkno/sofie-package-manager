@@ -18,10 +18,15 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '18'
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
@@ -30,7 +35,6 @@ jobs:
 
       - name: Prepare Environment
         run: |
-          yarn config set network-timeout 100000 -g
           yarn
         env:
           CI: true
@@ -50,25 +54,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node_version: ['16']
+        node_version: ['18', '20']
         os: [ubuntu-latest, windows-latest] # [windows-latest, macOS-latest]
     timeout-minutes: 10
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+
       - name: Use Node.js ${{ matrix.node_version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node_version }}
+
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Prepare Environment
         run: |
-          yarn config set network-timeout 100000 -g
           yarn
           yarn build
         env:

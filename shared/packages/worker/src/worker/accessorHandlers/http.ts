@@ -22,7 +22,7 @@ import {
 	AccessorId,
 	MonitorId,
 } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
 import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
@@ -39,7 +39,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
 	constructor(
-		worker: GenericWorker,
+		worker: BaseWorker,
 		public readonly accessorId: AccessorId,
 		private accessor: AccessorOnPackage.HTTP,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -57,7 +57,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
 		this.workOptions = workOptions
 	}
-	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+	static doYouSupportAccess(worker: BaseWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.HTTP
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}
