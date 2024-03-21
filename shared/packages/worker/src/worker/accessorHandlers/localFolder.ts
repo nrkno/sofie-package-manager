@@ -26,10 +26,10 @@ import {
 	MonitorId,
 	protectString,
 } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 import { GenericFileAccessorHandle, LocalFolderAccessorHandleType } from './lib/FileHandler'
 import { MonitorInProgress } from '../lib/monitorInProgress'
-import { compareResourceIds } from '../workers/windowsWorker/lib/lib'
+import { compareResourceIds } from '../workers/genericWorker/lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 const fsStat = promisify(fs.stat)
@@ -54,7 +54,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
 	constructor(
-		worker: GenericWorker,
+		worker: BaseWorker,
 		accessorId: AccessorId,
 		private accessor: AccessorOnPackage.LocalFolder,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -75,7 +75,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 			throw new Error('Bad input data: workOptions.useTemporaryFilePath is not a boolean!')
 		this.workOptions = workOptions
 	}
-	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+	static doYouSupportAccess(worker: BaseWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.LocalFolder
 		return compareResourceIds(accessor.resourceId, worker.agentAPI.location.localComputerId)
 	}

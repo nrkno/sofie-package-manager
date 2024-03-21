@@ -19,7 +19,7 @@ import {
 	AccessorId,
 } from '@sofie-package-manager/api'
 
-import { GenericWorker } from '../../worker'
+import { BaseWorker } from '../../worker'
 
 import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
@@ -43,7 +43,7 @@ const fsLstat = promisify(fs.lstat)
  */
 export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	constructor(
-		worker: GenericWorker,
+		worker: BaseWorker,
 		accessorId: AccessorId,
 		accessor: AccessorOnPackage.Any,
 		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types

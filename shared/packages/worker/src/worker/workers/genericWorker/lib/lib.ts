@@ -1,5 +1,5 @@
 import { getAccessorCost, getAccessorStaticHandle } from '../../../accessorHandlers/accessor'
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import {
 	AccessorOnPackage,
 	PackageContainer,
@@ -125,7 +125,7 @@ export type VersionProperty = { name: string; value: string | number | undefined
 
 /** Looks through the packageContainers and return the first one we support access to. */
 export function findBestPackageContainerWithAccessToPackage(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	packageContainers: PackageContainerOnPackage[]
 ):
 	| { packageContainer: PackageContainerOnPackage; accessor: AccessorOnPackage.Any; accessorId: AccessorId }
@@ -140,7 +140,7 @@ export function findBestPackageContainerWithAccessToPackage(
 
 /** Returns the best accessor for a packageContainer */
 export function findBestAccessorOnPackageContainer(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	containerId: PackageContainerId,
 	packageContainer: PackageContainer
 ): { packageContainer: PackageContainer; accessor: AccessorOnPackage.Any; accessorId: AccessorId } | undefined {
@@ -160,7 +160,7 @@ export function findBestAccessorOnPackageContainer(
 	return undefined
 }
 /** Return a standard cost for the various accessorHandler types */
-export function getStandardCost(exp: Expectation.Any, worker: GenericWorker): ReturnTypeGetCostFortExpectation {
+export function getStandardCost(exp: Expectation.Any, worker: BaseWorker): ReturnTypeGetCostFortExpectation {
 	let sourceCost: number = Number.POSITIVE_INFINITY
 	if (exp.startRequirement.sources.length > 0) {
 		const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)

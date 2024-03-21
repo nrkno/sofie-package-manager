@@ -13,7 +13,7 @@ import {
 	assertNever,
 	stringifyError,
 } from '@sofie-package-manager/api'
-import { GenericWorker, GenericWorkerAgentAPI } from '../../worker'
+import { BaseWorker, GenericWorkerAgentAPI } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
 import { FileCopyProxy } from './expectationHandlers/fileCopyProxy'
 import { PackageScan } from './expectationHandlers/packageScan'
@@ -32,9 +32,11 @@ import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { FileVerify } from './expectationHandlers/fileVerify'
 
+export type ExpectationHandlerGenericWorker = ExpectationHandler<GenericWorker>
+
 /** This is a type of worker that runs on a windows machine */
-export class WindowsWorker extends GenericWorker {
-	static readonly type = 'windowsWorker'
+export class GenericWorker extends BaseWorker {
+	static readonly type = 'genericWorker'
 
 	/** Contains the result of testing the FFMpeg executable. null = all is well, otherwise contains error message */
 	public testFFMpeg: null | string = 'Not initialized'
@@ -48,11 +50,11 @@ export class WindowsWorker extends GenericWorker {
 		agentAPI: GenericWorkerAgentAPI,
 		sendMessageToManager: ExpectationManagerWorkerAgent.MessageFromWorker
 	) {
-		super(logger.category('WindowsWorker'), agentAPI, sendMessageToManager, WindowsWorker.type)
+		super(logger.category('GenericWorker'), agentAPI, sendMessageToManager, GenericWorker.type)
 		this.logger.debug(`Worker started`)
 	}
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
-		return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this, this)
+		return this.getExpectationHandler(exp).doYouSupportExpectation(exp, this)
 	}
 	async init(): Promise<void> {
 		await this.checkExecutables()
@@ -75,26 +77,26 @@ export class WindowsWorker extends GenericWorker {
 		this.testFFProbe = await testFFProbe()
 	}
 	async getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
-		return this.getExpectationHandler(exp).getCostForExpectation(exp, this, this)
+		return this.getExpectationHandler(exp).getCostForExpectation(exp, this)
 	}
 	async isExpectationReadyToStartWorkingOn(
 		exp: Expectation.Any
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
-		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this, this)
+		return this.getExpectationHandler(exp).isExpectationReadyToStartWorkingOn(exp, this)
 	}
 	async isExpectationFulfilled(
 		exp: Expectation.Any,
 		wasFulfilled: boolean
 	): Promise<ReturnTypeIsExpectationFulfilled> {
-		return this.getExpectationHandler(exp).isExpectationFulfilled(exp, wasFulfilled, this, this)
+		return this.getExpectationHandler(exp).isExpectationFulfilled(exp, wasFulfilled, this)
 	}
 	async workOnExpectation(exp: Expectation.Any, progressTimeout: number): Promise<IWorkInProgress> {
-		return this.getExpectationHandler(exp).workOnExpectation(exp, this, this, progressTimeout)
+		return this.getExpectationHandler(exp).workOnExpectation(exp, this, progressTimeout)
 	}
 	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
-		return this.getExpectationHandler(exp).removeExpectation(exp, this, this)
+		return this.getExpectationHandler(exp).removeExpectation(exp, this)
 	}
-	private getExpectationHandler(exp: Expectation.Any): ExpectationHandler {
+	private getExpectationHandler(exp: Expectation.Any): ExpectationHandlerGenericWorker {
 		switch (exp.type) {
 			case Expectation.Type.FILE_COPY:
 				return FileCopy
