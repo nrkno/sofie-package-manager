@@ -1988,7 +1988,7 @@ __metadata:
   dependencies:
     "@sofie-package-manager/api": "npm:1.50.0"
     "@sofie-package-manager/worker": "npm:1.50.0"
-    "@supercharge/promise-pool": "npm:^2.4.0"
+    "@supercharge/promise-pool": "npm:^3.1.1"
     underscore: "npm:^1.12.0"
   languageName: unknown
   linkType: soft
@@ -2029,10 +2029,10 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@supercharge/promise-pool@npm:^2.4.0":
-  version: 2.4.0
-  resolution: "@supercharge/promise-pool@npm:2.4.0"
-  checksum: 10/bcd55a44a09575cc9c54845112587abab4a90d965b389534b02be1b3dda61190553f874bbe7bff0fccd2ef74493912bf093540de3ebb9ad5b145f9124b69a391
+"@supercharge/promise-pool@npm:^3.1.1":
+  version: 3.1.1
+  resolution: "@supercharge/promise-pool@npm:3.1.1"
+  checksum: 10/a20564b4ebb3a0c660e3a89b9e4143fc50b56c5e8d590e00c6c65ecde60dcaa988a64dc56f5d68187e8c662daa1133f48382da9c906675b7287a088fe436d8fa
   languageName: node
   linkType: hard
 
