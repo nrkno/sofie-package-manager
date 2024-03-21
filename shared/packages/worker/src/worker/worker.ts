@@ -34,7 +34,7 @@ export interface GenericWorkerAgentAPI {
 /**
  * A Worker runs static stateless/lambda functions.
  */
-export abstract class GenericWorker {
+export abstract class BaseWorker {
 	/** A space where the AccessorHandlers can store various things, such as persistant connections, etc.. */
 	public accessorCache: { [accessorType: string]: unknown } = {}
 	private _uniqueId = 0

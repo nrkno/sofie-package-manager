@@ -1,6 +1,5 @@
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import { UniversalVersion, getStandardCost } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	AccessorOnPackage,
@@ -18,12 +17,13 @@ import {
 import { IWorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
 import { doFileCopyExpectation, isFileFulfilled, isFileReadyToStartWorkingOn } from './lib/file'
+import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer
  */
-export const FileCopy: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+export const FileCopy: ExpectationHandlerGenericWorker = {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
@@ -31,14 +31,14 @@ export const FileCopy: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -50,7 +50,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		_wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -59,7 +59,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 
 		return isFileFulfilled(worker, lookupSource, lookupTarget)
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the file from Source to Target
 
@@ -78,7 +78,7 @@ export const FileCopy: ExpectationWindowsHandler = {
 			return workInProgress
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
@@ -116,7 +116,7 @@ function isFileCopy(exp: Expectation.Any): exp is Expectation.FileCopy {
 }
 
 async function lookupCopySources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
 	return lookupAccessorHandles<UniversalVersion>(
@@ -133,7 +133,7 @@ async function lookupCopySources(
 	)
 }
 async function lookupCopyTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
 	return lookupAccessorHandles<UniversalVersion>(

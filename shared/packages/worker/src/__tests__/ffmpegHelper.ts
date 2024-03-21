@@ -1,6 +1,6 @@
 import path from 'path'
 import { LocalFolderAccessorHandle } from '../worker/accessorHandlers/localFolder'
-import { overrideFFMpegExecutables, spawnFFMpeg } from '../worker/workers/windowsWorker/expectationHandlers/lib/ffmpeg'
+import { overrideFFMpegExecutables, spawnFFMpeg } from '../worker/workers/genericWorker/expectationHandlers/lib/ffmpeg'
 
 export const SamplesDir = path.join(__dirname, '../../../../../tests/samples')
 

@@ -1,4 +1,4 @@
-import { GenericWorker } from '../../../../worker'
+import { BaseWorker } from '../../../../worker'
 import { roboCopyFile } from '../../lib/robocopy'
 import { UniversalVersion, compareUniversalVersions, makeUniversalVersion, compareResourceIds } from '../../lib/lib'
 import {
@@ -27,7 +27,7 @@ import { diff } from 'deep-diff'
 import { quantelFileflowCopy } from '../../lib/quantelFileflow'
 
 export async function isFileReadyToStartWorkingOn(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	lookupSource: LookupPackageContainer<UniversalVersion>,
 	lookupTarget: LookupPackageContainer<UniversalVersion>
 ): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
@@ -86,7 +86,7 @@ export async function isFileReadyToStartWorkingOn(
 	}
 }
 export async function isFileFulfilled(
-	_worker: GenericWorker,
+	_worker: BaseWorker,
 	lookupSource: LookupPackageContainer<UniversalVersion>,
 	lookupTarget: LookupPackageContainer<UniversalVersion>
 ): Promise<ReturnTypeIsExpectationFulfilled> {

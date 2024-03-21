@@ -1,6 +1,5 @@
-import { GenericWorker } from '../../../worker'
+import { BaseWorker } from '../../../worker'
 import { compareUniversalVersions, getStandardCost, makeUniversalVersion } from '../lib/lib'
-import { ExpectationWindowsHandler } from './expectationWindowsHandler'
 import {
 	Accessor,
 	hashObj,
@@ -16,9 +15,10 @@ import {
 import { isQuantelClipAccessorHandle } from '../../../accessorHandlers/accessor'
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
+import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
-export const QuantelClipCopy: ExpectationWindowsHandler = {
-	doYouSupportExpectation(exp: Expectation.Any, genericWorker: GenericWorker): ReturnTypeDoYouSupportExpectation {
+export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
+	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
 		return checkWorkerHasAccessToPackageContainersOnPackage(genericWorker, {
 			sources: exp.startRequirement.sources,
 			targets: exp.endRequirement.targets,
@@ -26,14 +26,14 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 	},
 	getCostForExpectation: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeGetCostFortExpectation> => {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		return getStandardCost(exp, worker)
 	},
 	isExpectationReadyToStartWorkingOn: async (
 		exp: Expectation.Any,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> => {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -76,7 +76,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
 		_wasFulfilled: boolean,
-		worker: GenericWorker
+		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
@@ -131,7 +131,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 			fulfilled: true,
 		}
 	},
-	workOnExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<IWorkInProgress> => {
+	workOnExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<IWorkInProgress> => {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Copies the clip from Source to Target
 
@@ -259,7 +259,7 @@ export const QuantelClipCopy: ExpectationWindowsHandler = {
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: GenericWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the clip on the location
 
@@ -296,7 +296,7 @@ function isQuantelClipCopy(exp: Expectation.Any): exp is Expectation.QuantelClip
 }
 
 async function lookupCopySources(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {
 	return lookupAccessorHandles<QuantelMetadata>(
@@ -312,7 +312,7 @@ async function lookupCopySources(
 	)
 }
 async function lookupCopyTargets(
-	worker: GenericWorker,
+	worker: BaseWorker,
 	exp: Expectation.QuantelClipCopy
 ): Promise<LookupPackageContainer<QuantelMetadata>> {
 	return lookupAccessorHandles<QuantelMetadata>(

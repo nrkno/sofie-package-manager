@@ -13,7 +13,7 @@ import {
 	PackageOperation,
 } from './genericHandle'
 import { Expectation, Accessor, AccessorOnPackage, AccessorId, escapeFilePath } from '@sofie-package-manager/api'
-import { GenericWorker } from '../worker'
+import { BaseWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'
 import * as crypto from 'crypto'
@@ -22,10 +22,10 @@ import tmp from 'tmp'
 import * as fs from 'fs'
 import * as path from 'path'
 import { promisify } from 'util'
-import { UniversalVersion } from '../workers/windowsWorker/lib/lib'
+import { UniversalVersion } from '../workers/genericWorker/lib/lib'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
-import { getFFMpegExecutable, getFFProbeExecutable } from '../workers/windowsWorker/expectationHandlers/lib/ffmpeg'
+import { getFFMpegExecutable, getFFProbeExecutable } from '../workers/genericWorker/expectationHandlers/lib/ffmpeg'
 
 const fsReadFile = promisify(fs.readFile)
 
@@ -38,7 +38,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		filePath?: string
 	}
 	constructor(
-		worker: GenericWorker,
+		worker: BaseWorker,
 		public readonly accessorId: AccessorId,
 		private accessor: AccessorOnPackage.AtemMediaStore,
 		content: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
@@ -52,7 +52,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 				throw new Error('Bad input data: neither content.filePath nor accessor.filePath are set!')
 		}
 	}
-	static doYouSupportAccess(worker: GenericWorker, accessor0: AccessorOnPackage.Any): boolean {
+	static doYouSupportAccess(worker: BaseWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.AtemMediaStore
 		return !accessor.networkId || worker.agentAPI.location.localNetworkIds.includes(accessor.networkId)
 	}

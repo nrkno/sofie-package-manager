@@ -58,7 +58,7 @@ Internally, the Worker is structured by separating the `ExpectationHandlers` and
 
 The `ExpectationHandlers` handles the high-level functionality required for a certain Expectation, while the `AccessorHandlers` handles the low-level functionality for a certain Accessor type.
 
-For example, when [copying a file](shared/packages/worker/src/worker/workers/windowsWorker/expectationHandlers/fileCopy.ts) from one folder to another, the `ExpectationHandler` will handle things like "check if the source package exists", "check if the target package already exists" but it's never touching the files directly, only talking to the the `AccessorHandler`.
+For example, when [copying a file](shared/packages/worker/src/worker/workers/genericWorker/expectationHandlers/fileCopy.ts) from one folder to another, the `ExpectationHandler` will handle things like "check if the source package exists", "check if the target package already exists" but it's never touching the files directly, only talking to the the `AccessorHandler`.
 The `AccessorHandler` [exposes a few generic methods](./shared/packages/worker/src/worker/accessorHandlers/genericHandle.ts), like "check if we can read from a Package" (ie does a file exist), etc.
 
 ### HTTP Server
