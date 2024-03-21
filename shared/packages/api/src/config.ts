@@ -307,7 +307,7 @@ export interface WorkforceConfig {
 
 export async function getWorkforceConfig(): Promise<WorkforceConfig> {
 	const argv = await Promise.resolve(
-		yargs(process.argv.slice(2)).options({
+		yargs(getProcessArgv()).options({
 			...workforceArguments,
 			...processOptions,
 		}).argv
@@ -335,7 +335,7 @@ export interface HTTPServerConfig {
 }
 export async function getHTTPServerConfig(): Promise<HTTPServerConfig> {
 	const argv = await Promise.resolve(
-		yargs(process.argv.slice(2)).options({
+		yargs(getProcessArgv()).options({
 			...httpServerArguments,
 			...processOptions,
 		}).argv
@@ -378,7 +378,7 @@ export interface PackageManagerConfig {
 }
 export async function getPackageManagerConfig(): Promise<PackageManagerConfig> {
 	const argv = await Promise.resolve(
-		yargs(process.argv.slice(2)).options({
+		yargs(getProcessArgv()).options({
 			...packageManagerArguments,
 			...processOptions,
 		}).argv
@@ -419,7 +419,7 @@ export interface WorkerConfig {
 }
 export async function getWorkerConfig(): Promise<WorkerConfig> {
 	const argv = await Promise.resolve(
-		yargs(process.argv.slice(2)).options({
+		yargs(getProcessArgv()).options({
 			...workerArguments,
 			...processOptions,
 		}).argv
@@ -450,7 +450,7 @@ export interface AppContainerProcessConfig {
 }
 export async function getAppContainerConfig(): Promise<AppContainerProcessConfig> {
 	const argv = await Promise.resolve(
-		yargs(process.argv.slice(2)).options({
+		yargs(getProcessArgv()).options({
 			...appContainerArguments,
 			...processOptions,
 		}).argv
@@ -520,7 +520,7 @@ export async function getSingleAppConfig(): Promise<SingleAppConfig> {
 	// @ts-expect-error not optional
 	delete options.port
 
-	const argv = await Promise.resolve(yargs(process.argv.slice(2)).options(options).argv)
+	const argv = await Promise.resolve(yargs(getProcessArgv()).options(options).argv)
 
 	return {
 		process: getProcessConfig(argv),
@@ -551,7 +551,7 @@ export interface QuantelHTTPTransformerProxyConfig {
 }
 export async function getQuantelHTTPTransformerProxyConfig(): Promise<QuantelHTTPTransformerProxyConfig> {
 	const argv = await Promise.resolve(
-		yargs(process.argv.slice(2)).options({
+		yargs(getProcessArgv()).options({
 			...quantelHTTPTransformerProxyConfigArguments,
 			...processOptions,
 		}).argv
@@ -572,4 +572,24 @@ export async function getQuantelHTTPTransformerProxyConfig(): Promise<QuantelHTT
 /** Helper function, to get strict typings for the yargs-Options. */
 function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
 	return opts
+}
+
+function getProcessArgv() {
+	// Note: process.argv typically looks like this:
+	// [
+	// 	'C:\\Program Files\\nodejs\\node.exe',
+	// 	'C:\\path\\to\\my\\package-manager\\apps\\single-app\\app\\dist\\index.js',
+	// 	'--',
+	// 	'--watchFiles=true',
+	// 	'--noCore=true',
+	// 	'--logLevel=debug'
+	// ]
+
+	// Remove the first two arguments
+	let args = process.argv.slice(2)
+
+	// If the first argument is just '--', remove it:
+	if (args[0] === '--') args = args.slice(1)
+
+	return args
 }
