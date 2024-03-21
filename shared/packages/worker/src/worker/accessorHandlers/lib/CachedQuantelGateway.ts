@@ -61,6 +61,11 @@ export class CachedQuantelGateway extends QuantelGateway {
 		} else {
 			const promise: Promise<any> = getValueFcn()
 
+			// Clear the cache on error:
+			promise.catch(() => {
+				this._cache.delete(cacheKey)
+			})
+
 			this._cache.set(cacheKey, {
 				timestamp: Date.now(),
 				promise: promise,
