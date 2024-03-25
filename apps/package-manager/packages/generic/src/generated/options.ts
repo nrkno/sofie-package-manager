@@ -10,4 +10,5 @@ export interface PackageManagerSettings {
 	delayRemoval?: number
 	delayRemovalPackageInfo?: number
 	useTemporaryFilePath?: boolean
+	skipDeepScan?: boolean
 }
