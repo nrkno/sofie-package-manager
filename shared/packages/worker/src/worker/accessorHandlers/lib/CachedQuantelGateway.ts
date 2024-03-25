@@ -1,6 +1,11 @@
 import { ProtectedString, protectString } from '@sofie-package-manager/api'
 import { ClipSearchQuery, QuantelGateway } from 'tv-automation-quantel-gateway-client'
-import { ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
+import {
+	ClipDataSummary,
+	ConnectionDetails,
+	ServerInfo,
+	ZoneInfo,
+} from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 
 const DEFAULT_CACHE_EXPIRE = 3000
 
@@ -13,6 +18,8 @@ export class CachedQuantelGateway extends QuantelGateway {
 	private cacheExpire: number
 	private purgeExpiredCacheTimeout: NodeJS.Timeout | null = null
 
+	private _connectToISAPromise: Promise<ConnectionDetails> | null = null
+
 	constructor(
 		config?:
 			| {
@@ -23,6 +30,24 @@ export class CachedQuantelGateway extends QuantelGateway {
 	) {
 		super(config)
 		this.cacheExpire = config?.timeout ?? DEFAULT_CACHE_EXPIRE
+	}
+
+	async connectToISA(ISAUrls: string | string[]): Promise<ConnectionDetails> {
+		// Ensure that we only call super.connectToISA() once at a time:
+		if (this._connectToISAPromise) return this._connectToISAPromise
+
+		this._connectToISAPromise = super
+			.connectToISA(ISAUrls)
+			.then((connectionDetails) => {
+				this._connectToISAPromise = null
+				return connectionDetails
+			})
+			.catch((e) => {
+				this._connectToISAPromise = null
+				throw e
+			})
+
+		return this._connectToISAPromise
 	}
 
 	async purgeCacheSearchClip(searchQuery: ClipSearchQuery): Promise<ClipDataSummary[]> {
