@@ -39,6 +39,7 @@ __metadata:
   resolution: "@appcontainer-node/app@workspace:apps/appcontainer-node/app"
   dependencies:
     "@appcontainer-node/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -505,6 +506,7 @@ __metadata:
   resolution: "@boilerplate/app@workspace:apps/_boilerplate/app"
   dependencies:
     "@boilerplate/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -586,6 +588,7 @@ __metadata:
   resolution: "@http-server/app@workspace:apps/http-server/app"
   dependencies:
     "@http-server/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -1628,6 +1631,7 @@ __metadata:
   resolution: "@package-manager/app@workspace:apps/package-manager/app"
   dependencies:
     "@package-manager/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -1644,6 +1648,7 @@ __metadata:
     data-store: "npm:^4.0.3"
     deep-extend: "npm:^0.6.0"
     fast-clone: "npm:^1.5.13"
+    jest: "npm:*"
     nanoid: "npm:^3.3.4"
     underscore: "npm:^1.12.0"
   peerDependencies:
@@ -1809,6 +1814,7 @@ __metadata:
   resolution: "@quantel-http-transformer-proxy/app@workspace:apps/quantel-http-transformer-proxy/app"
   dependencies:
     "@quantel-http-transformer-proxy/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -1878,6 +1884,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
     "@sofie-package-manager/workforce": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
     underscore: "npm:^1.12.0"
   languageName: unknown
   linkType: soft
@@ -1973,6 +1980,7 @@ __metadata:
   dependencies:
     "@types/winston": "npm:^2.3.9"
     "@types/ws": "npm:^8.5.4"
+    jest: "npm:*"
     underscore: "npm:^1.12.0"
     winston: "npm:^3.5.1"
     ws: "npm:^8.12.0"
@@ -1989,6 +1997,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
     "@supercharge/promise-pool": "npm:^2.4.0"
+    jest: "npm:*"
     type-fest: "npm:3.13.1"
     underscore: "npm:^1.12.0"
   languageName: unknown
@@ -2008,6 +2017,7 @@ __metadata:
     atem-connection: "npm:^3.2.0"
     deep-diff: "npm:^1.0.2"
     form-data: "npm:^4.0.0"
+    jest: "npm:*"
     jest-mock-extended: "npm:^3.0.5"
     mkdirp: "npm:^3.0.1"
     node-fetch: "npm:^2.6.1"
@@ -2057,6 +2067,7 @@ __metadata:
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
     "@sofie-package-manager/workforce": "npm:1.50.2-alpha.1"
     deep-extend: "npm:^0.6.0"
+    jest: "npm:*"
     tv-automation-quantel-gateway-client: "npm:^3.1.7"
     underscore: "npm:^1.12.0"
     windows-network-drive: "npm:^4.0.1"
@@ -2761,6 +2772,7 @@ __metadata:
   resolution: "@worker/app@workspace:apps/worker/app"
   dependencies:
     "@worker/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -2778,6 +2790,7 @@ __metadata:
   resolution: "@workforce/app@workspace:apps/workforce/app"
   dependencies:
     "@workforce/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -7373,7 +7386,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jest@npm:^29.3.1":
+"jest@npm:*, jest@npm:^29.3.1":
   version: 29.7.0
   resolution: "jest@npm:29.7.0"
   dependencies:

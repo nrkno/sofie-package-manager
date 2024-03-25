@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - 'release**'
+      - 'test**'
     tags:
       - 'v**'
 
@@ -25,6 +26,11 @@ jobs:
 
       - name: Enable Corepack
         run: corepack enable
+
+      - name: Prepare Environment
+        run: yarn
+        env:
+          CI: true
 
       - name: Run build
         env:

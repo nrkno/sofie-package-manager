@@ -26,7 +26,8 @@
     },
     "devDependencies": {
         "@types/deep-extend": "0.4.31",
-        "@types/underscore": "^1.10.24"
+        "@types/underscore": "^1.10.24",
+        "jest": "*"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

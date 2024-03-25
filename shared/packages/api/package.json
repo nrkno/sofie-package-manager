@@ -17,7 +17,8 @@
     },
     "devDependencies": {
         "@types/winston": "^2.3.9",
-        "@types/ws": "^8.5.4"
+        "@types/ws": "^8.5.4",
+        "jest": "*"
     },
     "dependencies": {
         "underscore": "^1.12.0",

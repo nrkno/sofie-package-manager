@@ -25,6 +25,8 @@ if (!executableName) {
 }
 
 ;(async () => {
+	await fse.mkdirp(outputDirectory)
+
 	log(`Collecting dependencies for ${packageJson.name}...`)
 	// List all Lerna packages:
 	const list = await exec('yarn lerna list -a --json')

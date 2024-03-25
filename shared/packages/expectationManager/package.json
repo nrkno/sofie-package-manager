@@ -13,6 +13,7 @@
         "node": ">=18"
     },
     "devDependencies": {
+        "jest": "*",
         "type-fest": "3.13.1"
     },
     "dependencies": {
