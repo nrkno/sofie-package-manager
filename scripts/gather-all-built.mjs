@@ -1,10 +1,8 @@
 /* eslint-disable node/no-unpublished-require */
 import { promisify } from 'util'
-import glob0 from 'glob'
+import { glob } from 'glob'
 import fse from 'fs-extra'
 import path from 'path'
-
-const glob = promisify(glob0)
 
 /*
 This script gathers all files in the deploy/ folders of the various apps

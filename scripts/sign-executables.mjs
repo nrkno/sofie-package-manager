@@ -1,10 +1,9 @@
 /* eslint-disable no-process-exit, no-console */
 import { promisify } from 'util'
-import glob0 from 'glob'
+import { glob } from 'glob'
 import { exec } from 'child_process'
 import readline from 'readline'
 
-const glob = promisify(glob0)
 const execPromise = promisify(exec)
 
 /*

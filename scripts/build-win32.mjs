@@ -4,12 +4,11 @@ import { promisify } from 'util'
 import cp from 'child_process'
 import path from 'path'
 import pkg from '@yao-pkg/pkg'
-import glob0 from 'glob'
+import { glob } from 'glob'
 import fse from 'fs-extra'
 import { createRequire } from 'module'
 
 const exec = promisify(cp.exec)
-const glob = promisify(glob0)
 const require = createRequire(import.meta.url)
 
 /*

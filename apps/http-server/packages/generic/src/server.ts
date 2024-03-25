@@ -62,7 +62,7 @@ export class PackageProxyServer {
 
 			const apiKey: string =
 				ctx.request.query?.apiKey || // Querystring parameter
-				ctx.request.body?.apiKey // Body parameter
+				(ctx.request.body as any)?.apiKey // Body parameter
 
 			if (ctx.request.method === 'GET' || ctx.request.method === 'HEAD') {
 				if (

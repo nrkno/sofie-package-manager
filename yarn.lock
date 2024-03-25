@@ -606,7 +606,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
     "@types/busboy": "npm:^1.5.0"
     "@types/koa": "npm:^2.13.5"
-    "@types/koa-bodyparser": "npm:^4.3.0"
+    "@types/koa-bodyparser": "npm:^4.3.12"
     "@types/koa-range": "npm:^0.3.2"
     "@types/koa-router": "npm:^7.4.0"
     "@types/koa__cors": "npm:^4.0.0"
@@ -2371,6 +2371,15 @@ __metadata:
   dependencies:
     "@types/koa": "npm:*"
   checksum: 10/3a2cac14cb4a720d017d7708fbe9e8a310b5ecebbe62703a2606bb48c775fbeaf9fd601ba9cb7add03c7059f90327d8bcad3d70443eaea383b117b5c020054ec
+  languageName: node
+  linkType: hard
+
+"@types/koa-bodyparser@npm:^4.3.12":
+  version: 4.3.12
+  resolution: "@types/koa-bodyparser@npm:4.3.12"
+  dependencies:
+    "@types/koa": "npm:*"
+  checksum: 10/645cc253c6b9b2e98252b1cdc75a4812cd6d3c228e426f9893a755324b7a6936559ec659a0ff288cb2642340b3cc4e2110167f24b84efc8e3b89c04fe67ed883
   languageName: node
   linkType: hard
 
@@ -6000,7 +6009,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^8.0.1, glob@npm:^8.1.0":
+"glob@npm:^8.0.1":
   version: 8.1.0
   resolution: "glob@npm:8.1.0"
   dependencies:
@@ -9680,7 +9689,7 @@ __metadata:
     deep-extend: "npm:^0.6.0"
     find: "npm:^0.3.0"
     fs-extra: "npm:^11.1.0"
-    glob: "npm:^8.1.0"
+    glob: "npm:^10.3.10"
     jest: "npm:^29.3.1"
     json-schema-to-typescript: "npm:^10.1.5"
     lerna: "npm:^6.6.1"

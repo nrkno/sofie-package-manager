@@ -2,10 +2,7 @@
 
 import path from 'path'
 import fse from 'fs-extra'
-import glob0 from 'glob'
-import { promisify } from 'util'
-
-const glob = promisify(glob0)
+import { glob } from 'glob'
 
 const basePath = '.'
 
