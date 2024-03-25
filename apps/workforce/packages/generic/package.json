@@ -5,13 +5,16 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
     "dependencies": {
         "@sofie-package-manager/api": "1.50.2-alpha.2",
         "@sofie-package-manager/workforce": "1.50.2-alpha.2"
+    },
+    "devDependencies": {
+        "rimraf": "^5.0.5"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

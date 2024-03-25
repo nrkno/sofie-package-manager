@@ -8,7 +8,7 @@
     ],
     "license": "MIT",
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest"
     },
@@ -18,7 +18,8 @@
     "devDependencies": {
         "@types/winston": "^2.3.9",
         "@types/ws": "^8.5.4",
-        "jest": "*"
+        "jest": "*",
+        "rimraf": "^5.0.5"
     },
     "dependencies": {
         "underscore": "^1.12.0",

@@ -5,7 +5,7 @@
     "types": "dist/index.d.ts",
     "license": "MIT",
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest --runInBand"
     },
@@ -21,7 +21,8 @@
         "@types/proper-lockfile": "^4.1.4",
         "@types/tmp": "~0.2.2",
         "jest": "*",
-        "jest-mock-extended": "^3.0.5"
+        "jest-mock-extended": "^3.0.5",
+        "rimraf": "^5.0.5"
     },
     "dependencies": {
         "@parcel/watcher": "^2.3.0",

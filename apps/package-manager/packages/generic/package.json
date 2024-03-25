@@ -5,7 +5,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest"
     },
@@ -27,7 +27,8 @@
     "devDependencies": {
         "@types/deep-extend": "0.4.31",
         "@types/underscore": "^1.10.24",
-        "jest": "*"
+        "jest": "*",
+        "rimraf": "^5.0.5"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

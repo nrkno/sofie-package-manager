@@ -40,6 +40,7 @@ __metadata:
   dependencies:
     "@appcontainer-node/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -50,6 +51,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
     "@types/underscore": "npm:^1.10.24"
+    rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
   peerDependencies:
     "@sofie-automation/shared-lib": "*"
@@ -507,12 +509,15 @@ __metadata:
   dependencies:
     "@boilerplate/generic": "npm:1.50.2-alpha.1"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
 "@boilerplate/generic@npm:1.50.2-alpha.1, @boilerplate/generic@workspace:apps/_boilerplate/packages/generic":
   version: 0.0.0-use.local
   resolution: "@boilerplate/generic@workspace:apps/_boilerplate/packages/generic"
+  dependencies:
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -589,6 +594,7 @@ __metadata:
   dependencies:
     "@http-server/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -617,6 +623,7 @@ __metadata:
     mkdirp: "npm:^3.0.1"
     pechkin: "npm:^1.0.1"
     pretty-bytes: "npm:^5.5.0"
+    rimraf: "npm:^5.0.5"
     tslib: "npm:^2.1.0"
     underscore: "npm:^1.12.0"
     yargs: "npm:^17.7.2"
@@ -1632,6 +1639,7 @@ __metadata:
   dependencies:
     "@package-manager/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -1650,6 +1658,7 @@ __metadata:
     fast-clone: "npm:^1.5.13"
     jest: "npm:*"
     nanoid: "npm:^3.3.4"
+    rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
   peerDependencies:
     "@sofie-automation/server-core-integration": "*"
@@ -1815,6 +1824,7 @@ __metadata:
   dependencies:
     "@quantel-http-transformer-proxy/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -1845,6 +1855,7 @@ __metadata:
     mime-types: "npm:^2.1.28"
     mkdirp: "npm:^3.0.1"
     pretty-bytes: "npm:^5.5.0"
+    rimraf: "npm:^5.0.5"
     tslib: "npm:^2.1.0"
     underscore: "npm:^1.12.0"
     xml2js: "npm:^0.6.2"
@@ -1885,6 +1896,7 @@ __metadata:
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
     "@sofie-package-manager/workforce": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
   languageName: unknown
   linkType: soft
@@ -1981,6 +1993,7 @@ __metadata:
     "@types/winston": "npm:^2.3.9"
     "@types/ws": "npm:^8.5.4"
     jest: "npm:*"
+    rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
     winston: "npm:^3.5.1"
     ws: "npm:^8.12.0"
@@ -1998,6 +2011,7 @@ __metadata:
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
     "@supercharge/promise-pool": "npm:^2.4.0"
     jest: "npm:*"
+    rimraf: "npm:^5.0.5"
     type-fest: "npm:3.13.1"
     underscore: "npm:^1.12.0"
   languageName: unknown
@@ -2022,6 +2036,7 @@ __metadata:
     mkdirp: "npm:^3.0.1"
     node-fetch: "npm:^2.6.1"
     proper-lockfile: "npm:^4.1.2"
+    rimraf: "npm:^5.0.5"
     tmp: "npm:~0.2.1"
     tv-automation-quantel-gateway-client: "npm:3.1.7"
     type-fest: "npm:3.13.1"
@@ -2037,6 +2052,7 @@ __metadata:
   resolution: "@sofie-package-manager/workforce@workspace:shared/packages/workforce"
   dependencies:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -2773,6 +2789,7 @@ __metadata:
   dependencies:
     "@worker/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -2782,6 +2799,7 @@ __metadata:
   dependencies:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -2791,6 +2809,7 @@ __metadata:
   dependencies:
     "@workforce/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
@@ -2800,6 +2819,7 @@ __metadata:
   dependencies:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
     "@sofie-package-manager/workforce": "npm:1.50.2-alpha.2"
+    rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 

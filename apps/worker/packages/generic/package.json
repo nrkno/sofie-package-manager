@@ -5,7 +5,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
@@ -24,5 +24,8 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
+    },
+    "devDependencies": {
+        "rimraf": "^5.0.5"
     }
 }
