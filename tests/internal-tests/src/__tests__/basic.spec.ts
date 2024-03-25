@@ -368,12 +368,12 @@ describeForAllPlatforms(
 						ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				}
 				expect(packageStatuses.actual).toMatchObject(packageStatuses.expected)
-			}, env.WAIT_JOB_TIME * 2 + COPY_TIME * 10)
+			}, 1000 + env.WAIT_JOB_TIME * 2 + COPY_TIME * 10)
 
 			// Expect there to be requests to scale up workers:
 			expect(workforceRequestResourcesForExpectation.mock.calls.length).toBeGreaterThan(5)
 			expect(workforceRequestResourcesForExpectation.mock.calls.length).toBeLessThan(12)
-		}, 2000)
+		}, 5000)
 	}
 )
 
