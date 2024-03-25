@@ -41,6 +41,7 @@
         "update-packages": "node scripts/update-packages.js",
         "do:build-win32": "yarn build && yarn build-win32 && yarn gather-built && yarn sign-executables",
         "do:build-win32:ci": "yarn build && yarn build-win32:ci && yarn gather-built",
+        "do:test:everything": "node scripts/test-everything.js",
         "verify:build-win32": "node scripts/verify-build-win32.mjs",
         "precommit": "run -T lint-staged",
         "generate-schema-types": "node scripts/schema-types.mjs",
