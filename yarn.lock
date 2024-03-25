@@ -39,6 +39,7 @@ __metadata:
   resolution: "@appcontainer-node/app@workspace:apps/appcontainer-node/app"
   dependencies:
     "@appcontainer-node/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -505,6 +506,7 @@ __metadata:
   resolution: "@boilerplate/app@workspace:apps/_boilerplate/app"
   dependencies:
     "@boilerplate/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -586,6 +588,7 @@ __metadata:
   resolution: "@http-server/app@workspace:apps/http-server/app"
   dependencies:
     "@http-server/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -1628,6 +1631,7 @@ __metadata:
   resolution: "@package-manager/app@workspace:apps/package-manager/app"
   dependencies:
     "@package-manager/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -1809,6 +1813,7 @@ __metadata:
   resolution: "@quantel-http-transformer-proxy/app@workspace:apps/quantel-http-transformer-proxy/app"
   dependencies:
     "@quantel-http-transformer-proxy/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -1878,6 +1883,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
     "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
     "@sofie-package-manager/workforce": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
     underscore: "npm:^1.12.0"
   languageName: unknown
   linkType: soft
@@ -2761,6 +2767,7 @@ __metadata:
   resolution: "@worker/app@workspace:apps/worker/app"
   dependencies:
     "@worker/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
@@ -2778,6 +2785,7 @@ __metadata:
   resolution: "@workforce/app@workspace:apps/workforce/app"
   dependencies:
     "@workforce/generic": "npm:1.50.2-alpha.1"
+    lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
