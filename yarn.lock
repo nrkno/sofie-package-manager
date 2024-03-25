@@ -38,17 +38,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/app@workspace:apps/appcontainer-node/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.50.2-alpha.1"
+    "@appcontainer-node/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
-"@appcontainer-node/generic@npm:1.50.2-alpha.1, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
+"@appcontainer-node/generic@npm:1.50.2-alpha.2, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
     "@types/underscore": "npm:^1.10.24"
     underscore: "npm:^1.12.0"
   peerDependencies:
@@ -587,17 +587,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@http-server/app@workspace:apps/http-server/app"
   dependencies:
-    "@http-server/generic": "npm:1.50.2-alpha.1"
+    "@http-server/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
-"@http-server/generic@npm:1.50.2-alpha.1, @http-server/generic@workspace:apps/http-server/packages/generic":
+"@http-server/generic@npm:1.50.2-alpha.2, @http-server/generic@workspace:apps/http-server/packages/generic":
   version: 0.0.0-use.local
   resolution: "@http-server/generic@workspace:apps/http-server/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
     "@types/busboy": "npm:^1.5.0"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.0"
@@ -1630,19 +1630,19 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@package-manager/app@workspace:apps/package-manager/app"
   dependencies:
-    "@package-manager/generic": "npm:1.50.2-alpha.1"
+    "@package-manager/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
-"@package-manager/generic@npm:1.50.2-alpha.1, @package-manager/generic@workspace:apps/package-manager/packages/generic":
+"@package-manager/generic@npm:1.50.2-alpha.2, @package-manager/generic@workspace:apps/package-manager/packages/generic":
   version: 0.0.0-use.local
   resolution: "@package-manager/generic@workspace:apps/package-manager/packages/generic"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/expectation-manager": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/expectation-manager": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
     "@types/deep-extend": "npm:0.4.31"
     "@types/underscore": "npm:^1.10.24"
     data-store: "npm:^4.0.3"
@@ -1813,17 +1813,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/app@workspace:apps/quantel-http-transformer-proxy/app"
   dependencies:
-    "@quantel-http-transformer-proxy/generic": "npm:1.50.2-alpha.1"
+    "@quantel-http-transformer-proxy/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
-"@quantel-http-transformer-proxy/generic@npm:1.50.2-alpha.1, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
+"@quantel-http-transformer-proxy/generic@npm:1.50.2-alpha.2, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.0"
     "@types/koa-range": "npm:^0.3.2"
@@ -1877,13 +1877,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@single-app/app@workspace:apps/single-app/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.50.2-alpha.1"
-    "@http-server/generic": "npm:1.50.2-alpha.1"
-    "@package-manager/generic": "npm:1.50.2-alpha.1"
-    "@quantel-http-transformer-proxy/generic": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/workforce": "npm:1.50.2-alpha.1"
+    "@appcontainer-node/generic": "npm:1.50.2-alpha.2"
+    "@http-server/generic": "npm:1.50.2-alpha.2"
+    "@package-manager/generic": "npm:1.50.2-alpha.2"
+    "@quantel-http-transformer-proxy/generic": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/workforce": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
     underscore: "npm:^1.12.0"
   languageName: unknown
@@ -1974,7 +1974,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sofie-package-manager/api@npm:1.50.2-alpha.1, @sofie-package-manager/api@workspace:shared/packages/api":
+"@sofie-package-manager/api@npm:1.50.2-alpha.2, @sofie-package-manager/api@workspace:shared/packages/api":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/api@workspace:shared/packages/api"
   dependencies:
@@ -1990,12 +1990,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/expectation-manager@npm:1.50.2-alpha.1, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
+"@sofie-package-manager/expectation-manager@npm:1.50.2-alpha.2, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
     "@supercharge/promise-pool": "npm:^2.4.0"
     jest: "npm:*"
     type-fest: "npm:3.13.1"
@@ -2003,12 +2003,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/worker@npm:1.50.2-alpha.1, @sofie-package-manager/worker@workspace:shared/packages/worker":
+"@sofie-package-manager/worker@npm:1.50.2-alpha.2, @sofie-package-manager/worker@workspace:shared/packages/worker":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/worker@workspace:shared/packages/worker"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
     "@types/deep-diff": "npm:^1.0.0"
     "@types/node-fetch": "npm:^2.5.8"
     "@types/proper-lockfile": "npm:^4.1.4"
@@ -2032,11 +2032,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/workforce@npm:1.50.2-alpha.1, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
+"@sofie-package-manager/workforce@npm:1.50.2-alpha.2, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/workforce@workspace:shared/packages/workforce"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
   languageName: unknown
   linkType: soft
 
@@ -2060,12 +2060,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/internal-tests@workspace:tests/internal-tests"
   dependencies:
-    "@http-server/generic": "npm:1.50.2-alpha.1"
-    "@package-manager/generic": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/expectation-manager": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/workforce": "npm:1.50.2-alpha.1"
+    "@http-server/generic": "npm:1.50.2-alpha.2"
+    "@package-manager/generic": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/expectation-manager": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/workforce": "npm:1.50.2-alpha.2"
     deep-extend: "npm:^0.6.0"
     jest: "npm:*"
     tv-automation-quantel-gateway-client: "npm:^3.1.7"
@@ -2771,17 +2771,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@worker/app@workspace:apps/worker/app"
   dependencies:
-    "@worker/generic": "npm:1.50.2-alpha.1"
+    "@worker/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
-"@worker/generic@npm:1.50.2-alpha.1, @worker/generic@workspace:apps/worker/packages/generic":
+"@worker/generic@npm:1.50.2-alpha.2, @worker/generic@workspace:apps/worker/packages/generic":
   version: 0.0.0-use.local
   resolution: "@worker/generic@workspace:apps/worker/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/worker": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/worker": "npm:1.50.2-alpha.2"
   languageName: unknown
   linkType: soft
 
@@ -2789,17 +2789,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@workforce/app@workspace:apps/workforce/app"
   dependencies:
-    "@workforce/generic": "npm:1.50.2-alpha.1"
+    "@workforce/generic": "npm:1.50.2-alpha.2"
     lerna: "npm:^6.6.1"
   languageName: unknown
   linkType: soft
 
-"@workforce/generic@npm:1.50.2-alpha.1, @workforce/generic@workspace:apps/workforce/packages/generic":
+"@workforce/generic@npm:1.50.2-alpha.2, @workforce/generic@workspace:apps/workforce/packages/generic":
   version: 0.0.0-use.local
   resolution: "@workforce/generic@workspace:apps/workforce/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2-alpha.1"
-    "@sofie-package-manager/workforce": "npm:1.50.2-alpha.1"
+    "@sofie-package-manager/api": "npm:1.50.2-alpha.2"
+    "@sofie-package-manager/workforce": "npm:1.50.2-alpha.2"
   languageName: unknown
   linkType: soft
 
