@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/generic",
-    "version": "1.50.2-alpha.0",
+    "version": "1.50.2-alpha.1",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -13,8 +13,8 @@
         "@sofie-automation/shared-lib": "*"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.50.2-alpha.0",
-        "@sofie-package-manager/worker": "1.50.2-alpha.0",
+        "@sofie-package-manager/api": "1.50.2-alpha.1",
+        "@sofie-package-manager/worker": "1.50.2-alpha.1",
         "underscore": "^1.12.0"
     },
     "devDependencies": {

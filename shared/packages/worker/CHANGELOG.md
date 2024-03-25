@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.0...v1.50.2-alpha.1) (2024-03-25)
+
+
+### Bug Fixes
+
+* ensure that (robo-) copied files get their modified date updated ([1ad7431](https://github.com/nrkno/tv-automation-package-manager/commit/1ad74318d69ec6ff35dedd44fde1d9ca475dd917))
+
+
+
+
+
 ## [1.50.2-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.50.1...v1.50.2-alpha.0) (2024-02-29)
 
 
