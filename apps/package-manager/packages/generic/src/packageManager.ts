@@ -115,8 +115,7 @@ export class PackageManagerHandler {
 		private serverAccessUrl: string | undefined,
 		private workForceConnectionOptions: ClientConnectionOptions,
 		concurrency: number | undefined,
-		chaosMonkey: boolean,
-		criticalWorkerPoolSize: number | undefined
+		chaosMonkey: boolean
 	) {
 		this.logger = logger.category('PackageManager')
 		this.callbacksHandler = new ExpectationManagerCallbacksHandler(this.logger, this)
@@ -130,7 +129,6 @@ export class PackageManagerHandler {
 			this.callbacksHandler,
 			{
 				chaosMonkey: chaosMonkey,
-				criticalWorkerPoolSize: criticalWorkerPoolSize,
 				constants: {
 					PARALLEL_CONCURRENCY: concurrency,
 				},
@@ -553,6 +551,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 				// Updated properties:
 				...expectaction.statusReport,
+				requiredForPlayout: expectaction.workOptions.requiredForPlayout ?? false,
 				...statusInfo,
 
 				fromPackages: expectaction.fromPackages.map((fromPackage) => {

@@ -55,10 +55,15 @@ export class AppContainer {
 	private busyPorts = new Set<number>()
 
 	private apps: Map<
+		// <- TODO: Needs to understand which apps are special and which aren't
 		AppId,
 		{
 			process: cp.ChildProcess
 			appType: AppType
+			/** Set to true if app should be considered for scaling down */
+			isAutoScaling: boolean
+			/** Set to true if the app is only handling playout-critical expectations */
+			isOnlyForCriticalExpectations: boolean
 			/** Set to true when the process is about to be killed */
 			toBeKilled: boolean
 			restarts: number
@@ -71,7 +76,7 @@ export class AppContainer {
 			start: number
 		}
 	> = new Map()
-	private availableApps: Map<AppType, AvailableAppInfo> = new Map()
+	private availableApps: Map<AppType, AvailableAppInfo> = new Map() // <- needs to be smarter
 	private websocketServer?: WebsocketServer
 
 	private monitorAppsTimer: NodeJS.Timer | undefined
@@ -191,8 +196,8 @@ export class AppContainer {
 		})
 	}
 	async init(): Promise<void> {
-		await this.setupAvailableApps()
-		// Note: if we later change this.setupAvailableApps to run on an interval
+		await this.discoverAvailableApps()
+		// Note: if we later change this.discoverAvailableApps to run on an interval
 		// don't throw here:
 		if (this.availableApps.size === 0) {
 			throw new Error(`AppContainer found no apps upon init. (Check if there are any Worker executables?)`)
@@ -239,12 +244,11 @@ export class AppContainer {
 			},
 			requestSpinDown: async (): Promise<void> => {
 				const app = this.apps.get(clientId)
-				if (app) {
-					if (this.getAppCount(app.appType) > this.config.appContainer.minRunningApps) {
-						this.spinDown(clientId, `Requested by app`).catch((error) => {
-							this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
-						})
-					}
+				if (!app || !app.isAutoScaling) return
+				if (this.getScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
+					this.spinDown(clientId, `Requested by app`).catch((error) => {
+						this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
+					})
 				}
 			},
 			workerStorageWriteLock: async (
@@ -265,17 +269,26 @@ export class AppContainer {
 		}
 	}
 
-	private getAppCount(appType: AppType): number {
+	private getScalingAppCount(appType: AppType): number {
 		let count = 0
 		for (const app of this.apps.values()) {
-			if (app.appType === appType) count++
+			if (app.appType === appType && app.isAutoScaling) count++
 		}
 		return count
 	}
-	private async setupAvailableApps() {
-		const getWorkerArgs = (appId: AppId): string[] => {
+	private getCriticalExpectationAppCount(appType: AppType): number {
+		let count = 0
+		for (const app of this.apps.values()) {
+			if (app.appType === appType && app.isOnlyForCriticalExpectations) count++
+		}
+		return count
+	}
+
+	private async discoverAvailableApps() {
+		const getWorkerArgs = (appId: AppId, pickUpCriticalExpectationsOnly: boolean): string[] => {
 			return [
 				`--workerId=${appId}`,
+				pickUpCriticalExpectationsOnly ? `--pickUpCriticalExpectationsOnly=1` : '',
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
 				`--appContainerURL=${'ws://127.0.0.1:' + this.websocketServer?.port}`,
 
@@ -291,7 +304,7 @@ export class AppContainer {
 					? `--costMultiplier=${this.config.appContainer.worker.costMultiplier}`
 					: '',
 				this.config.appContainer.worker.considerCPULoad
-					? `--costMultiplier=${this.config.appContainer.worker.considerCPULoad}`
+					? `--considerCPULoad=${this.config.appContainer.worker.considerCPULoad}`
 					: '',
 				this.config.appContainer.worker.resourceId
 					? `--resourceId=${this.config.appContainer.worker.resourceId}`
@@ -309,9 +322,10 @@ export class AppContainer {
 			const appType = protectString<AppType>('worker')
 			this.availableApps.set(appType, {
 				file: process.execPath,
-				args: (appId: AppId) => {
-					return [path.resolve('.', '../../worker/app/dist/index.js'), ...getWorkerArgs(appId)]
+				getExecArgs: (appId: AppId) => {
+					return [path.resolve('.', '../../worker/app/dist/index.js'), ...getWorkerArgs(appId, false)]
 				},
+				canRunInCriticalExpectationsOnlyMode: true,
 				cost: 0,
 			})
 		} else {
@@ -319,20 +333,20 @@ export class AppContainer {
 			// Look for the worker executable(s) in the same folder:
 
 			const dirPath = path.dirname(process.execPath)
-			// Note: nexe causes issues with its virtual file system: https://github.com/nexe/nexe/issues/613#issuecomment-579107593
 
 			;(await fs.promises.readdir(dirPath)).forEach((fileName) => {
-				if (fileName.match(/worker/i)) {
-					// We use the filename to identify the appType:
-					const appType: AppType = protectString<AppType>(fileName)
-					this.availableApps.set(appType, {
-						file: path.join(dirPath, fileName),
-						args: (appId: AppId) => {
-							return [...getWorkerArgs(appId)]
-						},
-						cost: 0,
-					})
-				}
+				if (!fileName.match(/worker/i)) return
+
+				// We use the filename to identify the appType:
+				const appType: AppType = protectString<AppType>(fileName)
+				this.availableApps.set(appType, {
+					file: path.join(dirPath, fileName),
+					getExecArgs: (appId: AppId) => {
+						return [...getWorkerArgs(appId, false)]
+					},
+					canRunInCriticalExpectationsOnlyMode: true,
+					cost: 0,
+				})
 			})
 		}
 
@@ -522,7 +536,11 @@ export class AppContainer {
 	async spinUp(appType: AppType, longSpinDownTime = false): Promise<AppId> {
 		return this._spinUp(appType, longSpinDownTime)
 	}
-	private async _spinUp(appType: AppType, longSpinDownTime = false): Promise<AppId> {
+	private async _spinUp(
+		appType: AppType,
+		longSpinDownTime = false,
+		isOnlyForCriticalExpectations = false
+	): Promise<AppId> {
 		const availableApp = this.availableApps.get(appType)
 		if (!availableApp) throw new Error(`Unknown appType "${appType}"`)
 
@@ -530,7 +548,13 @@ export class AppContainer {
 
 		this.logger.debug(`Spinning up app "${appId}" of type "${appType}"`)
 
-		const child = this.setupChildProcess(appType, appId, availableApp)
+		const child = this.setupChildProcess(appType, appId, availableApp, isOnlyForCriticalExpectations)
+
+		let isAutoScaling = true
+		if (isOnlyForCriticalExpectations) {
+			isAutoScaling = false
+		}
+
 		this.apps.set(appId, {
 			process: child,
 			appType: appType,
@@ -538,6 +562,8 @@ export class AppContainer {
 			restarts: 0,
 			lastRestart: 0,
 			monitorPing: false,
+			isAutoScaling: isAutoScaling,
+			isOnlyForCriticalExpectations: isOnlyForCriticalExpectations,
 			lastPing: Date.now(),
 			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
 			workerAgentApi: null,
@@ -582,7 +608,12 @@ export class AppContainer {
 			}
 		})
 	}
-	private setupChildProcess(appType: AppType, appId: AppId, availableApp: AvailableAppInfo): cp.ChildProcess {
+	private setupChildProcess(
+		appType: AppType,
+		appId: AppId,
+		availableApp: AvailableAppInfo,
+		useCriticalOnlyMode: boolean
+	): cp.ChildProcess {
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
@@ -602,7 +633,7 @@ export class AppContainer {
 			this.usedInspectPorts.add(inspectPort)
 		}
 
-		const child = cp.spawn(availableApp.file, availableApp.args(appId), {
+		const child = cp.spawn(availableApp.file, availableApp.getExecArgs(appId, useCriticalOnlyMode), {
 			cwd: cwd,
 			env: {
 				...process.env,
@@ -613,10 +644,10 @@ export class AppContainer {
 		this.logger.info(`Starting process "${appId}" (${appType}), pid=${child.pid}: "${availableApp.file}"`)
 
 		child.stdout.on('data', (message) => {
-			this.logFromApp(appId, appType, message, this.logger.debug)
+			this.onOutputFromApp(appId, appType, message, this.logger.debug)
 		})
 		child.stderr.on('data', (message) => {
-			this.logFromApp(appId, appType, message, this.logger.error)
+			this.onOutputFromApp(appId, appType, message, this.logger.error)
 			// this.logger.debug(`${appId} stderr: ${message}`)
 		})
 		child.on('error', (err) => {
@@ -648,7 +679,7 @@ export class AppContainer {
 
 						app.process.removeAllListeners()
 
-						const newChild = this.setupChildProcess(appType, appId, availableApp)
+						const newChild = this.setupChildProcess(appType, appId, availableApp, useCriticalOnlyMode)
 
 						app.process = newChild
 					}, timeUntilRestart)
@@ -683,18 +714,29 @@ export class AppContainer {
 				})
 			}
 		}
+
 		this.spinUpMinimumApps().catch((error) => {
 			this.logger.error(`Error in spinUpMinimumApps: ${stringifyError(error)}`)
 		})
 	}
+
 	private async spinUpMinimumApps(): Promise<void> {
+		if (this.config.appContainer.minCriticalWorkerApps !== null) {
+			for (const [appType, appInfo] of this.availableApps.entries()) {
+				if (!appInfo.canRunInCriticalExpectationsOnlyMode) continue
+				while (this.getCriticalExpectationAppCount(appType) < this.config.appContainer.minCriticalWorkerApps) {
+					await this._spinUp(appType, false, true)
+				}
+			}
+		}
+
 		for (const appType of this.availableApps.keys()) {
-			while (this.getAppCount(appType) < this.config.appContainer.minRunningApps) {
+			while (this.getScalingAppCount(appType) < this.config.appContainer.minRunningApps) {
 				await this._spinUp(appType)
 			}
 		}
 	}
-	private logFromApp(appId: AppId, appType: AppType, data: any, defaultLog: LeveledLogMethod): void {
+	private onOutputFromApp(appId: AppId, appType: AppType, data: any, defaultLog: LeveledLogMethod): void {
 		const messages = `${data}`.split('\n')
 
 		for (const message of messages) {
@@ -774,8 +816,9 @@ export class AppContainer {
 }
 interface AvailableAppInfo {
 	file: string
-	args: (appId: AppId) => string[]
+	getExecArgs: (appId: AppId, useCriticalOnlyMode: boolean) => string[]
 	/** Some kind of value, how much it costs to run it, per minute */
+	canRunInCriticalExpectationsOnlyMode: boolean
 	cost: number
 }
 

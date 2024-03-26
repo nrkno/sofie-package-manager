@@ -43,7 +43,6 @@ export class InternalManager {
 	public statuses: ManagerStatusReporter
 
 	private enableChaosMonkey = false
-	public criticalWorkerPoolSize = 0
 	private managerWatchdog: ManagerStatusWatchdog
 
 	public statusReport: StatusReportCache
@@ -84,7 +83,6 @@ export class InternalManager {
 		this.statusReport = new StatusReportCache(this)
 
 		this.enableChaosMonkey = options?.chaosMonkey ?? false
-		this.criticalWorkerPoolSize = options?.criticalWorkerPoolSize ?? 0
 	}
 
 	/** Initialize the ExpectationManager. This method is should be called shortly after the class has been instantiated. */

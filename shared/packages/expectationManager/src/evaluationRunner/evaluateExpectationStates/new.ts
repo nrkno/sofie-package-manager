@@ -16,8 +16,7 @@ export async function evaluateExpectationStateNew({ manager, tracker, trackedExp
 	trackedExp.status = {}
 
 	const { hasQueriedAnyone, workerCount } = await manager.workerAgents.updateAvailableWorkersForExpectation(
-		trackedExp,
-		manager.criticalWorkerPoolSize
+		trackedExp
 	)
 
 	const availableWorkersCount = trackedExp.availableWorkers.size
