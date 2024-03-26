@@ -83,7 +83,6 @@ describeForAllPlatforms(
 					statusReport: {
 						label: `Copy file0`,
 						description: `Copy file0 because test`,
-						requiredForPlayout: true,
 						displayRank: 0,
 						sendReport: true,
 					},
@@ -97,7 +96,9 @@ describeForAllPlatforms(
 						},
 						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
-					workOptions: {},
+					workOptions: {
+						requiredForPlayout: true,
+					},
 				}),
 			})
 
@@ -132,7 +133,6 @@ describeForAllPlatforms(
 						statusReport: {
 							label: `Copy file0`,
 							description: `Copy file0 because test`,
-							requiredForPlayout: true,
 							displayRank: 0,
 							sendReport: true,
 						},
@@ -146,7 +146,9 @@ describeForAllPlatforms(
 							},
 							version: { type: Expectation.Version.Type.FILE_ON_DISK },
 						},
-						workOptions: {},
+						workOptions: {
+							requiredForPlayout: true,
+						},
 					}),
 				})
 
@@ -188,7 +190,6 @@ describeForAllPlatforms(
 					statusReport: {
 						label: `Copy quantel clip0`,
 						description: `Copy clip0 because test`,
-						requiredForPlayout: true,
 						displayRank: 0,
 						sendReport: true,
 					},
@@ -202,7 +203,9 @@ describeForAllPlatforms(
 						},
 						version: { type: Expectation.Version.Type.QUANTEL_CLIP },
 					},
-					workOptions: {},
+					workOptions: {
+						requiredForPlayout: true,
+					},
 				}),
 			})
 

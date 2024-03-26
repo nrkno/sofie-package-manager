@@ -549,7 +549,6 @@ function addCopyFileExpectation(
 			statusReport: {
 				label: `Copy file0`,
 				description: `Copy file0 because test`,
-				requiredForPlayout: true,
 				displayRank: 0,
 				sendReport: true,
 			},
@@ -563,7 +562,9 @@ function addCopyFileExpectation(
 				},
 				version: { type: Expectation.Version.Type.FILE_ON_DISK },
 			},
-			workOptions: {},
+			workOptions: {
+				requiredForPlayout: true,
+			},
 		}),
 	})
 }
