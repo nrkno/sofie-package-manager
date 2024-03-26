@@ -16,8 +16,6 @@ import {
 	ExpectedPackageId,
 	AppId,
 	WorkerAgentId,
-	ProtectedString,
-	AnyProtectedString,
 } from '@sofie-package-manager/api'
 import { InternalManager } from './internalManager/internalManager'
 import { ExpectationTrackerConstants } from './lib/constants'
