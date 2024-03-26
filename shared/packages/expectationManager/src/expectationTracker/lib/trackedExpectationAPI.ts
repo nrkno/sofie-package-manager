@@ -187,7 +187,15 @@ export class TrackedExpectationAPI {
 			noAssignedWorkerReason = trackedExp.session.noAssignedWorkerReason
 		}
 
-		if (!trackedExp.noWorkerAssignedTime) trackedExp.noWorkerAssignedTime = Date.now()
+		if (!trackedExp.noWorkerAssignedTime) {
+			const now = Date.now()
+			this.logger.error(
+				`Setting trackedExp.noWorkerAssignedTime of "${expLabel(trackedExp)}" to ${now} (reason: ${
+					noAssignedWorkerReason.tech
+				})`
+			)
+			trackedExp.noWorkerAssignedTime = now
+		}
 
 		// Special case: When WAITING and no worker was assigned, return to NEW so that another worker might be assigned:
 		if (trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING) {
