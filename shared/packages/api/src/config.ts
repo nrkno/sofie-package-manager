@@ -230,6 +230,11 @@ const appContainerArguments = defineArguments({
 		describe:
 			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
 	},
+	minCriticalWorkerApps: {
+		type: 'number',
+		default: 0,
+		describe: 'Number of Workers reserved for fulfilling playout-critical expectations that will be kept runnini',
+	},
 })
 /** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
@@ -415,6 +420,7 @@ export interface WorkerConfig {
 		networkIds: string[]
 		costMultiplier: number
 		considerCPULoad: number | null
+		pickUpCriticalExpectationsOnly: boolean
 	} & WorkerAgentConfig
 }
 export async function getWorkerConfig(): Promise<WorkerConfig> {
@@ -440,6 +446,8 @@ export async function getWorkerConfig(): Promise<WorkerConfig> {
 			considerCPULoad:
 				(typeof argv.considerCPULoad === 'string' ? parseFloat(argv.considerCPULoad) : argv.considerCPULoad) ||
 				null,
+			pickUpCriticalExpectationsOnly:
+				(typeof argv.pickUpCriticalExpectationsOnly === 'string' ? true : false) || false,
 		},
 	}
 }
@@ -466,6 +474,7 @@ export async function getAppContainerConfig(): Promise<AppContainerProcessConfig
 			minRunningApps: argv.minRunningApps,
 			maxAppKeepalive: argv.maxAppKeepalive,
 			spinDownTime: argv.spinDownTime,
+			minCriticalWorkerApps: argv.minCriticalWorkerApps,
 
 			worker: {
 				resourceId: argv.resourceId,

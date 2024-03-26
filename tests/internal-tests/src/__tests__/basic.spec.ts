@@ -27,7 +27,6 @@ import {
 	getQuantelTarget,
 } from './lib/containers'
 jest.mock('fs')
-jest.mock('mkdirp')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
 jest.mock('tv-automation-quantel-gateway-client')
@@ -84,7 +83,6 @@ describeForAllPlatforms(
 					statusReport: {
 						label: `Copy file0`,
 						description: `Copy file0 because test`,
-						requiredForPlayout: true,
 						displayRank: 0,
 						sendReport: true,
 					},
@@ -98,7 +96,9 @@ describeForAllPlatforms(
 						},
 						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
-					workOptions: {},
+					workOptions: {
+						requiredForPlayout: true,
+					},
 				}),
 			})
 
@@ -133,7 +133,6 @@ describeForAllPlatforms(
 						statusReport: {
 							label: `Copy file0`,
 							description: `Copy file0 because test`,
-							requiredForPlayout: true,
 							displayRank: 0,
 							sendReport: true,
 						},
@@ -147,7 +146,9 @@ describeForAllPlatforms(
 							},
 							version: { type: Expectation.Version.Type.FILE_ON_DISK },
 						},
-						workOptions: {},
+						workOptions: {
+							requiredForPlayout: true,
+						},
 					}),
 				})
 
@@ -189,7 +190,6 @@ describeForAllPlatforms(
 					statusReport: {
 						label: `Copy quantel clip0`,
 						description: `Copy clip0 because test`,
-						requiredForPlayout: true,
 						displayRank: 0,
 						sendReport: true,
 					},
@@ -203,7 +203,9 @@ describeForAllPlatforms(
 						},
 						version: { type: Expectation.Version.Type.QUANTEL_CLIP },
 					},
-					workOptions: {},
+					workOptions: {
+						requiredForPlayout: true,
+					},
 				}),
 			})
 
@@ -264,17 +266,12 @@ describeForAllPlatforms(
 					},
 					startRequirement: {
 						sources: [
-							getLocalSource(
-								SOURCE0,
-								'myData0.json'
-							) as Expectation.SpecificPackageContainerOnPackage.JSONDataSource,
+							getLocalSource(SOURCE0, 'myData0.json') as Expectation.SpecificPackageContainerOnPackage.JSONDataSource,
 						],
 					},
 					endRequirement: {
 						targets: [
-							getCorePackageInfoTarget(
-								TARGET1
-							) as Expectation.SpecificPackageContainerOnPackage.JSONDataTarget,
+							getCorePackageInfoTarget(TARGET1) as Expectation.SpecificPackageContainerOnPackage.JSONDataTarget,
 						],
 						content: {},
 						version: { type: Expectation.Version.Type.JSON_DATA },

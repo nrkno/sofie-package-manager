@@ -37,7 +37,6 @@ import { MonitorInProgress } from '../lib/monitorInProgress'
 import { MAX_EXEC_BUFFER } from '../lib/lib'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 import * as path from 'path'
-import { mkdirp } from 'mkdirp'
 
 const fsStat = promisify(fs.stat)
 const fsAccess = promisify(fs.access)
@@ -46,6 +45,7 @@ const fsClose = promisify(fs.close)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 const fsRename = promisify(fs.rename)
+const fsMkDir = promisify(fs.mkdir)
 const pExec = promisify(exec)
 
 const PREPARE_FILE_ACCESS_TIMEOUT = INNER_ACTION_TIMEOUT * 0.5
@@ -269,7 +269,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		const fullPath = this.workOptions.useTemporaryFilePath ? this.temporaryFilePath : this.fullPath
 
-		await mkdirp(path.dirname(fullPath)) // Create folder if it doesn't exist
+		await fsMkDir(path.dirname(fullPath), { recursive: true }) // Create folder if it doesn't exist
 
 		// Remove the file if it already exists:
 		if (await this.unlinkIfExists(fullPath))

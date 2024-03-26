@@ -551,6 +551,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 				// Updated properties:
 				...expectaction.statusReport,
+				requiredForPlayout: expectaction.workOptions.requiredForPlayout ?? false,
 				...statusInfo,
 
 				fromPackages: expectaction.fromPackages.map((fromPackage) => {

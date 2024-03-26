@@ -510,7 +510,7 @@ export async function createTGASequence(inputFile: string, opts?: { width: numbe
 	if (opts) {
 		args.push('-vf', `scale=${opts.width}:${opts.height}`)
 	}
-	args.push(outputFile)
+	args.push(escapeFilePath(outputFile))
 
 	return ffmpeg(args)
 }

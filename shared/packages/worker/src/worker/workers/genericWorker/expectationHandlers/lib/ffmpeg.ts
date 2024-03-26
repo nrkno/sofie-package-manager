@@ -1,6 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import path from 'path'
-import { mkdirp } from 'mkdirp'
+import { mkdir as fsMkDir } from 'fs/promises'
 import {
 	isFileShareAccessorHandle,
 	isHTTPProxyAccessorHandle,
@@ -103,11 +103,11 @@ export async function spawnFFMpeg<Metadata>(
 
 	let pipeStdOut = false
 	if (isLocalFolderAccessorHandle(targetHandle)) {
-		await mkdirp(path.dirname(targetHandle.fullPath)) // Create folder if it doesn't exist
+		await fsMkDir(path.dirname(targetHandle.fullPath), { recursive: true }) // Create folder if it doesn't exist
 		args.push(escapeFilePath(targetHandle.fullPath))
 	} else if (isFileShareAccessorHandle(targetHandle)) {
 		await targetHandle.prepareFileAccess()
-		await mkdirp(path.dirname(targetHandle.fullPath)) // Create folder if it doesn't exist
+		await fsMkDir(path.dirname(targetHandle.fullPath), { recursive: true }) // Create folder if it doesn't exist
 		args.push(escapeFilePath(targetHandle.fullPath))
 	} else if (isHTTPProxyAccessorHandle(targetHandle)) {
 		pipeStdOut = true
