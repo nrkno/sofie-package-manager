@@ -55,7 +55,6 @@ export class AppContainer {
 	private busyPorts = new Set<number>()
 
 	private apps: Map<
-		// <- TODO: Needs to understand which apps are special and which aren't
 		AppId,
 		{
 			process: cp.ChildProcess
@@ -76,7 +75,7 @@ export class AppContainer {
 			start: number
 		}
 	> = new Map()
-	private availableApps: Map<AppType, AvailableAppInfo> = new Map() // <- needs to be smarter
+	private availableApps: Map<AppType, AvailableAppInfo> = new Map()
 	private websocketServer?: WebsocketServer
 
 	private monitorAppsTimer: NodeJS.Timer | undefined
