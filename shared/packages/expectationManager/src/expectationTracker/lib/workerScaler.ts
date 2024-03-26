@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { LoggerInstance } from '@sofie-package-manager/api'
+import { ExpectationId, LoggerInstance } from '@sofie-package-manager/api'
 import { InternalManager } from '../../internalManager/internalManager'
 import { expLabel, TrackedExpectation } from '../../lib/trackedExpectation'
 import { TrackedPackageContainerExpectation } from '../../lib/trackedPackageContainerExpectation'
@@ -14,7 +14,6 @@ export class WorkerScaler {
 	private logger: LoggerInstance
 	constructor(logger: LoggerInstance, private manager: InternalManager, private tracker: ExpectationTracker) {
 		this.logger = logger.category('WorkerScaler')
-		this.waitingExpectations = []
 	}
 
 	/**
@@ -49,6 +48,9 @@ export class WorkerScaler {
 				)
 			}
 		}
+	}
+	public getWaitingExpectationIds(): ExpectationId[] {
+		return this.waitingExpectations.map((exp) => exp.id)
 	}
 	public getWaitingExpectationCount(): number {
 		return this.waitingExpectations.length

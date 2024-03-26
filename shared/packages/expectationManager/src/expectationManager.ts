@@ -16,9 +16,12 @@ import {
 	ExpectedPackageId,
 	AppId,
 	WorkerAgentId,
+	ProtectedString,
+	AnyProtectedString,
 } from '@sofie-package-manager/api'
 import { InternalManager } from './internalManager/internalManager'
 import { ExpectationTrackerConstants } from './lib/constants'
+import { mapToObject } from './lib/lib'
 
 /**
  * The Expectation Manager is responsible for tracking the state of the Expectations,
@@ -116,9 +119,18 @@ export class ExpectationManager {
 		this.internalManager.tracker.triggerEvaluationNow()
 	}
 	public getTroubleshootData(): any {
+		const trackedExpectations = this.internalManager.tracker.getSortedTrackedExpectations().map((trackedExp) => {
+			return {
+				...trackedExp,
+				// Convert Sets and Maps so that they are serializable:
+				availableWorkers: Array.from(trackedExp.availableWorkers.keys()),
+				queriedWorkers: mapToObject(trackedExp.queriedWorkers),
+			}
+		})
 		return {
-			trackedExpectations: this.internalManager.tracker.getSortedTrackedExpectations(),
+			trackedExpectations,
 			workers: this.internalManager.workerAgents.list(),
+			waitingExpectations: this.internalManager.tracker.scaler.getWaitingExpectationIds(),
 		}
 	}
 	async getStatusReport(): Promise<any> {
