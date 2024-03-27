@@ -13,6 +13,8 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 		const srcFileName = path.basename(src)
 		const dstFileName = path.basename(dst)
 
+		let cancelled = false
+
 		let rbcpy: cp.ChildProcess | undefined = cp.spawn('robocopy', [
 			'/bytes',
 			'/njh', // Specifies that there is no job header.
@@ -53,28 +55,34 @@ export function roboCopyFile(src: string, dst: string, progress?: (progress: num
 
 		rbcpy.on('exit', (code) => {
 			rbcpy = undefined
+			onRobocopyExit(code).then(resolve, reject)
+		})
+
+		const onRobocopyExit = async (code: number | null) => {
+			if (cancelled) return
+
 			if (
 				code === 0 || // No errors occurred, and no copying was done.
 				(code && (code & 1) === 1) // One or more files were copied successfully (that is, new files have arrived).
 			) {
-				// Robocopy's code for succesfully copying files is 1 at LSB: https://ss64.com/nt/robocopy-exit.html
+				// Robocopy's code for successfully copying files is 1 at LSB: https://ss64.com/nt/robocopy-exit.html
 				if (srcFileName !== dstFileName) {
-					fs.rename(path.join(dstFolder, srcFileName), path.join(dstFolder, dstFileName), (err) => {
-						if (err) {
-							reject(err)
-							return
-						}
-						resolve()
-					})
-				} else {
-					resolve()
+					await fs.promises.rename(path.join(dstFolder, srcFileName), path.join(dstFolder, dstFileName))
 				}
+				if (cancelled) return
+
+				// Also update the modified timestamp, since Robocopy will have copied the original created & modified date.
+				// This is useful to avoid the cleanup cronjob from deleting the file too soon.
+				await fs.promises.utimes(path.join(dstFolder, dstFileName), new Date(), new Date())
+
+				// All done!
 			} else {
-				reject(`RoboCopy failed with code ${code}: ${output.join(', ')}, ${errors.join(', ')}`)
+				throw new Error(`RoboCopy failed with code ${code}: ${output.join(', ')}, ${errors.join(', ')}`)
 			}
-		})
+		}
 
 		onCancel(() => {
+			cancelled = true
 			if (rbcpy !== undefined) {
 				if (rbcpy.pid !== undefined) cp.spawn('taskkill', ['/pid', rbcpy.pid.toString(), '/f', '/t'])
 				rbcpy = undefined

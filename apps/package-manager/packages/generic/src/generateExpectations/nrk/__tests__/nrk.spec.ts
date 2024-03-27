@@ -227,10 +227,7 @@ function setup() {
 			_rank: 2,
 		},
 	]
-	const settings: PackageManagerSettings = {
-		delayRemoval: 0,
-		useTemporaryFilePath: false,
-	}
+	const settings: PackageManagerSettings = {}
 	const packageContainers: PackageContainers = {}
 
 	packageContainers[protectString<PackageContainerId>('source0')] = {

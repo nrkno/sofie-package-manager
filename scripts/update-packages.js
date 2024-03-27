@@ -1,11 +1,10 @@
 /* eslint-disable node/no-unpublished-require */
 const promisify = require('util').promisify
-const globOrg = require('glob')
+const { glob } = require('glob')
 const deepExtend = require('deep-extend')
 const fs = require('fs')
 const _ = require('underscore')
 
-const glob = promisify(globOrg)
 const fsReadFile = promisify(fs.readFile)
 const fsWriteFile = promisify(fs.writeFile)
 

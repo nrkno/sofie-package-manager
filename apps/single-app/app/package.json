@@ -1,23 +1,23 @@
 {
     "name": "@single-app/app",
-    "version": "1.50.1",
+    "version": "1.50.2-alpha.3",
     "description": "Package Manager, http-proxy etc.. all in one application",
     "private": true,
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs package-manager-single-app.exe && node ../../../scripts/copy-natives.js win32-x64",
+        "build-win32": "node ../../../scripts/build-win32.mjs package-manager-single-app.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
         "start": "node --inspect dist/index.js"
     },
     "dependencies": {
-        "@appcontainer-node/generic": "1.50.0",
-        "@http-server/generic": "1.50.0",
-        "@package-manager/generic": "1.50.0",
-        "@quantel-http-transformer-proxy/generic": "1.50.0",
-        "@sofie-package-manager/api": "1.50.0",
-        "@sofie-package-manager/worker": "1.50.0",
-        "@sofie-package-manager/workforce": "1.50.0",
+        "@appcontainer-node/generic": "1.50.2-alpha.3",
+        "@http-server/generic": "1.50.2-alpha.3",
+        "@package-manager/generic": "1.50.2-alpha.3",
+        "@quantel-http-transformer-proxy/generic": "1.50.2-alpha.3",
+        "@sofie-package-manager/api": "1.50.2-alpha.3",
+        "@sofie-package-manager/worker": "1.50.2-alpha.3",
+        "@sofie-package-manager/workforce": "1.50.2-alpha.3",
         "underscore": "^1.12.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
@@ -31,5 +31,9 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
+    },
+    "devDependencies": {
+        "lerna": "^6.6.1",
+        "rimraf": "^5.0.5"
     }
 }

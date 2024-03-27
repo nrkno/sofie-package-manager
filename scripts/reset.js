@@ -1,6 +1,6 @@
 /* eslint-disable node/no-unpublished-require */
 const promisify = require('util').promisify
-const glob = promisify(require('glob'))
+const { glob } = require('glob')
 const rimraf = promisify(require('rimraf'))
 
 /*

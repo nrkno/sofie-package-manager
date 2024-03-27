@@ -1,16 +1,16 @@
 {
     "name": "@quantel-http-transformer-proxy/app",
-    "version": "1.50.0",
+    "version": "1.50.2-alpha.3",
     "description": "Proxy for a Quantel HTTP Transformer",
     "private": true,
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs quantel-http-transformer-proxy.exe && node ../../../scripts/copy-natives.js win32-x64",
+        "build-win32": "node ../../../scripts/build-win32.mjs quantel-http-transformer-proxy.exe && node ../../../scripts/copy-natives.js win32-x64",
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@quantel-http-transformer-proxy/generic": "1.50.0"
+        "@quantel-http-transformer-proxy/generic": "1.50.2-alpha.3"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
@@ -23,5 +23,9 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
+    },
+    "devDependencies": {
+        "lerna": "^6.6.1",
+        "rimraf": "^5.0.5"
     }
 }

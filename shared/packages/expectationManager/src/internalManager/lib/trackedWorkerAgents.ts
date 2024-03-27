@@ -174,7 +174,11 @@ export class TrackedWorkerAgents {
 	public async assignWorkerToSession(trackedExp: TrackedExpectation): Promise<void> {
 		const session: ExpectationStateHandlerSession | null = trackedExp.session
 		if (!session) throw new Error('ExpectationManager: Internal error: Session not set')
-		if (session.assignedWorker) return // A worker has already been assigned
+		if (session.assignedWorker) {
+			// A worker has already been assigned
+			trackedExp.noWorkerAssignedTime = null
+			return
+		}
 
 		if (!trackedExp.availableWorkers.size) {
 			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }

@@ -240,9 +240,11 @@ function getSideEffectOfExpectation(
 				expectations[scan.id] = scan
 			}
 
-			// All files that have been copied should also be deep-scanned:
-			const deepScan = generatePackageDeepScan(expectation, settings)
-			expectations[deepScan.id] = deepScan
+			if (!settings.skipDeepScan) {
+				// All files that have been copied should also be deep-scanned:
+				const deepScan = generatePackageDeepScan(expectation, settings)
+				expectations[deepScan.id] = deepScan
+			}
 		}
 
 		if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {
@@ -289,9 +291,11 @@ function getSideEffectOfExpectation(
 			const scan = generatePackageScan(expectation, settings)
 			expectations[scan.id] = scan
 
-			// All files that have been copied should also be deep-scanned:
-			const deepScan = generatePackageDeepScan(expectation, settings)
-			expectations[deepScan.id] = deepScan
+			if (!settings.skipDeepScan) {
+				// All files that have been copied should also be deep-scanned:
+				const deepScan = generatePackageDeepScan(expectation, settings)
+				expectations[deepScan.id] = deepScan
+			}
 		}
 
 		if (expectation0.sideEffect?.thumbnailContainerId && expectation0.sideEffect?.thumbnailPackageSettings) {

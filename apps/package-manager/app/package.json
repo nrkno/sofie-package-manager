@@ -1,16 +1,16 @@
 {
     "name": "@package-manager/app",
-    "version": "1.50.0",
+    "version": "1.50.2-alpha.3",
     "private": true,
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs package-manager.exe && node ../../../scripts/copy-natives.js win32-x64",
+        "build-win32": "node ../../../scripts/build-win32.mjs package-manager.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@package-manager/generic": "1.50.0"
+        "@package-manager/generic": "1.50.2-alpha.3"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
@@ -23,5 +23,9 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
+    },
+    "devDependencies": {
+        "lerna": "^6.6.1",
+        "rimraf": "^5.0.5"
     }
 }

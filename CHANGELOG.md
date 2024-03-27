@@ -3,6 +3,48 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.2...v1.50.2-alpha.3) (2024-03-25)
+
+**Note:** Version bump only for package package-manager-monorepo
+
+
+
+
+
+## [1.50.2-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.1...v1.50.2-alpha.2) (2024-03-25)
+
+**Note:** Version bump only for package package-manager-monorepo
+
+
+
+
+
+## [1.50.2-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.0...v1.50.2-alpha.1) (2024-03-25)
+
+
+### Bug Fixes
+
+* Add option to skip deep scanning of expectations ([32f2c79](https://github.com/nrkno/tv-automation-package-manager/commit/32f2c79c589414837111013b470ef7903626501f))
+* ensure initial log levels are set (ie in workers too) ([403efd8](https://github.com/nrkno/tv-automation-package-manager/commit/403efd8c1617f0bbb03c3156ec02de23a04d1035))
+* ensure that (robo-) copied files get their modified date updated ([1ad7431](https://github.com/nrkno/tv-automation-package-manager/commit/1ad74318d69ec6ff35dedd44fde1d9ca475dd917))
+* filter out potential '--' from argv to get yargs to play nice ([8d29f0c](https://github.com/nrkno/tv-automation-package-manager/commit/8d29f0c03943c63be164339be67c9f1dc0daaa24))
+
+
+
+
+
+## [1.50.2-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.1...v1.50.2-alpha.0) (2024-02-29)
+
+
+### Bug Fixes
+
+* fix an issue where workers wheren't scaled up properly when expectations where waiting ([81f354c](https://github.com/nrkno/tv-automation-package-manager/commit/81f354c301e587eba6f80b4f33b7fe3ebe14bf49))
+* robocopy should not copy timstamps ([5856e55](https://github.com/nrkno/tv-automation-package-manager/commit/5856e5576c60747427712f6a005244150c7b6956))
+
+
+
+
+
 ## [1.50.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0...v1.50.1) (2024-02-22)
 
 **Note:** Version bump only for package package-manager-monorepo

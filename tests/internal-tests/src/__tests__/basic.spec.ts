@@ -64,6 +64,7 @@ describeForAllPlatforms(
 		})
 		beforeEach(() => {
 			fs.__mockReset()
+			fs.__restoreCallbackInterceptor()
 			env.reset()
 			QGatewayClient.resetMock()
 		})
@@ -294,6 +295,85 @@ describeForAllPlatforms(
 
 			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 		})
+
+		test('Be able to copy 10 local files', async () => {
+			const COUNT = 10
+
+			const COPY_TIME = env.SCALE_UP_TIME
+
+			fs.__setCallbackInterceptor((type, cb) => {
+				if (type === 'copyFile') {
+					// Slow down copies:
+					setTimeout(cb, COPY_TIME)
+				} else cb()
+			})
+
+			const workforceRequestResourcesForExpectation = jest.fn(env.workforce.requestResourcesForExpectation)
+			env.workforce.requestResourcesForExpectation = workforceRequestResourcesForExpectation
+
+			const expectations: Record<ExpectationId, Expectation.Any> = {}
+			fs.__mockSetDirectory('/targets/target0')
+			for (let i = 0; i < COUNT; i++) {
+				fs.__mockSetFile(`/sources/source0/file${i}Source.mp4`, 1234)
+
+				const EXP_copy = protectString<ExpectationId>(`copy${i}`)
+				const PACKAGE = protectString<ExpectedPackageId>(`package${i}`)
+
+				expectations[EXP_copy] = literal<Expectation.FileCopy>({
+					id: EXP_copy,
+					priority: 0,
+					managerId: MANAGER0,
+					fromPackages: [{ id: PACKAGE, expectedContentVersionHash: 'abcd1234' }],
+					type: Expectation.Type.FILE_COPY,
+					statusReport: {
+						label: `Copy file${i}`,
+						description: `Copy file${i} because test`,
+						requiredForPlayout: true,
+						displayRank: 0,
+						sendReport: true,
+					},
+					startRequirement: {
+						sources: [getLocalSource(SOURCE0, `file${i}Source.mp4`)],
+					},
+					endRequirement: {
+						targets: [getLocalTarget(TARGET0, `myFolder/file${i}Target.mp4`)],
+						content: {
+							filePath: `file${i}Target.mp4`,
+						},
+						version: { type: Expectation.Version.Type.FILE_ON_DISK },
+					},
+					workOptions: {},
+				})
+			}
+			// console.log(fs.__printAllFiles())
+
+			env.expectationManager.updateExpectations(expectations)
+
+			// Wait for the job to complete:
+			await waitUntil(() => {
+				expect(env.containerStatuses[TARGET0]).toBeTruthy()
+			}, env.WAIT_JOB_TIME)
+
+			await waitUntil(() => {
+				const packageStatuses: any = {
+					actual: {},
+					expected: {},
+				}
+				for (const exp of Object.values(expectations)) {
+					const PACKAGE = exp.fromPackages[0].id
+
+					packageStatuses.actual[PACKAGE] =
+						env.containerStatuses[TARGET0].packages[PACKAGE]?.packageStatus?.status
+					packageStatuses.expected[PACKAGE] =
+						ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+				}
+				expect(packageStatuses.actual).toMatchObject(packageStatuses.expected)
+			}, 1000 + env.WAIT_JOB_TIME * 2 + COPY_TIME * 10)
+
+			// Expect there to be requests to scale up workers:
+			expect(workforceRequestResourcesForExpectation.mock.calls.length).toBeGreaterThan(5)
+			expect(workforceRequestResourcesForExpectation.mock.calls.length).toBeLessThan(12)
+		}, 5000)
 	}
 )
 

@@ -69,6 +69,9 @@ export async function evaluateExpectationStateFulfilled({
 					// Yes it is still fullfiled
 					// No need to update the tracked state, since it's already fulfilled:
 					// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
+
+					// Update lastEvaluationTime, so that we wait a bit longer before checking again (using tracker.getFulfilledWaitTime()):
+					trackedExp.lastEvaluationTime = Date.now()
 				}
 			} catch (error) {
 				runner.logger.warn(`Error in FULFILLED: exp "${trackedExp.id}": ${stringifyError(error)}`)

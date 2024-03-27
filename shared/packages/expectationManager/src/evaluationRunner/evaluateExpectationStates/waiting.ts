@@ -74,8 +74,8 @@ export async function evaluateExpectationStateWaiting({
 						})
 					} else {
 						// Not ready to start because of some other reason (e.g. the source doesn't exist)
+						// Stay here in WAITING state:
 						tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
-							state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
 							reason: readyToStart.reason,
 							status: newStatus,
 						})

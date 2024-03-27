@@ -12,8 +12,9 @@ WORKDIR /src
 # Common
 
 
-COPY package.json tsconfig.json tsconfig.build.json yarn.lock lerna.json commonPackage.json ./
+COPY package.json tsconfig.json tsconfig.build.json yarn.lock lerna.json commonPackage.json .yarnrc.yml ./
 COPY scripts ./scripts
+COPY .yarn ./.yarn
 
 # Shared dependencies
 COPY shared ./shared
@@ -32,8 +33,9 @@ RUN yarn install
 # Build
 RUN yarn build
 
-# Purge dev-dependencies
-RUN yarn install --check-files --frozen-lockfile --production --force --ignore-scripts
+# Purge dev-dependencies:
+RUN yarn workspaces focus -A --production
+
 RUN rm -r scripts
 
 

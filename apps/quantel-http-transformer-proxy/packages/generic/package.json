@@ -1,17 +1,17 @@
 {
     "name": "@quantel-http-transformer-proxy/generic",
-    "version": "1.50.0",
+    "version": "1.50.2-alpha.3",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },
     "dependencies": {
         "@koa/cors": "^5.0.0",
-        "@sofie-package-manager/api": "1.50.0",
+        "@sofie-package-manager/api": "1.50.2-alpha.3",
         "got": "^11.8.6",
         "koa": "^2.14.1",
         "koa-bodyparser": "^4.3.0",
@@ -39,7 +39,8 @@
         "@types/node": "^14.14.31",
         "@types/underscore": "^1.10.24",
         "@types/xml2js": "^0.4.7",
-        "@types/yargs": "^17.0.24"
+        "@types/yargs": "^17.0.24",
+        "rimraf": "^5.0.5"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
