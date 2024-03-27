@@ -301,13 +301,11 @@ export class WorkerAgent {
 	// 	return this._busyMethodCount === 0
 	// }
 	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
-		this.IDidSomeWork()
 		return this._worker.doYouSupportExpectation(exp)
 	}
 	async doYouSupportPackageContainer(
 		packageContainer: PackageContainerExpectation
 	): Promise<ReturnTypeDoYouSupportExpectation> {
-		this.IDidSomeWork()
 		return this._worker.doYouSupportPackageContainer(packageContainer)
 	}
 	async expectationManagerAvailable(managerId: ExpectationManagerId, url: string): Promise<void> {
@@ -365,8 +363,6 @@ export class WorkerAgent {
 	}
 	public async setSpinDownTime(spinDownTime: number): Promise<void> {
 		this.spinDownTime = spinDownTime
-		this.IDidSomeWork()
-
 		this.setupIntervalCheck()
 	}
 	private getStartCost(exp: Expectation.Any): { cost: number; jobCount: number } {
@@ -443,7 +439,6 @@ export class WorkerAgent {
 				exp: Expectation.Any,
 				wasFulfilled: boolean
 			): Promise<ReturnTypeIsExpectationFulfilled> => {
-				this.IDidSomeWork()
 				return this._worker.isExpectationFulfilled(exp, wasFulfilled)
 			},
 			workOnExpectation: async (
@@ -599,30 +594,24 @@ export class WorkerAgent {
 				}
 			},
 			removeExpectation: async (exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> => {
-				this.IDidSomeWork()
 				return this._worker.removeExpectation(exp)
 			},
 			cancelWorkInProgress: async (wipId: WorkInProgressLocalId): Promise<void> => {
-				this.IDidSomeWork()
 				return this.cancelJob(wipId)
 			},
 			doYouSupportPackageContainer: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeDoYouSupportPackageContainer> => {
-				this.IDidSomeWork()
 				return this._worker.doYouSupportPackageContainer(packageContainer)
 			},
 			runPackageContainerCronJob: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeRunPackageContainerCronJob> => {
-				this.IDidSomeWork()
 				return this._worker.runPackageContainerCronJob(packageContainer)
 			},
 			setupPackageContainerMonitors: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeSetupPackageContainerMonitors> => {
-				this.IDidSomeWork()
-
 				let activeMonitor = this.activeMonitors.get(packageContainer.id)
 				if (activeMonitor === undefined) {
 					activeMonitor = new Map()
@@ -683,7 +672,6 @@ export class WorkerAgent {
 			disposePackageContainerMonitors: async (
 				packageContainerId: PackageContainerId
 			): Promise<ReturnTypeDisposePackageContainerMonitors> => {
-				this.IDidSomeWork()
 				let errorReason: Reason | null = null
 
 				const activeMonitors = this.activeMonitors.get(packageContainerId)
@@ -789,6 +777,8 @@ export class WorkerAgent {
 		// Check the SpinDownTime:
 		if (this.spinDownTime) {
 			if (Date.now() - this.lastWorkTime > this.spinDownTime) {
+				// Enough time has passed, it is time to ask to spin us down.
+
 				this.IDidSomeWork() // so that we won't ask again until later
 
 				// Don's spin down if a monitor is active
@@ -816,6 +806,10 @@ export class WorkerAgent {
 			})
 		}
 	}
+	/**
+	 * To be called when some actual work has been done.
+	 * If this is not called for a certain amount of time, the worker will be considered idle and will be spun down
+	 */
 	private IDidSomeWork() {
 		this.lastWorkTime = Date.now()
 	}
