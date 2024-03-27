@@ -989,14 +989,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@julusian/freetype2@npm:^1.1.0":
-  version: 1.1.1
-  resolution: "@julusian/freetype2@npm:1.1.1"
+"@julusian/freetype2@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "@julusian/freetype2@npm:1.1.2"
   dependencies:
     node-addon-api: "npm:^5.0.0"
     node-gyp: "npm:latest"
     pkg-prebuilds: "npm:^0.2.1"
-  checksum: 10/b1119074a62a4562169f3fb5cb03d01b773697b66da71ef3ae92a5e14c4a21a6b94a7f88307cf89b081a9fe7f8dd2b044672746496921f81f3fffc34b87b9448
+  checksum: 10/7134fc9593c9dbfdb89e5eca0d11b96ae244de284b750681790c5bb61725721cceb39b488e86bd8ac2b1bc7e9ae65cf4dc5a3e52af59126b80df6e026448363a
   languageName: node
   linkType: hard
 
@@ -3246,20 +3246,20 @@ __metadata:
   linkType: hard
 
 "atem-connection@npm:^3.2.0":
-  version: 3.2.0
-  resolution: "atem-connection@npm:3.2.0"
+  version: 3.5.0
+  resolution: "atem-connection@npm:3.5.0"
   dependencies:
-    "@julusian/freetype2": "npm:^1.1.0"
+    "@julusian/freetype2": "npm:^1.1.2"
     debug: "npm:^4.3.4"
     eventemitter3: "npm:^4.0.7"
     exit-hook: "npm:^2.2.1"
     nanotimer: "npm:^0.3.15"
     p-lazy: "npm:^3.1.0"
     p-queue: "npm:^6.6.2"
-    threadedclass: "npm:^1.1.1"
-    tslib: "npm:^2.3.1"
-    wavefile: "npm:^8.4.4"
-  checksum: 10/ef2ed51728d36fab3f54681577a423c3e369b9964be17a2187e97cb6585f9ef3a16ed5a23c71f4c029c3d8da73f2492ab4f0f316536f8b68a650265b10dd5918
+    threadedclass: "npm:^1.2.1"
+    tslib: "npm:^2.6.2"
+    wavefile: "npm:^8.4.6"
+  checksum: 10/42a60b31dd0ef704231d00f8e8144a7af62b69ccda47559fed8b56c05b0c6d783112f82c60ca0d2eb7a8317f964b0eee494014718ee3730db6d70eb94b831147
   languageName: node
   linkType: hard
 
@@ -11619,7 +11619,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"threadedclass@npm:^1.1.1":
+"threadedclass@npm:^1.2.1":
   version: 1.2.1
   resolution: "threadedclass@npm:1.2.1"
   dependencies:
@@ -11833,7 +11833,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.3.1, tslib@npm:^2.4.0, tslib@npm:^2.5.1":
+"tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.4.0, tslib@npm:^2.5.1, tslib@npm:^2.6.2":
   version: 2.6.2
   resolution: "tslib@npm:2.6.2"
   checksum: 10/bd26c22d36736513980091a1e356378e8b662ded04204453d353a7f34a4c21ed0afc59b5f90719d4ba756e581a162ecbf93118dc9c6be5acf70aa309188166ca
@@ -12259,7 +12259,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wavefile@npm:^8.4.4":
+"wavefile@npm:^8.4.6":
   version: 8.4.6
   resolution: "wavefile@npm:8.4.6"
   dependencies:
