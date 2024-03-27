@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.3...v1.50.2) (2024-03-27)
+
+
+### Bug Fixes
+
+* (scaling): fix an issue where the workers never asked to be spun down ([212f014](https://github.com/nrkno/tv-automation-package-manager/commit/212f014954bdbc8421e8428b9fafc39662d1b1e3))
+
+
+
+
+
 ## [1.50.2-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.2...v1.50.2-alpha.3) (2024-03-25)
 
 **Note:** Version bump only for package @sofie-package-manager/worker

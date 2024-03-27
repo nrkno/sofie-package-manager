@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.3...v1.50.2) (2024-03-27)
+
+
+### Bug Fixes
+
+* make loudness scan higher priority than thumbnails & preview ([ad31809](https://github.com/nrkno/tv-automation-package-manager/commit/ad3180904546b3c14f30ee54267037ada590c69a))
+
+
+
+
+
 ## [1.50.2-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.2...v1.50.2-alpha.3) (2024-03-25)
 
 **Note:** Version bump only for package @package-manager/generic

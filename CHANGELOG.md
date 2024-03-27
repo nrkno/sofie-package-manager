@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.3...v1.50.2) (2024-03-27)
+
+
+### Bug Fixes
+
+* (scaling); PM should not always scale up for all NEW or WAITING, only READY ([653adde](https://github.com/nrkno/tv-automation-package-manager/commit/653addebb087068ef568a0db46228ed11c4fdb5b))
+* (scaling): fix an issue where the workers never asked to be spun down ([212f014](https://github.com/nrkno/tv-automation-package-manager/commit/212f014954bdbc8421e8428b9fafc39662d1b1e3))
+* ensure noWorkerAssignedTime is reset when there is an assigned worker ([c8266d6](https://github.com/nrkno/tv-automation-package-manager/commit/c8266d63939d21d57cde6f08f6e37e6435543c3e))
+* logic change: don't return from WAITING to NEW when the expectation isn't ready to be worked on. ([0b1036c](https://github.com/nrkno/tv-automation-package-manager/commit/0b1036cf920b11a9b553abec63d015e6c2d59b99))
+* make loudness scan higher priority than thumbnails & preview ([ad31809](https://github.com/nrkno/tv-automation-package-manager/commit/ad3180904546b3c14f30ee54267037ada590c69a))
+* update lastEvaluationTime in FULFILLED, so that we wait a bit longer before checking again. ([4a72b61](https://github.com/nrkno/tv-automation-package-manager/commit/4a72b6177c573bf6b7731e4e01708988d86a60c9))
+
+
+
+
+
 ## [1.50.2-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.2...v1.50.2-alpha.3) (2024-03-25)
 
 **Note:** Version bump only for package package-manager-monorepo

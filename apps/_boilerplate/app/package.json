@@ -1,6 +1,6 @@
 {
     "name": "@boilerplate/app",
-    "version": "1.50.2-alpha.3",
+    "version": "1.50.2",
     "description": "Boilerplate",
     "private": true,
     "scripts": {
@@ -11,7 +11,7 @@
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@boilerplate/generic": "1.50.2-alpha.3"
+        "@boilerplate/generic": "1.50.2"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
