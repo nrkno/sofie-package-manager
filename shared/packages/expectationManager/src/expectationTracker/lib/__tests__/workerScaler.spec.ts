@@ -166,9 +166,10 @@ test('1 waiting expectation', async () => {
 	await scaler.checkIfNeedToScaleUp()
 	await sleep(SCALE_UP_TIME * 2)
 	await scaler.checkIfNeedToScaleUp()
-	expect(fakeManager.workforceConnection.workforceAPI.requestResourcesForExpectation).toHaveBeenCalledTimes(1)
+	// No need to scale up, as there are already workers available
+	expect(fakeManager.workforceConnection.workforceAPI.requestResourcesForExpectation).toHaveBeenCalledTimes(0)
 })
-test('1 expectation, not assigned to worker', async () => {
+test('1 fulfilled expectation, not assigned to worker', async () => {
 	const scaler = new WorkerScaler(logger, fakeManager, fakeTracker)
 
 	isThereExistingWorkers = true
@@ -186,7 +187,7 @@ test('1 expectation, not assigned to worker', async () => {
 	await scaler.checkIfNeedToScaleUp()
 	expect(fakeManager.workforceConnection.workforceAPI.requestResourcesForExpectation).toHaveBeenCalledTimes(1)
 })
-test('1 expectation, no available workers', async () => {
+test('1 new expectation, no available workers', async () => {
 	const scaler = new WorkerScaler(logger, fakeManager, fakeTracker)
 
 	isThereExistingWorkers = true
@@ -202,6 +203,27 @@ test('1 expectation, no available workers', async () => {
 	await scaler.checkIfNeedToScaleUp()
 	await sleep(SCALE_UP_TIME * 2)
 	await scaler.checkIfNeedToScaleUp()
+	expect(fakeManager.workforceConnection.workforceAPI.requestResourcesForExpectation).toHaveBeenCalledTimes(1)
+})
+test('1 ready expectation', async () => {
+	const scaler = new WorkerScaler(logger, fakeManager, fakeTracker)
+
+	isThereExistingWorkers = true
+	setExpectations([
+		{
+			id: 'exp0',
+			state: ExpectedPackageStatusAPI.WorkStatusState.READY,
+			hasAvailableWorkers: true,
+		},
+	])
+
+	await scaler.checkIfNeedToScaleUp()
+	// Should not scale up right away:
+	expect(fakeManager.workforceConnection.workforceAPI.requestResourcesForExpectation).toHaveBeenCalledTimes(0)
+
+	await sleep(SCALE_UP_TIME * 2)
+	await scaler.checkIfNeedToScaleUp()
+	// Should scale up, since the READY expectation is waiting for a worker to start working on it:
 	expect(fakeManager.workforceConnection.workforceAPI.requestResourcesForExpectation).toHaveBeenCalledTimes(1)
 })
 
