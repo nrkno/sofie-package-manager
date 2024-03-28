@@ -15,11 +15,14 @@ export class WorkerAgentAPI implements AppContainerWorkerAgent.WorkerAgent {
 		methods: AppContainerWorkerAgent.AppContainer,
 		_options: AdapterServerOptions<AppContainerWorkerAgent.WorkerAgent>
 	) {
-		console.log(methods.id, methods)
 		WorkerAgentAPI.mockAppContainer[methods.id] = methods
 	}
 
 	public static mockAppContainer: Record<WorkerAgentId, AppContainerWorkerAgent.AppContainer> = {}
+
+	public static mockReset(): void {
+		WorkerAgentAPI.mockAppContainer = {}
+	}
 
 	type = ''
 

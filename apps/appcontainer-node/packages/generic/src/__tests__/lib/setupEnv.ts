@@ -70,7 +70,6 @@ export async function setupWorkers(): Promise<void> {
 			const workerIdMatch = match.match(/--workerId=(\w+)/)
 			// @ts-ignore mock
 			WebsocketServer.mockNewConnection(workerIdMatch[1], 'workerAgent')
-			console.log('New worker: ', workerIdMatch[1])
 		})
 	})
 }

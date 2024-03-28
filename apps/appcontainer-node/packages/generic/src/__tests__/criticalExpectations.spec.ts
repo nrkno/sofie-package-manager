@@ -17,6 +17,8 @@ describe('Critical worker Apps', () => {
 
 	afterEach(async () => {
 		mockClearAllProcesses()
+		//@ts-ignore mock
+		WorkerAgentAPI.mockReset()
 	})
 
 	it('Spins up 2 critical expectaiton workers', async () => {
@@ -74,7 +76,7 @@ describe('Critical worker Apps', () => {
 		expect(getWorkerCount()).toBe(MIN_CRITICAL_WORKER_APPS)
 
 		//@ts-ignore mock
-		await WorkerAgentAPI.mockAppContainer['app0_1'].requestSpinDown()
+		await WorkerAgentAPI.mockAppContainer['app0_0'].requestSpinDown()
 
 		expect(getWorkerCount()).toBe(MIN_CRITICAL_WORKER_APPS)
 
