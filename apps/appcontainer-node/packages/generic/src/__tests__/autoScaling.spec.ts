@@ -182,7 +182,7 @@ describe('Auto-scaling', () => {
 		expect(getWorkerCount()).toBe(INTERMEDIATE_RUNNING_APPS)
 
 		//@ts-ignore mock
-		await WorkerAgentAPI.mockAppContainer.requestSpinDown()
+		await WorkerAgentAPI.mockAppContainer['app0_0'].requestSpinDown()
 
 		expect(getWorkerCount()).toBe(TARGET_RUNNING_APPS)
 
@@ -221,7 +221,7 @@ describe('Auto-scaling', () => {
 		expect(getWorkerCount()).toBe(INTERMEDIATE_RUNNING_APPS)
 
 		//@ts-ignore mock
-		await WorkerAgentAPI.mockAppContainer.requestSpinDown()
+		await WorkerAgentAPI.mockAppContainer['app0_0'].requestSpinDown()
 
 		expect(getWorkerCount()).toBe(TARGET_RUNNING_APPS)
 
