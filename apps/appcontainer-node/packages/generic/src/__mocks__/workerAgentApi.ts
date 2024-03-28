@@ -6,6 +6,7 @@ import {
 	ReturnTypeDoYouSupportExpectation,
 	PackageContainerExpectation,
 	AppContainerId,
+	WorkerAgentId,
 } from '@sofie-package-manager/api'
 
 export class WorkerAgentAPI implements AppContainerWorkerAgent.WorkerAgent {
@@ -14,10 +15,11 @@ export class WorkerAgentAPI implements AppContainerWorkerAgent.WorkerAgent {
 		methods: AppContainerWorkerAgent.AppContainer,
 		_options: AdapterServerOptions<AppContainerWorkerAgent.WorkerAgent>
 	) {
-		WorkerAgentAPI.mockAppContainer = methods
+		console.log(methods.id, methods)
+		WorkerAgentAPI.mockAppContainer[methods.id] = methods
 	}
 
-	static mockAppContainer: AppContainerWorkerAgent.AppContainer | null = null
+	public static mockAppContainer: Record<WorkerAgentId, AppContainerWorkerAgent.AppContainer> = {}
 
 	type = ''
 

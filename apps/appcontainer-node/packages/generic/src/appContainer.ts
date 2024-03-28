@@ -54,27 +54,7 @@ export class AppContainer {
 	private usedInspectPorts = new Set<number>()
 	private busyPorts = new Set<number>()
 
-	private apps: Map<
-		AppId,
-		{
-			process: cp.ChildProcess
-			appType: AppType
-			/** Set to true if app should be considered for scaling down */
-			isAutoScaling: boolean
-			/** Set to true if the app is only handling playout-critical expectations */
-			isOnlyForCriticalExpectations: boolean
-			/** Set to true when the process is about to be killed */
-			toBeKilled: boolean
-			restarts: number
-			lastRestart: number
-			spinDownTime: number
-			/** If null, there is no websocket connection to the app */
-			workerAgentApi: WorkerAgentAPI | null
-			monitorPing: boolean
-			lastPing: number
-			start: number
-		}
-	> = new Map()
+	private apps: Map<AppId, RunningAppInfo> = new Map()
 	private availableApps: Map<AppType, AvailableAppInfo> = new Map()
 	private websocketServer?: WebsocketServer
 
@@ -405,27 +385,8 @@ export class AppContainer {
 		}
 
 		for (const [appType, availableApp] of this.availableApps.entries()) {
-			// Do we already have any instance of the appType running?
-			let runningApp = Array.from(this.apps.values()).find((app) => {
-				return app.appType === appType
-			})
+			const runningApp = await this.getRunningOrSpawnScalingApp(appType)
 
-			if (!runningApp) {
-				const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
-
-				// wait for the app to connect to us:
-				await tryAfewTimes(async () => {
-					const app = this.apps.get(newAppId)
-					if (!app) throw new Error(`Worker "${newAppId}" not found`)
-					if (app.workerAgentApi) {
-						return true
-					}
-					await waitTime(200)
-					return false
-				}, 10)
-				runningApp = this.apps.get(newAppId)
-				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
-			}
 			if (runningApp?.workerAgentApi) {
 				const result = await runningApp.workerAgentApi.doYouSupportExpectation(exp)
 				if (result.support) {
@@ -471,27 +432,8 @@ export class AppContainer {
 		}
 
 		for (const [appType, availableApp] of this.availableApps.entries()) {
-			// Do we already have any instance of the appType running?
-			let runningApp = findValue(this.apps, (_, app) => {
-				return app.appType === appType
-			})
+			const runningApp = await this.getRunningOrSpawnScalingApp(appType)
 
-			if (!runningApp) {
-				const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
-
-				// wait for the app to connect to us:
-				await tryAfewTimes(async () => {
-					const app = this.apps.get(newAppId)
-					if (!app) throw new Error(`Worker "${newAppId}" not found`)
-					if (app.workerAgentApi) {
-						return true
-					}
-					await waitTime(200)
-					return false
-				}, 10)
-				runningApp = this.apps.get(newAppId)
-				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
-			}
 			if (runningApp?.workerAgentApi) {
 				const result = await runningApp.workerAgentApi.doYouSupportPackageContainer(packageContainer)
 				if (result.support) {
@@ -512,6 +454,32 @@ export class AppContainer {
 				tech: `No worker supports this packageContainer`,
 			},
 		}
+	}
+
+	private async getRunningOrSpawnScalingApp(appType: AppType): Promise<RunningAppInfo | undefined> {
+		// Do we already have any instance of the appType running?
+		let runningApp = findValue(this.apps, (_, app) => {
+			if (app.isAutoScaling) return false
+			return app.appType === appType
+		})
+
+		if (!runningApp) {
+			const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
+
+			// wait for the app to connect to us:
+			await tryAfewTimes(async () => {
+				const app = this.apps.get(newAppId)
+				if (!app) throw new Error(`Worker "${newAppId}" not found`)
+				if (app.workerAgentApi) {
+					return true
+				}
+				await waitTime(200)
+				return false
+			}, 10)
+			runningApp = this.apps.get(newAppId)
+			if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
+		}
+		return runningApp
 	}
 	private getNewAppId(): AppId {
 		const newAppId = protectString<AppId>(`${this.id}_${this.appId++}`)
@@ -819,6 +787,25 @@ interface AvailableAppInfo {
 	/** Some kind of value, how much it costs to run it, per minute */
 	canRunInCriticalExpectationsOnlyMode: boolean
 	cost: number
+}
+
+interface RunningAppInfo {
+	process: cp.ChildProcess
+	appType: AppType
+	/** Set to true if app should be considered for scaling down */
+	isAutoScaling: boolean
+	/** Set to true if the app is only handling playout-critical expectations */
+	isOnlyForCriticalExpectations: boolean
+	/** Set to true when the process is about to be killed */
+	toBeKilled: boolean
+	restarts: number
+	lastRestart: number
+	spinDownTime: number
+	/** If null, there is no websocket connection to the app */
+	workerAgentApi: WorkerAgentAPI | null
+	monitorPing: boolean
+	lastPing: number
+	start: number
 }
 
 async function tryAfewTimes(cb: () => Promise<boolean>, maxTries: number) {

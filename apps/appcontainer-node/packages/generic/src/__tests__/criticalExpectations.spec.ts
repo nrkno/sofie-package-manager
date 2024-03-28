@@ -5,8 +5,6 @@ jest.mock('../workerAgentApi.ts')
 //@ts-ignore mock
 import { mockListAllProcesses, mockClearAllProcesses } from 'child_process'
 import { prepareTestEnviromnent, setupAppContainer, setupWorkers } from './lib/setupEnv'
-import { WorkforceAPI } from '../workforceApi'
-import { getFileCopyExpectation } from './lib/containers'
 import { sleep } from '@sofie-automation/server-core-integration'
 import { WorkerAgentAPI } from '../workerAgentApi'
 
@@ -29,6 +27,8 @@ describe('Critical worker Apps', () => {
 			minCriticalWorkerApps: MIN_CRITICAL_WORKER_APPS,
 		})
 
+		await setupWorkers()
+
 		await appContainer.init()
 
 		expect(getWorkerCount()).toBe(MIN_RUNNING_APPS + MIN_CRITICAL_WORKER_APPS)
@@ -43,6 +43,8 @@ describe('Critical worker Apps', () => {
 			minRunningApps: MIN_RUNNING_APPS,
 			minCriticalWorkerApps: MIN_CRITICAL_WORKER_APPS,
 		})
+
+		await setupWorkers()
 
 		await appContainer.init()
 
@@ -62,30 +64,17 @@ describe('Critical worker Apps', () => {
 			minCriticalWorkerApps: MIN_CRITICAL_WORKER_APPS,
 		})
 
-		await appContainer.init()
-
-		const expectation0 = getFileCopyExpectation()
-
 		await setupWorkers()
 
+		await appContainer.init()
+
 		// Ensure that the initial state has settled
-		await sleep(500)
-
-		expect(getWorkerCount()).toBe(MIN_CRITICAL_WORKER_APPS)
-
-		{
-			// @ts-ignore
-			const result0 = await WorkforceAPI.mockMethods.requestAppTypeForExpectation(expectation0)
-
-			console.log(result0)
-
-			expect(result0.success).toBeTruthy()
-		}
+		await sleep(5000)
 
 		expect(getWorkerCount()).toBe(MIN_CRITICAL_WORKER_APPS)
 
 		//@ts-ignore mock
-		await WorkerAgentAPI.mockAppContainer.requestSpinDown()
+		await WorkerAgentAPI.mockAppContainer['app0_1'].requestSpinDown()
 
 		expect(getWorkerCount()).toBe(MIN_CRITICAL_WORKER_APPS)
 

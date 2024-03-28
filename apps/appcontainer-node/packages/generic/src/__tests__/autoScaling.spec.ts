@@ -27,6 +27,8 @@ describe('Auto-scaling', () => {
 			minRunningApps: MIN_RUNNING_APPS,
 		})
 
+		await setupWorkers()
+
 		await appContainer.init()
 
 		expect(getWorkerCount()).toBe(MIN_RUNNING_APPS)
@@ -39,6 +41,8 @@ describe('Auto-scaling', () => {
 		const appContainer = await setupAppContainer({
 			minRunningApps: MIN_RUNNING_APPS,
 		})
+
+		await setupWorkers()
 
 		await appContainer.init()
 
@@ -57,11 +61,11 @@ describe('Auto-scaling', () => {
 			maxRunningApps: MAX_RUNNING_APPS,
 		})
 
+		await setupWorkers()
+
 		await appContainer.init()
 
 		const expectation0 = getFileCopyExpectation()
-
-		await setupWorkers()
 
 		// Ensure that the initial state has settled
 		await sleep(500)
@@ -90,11 +94,11 @@ describe('Auto-scaling', () => {
 			maxRunningApps: MAX_RUNNING_APPS,
 		})
 
+		await setupWorkers()
+
 		await appContainer.init()
 
 		const expectation0 = getPackageContainerExpectation()
-
-		await setupWorkers()
 
 		// Ensure that the initial state has settled
 		await sleep(500)
@@ -123,11 +127,11 @@ describe('Auto-scaling', () => {
 			maxRunningApps: MAX_RUNNING_APPS,
 		})
 
+		await setupWorkers()
+
 		await appContainer.init()
 
 		const expectation0 = getFileCopyExpectation()
-
-		await setupWorkers()
 
 		// Ensure that the initial state has settled
 		await sleep(500)
@@ -157,11 +161,11 @@ describe('Auto-scaling', () => {
 			maxRunningApps: MAX_RUNNING_APPS,
 		})
 
+		await setupWorkers()
+
 		await appContainer.init()
 
 		const expectation0 = getFileCopyExpectation()
-
-		await setupWorkers()
 
 		// Ensure that the initial state has settled
 		await sleep(500)
@@ -196,11 +200,11 @@ describe('Auto-scaling', () => {
 			maxRunningApps: MAX_RUNNING_APPS,
 		})
 
+		await setupWorkers()
+
 		await appContainer.init()
 
 		const expectation0 = getFileCopyExpectation()
-
-		await setupWorkers()
 
 		// Ensure that the initial state has settled
 		await sleep(500)
