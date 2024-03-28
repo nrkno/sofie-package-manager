@@ -88,7 +88,9 @@ export function getFileCopyExpectation(): Expectation.FileCopy {
 			},
 			version: { type: Expectation.Version.Type.FILE_ON_DISK },
 		},
-		workOptions: {},
+		workOptions: {
+			requiredForPlayout: true,
+		},
 	})
 }
 
