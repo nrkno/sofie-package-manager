@@ -2,9 +2,7 @@ jest.mock('child_process')
 jest.mock('../workforceApi.ts')
 jest.mock('../workerAgentApi.ts')
 
-//@ts-ignore mock
-import { mockListAllProcesses, mockClearAllProcesses } from 'child_process'
-import { prepareTestEnviromnent, setupAppContainer, setupWorkers } from './lib/setupEnv'
+import { getWorkerCount, prepareTestEnviromnent, resetMocks, setupAppContainer, setupWorkers } from './lib/setupEnv'
 import { sleep } from '@sofie-automation/server-core-integration'
 import { WorkerAgentAPI } from '../workerAgentApi'
 
@@ -16,9 +14,7 @@ describe('Critical worker Apps', () => {
 	})
 
 	afterEach(async () => {
-		mockClearAllProcesses()
-		//@ts-ignore mock
-		WorkerAgentAPI.mockReset()
+		await resetMocks()
 	})
 
 	it('Spins up 2 critical expectaiton workers', async () => {
@@ -83,8 +79,3 @@ describe('Critical worker Apps', () => {
 		appContainer.terminate()
 	})
 })
-
-function getWorkerCount() {
-	const processes = mockListAllProcesses()
-	return processes.filter((item: any) => item.args.find((arg: string) => arg.match(/--workerId/))).length
-}

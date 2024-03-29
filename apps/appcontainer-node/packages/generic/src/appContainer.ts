@@ -459,7 +459,7 @@ export class AppContainer {
 	private async getRunningOrSpawnScalingApp(appType: AppType): Promise<RunningAppInfo | undefined> {
 		// Do we already have any instance of the appType running?
 		let runningApp = findValue(this.apps, (_, app) => {
-			if (app.isAutoScaling) return false
+			if (!app.isAutoScaling) return false
 			return app.appType === appType
 		})
 

@@ -3,8 +3,15 @@ jest.mock('../workforceApi.ts')
 jest.mock('../workerAgentApi.ts')
 
 //@ts-ignore mock
-import { mockListAllProcesses, mockClearAllProcesses } from 'child_process'
-import { prepareTestEnviromnent, setupAppContainer, setupWorkers } from './lib/setupEnv'
+import { mockClearAllProcesses } from 'child_process'
+import {
+	getWorkerCount,
+	getWorkerId,
+	prepareTestEnviromnent,
+	resetMocks,
+	setupAppContainer,
+	setupWorkers,
+} from './lib/setupEnv'
 import { WorkforceAPI } from '../workforceApi'
 import { getFileCopyExpectation, getPackageContainerExpectation } from './lib/containers'
 import { sleep } from '@sofie-automation/server-core-integration'
@@ -18,7 +25,7 @@ describe('Auto-scaling', () => {
 	})
 
 	afterEach(async () => {
-		mockClearAllProcesses()
+		await resetMocks()
 	})
 
 	it('Spins up 2 as the minimal amount of workers', async () => {
@@ -181,8 +188,11 @@ describe('Auto-scaling', () => {
 
 		expect(getWorkerCount()).toBe(INTERMEDIATE_RUNNING_APPS)
 
+		const workerId = getWorkerId(0)
+		expect(workerId).toBeDefined()
+
 		//@ts-ignore mock
-		await WorkerAgentAPI.mockAppContainer['app0_0'].requestSpinDown()
+		await WorkerAgentAPI.mockAppContainer[workerId].requestSpinDown()
 
 		expect(getWorkerCount()).toBe(TARGET_RUNNING_APPS)
 
@@ -220,16 +230,14 @@ describe('Auto-scaling', () => {
 
 		expect(getWorkerCount()).toBe(INTERMEDIATE_RUNNING_APPS)
 
+		const workerId = getWorkerId(0)
+		expect(workerId).toBeDefined()
+
 		//@ts-ignore mock
-		await WorkerAgentAPI.mockAppContainer['app0_0'].requestSpinDown()
+		await WorkerAgentAPI.mockAppContainer[workerId].requestSpinDown()
 
 		expect(getWorkerCount()).toBe(TARGET_RUNNING_APPS)
 
 		appContainer.terminate()
 	})
 })
-
-function getWorkerCount() {
-	const processes = mockListAllProcesses()
-	return processes.filter((item: any) => item.args.find((arg: string) => arg.match(/--workerId/))).length
-}

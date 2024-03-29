@@ -8,11 +8,13 @@ import {
 	protectString,
 	setupLogger,
 	WebsocketServer,
+	WorkerAgentId,
 } from '@sofie-package-manager/api'
 // @ts-ignore mock
-import { mockOnNewProcess } from 'child_process'
+import { mockOnNewProcess, mockListAllProcesses, mockClearAllProcesses } from 'child_process'
 import { AppContainer } from '../../appContainer'
 import deepExtend from 'deep-extend'
+import { WorkerAgentAPI } from '../../workerAgentApi'
 
 export async function prepareTestEnviromnent(debugLogging: boolean): Promise<void> {
 	const config: { process: ProcessConfig } = {
@@ -72,4 +74,20 @@ export async function setupWorkers(): Promise<void> {
 			WebsocketServer.mockNewConnection(workerIdMatch[1], 'workerAgent')
 		})
 	})
+}
+
+export function getWorkerCount() {
+	const processes = mockListAllProcesses()
+	return processes.filter((item: any) => item.args.find((arg: string) => arg.match(/--workerId/))).length
+}
+
+export function getWorkerId(index: number): WorkerAgentId | undefined {
+	//@ts-ignore mock
+	return Object.keys(WorkerAgentAPI.mockAppContainer)[index]
+}
+
+export async function resetMocks(): Promise<void> {
+	mockClearAllProcesses()
+	//@ts-ignore mock
+	WorkerAgentAPI.mockReset()
 }
