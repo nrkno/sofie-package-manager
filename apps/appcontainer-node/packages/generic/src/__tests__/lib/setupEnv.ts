@@ -59,7 +59,7 @@ export async function setupAppContainer(partialAppContainerConfig: Partial<AppCo
 		},
 	})
 
-	const logger = setupLogger(config, '', undefined, undefined, undefined, undefined)
+	const logger = setupLogger(config, '', undefined, undefined, undefined, (level) => level === LogLevel.ERROR)
 
 	return new AppContainer(logger, config)
 }
