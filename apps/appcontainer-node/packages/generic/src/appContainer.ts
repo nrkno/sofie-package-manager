@@ -34,6 +34,7 @@ import {
 	DataId,
 	LockId,
 	protectString,
+	getLogLevel,
 } from '@sofie-package-manager/api'
 
 import { WorkforceAPI } from './workforceApi'
@@ -266,6 +267,9 @@ export class AppContainer {
 	private async discoverAvailableApps() {
 		const getWorkerArgs = (appId: AppId, pickUpCriticalExpectationsOnly: boolean): string[] => {
 			return [
+				// Set initial loglevel to be same as appContainer:
+				`--logLevel=${getLogLevel()}`,
+
 				`--workerId=${appId}`,
 				pickUpCriticalExpectationsOnly ? `--pickUpCriticalExpectationsOnly=1` : '',
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
@@ -347,7 +351,7 @@ export class AppContainer {
 		// kill child processes
 	}
 	async setLogLevel(logLevel: LogLevel): Promise<void> {
-		this.logger.info(`Seting log level to "${logLevel}"`)
+		this.logger.info(`Setting log level to "${logLevel}"`)
 		setLogLevel(logLevel)
 	}
 	async _debugKill(): Promise<void> {

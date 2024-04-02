@@ -210,11 +210,11 @@ describeForAllPlatforms(
 			await waitTime(env.WAIT_SCAN_TIME)
 
 			await waitUntil(() => {
-				// Expect the Expectation to be waiting -> new:
+				// Expect the Expectation to be waiting:
 				expect(env.expectationStatuses[EXP_copy0]).toMatchObject({
 					actualVersionHash: null,
 					statusInfo: {
-						status: 'new',
+						status: 'waiting',
 						statusReason: {
 							tech: expect.stringMatching(/Not able to write to container folder.*write access denied/i),
 						},

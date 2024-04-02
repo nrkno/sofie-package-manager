@@ -83,7 +83,7 @@ export async function evaluateExpectationStateReady({
 		}
 	} else {
 		// No worker is available at the moment.
-		// Check if anough time has passed if it makes sense to check for new workers again:
+		// Check if enough time has passed if it makes sense to check for new workers again:
 
 		if (
 			trackedExp.noWorkerAssignedTime &&

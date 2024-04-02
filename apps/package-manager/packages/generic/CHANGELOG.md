@@ -3,6 +3,60 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2...v1.50.3) (2024-03-27)
+
+**Note:** Version bump only for package @package-manager/generic
+
+
+
+
+
+## [1.50.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.3...v1.50.2) (2024-03-27)
+
+
+### Bug Fixes
+
+* make loudness scan higher priority than thumbnails & preview ([ad31809](https://github.com/nrkno/tv-automation-package-manager/commit/ad3180904546b3c14f30ee54267037ada590c69a))
+
+
+
+
+
+## [1.50.2-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.2...v1.50.2-alpha.3) (2024-03-25)
+
+**Note:** Version bump only for package @package-manager/generic
+
+
+
+
+
+## [1.50.2-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.1...v1.50.2-alpha.2) (2024-03-25)
+
+**Note:** Version bump only for package @package-manager/generic
+
+
+
+
+
+## [1.50.2-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2-alpha.0...v1.50.2-alpha.1) (2024-03-25)
+
+
+### Bug Fixes
+
+* Add option to skip deep scanning of expectations ([32f2c79](https://github.com/nrkno/tv-automation-package-manager/commit/32f2c79c589414837111013b470ef7903626501f))
+
+
+
+
+
+## [1.50.2-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.50.1...v1.50.2-alpha.0) (2024-02-29)
+
+**Note:** Version bump only for package @package-manager/generic
+
+
+
+
+
 # [1.50.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.0-alpha.10...v1.50.0) (2024-02-19)
 
 **Note:** Version bump only for package @package-manager/generic

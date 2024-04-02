@@ -180,6 +180,8 @@ describe('Generate expectations - NRK', () => {
 			Expectation.Type.FILE_COPY,
 			Expectation.Type.PACKAGE_SCAN,
 			Expectation.Type.PACKAGE_SCAN,
+			Expectation.Type.PACKAGE_LOUDNESS_SCAN,
+			Expectation.Type.PACKAGE_LOUDNESS_SCAN,
 			// The order of the rest aren't as important:
 			Expectation.Type.MEDIA_FILE_THUMBNAIL,
 			Expectation.Type.MEDIA_FILE_PREVIEW,
@@ -187,8 +189,6 @@ describe('Generate expectations - NRK', () => {
 			Expectation.Type.PACKAGE_DEEP_SCAN,
 			Expectation.Type.MEDIA_FILE_PREVIEW,
 			Expectation.Type.PACKAGE_DEEP_SCAN,
-			Expectation.Type.PACKAGE_LOUDNESS_SCAN,
-			Expectation.Type.PACKAGE_LOUDNESS_SCAN,
 		])
 	})
 })
@@ -227,10 +227,7 @@ function setup() {
 			_rank: 2,
 		},
 	]
-	const settings: PackageManagerSettings = {
-		delayRemoval: 0,
-		useTemporaryFilePath: false,
-	}
+	const settings: PackageManagerSettings = {}
 	const packageContainers: PackageContainers = {}
 
 	packageContainers[protectString<PackageContainerId>('source0')] = {

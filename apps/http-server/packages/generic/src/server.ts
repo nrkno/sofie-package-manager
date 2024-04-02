@@ -10,7 +10,7 @@ import bodyParser from 'koa-bodyparser'
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
 import { BadResponse, Storage } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
-import { CTX } from './lib'
+import { CTX, valueOrFirst } from './lib'
 import { parseFormData } from 'pechkin'
 
 const fsReadFile = promisify(fs.readFile)
@@ -60,9 +60,9 @@ export class PackageProxyServer {
 		this.router.all('(.*)', async (ctx, next) => {
 			// Intercept and authenticate:
 
-			const apiKey: string =
-				ctx.request.query?.apiKey || // Querystring parameter
-				ctx.request.body?.apiKey // Body parameter
+			const apiKey: string | undefined =
+				valueOrFirst(ctx.request.query?.apiKey) || // Querystring parameter
+				(ctx.request.body as { apiKey?: string })?.apiKey // Body parameter
 
 			if (ctx.request.method === 'GET' || ctx.request.method === 'HEAD') {
 				if (

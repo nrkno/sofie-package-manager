@@ -1,17 +1,17 @@
 {
     "name": "@boilerplate/app",
-    "version": "1.43.2",
-    "description": "Boilerplace",
+    "version": "1.50.2",
+    "description": "Boilerplate",
     "private": true,
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
-        "build-win32": "mkdir deploy & node ../../../scripts/build-win32.mjs boilerplate.exe && node ../../../scripts/copy-natives.js win32-x64",
+        "build-win32": "node ../../../scripts/build-win32.mjs boilerplate.exe && node ../../../scripts/copy-natives.js win32-x64",
         "__test": "jest",
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@boilerplate/generic": "1.42.0"
+        "@boilerplate/generic": "1.50.2"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
@@ -24,5 +24,9 @@
         "*.{ts,tsx}": [
             "eslint"
         ]
+    },
+    "devDependencies": {
+        "lerna": "^6.6.1",
+        "rimraf": "^5.0.5"
     }
 }

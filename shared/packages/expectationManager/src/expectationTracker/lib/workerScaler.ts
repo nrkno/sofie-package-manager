@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { LoggerInstance } from '@sofie-package-manager/api'
+import { ExpectationId, LoggerInstance } from '@sofie-package-manager/api'
 import { InternalManager } from '../../internalManager/internalManager'
 import { expLabel, TrackedExpectation } from '../../lib/trackedExpectation'
 import { TrackedPackageContainerExpectation } from '../../lib/trackedPackageContainerExpectation'
@@ -14,7 +14,6 @@ export class WorkerScaler {
 	private logger: LoggerInstance
 	constructor(logger: LoggerInstance, private manager: InternalManager, private tracker: ExpectationTracker) {
 		this.logger = logger.category('WorkerScaler')
-		this.waitingExpectations = []
 	}
 
 	/**
@@ -50,6 +49,9 @@ export class WorkerScaler {
 			}
 		}
 	}
+	public getWaitingExpectationIds(): ExpectationId[] {
+		return this.waitingExpectations.map((exp) => exp.id)
+	}
 	public getWaitingExpectationCount(): number {
 		return this.waitingExpectations.length
 	}
@@ -57,24 +59,35 @@ export class WorkerScaler {
 		this.waitingExpectations = []
 
 		for (const exp of this.tracker.trackedExpectations.list()) {
-			/** The expectation is waiting for a worker */
-			const isWaiting: boolean =
-				exp.state === ExpectedPackageStatusAPI.WorkStatusState.NEW ||
-				exp.state === ExpectedPackageStatusAPI.WorkStatusState.WAITING ||
-				exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY
+			/** The expectation is waiting on another expectation */
+			const isWaitingForOther = this.tracker.trackedExpectationAPI.isExpectationWaitingForOther(exp)
 
-			/** Not supported by any worker */
-			const notSupportedByAnyWorker: boolean = exp.availableWorkers.size === 0
-			/** No worker has had time to work on it lately */
-			const notAssignedToAnyWorker: boolean =
+			/**
+			 * If the expectation is not supported by any worker (needed to transition between any state)
+			 * This can happen if there are no workers running that support this expectation
+			 */
+			const notSupportedByAnyWorker = exp.availableWorkers.size === 0
+
+			/**
+			 * If the expectation has not been assigned to any worker for some time.
+			 * This can happen if no worker returns any useable cost estimate for the expectation
+			 */
+			const notAssignedToAnyWorkerForSomeTime: boolean =
 				!!exp.noWorkerAssignedTime &&
 				Date.now() - exp.noWorkerAssignedTime > this.tracker.constants.SCALE_UP_TIME
 
+			/**
+			 * If the expectation is waiting (for a worker) to start working
+			 * If there are no free workers, the expectation will stay in the READY state
+			 */
+			const isWaitingForWorkerToStartWorking: boolean =
+				exp.state === ExpectedPackageStatusAPI.WorkStatusState.READY
+
 			if (
-				isWaiting &&
-				(notSupportedByAnyWorker || notAssignedToAnyWorker) &&
-				!this.tracker.trackedExpectationAPI.isExpectationWaitingForOther(exp) // Filter out expectations that aren't ready to begin working on anyway
+				!isWaitingForOther &&
+				(notSupportedByAnyWorker || notAssignedToAnyWorkerForSomeTime || isWaitingForWorkerToStartWorking)
 			) {
+				// Add a second round of waiting, to ensure that we don't scale up prematurely:
 				if (!exp.waitingForWorkerTime) {
 					this.logger.silly(
 						`Starting to track how long expectation "${expLabel(exp)}" has been waiting for a worker`
@@ -84,6 +97,8 @@ export class WorkerScaler {
 			} else {
 				exp.waitingForWorkerTime = null
 			}
+
+			// If the expectation has been waiting for long enough:
 			if (exp.waitingForWorkerTime) {
 				const hasBeenWaitingFor = Date.now() - exp.waitingForWorkerTime
 				if (

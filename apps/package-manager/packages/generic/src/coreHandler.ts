@@ -69,6 +69,7 @@ export class CoreHandler {
 	public delayRemoval = 0
 	public delayRemovalPackageInfo = 0
 	public useTemporaryFilePath = false
+	public skipDeepScan = false
 	public notUsingCore = false
 	public fakeCore: FakeCore
 
@@ -271,6 +272,9 @@ export class CoreHandler {
 			}
 			if (this.deviceSettings['useTemporaryFilePath'] !== this.useTemporaryFilePath) {
 				this.useTemporaryFilePath = this.deviceSettings['useTemporaryFilePath']
+			}
+			if (this.deviceSettings['skipDeepScan'] !== this.skipDeepScan) {
+				this.skipDeepScan = this.deviceSettings['skipDeepScan']
 			}
 
 			if (this._packageManagerHandler) {

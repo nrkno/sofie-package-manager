@@ -85,10 +85,7 @@ export class PackageManagerHandler {
 	}
 	private _triggerUpdatedExpectedPackagesTimeout: NodeJS.Timeout | null = null
 	public monitoredPackages: Map<PackageContainerId, Map<MonitorId, ExpectedPackageWrap[]>> = new Map()
-	settings: PackageManagerSettings = {
-		delayRemoval: 0,
-		useTemporaryFilePath: false,
-	}
+	settings: PackageManagerSettings = {}
 	callbacksHandler: ExpectationManagerCallbacksHandler
 
 	private dataSnapshot: {
@@ -165,6 +162,7 @@ export class PackageManagerHandler {
 			delayRemoval: this.coreHandler.delayRemoval,
 			delayRemovalPackageInfo: this.coreHandler.delayRemovalPackageInfo,
 			useTemporaryFilePath: this.coreHandler.useTemporaryFilePath,
+			skipDeepScan: this.coreHandler.skipDeepScan,
 		}
 		this.triggerUpdatedExpectedPackages()
 	}

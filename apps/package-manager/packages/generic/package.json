@@ -1,11 +1,11 @@
 {
     "name": "@package-manager/generic",
-    "version": "1.50.0",
+    "version": "1.50.3",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "run -T rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "test": "jest"
     },
@@ -15,9 +15,9 @@
     },
     "dependencies": {
         "@parcel/watcher": "^2.3.0",
-        "@sofie-package-manager/api": "1.50.0",
-        "@sofie-package-manager/expectation-manager": "1.50.0",
-        "@sofie-package-manager/worker": "1.50.0",
+        "@sofie-package-manager/api": "1.50.2",
+        "@sofie-package-manager/expectation-manager": "1.50.2",
+        "@sofie-package-manager/worker": "1.50.2",
         "data-store": "^4.0.3",
         "deep-extend": "^0.6.0",
         "fast-clone": "^1.5.13",
@@ -26,7 +26,9 @@
     },
     "devDependencies": {
         "@types/deep-extend": "0.4.31",
-        "@types/underscore": "^1.10.24"
+        "@types/underscore": "^1.10.24",
+        "jest": "*",
+        "rimraf": "^5.0.5"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {

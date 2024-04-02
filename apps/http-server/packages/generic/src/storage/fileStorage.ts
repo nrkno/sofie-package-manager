@@ -159,7 +159,7 @@ export class FileStorage extends Storage {
 		const exists = await this.exists(fullPath)
 		if (exists) await fsUnlink(fullPath)
 
-		let plainText = ctx.request.body?.text
+		let plainText = (ctx.request.body as { text: string | undefined })?.text
 		if (!plainText && typeof fileStreamOrText === 'string') {
 			plainText = fileStreamOrText
 		}

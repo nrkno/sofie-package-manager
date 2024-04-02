@@ -4,6 +4,6 @@
     "apps/**",
     "tests/**"
   ],
-  "version": "1.50.1",
+  "version": "1.50.3",
   "npmClient": "yarn"
 }

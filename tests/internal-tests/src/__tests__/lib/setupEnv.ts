@@ -26,6 +26,7 @@ import {
 	objectKeys,
 	ExpectationManagerId,
 	AppContainerId,
+	literal,
 } from '@sofie-package-manager/api'
 import {
 	ExpectationManager,
@@ -200,6 +201,8 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 	const WORK_TIMEOUT_TIME = 900 // ms
 	const ERROR_WAIT_TIME = 500
 
+	const SCALE_UP_TIME = 100
+
 	const config: { process: ProcessConfig } = {
 		process: {
 			certificates: [],
@@ -295,14 +298,16 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 				}
 			},
 		},
-		{
+		literal<ExpectationManagerOptions>({
 			constants: {
 				EVALUATE_INTERVAL: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
 				FULLFILLED_MONITOR_TIME: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
 				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
 				ERROR_WAIT_TIME: ERROR_WAIT_TIME - 300,
+
+				SCALE_UP_TIME: SCALE_UP_TIME,
 			},
-		},
+		}),
 		logFilterFunction
 	)
 
@@ -312,6 +317,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		WAIT_SCAN_TIME,
 		WORK_TIMEOUT_TIME,
 		ERROR_WAIT_TIME,
+		SCALE_UP_TIME,
 		expectationManager: em.expectationManager,
 		workerAgents: em.workerAgents,
 		workforce: em.workforce,
@@ -350,6 +356,7 @@ export interface TestEnviromnent {
 	WAIT_SCAN_TIME: number
 	WORK_TIMEOUT_TIME: number
 	ERROR_WAIT_TIME: number
+	SCALE_UP_TIME: number
 	expectationManager: ExpectationManager
 	workerAgents: Worker.WorkerAgent[]
 	workforce: Workforce.Workforce

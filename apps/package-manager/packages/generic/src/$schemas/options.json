@@ -31,6 +31,11 @@
 			"type": "boolean",
 			"ui:title": "Use temporary file paths when copying",
 			"default": false
+		},
+		"skipDeepScan": {
+			"type": "boolean",
+			"ui:title": "Skip deep scanning of packages",
+			"default": false
 		}
 	},
 	"required": [],
