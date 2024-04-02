@@ -325,7 +325,6 @@ describeForAllPlatforms(
 					statusReport: {
 						label: `Copy file${i}`,
 						description: `Copy file${i} because test`,
-						requiredForPlayout: true,
 						displayRank: 0,
 						sendReport: true,
 					},
@@ -339,7 +338,9 @@ describeForAllPlatforms(
 						},
 						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
-					workOptions: {},
+					workOptions: {
+						requiredForPlayout: true,
+					},
 				})
 			}
 			// console.log(fs.__printAllFiles())
@@ -359,10 +360,8 @@ describeForAllPlatforms(
 				for (const exp of Object.values(expectations)) {
 					const PACKAGE = exp.fromPackages[0].id
 
-					packageStatuses.actual[PACKAGE] =
-						env.containerStatuses[TARGET0].packages[PACKAGE]?.packageStatus?.status
-					packageStatuses.expected[PACKAGE] =
-						ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+					packageStatuses.actual[PACKAGE] = env.containerStatuses[TARGET0].packages[PACKAGE]?.packageStatus?.status
+					packageStatuses.expected[PACKAGE] = ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				}
 				expect(packageStatuses.actual).toMatchObject(packageStatuses.expected)
 			}, 1000 + env.WAIT_JOB_TIME * 2 + COPY_TIME * 10)
