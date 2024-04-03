@@ -90,8 +90,6 @@ export class TrackedWorkerAgents {
 	 */
 	public async determineBestWorkerForExpectation(trackedExp: TrackedExpectation): Promise<{
 		bestWorker: WorkerAgentAssignment | undefined
-		countQueried: number
-		countInfinite: number
 		noCostReason: Reason
 	}> {
 		/** How many requests to send out simultaneously */
@@ -104,10 +102,7 @@ export class TrackedWorkerAgents {
 
 		const workerIds = Array.from(trackedExp.availableWorkers.keys())
 
-		let noCostReason: Reason = {
-			user: `${workerIds.length} workers are currently busy`,
-			tech: `${workerIds.length} busy, ${trackedExp.queriedWorkers.size} queried`,
-		}
+		let noCostReason: Reason | undefined = undefined
 
 		const workerCosts: WorkerAgentAssignment[] = []
 
@@ -145,6 +140,8 @@ export class TrackedWorkerAgents {
 							tech: `${stringifyError(error, true)}`,
 						}
 					}
+				} else {
+					this.logger.error(`Worker "${workerId}" not found in determineBestWorkerForExpectation`)
 				}
 			})
 
@@ -162,10 +159,20 @@ export class TrackedWorkerAgents {
 			return 0
 		})
 
+		if (!noCostReason) {
+			noCostReason = {
+				user: `${countInfinite} workers are currently busy`,
+				tech:
+					`availableWorkers: ${trackedExp.availableWorkers.size}, ` +
+					`queriedWorkers: ${trackedExp.queriedWorkers.size}, ` +
+					`countQueried: ${countQueried}, ` +
+					`countInfinite: ${countInfinite} ` +
+					`(Worker costs: ${workerCosts.map((c) => `${c.id}: ${c.cost}`).join(', ')}`,
+			}
+		}
+
 		return {
 			bestWorker: workerCosts[0],
-			countQueried,
-			countInfinite,
 			noCostReason,
 		}
 	}
@@ -181,6 +188,7 @@ export class TrackedWorkerAgents {
 		}
 
 		// Remove any workers that no longer exist:
+		// (Like if a worker has shut down)
 		{
 			for (const workerId of trackedExp.availableWorkers.keys()) {
 				if (!this.get(workerId)) {
@@ -200,9 +208,7 @@ export class TrackedWorkerAgents {
 
 		// Send a number of requests simultaneously:
 
-		const { bestWorker, countQueried, countInfinite, noCostReason } = await this.determineBestWorkerForExpectation(
-			trackedExp
-		)
+		const { bestWorker, noCostReason } = await this.determineBestWorkerForExpectation(trackedExp)
 
 		if (bestWorker) {
 			session.assignedWorker = bestWorker
@@ -210,7 +216,7 @@ export class TrackedWorkerAgents {
 		} else {
 			session.noAssignedWorkerReason = {
 				user: `Waiting for a free worker, ${noCostReason.user}`,
-				tech: `Waiting for a free worker ${noCostReason.tech} (${trackedExp.availableWorkers.size} busy, ${countQueried} asked, ${countInfinite} infinite cost)`,
+				tech: `Waiting for a free worker, ${noCostReason.tech}`,
 			}
 		}
 	}
