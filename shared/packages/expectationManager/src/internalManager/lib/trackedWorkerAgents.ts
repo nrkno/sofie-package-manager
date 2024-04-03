@@ -180,6 +180,20 @@ export class TrackedWorkerAgents {
 			return
 		}
 
+		// Remove any workers that no longer exist:
+		{
+			for (const workerId of trackedExp.availableWorkers.keys()) {
+				if (!this.get(workerId)) {
+					trackedExp.availableWorkers.delete(workerId)
+				}
+			}
+			for (const workerId of trackedExp.queriedWorkers.keys()) {
+				if (!this.get(workerId)) {
+					trackedExp.queriedWorkers.delete(workerId)
+				}
+			}
+		}
+
 		if (!trackedExp.availableWorkers.size) {
 			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }
 		}

@@ -174,6 +174,23 @@ export class TrackedExpectationAPI {
 		if (trackedExp.session.assignedWorker)
 			throw new Error('Internal error: noWorkerAssigned can only be called when assignedWorker is falsy')
 
+		if (trackedExp.availableWorkers.size === 0) {
+			// Special case: No workers are available at all
+			// Return to NEW state, so that new workers can be assigned:
+
+			this.updateTrackedExpectationStatus(trackedExp, {
+				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,
+				reason: {
+					user: 'No workers available',
+					tech: 'availableWorkers=0',
+				},
+				// Don't update the package status, since this means that we don't know anything about the package:
+				dontUpdatePackage: true,
+			})
+
+			return
+		}
+
 		let noAssignedWorkerReason: ExpectedPackageStatusAPI.Reason
 		if (!trackedExp.session.noAssignedWorkerReason) {
 			this.logger.error(
