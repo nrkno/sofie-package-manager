@@ -202,6 +202,12 @@ export class TrackedWorkerAgents {
 			}
 		}
 
+		if (trackedExp.waitingForWorkerTime !== null) {
+			// If the expectation is waiting for a worker, it might be a good idea to update the list of available workers:
+			// (This can be useful for example if a new worker has just been registered)
+			await this.updateAvailableWorkersForExpectation(trackedExp)
+		}
+
 		if (!trackedExp.availableWorkers.size) {
 			session.noAssignedWorkerReason = { user: `No workers available`, tech: `No workers available` }
 		}
