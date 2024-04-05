@@ -307,8 +307,11 @@ export class AppContainer {
 			const appType = protectString<AppType>('worker')
 			this.availableApps.set(appType, {
 				file: process.execPath,
-				getExecArgs: (appId: AppId) => {
-					return [path.resolve('.', '../../worker/app/dist/index.js'), ...getWorkerArgs(appId, false)]
+				getExecArgs: (appId: AppId, useCriticalOnlyMode: boolean) => {
+					return [
+						path.resolve('.', '../../worker/app/dist/index.js'),
+						...getWorkerArgs(appId, useCriticalOnlyMode),
+					]
 				},
 				canRunInCriticalExpectationsOnlyMode: true,
 				cost: 0,
@@ -326,8 +329,8 @@ export class AppContainer {
 				const appType: AppType = protectString<AppType>(fileName)
 				this.availableApps.set(appType, {
 					file: path.join(dirPath, fileName),
-					getExecArgs: (appId: AppId) => {
-						return [...getWorkerArgs(appId, false)]
+					getExecArgs: (appId: AppId, useCriticalOnlyMode: boolean) => {
+						return [...getWorkerArgs(appId, useCriticalOnlyMode)]
 					},
 					canRunInCriticalExpectationsOnlyMode: true,
 					cost: 0,

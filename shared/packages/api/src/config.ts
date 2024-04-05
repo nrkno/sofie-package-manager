@@ -207,6 +207,11 @@ const appContainerArguments = defineArguments({
 		default: parseInt(process.env.APP_CONTAINER_SPIN_DOWN_TIME || '', 10) || 60 * 1000, // ms (1 minute)
 		describe: 'How long a Worker should stay idle before attempting to be spun down',
 	},
+	minCriticalWorkerApps: {
+		type: 'number',
+		default: 0,
+		describe: 'Number of Workers reserved for fulfilling playout-critical expectations that will be kept running',
+	},
 
 	// These are passed-through to the spun-up workers:
 	resourceId: {
@@ -234,11 +239,6 @@ const appContainerArguments = defineArguments({
 		default: process.env.WORKER_CONSIDER_CPU_LOAD || '',
 		describe:
 			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
-	},
-	minCriticalWorkerApps: {
-		type: 'number',
-		default: 0,
-		describe: 'Number of Workers reserved for fulfilling playout-critical expectations that will be kept running',
 	},
 })
 /** CLI-argument-definitions for the "Single" process */
