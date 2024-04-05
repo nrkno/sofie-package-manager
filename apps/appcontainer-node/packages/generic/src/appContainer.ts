@@ -532,6 +532,12 @@ export class AppContainer {
 		if (longSpinDownTime) {
 			spinDownTime *= 10
 		}
+		if (!isAutoScaling) {
+			// If not auto-scaling, disable the spinDownTime
+			// (to reduce chatter and unnecessary requestSpinDown() calls )
+			spinDownTime = 0
+		}
+
 		this.apps.set(appId, {
 			process: child,
 			appType: appType,
@@ -698,7 +704,7 @@ export class AppContainer {
 	}
 
 	private async spinUpMinimumApps(): Promise<void> {
-		if (this.config.appContainer.minCriticalWorkerApps !== null) {
+		if (this.config.appContainer.minCriticalWorkerApps > 0) {
 			for (const [appType, appInfo] of this.availableApps.entries()) {
 				if (!appInfo.canRunInCriticalExpectationsOnlyMode) continue
 
