@@ -273,7 +273,7 @@ export class AppContainer {
 				`--logLevel=${getLogLevel()}`,
 
 				`--workerId=${appId}`,
-				pickUpCriticalExpectationsOnly ? `--pickUpCriticalExpectationsOnly=1` : '',
+				pickUpCriticalExpectationsOnly ? `--pickUpCriticalExpectationsOnly=true` : '',
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
 				`--appContainerURL=${'ws://127.0.0.1:' + this.websocketServer?.port}`,
 

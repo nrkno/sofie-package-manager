@@ -164,6 +164,11 @@ const workerArguments = defineArguments({
 		describe:
 			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
 	},
+	pickUpCriticalExpectationsOnly: {
+		type: 'boolean',
+		default: process.env.WORKER_PICK_UP_CRITICAL_EXPECTATIONS_ONLY === '1' || false,
+		describe: 'If set to 1, the worker will only pick up expectations that are marked as critical for playout.',
+	},
 })
 /** CLI-argument-definitions for the AppContainer process */
 const appContainerArguments = defineArguments({
@@ -446,8 +451,7 @@ export async function getWorkerConfig(): Promise<WorkerConfig> {
 			considerCPULoad:
 				(typeof argv.considerCPULoad === 'string' ? parseFloat(argv.considerCPULoad) : argv.considerCPULoad) ||
 				null,
-			pickUpCriticalExpectationsOnly:
-				(typeof argv.pickUpCriticalExpectationsOnly === 'string' ? true : false) || false,
+			pickUpCriticalExpectationsOnly: argv.pickUpCriticalExpectationsOnly,
 		},
 	}
 }
