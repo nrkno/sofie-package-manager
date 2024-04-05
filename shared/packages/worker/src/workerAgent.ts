@@ -82,6 +82,7 @@ export class WorkerAgent {
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private cpuTracker = new CPUTracker()
+	/** When true, this worker should only accept expectation that are critical for playout */
 	private isOnlyForCriticalExpectations = false
 	private logger: LoggerInstance
 
@@ -307,8 +308,8 @@ export class WorkerAgent {
 			return {
 				support: false,
 				reason: {
-					tech: 'Worker is reserved for `workOptions.requiredForPlayout` expectations',
 					user: 'Worker is reserved for playout-critical operations',
+					tech: 'Worker is reserved for `workOptions.requiredForPlayout` expectations',
 				},
 			}
 		}
@@ -373,6 +374,7 @@ export class WorkerAgent {
 			})),
 		}
 	}
+	/** Set the SpinDown Time [ms] */
 	public async setSpinDownTime(spinDownTime: number): Promise<void> {
 		this.spinDownTime = spinDownTime
 		this.setupIntervalCheck()

@@ -225,7 +225,7 @@ export class AppContainer {
 			requestSpinDown: async (): Promise<void> => {
 				const app = this.apps.get(clientId)
 				if (!app || !app.isAutoScaling) return
-				if (this.getScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
+				if (this.getAutoScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
 					this.spinDown(clientId, `Requested by app`).catch((error) => {
 						this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
 					})
@@ -249,13 +249,15 @@ export class AppContainer {
 		}
 	}
 
-	private getScalingAppCount(appType: AppType): number {
+	/** Returns the number of **auto-scaling** apps */
+	private getAutoScalingAppCount(appType: AppType): number {
 		let count = 0
 		for (const app of this.apps.values()) {
 			if (app.appType === appType && app.isAutoScaling) count++
 		}
 		return count
 	}
+	/** Returns the number of playout-critical apps */
 	private getCriticalExpectationAppCount(appType: AppType): number {
 		let count = 0
 		for (const app of this.apps.values()) {
@@ -504,8 +506,8 @@ export class AppContainer {
 
 		return newAppId
 	}
-	async spinUp(appType: AppType, longSpinDownTime = false): Promise<AppId> {
-		return this._spinUp(appType, longSpinDownTime)
+	async spinUp(appType: AppType): Promise<AppId> {
+		return this._spinUp(appType)
 	}
 	private async _spinUp(
 		appType: AppType,
@@ -526,6 +528,10 @@ export class AppContainer {
 			isAutoScaling = false
 		}
 
+		let spinDownTime = this.config.appContainer.spinDownTime
+		if (longSpinDownTime) {
+			spinDownTime *= 10
+		}
 		this.apps.set(appId, {
 			process: child,
 			appType: appType,
@@ -536,7 +542,7 @@ export class AppContainer {
 			isAutoScaling: isAutoScaling,
 			isOnlyForCriticalExpectations: isOnlyForCriticalExpectations,
 			lastPing: Date.now(),
-			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
+			spinDownTime: spinDownTime,
 			workerAgentApi: null,
 			start: Date.now(),
 		})
@@ -695,6 +701,7 @@ export class AppContainer {
 		if (this.config.appContainer.minCriticalWorkerApps !== null) {
 			for (const [appType, appInfo] of this.availableApps.entries()) {
 				if (!appInfo.canRunInCriticalExpectationsOnlyMode) continue
+
 				while (this.getCriticalExpectationAppCount(appType) < this.config.appContainer.minCriticalWorkerApps) {
 					await this._spinUp(appType, false, true)
 				}
@@ -702,7 +709,7 @@ export class AppContainer {
 		}
 
 		for (const appType of this.availableApps.keys()) {
-			while (this.getScalingAppCount(appType) < this.config.appContainer.minRunningApps) {
+			while (this.getAutoScalingAppCount(appType) < this.config.appContainer.minRunningApps) {
 				await this._spinUp(appType)
 			}
 		}
@@ -788,8 +795,9 @@ export class AppContainer {
 interface AvailableAppInfo {
 	file: string
 	getExecArgs: (appId: AppId, useCriticalOnlyMode: boolean) => string[]
-	/** Some kind of value, how much it costs to run it, per minute */
+	/** Whether the application can be spun up as a critical worker */
 	canRunInCriticalExpectationsOnlyMode: boolean
+	/** Some kind of value, how much it costs to run it, per minute */
 	cost: number
 }
 
@@ -804,6 +812,11 @@ interface RunningAppInfo {
 	toBeKilled: boolean
 	restarts: number
 	lastRestart: number
+	/**
+	 * When an App has been idle for longer than the spinDownTime, if might request to be spun down
+	 * (set to 0 to disable)
+	 * [milliseconds]
+	 */
 	spinDownTime: number
 	/** If null, there is no websocket connection to the app */
 	workerAgentApi: WorkerAgentAPI | null

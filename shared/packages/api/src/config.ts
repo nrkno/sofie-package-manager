@@ -199,7 +199,7 @@ const appContainerArguments = defineArguments({
 	},
 	spinDownTime: {
 		type: 'number',
-		default: parseInt(process.env.APP_CONTAINER_SPIN_DOWN_TIME || '', 10) || 60 * 1000,
+		default: parseInt(process.env.APP_CONTAINER_SPIN_DOWN_TIME || '', 10) || 60 * 1000, // ms (1 minute)
 		describe: 'How long a Worker should stay idle before attempting to be spun down',
 	},
 
@@ -233,7 +233,7 @@ const appContainerArguments = defineArguments({
 	minCriticalWorkerApps: {
 		type: 'number',
 		default: 0,
-		describe: 'Number of Workers reserved for fulfilling playout-critical expectations that will be kept runnini',
+		describe: 'Number of Workers reserved for fulfilling playout-critical expectations that will be kept running',
 	},
 })
 /** CLI-argument-definitions for the "Single" process */

@@ -15,7 +15,8 @@ export interface AppContainerConfig {
 	maxRunningApps: number
 	maxAppKeepalive: number
 	spinDownTime: number
-	minCriticalWorkerApps: number | null
+	/** Minimum number of critical workers to spin up */
+	minCriticalWorkerApps: number
 
 	worker: {
 		resourceId: string
