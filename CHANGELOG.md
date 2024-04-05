@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.4](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.3...v1.50.4) (2024-04-04)
+
+
+### Bug Fixes
+
+* remove non-existant workers from the tracked availableWorkers & queriedWorkers ([49770d3](https://github.com/nrkno/tv-automation-package-manager/commit/49770d370aac4ac6adf24cf5b7fe1d650dcbf1da))
+
+
+
+
+
 ## [1.50.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.2...v1.50.3) (2024-03-27)
 
 **Note:** Version bump only for package package-manager-monorepo

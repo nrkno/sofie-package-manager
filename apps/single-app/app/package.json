@@ -1,6 +1,6 @@
 {
     "name": "@single-app/app",
-    "version": "1.50.3",
+    "version": "1.50.4",
     "description": "Package Manager, http-proxy etc.. all in one application",
     "private": true,
     "scripts": {
@@ -13,7 +13,7 @@
     "dependencies": {
         "@appcontainer-node/generic": "1.50.2",
         "@http-server/generic": "1.50.2",
-        "@package-manager/generic": "1.50.3",
+        "@package-manager/generic": "1.50.4",
         "@quantel-http-transformer-proxy/generic": "1.50.2",
         "@sofie-package-manager/api": "1.50.2",
         "@sofie-package-manager/worker": "1.50.2",

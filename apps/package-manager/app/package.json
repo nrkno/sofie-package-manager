@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/app",
-    "version": "1.50.3",
+    "version": "1.50.4",
     "private": true,
     "scripts": {
         "build": "yarn rimraf dist && yarn build:main",
@@ -10,7 +10,7 @@
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@package-manager/generic": "1.50.3"
+        "@package-manager/generic": "1.50.4"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
