@@ -163,7 +163,7 @@ export type MessageFromWorker = (message: ExpectationManagerWorkerAgent.MessageF
 export interface ExpectationManagerCallbacks {
 	reportExpectationStatus: (
 		expectationId: ExpectationId,
-		expectaction: Expectation.Any | null,
+		expectation: Expectation.Any | null,
 		actualVersionHash: string | null,
 		statusInfo: {
 			status?: ExpectedPackageStatusAPI.WorkStatusState

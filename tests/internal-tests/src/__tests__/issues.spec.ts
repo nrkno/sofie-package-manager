@@ -13,7 +13,7 @@ import {
 	INNER_ACTION_TIMEOUT,
 } from '@sofie-package-manager/api'
 import type * as fsMockType from '../__mocks__/fs'
-import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
+import { prepareTestEnvironment, TestEnvironment } from './lib/setupEnv'
 import { waitUntil, waitTime, describeForAllPlatforms } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
 import { WorkerAgent } from '@sofie-package-manager/worker'
@@ -54,12 +54,12 @@ const SOURCE0 = protectString<PackageContainerId>('source0')
 const TARGET0 = protectString<PackageContainerId>('target0')
 const TARGET1 = protectString<PackageContainerId>('target1')
 
-let env: TestEnviromnent
+let env: TestEnvironment
 describeForAllPlatforms(
 	'Handle unhappy paths',
 	() => {
 		beforeAll(async () => {
-			env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
+			env = await prepareTestEnvironment(false) // set to true to enable debug-logging
 			// Verify that the fs mock works:
 			expect(fs.lstat).toBeTruthy()
 			expect(fs.__mockReset).toBeTruthy()
@@ -536,7 +536,7 @@ describeForAllPlatforms(
 	}
 )
 function addCopyFileExpectation(
-	env: TestEnviromnent,
+	env: TestEnvironment,
 	expectationId: ExpectationId,
 	sources: Expectation.SpecificPackageContainerOnPackage.FileSource[],
 	targets: [Expectation.SpecificPackageContainerOnPackage.FileTarget]

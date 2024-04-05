@@ -16,7 +16,7 @@ import {
 import type * as fsMockType from '../__mocks__/fs'
 import type * as WNDType from '../__mocks__/windows-network-drive'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
-import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
+import { prepareTestEnvironment, TestEnvironment } from './lib/setupEnv'
 import { describeForAllPlatforms, waitUntil } from './lib/lib'
 import {
 	getCorePackageInfoTarget,
@@ -49,12 +49,12 @@ const SOURCE1 = protectString<PackageContainerId>('source1')
 const TARGET0 = protectString<PackageContainerId>('target0')
 const TARGET1 = protectString<PackageContainerId>('target1')
 
-let env: TestEnviromnent
+let env: TestEnvironment
 describeForAllPlatforms(
 	'Basic',
 	() => {
 		beforeAll(async () => {
-			env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
+			env = await prepareTestEnvironment(false) // set to true to enable debug-logging
 			// Verify that the fs mock works:
 			expect(fs.lstat).toBeTruthy()
 			expect(fs.__mockReset).toBeTruthy()

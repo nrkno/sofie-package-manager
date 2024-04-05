@@ -12,7 +12,7 @@ import {
 	waitTime,
 } from '@sofie-package-manager/api'
 import type * as QGatewayClientType from '../__mocks__/tv-automation-quantel-gateway-client'
-import { prepareTestEnviromnent, TestEnviromnent } from './lib/setupEnv'
+import { prepareTestEnvironment, TestEnvironment } from './lib/setupEnv'
 import { describeForAllPlatforms, waitUntil } from './lib/lib'
 import { getQuantelSource, getQuantelTarget } from './lib/containers'
 jest.mock('child_process')
@@ -21,12 +21,12 @@ jest.mock('@parcel/watcher')
 
 const QGatewayClient = QGatewayClientOrg as any as typeof QGatewayClientType
 
-let env: TestEnviromnent
+let env: TestEnvironment
 describeForAllPlatforms(
 	'Quantel',
 	() => {
 		beforeAll(async () => {
-			env = await prepareTestEnviromnent(false) // set to true to enable debug-logging
+			env = await prepareTestEnvironment(false) // set to true to enable debug-logging
 		})
 		afterAll(() => {
 			env.terminate()

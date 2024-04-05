@@ -511,7 +511,7 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 	public reportExpectationStatus(
 		expectationId: ExpectationId,
-		expectaction: Expectation.Any | null,
+		expectation: Expectation.Any | null,
 		actualVersionHash: string | null,
 		statusInfo: {
 			status?: ExpectedPackageStatusAPI.WorkStatusState
@@ -521,17 +521,17 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 			prevStatusReasons?: { [state: string]: Reason }
 		}
 	): void {
-		if (!expectaction) {
+		if (!expectation) {
 			if (this.toReportExpectationStatuses.has(expectationId)) {
 				this.updateExpectationStatus(expectationId, null)
 			}
 		} else {
-			if (!expectaction.statusReport.sendReport) return // Don't report the status
+			if (!expectation.statusReport.sendReport) return // Don't report the status
 
 			const previouslyReported = this.toReportExpectationStatuses.get(expectationId)?.status
 
 			// Remove undefined properties, so they don't mess with the spread operators below:
-			deleteAllUndefinedProperties(expectaction.statusReport)
+			deleteAllUndefinedProperties(expectation.statusReport)
 			deleteAllUndefinedProperties(statusInfo)
 
 			const workStatus: ExpectedPackageStatusAPI.WorkStatus = {
@@ -548,10 +548,10 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				...((previouslyReported || {}) as Partial<ExpectedPackageStatusAPI.WorkStatus>), // Intentionally cast to Partial<>, to make typings in const workStatus more strict
 
 				// Updated properties:
-				...expectaction.statusReport,
+				...expectation.statusReport,
 				...statusInfo,
 
-				fromPackages: expectaction.fromPackages.map((fromPackage) => {
+				fromPackages: expectation.fromPackages.map((fromPackage) => {
 					const fromPackageId = unprotectString(fromPackage.id)
 					const prevPromPackage = this.toReportExpectationStatuses
 						.get(expectationId)

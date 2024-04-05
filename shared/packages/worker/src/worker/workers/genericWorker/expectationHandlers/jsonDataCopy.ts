@@ -65,7 +65,7 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 	},
 	isExpectationFulfilled: async (
 		exp: Expectation.Any,
-		wasFullfilled: boolean,
+		wasFulfilled: boolean,
 		worker: BaseWorker
 	): Promise<ReturnTypeIsExpectationFulfilled> => {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
@@ -104,7 +104,7 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 				exp.endRequirement.version
 			)
 			if (packageInfoSynced.needsUpdate) {
-				if (wasFullfilled) {
+				if (wasFulfilled) {
 					// Remove the outdated result:
 					await lookupTarget.handle.removePackageInfo(PackageInfoType.JSON, exp)
 				}

@@ -2,9 +2,9 @@ export interface ExpectationTrackerConstants {
 	/** Time between iterations of the expectation queue [ms] */
 	EVALUATE_INTERVAL: number
 	/** Minimum time between re-evaluating fulfilled expectations [ms] */
-	FULLFILLED_MONITOR_TIME: number
-	/** Added to FULLFILLED_MONITOR_TIME, a time-per-expectation [ms] */
-	FULLFILLED_MONITOR_TIME_ADD_PER_EXPECTATION: number
+	FULFILLED_MONITOR_TIME: number
+	/** Added to FULFILLED_MONITOR_TIME, a time-per-expectation [ms] */
+	FULFILLED_MONITOR_TIME_ADD_PER_EXPECTATION: number
 	/**
 	 * If the iteration of the queue has been going for this time
 	 * allow skipping the rest of the queue in order to reiterate the high-prio expectations [ms]
@@ -39,8 +39,8 @@ export function getDefaultConstants(): ExpectationTrackerConstants {
 	return {
 		// Default values:
 		EVALUATE_INTERVAL: 5 * 1000,
-		FULLFILLED_MONITOR_TIME: 30 * 1000,
-		FULLFILLED_MONITOR_TIME_ADD_PER_EXPECTATION: 0.02,
+		FULFILLED_MONITOR_TIME: 30 * 1000,
+		FULFILLED_MONITOR_TIME_ADD_PER_EXPECTATION: 0.02,
 		WORK_TIMEOUT_TIME: 30 * 1000,
 		ALLOW_SKIPPING_QUEUE_TIME: 30 * 1000,
 		SCALE_UP_TIME: 5 * 1000,

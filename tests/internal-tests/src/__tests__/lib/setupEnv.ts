@@ -188,7 +188,7 @@ export async function setupExpectationManager(
 	}
 }
 
-export async function prepareTestEnviromnent(debugLogging: boolean): Promise<TestEnviromnent> {
+export async function prepareTestEnvironment(debugLogging: boolean): Promise<TestEnvironment> {
 	const managerStatuses: Statuses = {}
 	const expectationStatuses: ExpectationStatuses = {}
 	const containerStatuses: ContainerStatuses = {}
@@ -233,7 +233,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 			},
 			reportExpectationStatus: (
 				expectationId: ExpectationId,
-				_expectaction: Expectation.Any | null,
+				_expectation: Expectation.Any | null,
 				actualVersionHash: string | null,
 				statusInfo: {
 					status?: string
@@ -300,7 +300,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		literal<ExpectationManagerOptions>({
 			constants: {
 				EVALUATE_INTERVAL: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
-				FULLFILLED_MONITOR_TIME: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
+				FULFILLED_MONITOR_TIME: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
 				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
 				ERROR_WAIT_TIME: ERROR_WAIT_TIME - 300,
 
@@ -348,7 +348,7 @@ export async function prepareTestEnviromnent(debugLogging: boolean): Promise<Tes
 		setLogFilterFunction: setLogFilterFunction,
 	}
 }
-export interface TestEnviromnent {
+export interface TestEnvironment {
 	WAIT_JOB_TIME: number
 	/** A little longer than WAIT_JOB_TIME, to be used in waitUntil()-expressions */
 	WAIT_JOB_TIME_SAFE: number

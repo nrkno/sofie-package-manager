@@ -23,7 +23,7 @@ import { TrackedPackageContainerAPI } from './lib/trackedPackageContainerAPI'
 import { TrackedPackageContainerPackageAPI } from './lib/trackedPackageContainerPackageAPI'
 
 /**
- * The ExpectationTracker is responsible for tracking and uptating the state of the Expectations
+ * The ExpectationTracker is responsible for tracking and updating the state of the Expectations
  */
 export class ExpectationTracker extends HelpfulEventEmitter {
 	public constants: ExpectationTrackerConstants
@@ -93,9 +93,9 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 	public getFulfilledWaitTime(): number {
 		return (
 			// Default minimum time to wait:
-			this.constants.FULLFILLED_MONITOR_TIME +
+			this.constants.FULFILLED_MONITOR_TIME +
 			// Also add some more time, so that we don't check too often when we have a lot of expectations:
-			this.constants.FULLFILLED_MONITOR_TIME_ADD_PER_EXPECTATION * this.trackedExpectations.getIds().length
+			this.constants.FULFILLED_MONITOR_TIME_ADD_PER_EXPECTATION * this.trackedExpectations.getIds().length
 		)
 	}
 	/** Called when there is a monitor-status-update from a worker */
