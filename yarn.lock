@@ -611,7 +611,6 @@ __metadata:
     "@types/koa-router": "npm:^7.4.0"
     "@types/koa__cors": "npm:^4.0.0"
     "@types/mime-types": "npm:^2.1.0"
-    "@types/mkdirp": "npm:^1.0.1"
     "@types/node": "npm:^14.14.31"
     "@types/underscore": "npm:^1.10.24"
     "@types/yargs": "npm:^17.0.24"
@@ -620,7 +619,6 @@ __metadata:
     koa-range: "npm:^0.3.0"
     koa-router: "npm:^8.0.8"
     mime-types: "npm:^2.1.28"
-    mkdirp: "npm:^3.0.1"
     pechkin: "npm:^1.0.1"
     pretty-bytes: "npm:^5.5.0"
     rimraf: "npm:^5.0.5"
@@ -1841,7 +1839,6 @@ __metadata:
     "@types/koa-router": "npm:^7.4.4"
     "@types/koa__cors": "npm:^4.0.0"
     "@types/mime-types": "npm:^2.1.0"
-    "@types/mkdirp": "npm:^1.0.1"
     "@types/node": "npm:^14.14.31"
     "@types/underscore": "npm:^1.10.24"
     "@types/xml2js": "npm:^0.4.7"
@@ -1853,7 +1850,6 @@ __metadata:
     koa-ratelimit: "npm:^5.0.1"
     koa-router: "npm:^12.0.0"
     mime-types: "npm:^2.1.28"
-    mkdirp: "npm:^3.0.1"
     pretty-bytes: "npm:^5.5.0"
     rimraf: "npm:^5.0.5"
     tslib: "npm:^2.1.0"
@@ -2033,7 +2029,6 @@ __metadata:
     form-data: "npm:^4.0.0"
     jest: "npm:*"
     jest-mock-extended: "npm:^3.0.5"
-    mkdirp: "npm:^3.0.1"
     node-fetch: "npm:^2.6.1"
     proper-lockfile: "npm:^4.1.2"
     rimraf: "npm:^5.0.5"
@@ -2484,15 +2479,6 @@ __metadata:
   version: 1.2.2
   resolution: "@types/minimist@npm:1.2.2"
   checksum: 10/b8da83c66eb4aac0440e64674b19564d9d86c80ae273144db9681e5eeff66f238ade9515f5006ffbfa955ceff8b89ad2bd8ec577d7caee74ba101431fb07045d
-  languageName: node
-  linkType: hard
-
-"@types/mkdirp@npm:^1.0.1":
-  version: 1.0.2
-  resolution: "@types/mkdirp@npm:1.0.2"
-  dependencies:
-    "@types/node": "npm:*"
-  checksum: 10/72dedfb2d250f0e44ec964ac68ff6a4a03d7d9d6e83ae1d5ba6d212791af69cf051a5fac59846826242d099de56a18c8e0581861792fae8b845b3c9ad67ecdeb
   languageName: node
   linkType: hard
 
@@ -8732,15 +8718,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mkdirp@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "mkdirp@npm:3.0.1"
-  bin:
-    mkdirp: dist/cjs/src/bin.js
-  checksum: 10/16fd79c28645759505914561e249b9a1f5fe3362279ad95487a4501e4467abeb714fd35b95307326b8fd03f3c7719065ef11a6f97b7285d7888306d1bd2232ba
-  languageName: node
-  linkType: hard
-
 "modify-values@npm:^1.0.0":
   version: 1.0.1
   resolution: "modify-values@npm:1.0.1"
@@ -9694,7 +9671,6 @@ __metadata:
     json-schema-to-typescript: "npm:^10.1.5"
     lerna: "npm:^6.6.1"
     lint-staged: "npm:^15.2.2"
-    mkdirp: "npm:^3.0.1"
     node-fetch: "npm:^2.6.9"
     rimraf: "npm:^5.0.5"
     ts-jest: "npm:^29.0.3"

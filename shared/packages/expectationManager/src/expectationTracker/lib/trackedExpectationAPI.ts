@@ -206,7 +206,7 @@ export class TrackedExpectationAPI {
 
 		if (!trackedExp.noWorkerAssignedTime) {
 			const now = Date.now()
-			this.logger.error(
+			this.logger.debug(
 				`Setting trackedExp.noWorkerAssignedTime of "${expLabel(trackedExp)}" to ${now} (reason: ${
 					noAssignedWorkerReason.tech
 				})`

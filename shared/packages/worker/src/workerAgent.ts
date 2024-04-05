@@ -82,6 +82,8 @@ export class WorkerAgent {
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private cpuTracker = new CPUTracker()
+	/** When true, this worker should only accept expectation that are critical for playout */
+	private isOnlyForCriticalExpectations = false
 	private logger: LoggerInstance
 
 	private workerStorageDeferRead = deferGets(async (dataId: DataId) => {
@@ -147,6 +149,7 @@ export class WorkerAgent {
 			: {
 					type: 'internal',
 			  }
+		this.isOnlyForCriticalExpectations = this.config.worker.pickUpCriticalExpectationsOnly
 		// Todo: Different types of workers:
 		this._worker = new GenericWorker(
 			this.logger,
@@ -221,9 +224,9 @@ export class WorkerAgent {
 			setLogLevel: async (logLevel: LogLevel) => this.setLogLevel(logLevel),
 			_debugKill: async () => this._debugKill(),
 
-			doYouSupportExpectation: async (exp: Expectation.Any) => this.doYouSupportExpectation(exp),
+			doYouSupportExpectation: async (exp: Expectation.Any) => this.doesWorkerSupportExpectation(exp),
 			doYouSupportPackageContainer: async (packageContainer: PackageContainerExpectation) =>
-				this.doYouSupportPackageContainer(packageContainer),
+				this.doesWorkerSupportPackageContainer(packageContainer),
 			setSpinDownTime: async (spinDownTime: number) => this.setSpinDownTime(spinDownTime),
 		})
 		// Wait for this.appContainerAPI to be ready before continuing:
@@ -300,15 +303,25 @@ export class WorkerAgent {
 	// isFree(): boolean {
 	// 	return this._busyMethodCount === 0
 	// }
-	async doYouSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
+	private async doesWorkerSupportExpectation(exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> {
+		if (this.isOnlyForCriticalExpectations && !exp.workOptions.requiredForPlayout) {
+			return {
+				support: false,
+				reason: {
+					user: 'Worker is reserved for playout-critical operations',
+					tech: 'Worker is reserved for `workOptions.requiredForPlayout` expectations',
+				},
+			}
+		}
+
 		return this._worker.doYouSupportExpectation(exp)
 	}
-	async doYouSupportPackageContainer(
+	private async doesWorkerSupportPackageContainer(
 		packageContainer: PackageContainerExpectation
 	): Promise<ReturnTypeDoYouSupportExpectation> {
 		return this._worker.doYouSupportPackageContainer(packageContainer)
 	}
-	async expectationManagerAvailable(managerId: ExpectationManagerId, url: string): Promise<void> {
+	private async expectationManagerAvailable(managerId: ExpectationManagerId, url: string): Promise<void> {
 		const existing = this.expectationManagers.get(managerId)
 		if (existing) {
 			existing.api.terminate()
@@ -316,7 +329,7 @@ export class WorkerAgent {
 
 		await this.connectToExpectationManager(managerId, url)
 	}
-	async expectationManagerGone(managerId: ExpectationManagerId): Promise<void> {
+	private async expectationManagerGone(managerId: ExpectationManagerId): Promise<void> {
 		this.expectationManagers.delete(managerId)
 	}
 	public async setLogLevel(logLevel: LogLevel): Promise<void> {
@@ -361,6 +374,7 @@ export class WorkerAgent {
 			})),
 		}
 	}
+	/** Set the SpinDown Time [ms] */
 	public async setSpinDownTime(spinDownTime: number): Promise<void> {
 		this.spinDownTime = spinDownTime
 		this.setupIntervalCheck()
@@ -386,6 +400,197 @@ export class WorkerAgent {
 		}
 	}
 
+	private async createNewJobForExpectation(
+		managerId: ExpectationManagerId,
+		exp: Expectation.Any,
+		cost: ExpectationManagerWorkerAgent.ExpectationCost,
+		/** Timeout, cancels the job if no updates are received in this time [ms] */
+		timeout: number
+	): Promise<ExpectationManagerWorkerAgent.WorkInProgressInfo> {
+		const expectationManager = this.expectationManagers.get(managerId)
+		if (!expectationManager) {
+			this.logger.error(
+				`Worker "${this.id}" could not start job for expectation (${exp.id}), because it could not find expecation manager "${managerId}"`
+			)
+
+			throw new Error(`ExpectationManager "${managerId}" not found`)
+		}
+
+		// Tmp: we're only allowing one work per worker
+		if (this.currentJobs.length > 0) {
+			this.logger.warn(
+				`createNewJobForExpectation called, even though there are ${
+					this.currentJobs.length
+				} current jobs. Startcost now: ${this.getStartCost(exp).cost}, spcified cost=${
+					cost.cost
+				}, specified startCost=${cost.startCost}`
+			)
+		}
+
+		const currentJob: CurrentJob = {
+			cost: cost,
+			cancelled: false,
+			lastUpdated: Date.now(),
+			progress: 0,
+			wipId: this.getNextWipId(),
+			workInProgress: null,
+			timeoutInterval: setInterval(() => {
+				if (currentJob.cancelled && currentJob.timeoutInterval) {
+					clearInterval(currentJob.timeoutInterval)
+					currentJob.timeoutInterval = null
+					return
+				}
+				const timeSinceLastUpdate = Date.now() - currentJob.lastUpdated
+
+				if (timeSinceLastUpdate > timeout) {
+					// The job seems to have timed out.
+					// Expectation Manager will clean up on it's side, we have to do the same here.
+
+					this.logger.warn(
+						`WorkerAgent: Cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId}) due to timeout (${timeSinceLastUpdate} > ${timeout})`
+					)
+					if (currentJob.timeoutInterval) {
+						clearInterval(currentJob.timeoutInterval)
+						currentJob.timeoutInterval = null
+					}
+
+					// Ensure that the job is removed, so that it won't block others:
+					this.removeJob(currentJob)
+
+					Promise.race([
+						this.cancelJob(currentJob),
+						new Promise((_, reject) => {
+							setTimeout(
+								() =>
+									reject(
+										`Timeout when cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId})`
+									),
+								1000
+							)
+						}),
+					]).catch((error) => {
+						// Not much we can do about that error..
+						this.logger.error(
+							`WorkerAgent: timeout watch: Error in cancelJob (${currentJob.wipId}) ${stringifyError(
+								error
+							)}`
+						)
+					})
+				}
+			}, 1000),
+		}
+		this.currentJobs.push(currentJob)
+		this.logger.debug(
+			`Worker "${this.id}" starting job ${currentJob.wipId}, (${exp.id}). (${this.currentJobs.length})`
+		)
+
+		try {
+			const workInProgress = await this.makeWorkerWorkOnJobForExpecation(managerId, currentJob, exp, timeout)
+
+			return {
+				wipId: currentJob.wipId,
+				properties: workInProgress.properties,
+			}
+		} catch (err) {
+			// makeWorkerWorkOnExpecation() / _worker.workOnExpectation() failed.
+
+			this.removeJob(currentJob)
+			this.logger.warn(
+				`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to initial error. (${this.currentJobs.length})`
+			)
+
+			throw err
+		}
+	}
+
+	private async makeWorkerWorkOnJobForExpecation(
+		managerId: ExpectationManagerId,
+		job: CurrentJob,
+		exp: Expectation.Any,
+		/** Timeout, cancels the job if no updates are received in this time [ms] */
+		timeout: number
+	): Promise<IWorkInProgress> {
+		const workInProgress = await this._worker.workOnExpectation(exp, timeout)
+
+		job.workInProgress = workInProgress
+
+		workInProgress.on('progress', (actualVersionHash, progress: number) => {
+			this.IDidSomeWork()
+			if (job.cancelled) return // Don't send updates on cancelled work
+			job.lastUpdated = Date.now()
+			job.progress = progress
+
+			const expectationManager = this.expectationManagers.get(managerId)
+			if (!expectationManager) {
+				this.logger.warn(
+					`Could not report work progress to Expectation Manager "${managerId}", because the manager could not be found.`
+				)
+				return
+			}
+
+			expectationManager?.api.wipEventProgress(job.wipId, actualVersionHash, progress).catch((err) => {
+				if (!this.terminated) {
+					this.logger.error(`Error in wipEventProgress: ${stringifyError(err)}`)
+				}
+			})
+		})
+		workInProgress.on('error', (error: string) => {
+			this.IDidSomeWork()
+			if (job.cancelled) return // Don't send updates on cancelled work
+			job.lastUpdated = Date.now()
+			this.removeJob(job)
+			this.logger.warn(
+				`Worker "${this.id}" stopped job ${job.wipId}, (${exp.id}), due to error: (${
+					this.currentJobs.length
+				}): ${stringifyError(error)}`
+			)
+
+			const expectationManager = this.expectationManagers.get(managerId)
+			if (!expectationManager) {
+				this.logger.warn(
+					`Could not report work error to Expectation Manager "${managerId}", because the manager could not be found.`
+				)
+				return
+			}
+
+			expectationManager?.api
+				.wipEventError(job.wipId, {
+					user: 'Work aborted due to an error',
+					tech: error,
+				})
+				.catch((err) => {
+					if (!this.terminated) {
+						this.logger.error(`Error in wipEventError: ${stringifyError(err)}`)
+					}
+				})
+		})
+		workInProgress.on('done', (actualVersionHash, reason, result) => {
+			this.IDidSomeWork()
+			if (job.cancelled) return // Don't send updates on cancelled work
+			job.lastUpdated = Date.now()
+			this.removeJob(job)
+			this.logger.debug(
+				`Worker "${this.id}" stopped job ${job.wipId}, (${exp.id}), done. (${this.currentJobs.length})`
+			)
+
+			const expectationManager = this.expectationManagers.get(managerId)
+			if (!expectationManager) {
+				this.logger.warn(
+					`Could not report work done to Expectation Manager "${managerId}", because the manager could not be found.`
+				)
+				return
+			}
+
+			expectationManager?.api.wipEventDone(job.wipId, actualVersionHash, reason, result).catch((err) => {
+				if (!this.terminated) {
+					this.logger.error(`Error in wipEventDone: ${stringifyError(err)}`)
+				}
+			})
+		})
+
+		return workInProgress
+	}
+
 	private async connectToExpectationManager(managerId: ExpectationManagerId, url: string): Promise<void> {
 		this.logger.info(`Worker: Connecting to Expectation Manager "${managerId}" at url "${url}"`)
 		const expectationManager = {
@@ -405,7 +610,7 @@ export class WorkerAgent {
 
 		const methods = literal<Omit<ExpectationManagerWorkerAgent.WorkerAgent, 'id'>>({
 			doYouSupportExpectation: async (exp: Expectation.Any): Promise<ReturnTypeDoYouSupportExpectation> => {
-				return this._worker.doYouSupportExpectation(exp)
+				return this.doesWorkerSupportExpectation(exp)
 			},
 			getCostForExpectation: async (
 				exp: Expectation.Any
@@ -448,150 +653,7 @@ export class WorkerAgent {
 				timeout: number
 			): Promise<ExpectationManagerWorkerAgent.WorkInProgressInfo> => {
 				this.IDidSomeWork()
-
-				// Tmp: we're only allowing one work per worker
-				if (this.currentJobs.length > 0) {
-					this.logger.warn(
-						`workOnExpectation called, even though there are ${
-							this.currentJobs.length
-						} current jobs. Startcost now: ${this.getStartCost(exp).cost}, spcified cost=${
-							cost.cost
-						}, specified startCost=${cost.startCost}`
-					)
-				}
-
-				const currentJob: CurrentJob = {
-					cost: cost,
-					cancelled: false,
-					lastUpdated: Date.now(),
-					progress: 0,
-					wipId: this.getNextWipId(),
-					workInProgress: null,
-					timeoutInterval: setInterval(() => {
-						if (currentJob.cancelled && currentJob.timeoutInterval) {
-							clearInterval(currentJob.timeoutInterval)
-							currentJob.timeoutInterval = null
-							return
-						}
-						const timeSinceLastUpdate = Date.now() - currentJob.lastUpdated
-
-						if (timeSinceLastUpdate > timeout) {
-							// The job seems to have timed out.
-							// Expectation Manager will clean up on it's side, we have to do the same here.
-
-							this.logger.warn(
-								`WorkerAgent: Cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId}) due to timeout (${timeSinceLastUpdate} > ${timeout})`
-							)
-							if (currentJob.timeoutInterval) {
-								clearInterval(currentJob.timeoutInterval)
-								currentJob.timeoutInterval = null
-							}
-
-							// Ensure that the job is removed, so that it won't block others:
-							this.removeJob(currentJob)
-
-							Promise.race([
-								this.cancelJob(currentJob),
-								new Promise((_, reject) => {
-									setTimeout(
-										() =>
-											reject(
-												`Timeout when cancelling job "${currentJob.workInProgress?.properties.workLabel}" (${currentJob.wipId})`
-											),
-										1000
-									)
-								}),
-							]).catch((error) => {
-								// Not much we can do about that error..
-								this.logger.error(
-									`WorkerAgent: timeout watch: Error in cancelJob (${
-										currentJob.wipId
-									}) ${stringifyError(error)}`
-								)
-							})
-						}
-					}, 1000),
-				}
-				this.currentJobs.push(currentJob)
-				this.logger.debug(
-					`Worker "${this.id}" starting job ${currentJob.wipId}, (${exp.id}). (${this.currentJobs.length})`
-				)
-
-				try {
-					const workInProgress = await this._worker.workOnExpectation(exp, timeout)
-
-					currentJob.workInProgress = workInProgress
-
-					workInProgress.on('progress', (actualVersionHash, progress: number) => {
-						this.IDidSomeWork()
-						if (currentJob.cancelled) return // Don't send updates on cancelled work
-						currentJob.lastUpdated = Date.now()
-						currentJob.progress = progress
-						expectationManager.api
-							.wipEventProgress(currentJob.wipId, actualVersionHash, progress)
-							.catch((err) => {
-								if (!this.terminated) {
-									this.logger.error(`Error in wipEventProgress: ${stringifyError(err)}`)
-								}
-							})
-					})
-					workInProgress.on('error', (error: string) => {
-						this.IDidSomeWork()
-						if (currentJob.cancelled) return // Don't send updates on cancelled work
-						currentJob.lastUpdated = Date.now()
-						this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
-						this.logger.warn(
-							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to error: (${
-								this.currentJobs.length
-							}): ${stringifyError(error)}`
-						)
-
-						expectationManager.api
-							.wipEventError(currentJob.wipId, {
-								user: 'Work aborted due to an error',
-								tech: error,
-							})
-							.catch((err) => {
-								if (!this.terminated) {
-									this.logger.error(`Error in wipEventError: ${stringifyError(err)}`)
-								}
-							})
-
-						this.removeJob(currentJob)
-					})
-					workInProgress.on('done', (actualVersionHash, reason, result) => {
-						this.IDidSomeWork()
-						if (currentJob.cancelled) return // Don't send updates on cancelled work
-						currentJob.lastUpdated = Date.now()
-						this.currentJobs = this.currentJobs.filter((job) => job !== currentJob)
-						this.logger.debug(
-							`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), done. (${this.currentJobs.length})`
-						)
-
-						expectationManager.api
-							.wipEventDone(currentJob.wipId, actualVersionHash, reason, result)
-							.catch((err) => {
-								if (!this.terminated) {
-									this.logger.error(`Error in wipEventDone: ${stringifyError(err)}`)
-								}
-							})
-						this.removeJob(currentJob)
-					})
-
-					return {
-						wipId: currentJob.wipId,
-						properties: workInProgress.properties,
-					}
-				} catch (err) {
-					// worker.workOnExpectation() failed.
-
-					this.removeJob(currentJob)
-					this.logger.warn(
-						`Worker "${this.id}" stopped job ${currentJob.wipId}, (${exp.id}), due to initial error. (${this.currentJobs.length})`
-					)
-
-					throw err
-				}
+				return this.createNewJobForExpectation(managerId, exp, cost, timeout)
 			},
 			removeExpectation: async (exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> => {
 				return this._worker.removeExpectation(exp)
@@ -602,7 +664,7 @@ export class WorkerAgent {
 			doYouSupportPackageContainer: async (
 				packageContainer: PackageContainerExpectation
 			): Promise<ReturnTypeDoYouSupportPackageContainer> => {
-				return this._worker.doYouSupportPackageContainer(packageContainer)
+				return this.doesWorkerSupportPackageContainer(packageContainer)
 			},
 			runPackageContainerCronJob: async (
 				packageContainer: PackageContainerExpectation

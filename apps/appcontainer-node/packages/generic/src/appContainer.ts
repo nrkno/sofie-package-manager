@@ -55,23 +55,7 @@ export class AppContainer {
 	private usedInspectPorts = new Set<number>()
 	private busyPorts = new Set<number>()
 
-	private apps: Map<
-		AppId,
-		{
-			process: cp.ChildProcess
-			appType: AppType
-			/** Set to true when the process is about to be killed */
-			toBeKilled: boolean
-			restarts: number
-			lastRestart: number
-			spinDownTime: number
-			/** If null, there is no websocket connection to the app */
-			workerAgentApi: WorkerAgentAPI | null
-			monitorPing: boolean
-			lastPing: number
-			start: number
-		}
-	> = new Map()
+	private apps: Map<AppId, RunningAppInfo> = new Map()
 	private availableApps: Map<AppType, AvailableAppInfo> = new Map()
 	private websocketServer?: WebsocketServer
 
@@ -192,8 +176,8 @@ export class AppContainer {
 		})
 	}
 	async init(): Promise<void> {
-		await this.setupAvailableApps()
-		// Note: if we later change this.setupAvailableApps to run on an interval
+		await this.discoverAvailableApps()
+		// Note: if we later change this.discoverAvailableApps to run on an interval
 		// don't throw here:
 		if (this.availableApps.size === 0) {
 			throw new Error(`AppContainer found no apps upon init. (Check if there are any Worker executables?)`)
@@ -240,12 +224,11 @@ export class AppContainer {
 			},
 			requestSpinDown: async (): Promise<void> => {
 				const app = this.apps.get(clientId)
-				if (app) {
-					if (this.getAppCount(app.appType) > this.config.appContainer.minRunningApps) {
-						this.spinDown(clientId, `Requested by app`).catch((error) => {
-							this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
-						})
-					}
+				if (!app || !app.isAutoScaling) return
+				if (this.getAutoScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
+					this.spinDown(clientId, `Requested by app`).catch((error) => {
+						this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
+					})
 				}
 			},
 			workerStorageWriteLock: async (
@@ -266,20 +249,31 @@ export class AppContainer {
 		}
 	}
 
-	private getAppCount(appType: AppType): number {
+	/** Returns the number of **auto-scaling** apps */
+	private getAutoScalingAppCount(appType: AppType): number {
 		let count = 0
 		for (const app of this.apps.values()) {
-			if (app.appType === appType) count++
+			if (app.appType === appType && app.isAutoScaling) count++
 		}
 		return count
 	}
-	private async setupAvailableApps() {
-		const getWorkerArgs = (appId: AppId): string[] => {
+	/** Returns the number of playout-critical apps */
+	private getCriticalExpectationAppCount(appType: AppType): number {
+		let count = 0
+		for (const app of this.apps.values()) {
+			if (app.appType === appType && app.isOnlyForCriticalExpectations) count++
+		}
+		return count
+	}
+
+	private async discoverAvailableApps() {
+		const getWorkerArgs = (appId: AppId, pickUpCriticalExpectationsOnly: boolean): string[] => {
 			return [
 				// Set initial loglevel to be same as appContainer:
 				`--logLevel=${getLogLevel()}`,
 
 				`--workerId=${appId}`,
+				pickUpCriticalExpectationsOnly ? `--pickUpCriticalExpectationsOnly=true` : '',
 				`--workforceURL=${this.config.appContainer.workforceURL}`,
 				`--appContainerURL=${'ws://127.0.0.1:' + this.websocketServer?.port}`,
 
@@ -295,7 +289,7 @@ export class AppContainer {
 					? `--costMultiplier=${this.config.appContainer.worker.costMultiplier}`
 					: '',
 				this.config.appContainer.worker.considerCPULoad
-					? `--costMultiplier=${this.config.appContainer.worker.considerCPULoad}`
+					? `--considerCPULoad=${this.config.appContainer.worker.considerCPULoad}`
 					: '',
 				this.config.appContainer.worker.resourceId
 					? `--resourceId=${this.config.appContainer.worker.resourceId}`
@@ -313,9 +307,10 @@ export class AppContainer {
 			const appType = protectString<AppType>('worker')
 			this.availableApps.set(appType, {
 				file: process.execPath,
-				args: (appId: AppId) => {
-					return [path.resolve('.', '../../worker/app/dist/index.js'), ...getWorkerArgs(appId)]
+				getExecArgs: (appId: AppId) => {
+					return [path.resolve('.', '../../worker/app/dist/index.js'), ...getWorkerArgs(appId, false)]
 				},
+				canRunInCriticalExpectationsOnlyMode: true,
 				cost: 0,
 			})
 		} else {
@@ -323,20 +318,20 @@ export class AppContainer {
 			// Look for the worker executable(s) in the same folder:
 
 			const dirPath = path.dirname(process.execPath)
-			// Note: nexe causes issues with its virtual file system: https://github.com/nexe/nexe/issues/613#issuecomment-579107593
 
 			;(await fs.promises.readdir(dirPath)).forEach((fileName) => {
-				if (fileName.match(/worker/i)) {
-					// We use the filename to identify the appType:
-					const appType: AppType = protectString<AppType>(fileName)
-					this.availableApps.set(appType, {
-						file: path.join(dirPath, fileName),
-						args: (appId: AppId) => {
-							return [...getWorkerArgs(appId)]
-						},
-						cost: 0,
-					})
-				}
+				if (!fileName.match(/worker/i)) return
+
+				// We use the filename to identify the appType:
+				const appType: AppType = protectString<AppType>(fileName)
+				this.availableApps.set(appType, {
+					file: path.join(dirPath, fileName),
+					getExecArgs: (appId: AppId) => {
+						return [...getWorkerArgs(appId, false)]
+					},
+					canRunInCriticalExpectationsOnlyMode: true,
+					cost: 0,
+				})
 			})
 		}
 
@@ -396,27 +391,8 @@ export class AppContainer {
 		}
 
 		for (const [appType, availableApp] of this.availableApps.entries()) {
-			// Do we already have any instance of the appType running?
-			let runningApp = Array.from(this.apps.values()).find((app) => {
-				return app.appType === appType
-			})
+			const runningApp = await this.getRunningOrSpawnScalingApp(appType)
 
-			if (!runningApp) {
-				const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
-
-				// wait for the app to connect to us:
-				await tryAfewTimes(async () => {
-					const app = this.apps.get(newAppId)
-					if (!app) throw new Error(`Worker "${newAppId}" not found`)
-					if (app.workerAgentApi) {
-						return true
-					}
-					await waitTime(200)
-					return false
-				}, 10)
-				runningApp = this.apps.get(newAppId)
-				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
-			}
 			if (runningApp?.workerAgentApi) {
 				const result = await runningApp.workerAgentApi.doYouSupportExpectation(exp)
 				if (result.support) {
@@ -462,27 +438,8 @@ export class AppContainer {
 		}
 
 		for (const [appType, availableApp] of this.availableApps.entries()) {
-			// Do we already have any instance of the appType running?
-			let runningApp = findValue(this.apps, (_, app) => {
-				return app.appType === appType
-			})
+			const runningApp = await this.getRunningOrSpawnScalingApp(appType)
 
-			if (!runningApp) {
-				const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
-
-				// wait for the app to connect to us:
-				await tryAfewTimes(async () => {
-					const app = this.apps.get(newAppId)
-					if (!app) throw new Error(`Worker "${newAppId}" not found`)
-					if (app.workerAgentApi) {
-						return true
-					}
-					await waitTime(200)
-					return false
-				}, 10)
-				runningApp = this.apps.get(newAppId)
-				if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
-			}
 			if (runningApp?.workerAgentApi) {
 				const result = await runningApp.workerAgentApi.doYouSupportPackageContainer(packageContainer)
 				if (result.support) {
@@ -504,6 +461,32 @@ export class AppContainer {
 			},
 		}
 	}
+
+	private async getRunningOrSpawnScalingApp(appType: AppType): Promise<RunningAppInfo | undefined> {
+		// Do we already have any instance of the appType running?
+		let runningApp = findValue(this.apps, (_, app) => {
+			if (!app.isAutoScaling) return false
+			return app.appType === appType
+		})
+
+		if (!runningApp) {
+			const newAppId = await this._spinUp(appType, true) // todo: make it not die too soon
+
+			// wait for the app to connect to us:
+			await tryAfewTimes(async () => {
+				const app = this.apps.get(newAppId)
+				if (!app) throw new Error(`Worker "${newAppId}" not found`)
+				if (app.workerAgentApi) {
+					return true
+				}
+				await waitTime(200)
+				return false
+			}, 10)
+			runningApp = this.apps.get(newAppId)
+			if (!runningApp) throw new Error(`Worker "${newAppId}" didn't connect in time`)
+		}
+		return runningApp
+	}
 	private getNewAppId(): AppId {
 		const newAppId = protectString<AppId>(`${this.id}_${this.appId++}`)
 
@@ -523,10 +506,14 @@ export class AppContainer {
 
 		return newAppId
 	}
-	async spinUp(appType: AppType, longSpinDownTime = false): Promise<AppId> {
-		return this._spinUp(appType, longSpinDownTime)
+	async spinUp(appType: AppType): Promise<AppId> {
+		return this._spinUp(appType)
 	}
-	private async _spinUp(appType: AppType, longSpinDownTime = false): Promise<AppId> {
+	private async _spinUp(
+		appType: AppType,
+		longSpinDownTime = false,
+		isOnlyForCriticalExpectations = false
+	): Promise<AppId> {
 		const availableApp = this.availableApps.get(appType)
 		if (!availableApp) throw new Error(`Unknown appType "${appType}"`)
 
@@ -534,7 +521,23 @@ export class AppContainer {
 
 		this.logger.debug(`Spinning up app "${appId}" of type "${appType}"`)
 
-		const child = this.setupChildProcess(appType, appId, availableApp)
+		const child = this.setupChildProcess(appType, appId, availableApp, isOnlyForCriticalExpectations)
+
+		let isAutoScaling = true
+		if (isOnlyForCriticalExpectations) {
+			isAutoScaling = false
+		}
+
+		let spinDownTime = this.config.appContainer.spinDownTime
+		if (longSpinDownTime) {
+			spinDownTime *= 10
+		}
+		if (!isAutoScaling) {
+			// If not auto-scaling, disable the spinDownTime
+			// (to reduce chatter and unnecessary requestSpinDown() calls )
+			spinDownTime = 0
+		}
+
 		this.apps.set(appId, {
 			process: child,
 			appType: appType,
@@ -542,8 +545,10 @@ export class AppContainer {
 			restarts: 0,
 			lastRestart: 0,
 			monitorPing: false,
+			isAutoScaling: isAutoScaling,
+			isOnlyForCriticalExpectations: isOnlyForCriticalExpectations,
 			lastPing: Date.now(),
-			spinDownTime: this.config.appContainer.spinDownTime * (longSpinDownTime ? 10 : 1),
+			spinDownTime: spinDownTime,
 			workerAgentApi: null,
 			start: Date.now(),
 		})
@@ -586,7 +591,12 @@ export class AppContainer {
 			}
 		})
 	}
-	private setupChildProcess(appType: AppType, appId: AppId, availableApp: AvailableAppInfo): cp.ChildProcess {
+	private setupChildProcess(
+		appType: AppType,
+		appId: AppId,
+		availableApp: AvailableAppInfo,
+		useCriticalOnlyMode: boolean
+	): cp.ChildProcess {
 		const cwd = process.execPath.match(/node.exe$/)
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
@@ -606,7 +616,7 @@ export class AppContainer {
 			this.usedInspectPorts.add(inspectPort)
 		}
 
-		const child = cp.spawn(availableApp.file, availableApp.args(appId), {
+		const child = cp.spawn(availableApp.file, availableApp.getExecArgs(appId, useCriticalOnlyMode), {
 			cwd: cwd,
 			env: {
 				...process.env,
@@ -617,10 +627,10 @@ export class AppContainer {
 		this.logger.info(`Starting process "${appId}" (${appType}), pid=${child.pid}: "${availableApp.file}"`)
 
 		child.stdout.on('data', (message) => {
-			this.logFromApp(appId, appType, message, this.logger.debug)
+			this.onOutputFromApp(appId, appType, message, this.logger.debug)
 		})
 		child.stderr.on('data', (message) => {
-			this.logFromApp(appId, appType, message, this.logger.error)
+			this.onOutputFromApp(appId, appType, message, this.logger.error)
 			// this.logger.debug(`${appId} stderr: ${message}`)
 		})
 		child.on('error', (err) => {
@@ -652,7 +662,7 @@ export class AppContainer {
 
 						app.process.removeAllListeners()
 
-						const newChild = this.setupChildProcess(appType, appId, availableApp)
+						const newChild = this.setupChildProcess(appType, appId, availableApp, useCriticalOnlyMode)
 
 						app.process = newChild
 					}, timeUntilRestart)
@@ -687,18 +697,30 @@ export class AppContainer {
 				})
 			}
 		}
+
 		this.spinUpMinimumApps().catch((error) => {
 			this.logger.error(`Error in spinUpMinimumApps: ${stringifyError(error)}`)
 		})
 	}
+
 	private async spinUpMinimumApps(): Promise<void> {
+		if (this.config.appContainer.minCriticalWorkerApps > 0) {
+			for (const [appType, appInfo] of this.availableApps.entries()) {
+				if (!appInfo.canRunInCriticalExpectationsOnlyMode) continue
+
+				while (this.getCriticalExpectationAppCount(appType) < this.config.appContainer.minCriticalWorkerApps) {
+					await this._spinUp(appType, false, true)
+				}
+			}
+		}
+
 		for (const appType of this.availableApps.keys()) {
-			while (this.getAppCount(appType) < this.config.appContainer.minRunningApps) {
+			while (this.getAutoScalingAppCount(appType) < this.config.appContainer.minRunningApps) {
 				await this._spinUp(appType)
 			}
 		}
 	}
-	private logFromApp(appId: AppId, appType: AppType, data: any, defaultLog: LeveledLogMethod): void {
+	private onOutputFromApp(appId: AppId, appType: AppType, data: any, defaultLog: LeveledLogMethod): void {
 		const messages = `${data}`.split('\n')
 
 		for (const message of messages) {
@@ -778,9 +800,35 @@ export class AppContainer {
 }
 interface AvailableAppInfo {
 	file: string
-	args: (appId: AppId) => string[]
+	getExecArgs: (appId: AppId, useCriticalOnlyMode: boolean) => string[]
+	/** Whether the application can be spun up as a critical worker */
+	canRunInCriticalExpectationsOnlyMode: boolean
 	/** Some kind of value, how much it costs to run it, per minute */
 	cost: number
+}
+
+interface RunningAppInfo {
+	process: cp.ChildProcess
+	appType: AppType
+	/** Set to true if app should be considered for scaling down */
+	isAutoScaling: boolean
+	/** Set to true if the app is only handling playout-critical expectations */
+	isOnlyForCriticalExpectations: boolean
+	/** Set to true when the process is about to be killed */
+	toBeKilled: boolean
+	restarts: number
+	lastRestart: number
+	/**
+	 * When an App has been idle for longer than the spinDownTime, if might request to be spun down
+	 * (set to 0 to disable)
+	 * [milliseconds]
+	 */
+	spinDownTime: number
+	/** If null, there is no websocket connection to the app */
+	workerAgentApi: WorkerAgentAPI | null
+	monitorPing: boolean
+	lastPing: number
+	start: number
 }
 
 async function tryAfewTimes(cb: () => Promise<boolean>, maxTries: number) {

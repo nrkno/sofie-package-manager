@@ -60,7 +60,6 @@ export function generateMediaFileCopy(
 			description: `Copy media file "${expWrapMediaFile.expectedPackage.content.filePath}" to the device "${
 				expWrapMediaFile.playoutDeviceId
 			}", from ${expWrapMediaFile.sources.map((source) => `"${source.label}"`).join(', ')}`,
-			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
 		},
@@ -74,6 +73,7 @@ export function generateMediaFileCopy(
 			removeDelay: settings.delayRemoval,
 			allowWaitForCPU: false,
 			useTemporaryFilePath: settings.useTemporaryFilePath,
+			requiredForPlayout: true,
 		},
 	}
 
@@ -108,7 +108,6 @@ export function generateMediaFileVerify(
 		statusReport: {
 			label: `Check media "${expWrapMediaFile.expectedPackage.content.filePath}"`,
 			description: `Check that file "${expWrapMediaFile.expectedPackage.content.filePath}" exists for the device "${expWrapMediaFile.playoutDeviceId}"`,
-			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
 		},
@@ -120,6 +119,7 @@ export function generateMediaFileVerify(
 		endRequirement,
 		workOptions: {
 			allowWaitForCPU: false,
+			requiredForPlayout: true,
 		},
 	}
 
@@ -171,7 +171,6 @@ export function generateQuantelCopy(
 			description: `Copy Quantel clip ${title || guid} to server for "${
 				expWrapQuantelClip.playoutDeviceId
 			}", from ${expWrapQuantelClip.sources.map((source) => `"${source.label}"`).join(', ')}`,
-			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
 		},
@@ -183,6 +182,7 @@ export function generateQuantelCopy(
 		endRequirement,
 		workOptions: {
 			allowWaitForCPU: false,
+			requiredForPlayout: true,
 			// removeDelay: 0 // Not used by Quantel
 		},
 	}
@@ -210,7 +210,6 @@ export function generatePackageScan(
 		statusReport: {
 			label: `Scanning`,
 			description: `Scanning the media, to provide data to the Sofie GUI`,
-			requiredForPlayout: !!(expectation as any).__isSmartbull, // For smartbull, the scan result _is_ required for playout
 			displayRank: 10,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -237,6 +236,7 @@ export function generatePackageScan(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			requiredForPlayout: !!(expectation as any).__isSmartbull, // For smartbull, the scan result _is_ required for playout
 			allowWaitForCPU: false,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
@@ -258,7 +258,6 @@ export function generatePackageDeepScan(
 		statusReport: {
 			label: `Deep Scanning`,
 			description: `Detecting scenes, black frames, freeze frames etc.`,
-			requiredForPlayout: false,
 			displayRank: 13,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -290,6 +289,7 @@ export function generatePackageDeepScan(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			requiredForPlayout: false,
 			allowWaitForCPU: true,
 			usesCPUCount: 1,
 			removeDelay: settings.delayRemovalPackageInfo,
@@ -314,7 +314,6 @@ export function generatePackageLoudness(
 		statusReport: {
 			label: `Loudness Scan`,
 			description: `Measure clip loudness, using channels ${packageSettings.channelSpec.join(', ')}`,
-			requiredForPlayout: false,
 			displayRank: 14,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -346,6 +345,7 @@ export function generatePackageLoudness(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
+			requiredForPlayout: false,
 			usesCPUCount: 1,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},
@@ -370,7 +370,6 @@ export function generateMediaFileThumbnail(
 		statusReport: {
 			label: `Generating thumbnail`,
 			description: `Thumbnail is used in Sofie GUI`,
-			requiredForPlayout: false,
 			displayRank: 11,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -400,6 +399,7 @@ export function generateMediaFileThumbnail(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
+			requiredForPlayout: false,
 			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the thumnail shouldn't be delayed
 			removePackageOnUnFulfill: true,
@@ -424,7 +424,6 @@ export function generateMediaFilePreview(
 		statusReport: {
 			label: `Generating preview`,
 			description: `Preview is used in Sofie GUI`,
-			requiredForPlayout: false,
 			displayRank: 12,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -453,6 +452,7 @@ export function generateMediaFilePreview(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
+			requiredForPlayout: false,
 			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the preview shouldn't be delayed
 			removePackageOnUnFulfill: true,
@@ -478,7 +478,6 @@ export function generateQuantelClipThumbnail(
 		statusReport: {
 			label: `Generating thumbnail`,
 			description: `Thumbnail is used in Sofie GUI`,
-			requiredForPlayout: false,
 			displayRank: 11,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -507,6 +506,7 @@ export function generateQuantelClipThumbnail(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
+			requiredForPlayout: false,
 			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the thumbnail shouldn't be delayed
 			removePackageOnUnFulfill: true,
@@ -531,7 +531,6 @@ export function generateQuantelClipPreview(
 		statusReport: {
 			label: `Generating preview`,
 			description: `Preview is used in Sofie GUI`,
-			requiredForPlayout: false,
 			displayRank: 12,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -562,6 +561,7 @@ export function generateQuantelClipPreview(
 		workOptions: {
 			...expectation.workOptions,
 			allowWaitForCPU: true,
+			requiredForPlayout: false,
 			usesCPUCount: 1,
 			removeDelay: 0, // The removal of the preview shouldn't be delayed
 			removePackageOnUnFulfill: true,
@@ -602,7 +602,6 @@ export function generateJsonDataCopy(
 			description: `Copy JSON data "${expWrapMediaFile.expectedPackage.content.path}" from "${JSON.stringify(
 				expWrapMediaFile.sources
 			)}"`,
-			requiredForPlayout: true,
 			displayRank: 0,
 			sendReport: !expWrap.external,
 		},
@@ -613,6 +612,7 @@ export function generateJsonDataCopy(
 
 		endRequirement,
 		workOptions: {
+			requiredForPlayout: true,
 			removeDelay: settings.delayRemoval,
 			useTemporaryFilePath: settings.useTemporaryFilePath,
 			allowWaitForCPU: false,
@@ -657,7 +657,6 @@ export function generatePackageCopyFileProxy(
 		statusReport: {
 			label: `Copy proxy`,
 			description: `Making a copy as a proxy, used in later steps to scan, generate thumbnail etc..`,
-			requiredForPlayout: !!(expectation as any).__isSmartbull, // For smartbull, this _is_ required for playout
 			displayRank: 9,
 			sendReport: expectation.statusReport.sendReport,
 		},
@@ -683,6 +682,7 @@ export function generatePackageCopyFileProxy(
 		},
 		workOptions: {
 			...expectation.workOptions,
+			requiredForPlayout: !!(expectation as any).__isSmartbull, // For smartbull, this _is_ required for playout
 			allowWaitForCPU: false,
 			removeDelay: settings.delayRemovalPackageInfo,
 		},

@@ -7,7 +7,6 @@ const os = require('os')
 const exec = promisify(cp.exec)
 
 const fse = require('fs-extra')
-const { mkdirp } = require('mkdirp')
 
 const fseCopy = promisify(fse.copy)
 
@@ -36,7 +35,7 @@ const packageJson = require(path.join(basePath, '/package.json'))
 
 		const packages = JSON.parse(str)
 
-		await mkdirp(path.join(basePath, 'node_modules'))
+		await fse.mkdirp(path.join(basePath, 'node_modules'))
 
 		// Copy the packages into node_modules:
 
