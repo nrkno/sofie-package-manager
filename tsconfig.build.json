@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"module": "commonjs",
-		"target": "es2018",
+		"target": "es2020",
 		"noImplicitAny": true,
 		"moduleResolution": "node",
 		"sourceMap": true,
@@ -12,7 +12,7 @@
 		"traceResolution": false,
 		"pretty": true,
 		"lib": [
-			"es2018"
+			"es2020"
 		],
 		"types": [
 			"node",

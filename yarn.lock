@@ -611,7 +611,7 @@ __metadata:
     "@types/koa-router": "npm:^7.4.0"
     "@types/koa__cors": "npm:^4.0.0"
     "@types/mime-types": "npm:^2.1.0"
-    "@types/node": "npm:^14.14.31"
+    "@types/node": "npm:^18"
     "@types/underscore": "npm:^1.10.24"
     "@types/yargs": "npm:^17.0.24"
     koa: "npm:^2.14.1"
@@ -1839,7 +1839,7 @@ __metadata:
     "@types/koa-router": "npm:^7.4.4"
     "@types/koa__cors": "npm:^4.0.0"
     "@types/mime-types": "npm:^2.1.0"
-    "@types/node": "npm:^14.14.31"
+    "@types/node": "npm:^18"
     "@types/underscore": "npm:^1.10.24"
     "@types/xml2js": "npm:^0.4.7"
     "@types/yargs": "npm:^17.0.24"
@@ -2499,10 +2499,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^14.14.31":
-  version: 14.18.21
-  resolution: "@types/node@npm:14.18.21"
-  checksum: 10/e6f333886c3e9ff455bebdf3fccc719514d76a5a2453f04824dcdd305a779fe29eca8370d66d754c8e1d9f014b9063ef33a26139d50352db18a064e309abc842
+"@types/node@npm:^18":
+  version: 18.19.29
+  resolution: "@types/node@npm:18.19.29"
+  dependencies:
+    undici-types: "npm:~5.26.4"
+  checksum: 10/9a3572b488f875ca1b545cc96980f1cb54dd05da16b2dc0cc3c3cb49ceafc3a5e417f4741c711c7bb81a67a0ddd29f546dcb077e4cb9b98a492fbaf373b1fbdc
   languageName: node
   linkType: hard
 
@@ -12021,6 +12023,13 @@ __metadata:
   version: 1.13.6
   resolution: "underscore@npm:1.13.6"
   checksum: 10/58cf5dc42cb0ac99c146ae4064792c0a2cc84f3a3c4ad88f5082e79057dfdff3371d896d1ec20379e9ece2450d94fa78f2ef5bfefc199ba320653e32c009bd66
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~5.26.4":
+  version: 5.26.5
+  resolution: "undici-types@npm:5.26.5"
+  checksum: 10/0097779d94bc0fd26f0418b3a05472410408877279141ded2bd449167be1aed7ea5b76f756562cb3586a07f251b90799bab22d9019ceba49c037c76445f7cddd
   languageName: node
   linkType: hard
 

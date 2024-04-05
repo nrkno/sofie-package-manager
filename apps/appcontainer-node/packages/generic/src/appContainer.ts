@@ -59,7 +59,7 @@ export class AppContainer {
 	private availableApps: Map<AppType, AvailableAppInfo> = new Map()
 	private websocketServer?: WebsocketServer
 
-	private monitorAppsTimer: NodeJS.Timer | undefined
+	private monitorAppsTimer: NodeJS.Timeout | undefined
 	private initWorkForceApiPromise?: { resolve: () => void; reject: (reason: any) => void }
 
 	/**

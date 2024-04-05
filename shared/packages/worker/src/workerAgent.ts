@@ -76,7 +76,7 @@ export class WorkerAgent {
 	> = new Map()
 	private terminated = false
 	private spinDownTime = 0
-	private intervalCheckTimer: NodeJS.Timer | null = null
+	private intervalCheckTimer: NodeJS.Timeout | null = null
 	private lastWorkTime = 0
 	private activeMonitors: Map<PackageContainerId, Map<MonitorId, MonitorInProgress>> = new Map()
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
