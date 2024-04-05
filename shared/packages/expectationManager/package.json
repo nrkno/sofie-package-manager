@@ -20,7 +20,7 @@
     "dependencies": {
         "@sofie-package-manager/api": "1.50.2",
         "@sofie-package-manager/worker": "1.50.2",
-        "@supercharge/promise-pool": "^2.4.0",
+        "@supercharge/promise-pool": "^3.2.0",
         "underscore": "^1.12.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
