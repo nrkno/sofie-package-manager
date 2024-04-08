@@ -43,7 +43,7 @@ export class GenericWorker extends BaseWorker {
 	/** Contains the result of testing the FFProbe executable. null = all is well, otherwise contains error message */
 	public testFFProbe: null | string = 'Not initialized'
 
-	private monitor: NodeJS.Timer | undefined
+	private monitor: NodeJS.Timeout | undefined
 
 	constructor(
 		logger: LoggerInstance,

@@ -13,3 +13,13 @@ export async function asyncPipe(readable: Readable, writable: Writable): Promise
 		})
 	})
 }
+
+export function valueOrFirst(text: string | string[] | undefined): string | undefined {
+	if (!text) {
+		return undefined
+	} else if (Array.isArray(text)) {
+		return text[0]
+	} else {
+		return text
+	}
+}

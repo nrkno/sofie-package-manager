@@ -2,7 +2,6 @@ import fs from 'fs'
 import path from 'path'
 import { promisify } from 'util'
 import mime from 'mime-types'
-import { mkdirp } from 'mkdirp'
 import prettyBytes from 'pretty-bytes'
 import { asyncPipe, CTX, CTXPost } from '../lib'
 import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
@@ -17,6 +16,7 @@ const fsRmDir = promisify(fs.rmdir)
 const fsReaddir = promisify(fs.readdir)
 const fsLstat = promisify(fs.lstat)
 const fsWriteFile = promisify(fs.writeFile)
+const fsMkDir = promisify(fs.mkdir)
 
 type FileInfo = {
 	found: true
@@ -43,7 +43,7 @@ export class FileStorage extends Storage {
 	}
 
 	async init(): Promise<void> {
-		await mkdirp(this._basePath)
+		await fsMkDir(this._basePath, { recursive: true })
 	}
 
 	async listPackages(ctx: CTX): Promise<true | BadResponse> {
@@ -154,12 +154,12 @@ export class FileStorage extends Storage {
 	): Promise<true | BadResponse> {
 		const fullPath = path.join(this._basePath, paramPath)
 
-		await mkdirp(path.dirname(fullPath))
+		await fsMkDir(path.dirname(fullPath), { recursive: true })
 
 		const exists = await this.exists(fullPath)
 		if (exists) await fsUnlink(fullPath)
 
-		let plainText = (ctx.request.body as any)?.text
+		let plainText = (ctx.request.body as { text: string | undefined })?.text
 		if (!plainText && typeof fileStreamOrText === 'string') {
 			plainText = fileStreamOrText
 		}

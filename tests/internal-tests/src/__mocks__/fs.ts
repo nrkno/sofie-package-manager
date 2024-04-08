@@ -187,6 +187,15 @@ function deleteMock(path: string, orgPath?: string, dir?: MockDirectory): void {
 		delete dir.content[fileName]
 	}
 }
+function existsMock(path: string): boolean {
+	try {
+		getMock(path)
+		return true
+	} catch (err) {
+		if ((err as any).code === 'ENOENT') return false
+		throw err
+	}
+}
 export function __printAllFiles(): string {
 	const getPaths = (dir: MockDirectory, indent: string): string => {
 		const strs: any[] = []
@@ -361,11 +370,42 @@ export function unlink(path: string, callback: (error: any, result?: any) => voi
 }
 fs.unlink = unlink
 
-export function mkdir(path: string, callback: (error: any, result?: any) => void): void {
+export function mkdir(path: string, callback: (error: any, result?: any) => void): void
+export function mkdir(path: string, opts: { recursive?: boolean }, callback: (error: any, result?: any) => void): void
+export function mkdir(
+	path: string,
+	optsOrCallback: { recursive?: boolean } | ((error: any, result?: any) => void),
+	callback?: (error: any, result?: any) => void
+): void {
+	let opts: { recursive?: boolean }
+	if (typeof optsOrCallback === 'function') {
+		callback = optsOrCallback
+		opts = {}
+	} else {
+		opts = optsOrCallback
+	}
+
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.mkdir', path)
 	fsMockEmitter.emit('mkdir', path)
+
 	try {
+		// Handle if the directory already exists:
+		if (existsMock(path)) {
+			const existing = getMock(path)
+			if (existing.isDirectory && opts.recursive) {
+				// don't do anything
+				return callback?.(undefined, null)
+			} else {
+				throw Object.assign(new Error(`EEXIST: file already exists, mkdir "${path}"`), {
+					errno: 0,
+					code: 'EEXIST',
+					syscall: 'mock',
+					path: path,
+				})
+			}
+		}
+
 		setMock(
 			path,
 			{
@@ -374,12 +414,12 @@ export function mkdir(path: string, callback: (error: any, result?: any) => void
 				isDirectory: true,
 				content: {},
 			},
-			false
+			opts.recursive ?? false
 		)
 
-		return callback(undefined, null)
+		return callback?.(undefined, null)
 	} catch (err) {
-		callback(err)
+		callback?.(err)
 	}
 }
 fs.mkdir = mkdir

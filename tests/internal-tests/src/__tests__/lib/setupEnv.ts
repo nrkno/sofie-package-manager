@@ -82,6 +82,7 @@ const defaultTestConfig: SingleAppConfig = {
 		sourcePackageStabilityThreshold: 0, // Disabling this to speed up the tests
 		costMultiplier: 1,
 		considerCPULoad: null,
+		pickUpCriticalExpectationsOnly: false,
 	},
 	quantelHTTPTransformerProxy: {
 		port: 0,
@@ -95,6 +96,7 @@ const defaultTestConfig: SingleAppConfig = {
 		minRunningApps: 1,
 		spinDownTime: 0,
 		maxAppKeepalive: 6 * 3600 * 1000, // 6 hrs, the default
+		minCriticalWorkerApps: 0,
 		worker: {
 			resourceId: '',
 			networkIds: [],
@@ -262,8 +264,7 @@ export async function prepareTestEnvironment(debugLogging: boolean): Promise<Tes
 				packageId: ExpectedPackageId,
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			) => {
-				if (debugLogging)
-					console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
+				if (debugLogging) console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
 
 				let container = containerStatuses[containerId]
 				if (!container) {

@@ -68,7 +68,7 @@ export namespace Expectation {
 		}[]
 
 		/** Contains info for reporting back status to Core. null = don't report back */
-		statusReport: Omit<ExpectedPackageStatusAPI.WorkBaseInfo, 'fromPackages'> & {
+		statusReport: Omit<ExpectedPackageStatusAPI.WorkBaseInfo, 'fromPackages' | 'requiredForPlayout'> & {
 			/** Set to true to enable reporting back statuses to Core */
 			sendReport: boolean
 		}
@@ -400,6 +400,8 @@ export namespace Expectation {
 			usesCPUCount?: number
 			/** If set, removes the target package if the expectation becomes unfulfilled. */
 			removePackageOnUnFulfill?: boolean
+			/** If set, the expectation is required for playout and therefore has the highest priority */
+			requiredForPlayout?: boolean
 		}
 		export interface RemoveDelay {
 			/** When removing, wait a duration of time before actually removing it (milliseconds). If not set, package is removed right away. */

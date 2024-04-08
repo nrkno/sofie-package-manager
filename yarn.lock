@@ -38,18 +38,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/app@workspace:apps/appcontainer-node/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.50.2"
+    "@appcontainer-node/generic": "npm:1.50.5-alpha.0"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@appcontainer-node/generic@npm:1.50.2, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
+"@appcontainer-node/generic@npm:1.50.5-alpha.0, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2"
-    "@sofie-package-manager/worker": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/worker": "npm:1.50.5-alpha.0"
     "@types/underscore": "npm:^1.10.24"
     rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
@@ -592,18 +592,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@http-server/app@workspace:apps/http-server/app"
   dependencies:
-    "@http-server/generic": "npm:1.50.2"
+    "@http-server/generic": "npm:1.50.5-alpha.0"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@http-server/generic@npm:1.50.2, @http-server/generic@workspace:apps/http-server/packages/generic":
+"@http-server/generic@npm:1.50.5-alpha.0, @http-server/generic@workspace:apps/http-server/packages/generic":
   version: 0.0.0-use.local
   resolution: "@http-server/generic@workspace:apps/http-server/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
     "@types/busboy": "npm:^1.5.0"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.12"
@@ -611,8 +611,7 @@ __metadata:
     "@types/koa-router": "npm:^7.4.0"
     "@types/koa__cors": "npm:^4.0.0"
     "@types/mime-types": "npm:^2.1.0"
-    "@types/mkdirp": "npm:^1.0.1"
-    "@types/node": "npm:^14.14.31"
+    "@types/node": "npm:^18"
     "@types/underscore": "npm:^1.10.24"
     "@types/yargs": "npm:^17.0.24"
     koa: "npm:^2.14.1"
@@ -620,7 +619,6 @@ __metadata:
     koa-range: "npm:^0.3.0"
     koa-router: "npm:^8.0.8"
     mime-types: "npm:^2.1.28"
-    mkdirp: "npm:^3.0.1"
     pechkin: "npm:^1.0.1"
     pretty-bytes: "npm:^5.5.0"
     rimraf: "npm:^5.0.5"
@@ -989,14 +987,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@julusian/freetype2@npm:^1.1.0":
-  version: 1.1.1
-  resolution: "@julusian/freetype2@npm:1.1.1"
+"@julusian/freetype2@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "@julusian/freetype2@npm:1.1.2"
   dependencies:
     node-addon-api: "npm:^5.0.0"
     node-gyp: "npm:latest"
     pkg-prebuilds: "npm:^0.2.1"
-  checksum: 10/b1119074a62a4562169f3fb5cb03d01b773697b66da71ef3ae92a5e14c4a21a6b94a7f88307cf89b081a9fe7f8dd2b044672746496921f81f3fffc34b87b9448
+  checksum: 10/7134fc9593c9dbfdb89e5eca0d11b96ae244de284b750681790c5bb61725721cceb39b488e86bd8ac2b1bc7e9ae65cf4dc5a3e52af59126b80df6e026448363a
   languageName: node
   linkType: hard
 
@@ -1637,20 +1635,20 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@package-manager/app@workspace:apps/package-manager/app"
   dependencies:
-    "@package-manager/generic": "npm:1.50.4"
+    "@package-manager/generic": "npm:1.50.5-alpha.0"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@package-manager/generic@npm:1.50.4, @package-manager/generic@workspace:apps/package-manager/packages/generic":
+"@package-manager/generic@npm:1.50.5-alpha.0, @package-manager/generic@workspace:apps/package-manager/packages/generic":
   version: 0.0.0-use.local
   resolution: "@package-manager/generic@workspace:apps/package-manager/packages/generic"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.50.2"
-    "@sofie-package-manager/expectation-manager": "npm:1.50.4"
-    "@sofie-package-manager/worker": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/expectation-manager": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/worker": "npm:1.50.5-alpha.0"
     "@types/deep-extend": "npm:0.4.31"
     "@types/underscore": "npm:^1.10.24"
     data-store: "npm:^4.0.3"
@@ -1666,86 +1664,86 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@parcel/watcher-android-arm64@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-android-arm64@npm:2.3.0"
+"@parcel/watcher-android-arm64@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-android-arm64@npm:2.4.1"
   conditions: os=android & cpu=arm64
   languageName: node
   linkType: hard
 
-"@parcel/watcher-darwin-arm64@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-darwin-arm64@npm:2.3.0"
+"@parcel/watcher-darwin-arm64@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-darwin-arm64@npm:2.4.1"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@parcel/watcher-darwin-x64@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-darwin-x64@npm:2.3.0"
+"@parcel/watcher-darwin-x64@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-darwin-x64@npm:2.4.1"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@parcel/watcher-freebsd-x64@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-freebsd-x64@npm:2.3.0"
+"@parcel/watcher-freebsd-x64@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-freebsd-x64@npm:2.4.1"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"@parcel/watcher-linux-arm-glibc@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-linux-arm-glibc@npm:2.3.0"
+"@parcel/watcher-linux-arm-glibc@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-linux-arm-glibc@npm:2.4.1"
   conditions: os=linux & cpu=arm & libc=glibc
   languageName: node
   linkType: hard
 
-"@parcel/watcher-linux-arm64-glibc@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-linux-arm64-glibc@npm:2.3.0"
+"@parcel/watcher-linux-arm64-glibc@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-linux-arm64-glibc@npm:2.4.1"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@parcel/watcher-linux-arm64-musl@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-linux-arm64-musl@npm:2.3.0"
+"@parcel/watcher-linux-arm64-musl@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-linux-arm64-musl@npm:2.4.1"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@parcel/watcher-linux-x64-glibc@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-linux-x64-glibc@npm:2.3.0"
+"@parcel/watcher-linux-x64-glibc@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-linux-x64-glibc@npm:2.4.1"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@parcel/watcher-linux-x64-musl@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-linux-x64-musl@npm:2.3.0"
+"@parcel/watcher-linux-x64-musl@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-linux-x64-musl@npm:2.4.1"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@parcel/watcher-win32-arm64@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-win32-arm64@npm:2.3.0"
+"@parcel/watcher-win32-arm64@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-win32-arm64@npm:2.4.1"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@parcel/watcher-win32-ia32@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-win32-ia32@npm:2.3.0"
+"@parcel/watcher-win32-ia32@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-win32-ia32@npm:2.4.1"
   conditions: os=win32 & cpu=ia32
   languageName: node
   linkType: hard
 
-"@parcel/watcher-win32-x64@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher-win32-x64@npm:2.3.0"
+"@parcel/watcher-win32-x64@npm:2.4.1":
+  version: 2.4.1
+  resolution: "@parcel/watcher-win32-x64@npm:2.4.1"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -1762,21 +1760,21 @@ __metadata:
   linkType: hard
 
 "@parcel/watcher@npm:^2.3.0":
-  version: 2.3.0
-  resolution: "@parcel/watcher@npm:2.3.0"
+  version: 2.4.1
+  resolution: "@parcel/watcher@npm:2.4.1"
   dependencies:
-    "@parcel/watcher-android-arm64": "npm:2.3.0"
-    "@parcel/watcher-darwin-arm64": "npm:2.3.0"
-    "@parcel/watcher-darwin-x64": "npm:2.3.0"
-    "@parcel/watcher-freebsd-x64": "npm:2.3.0"
-    "@parcel/watcher-linux-arm-glibc": "npm:2.3.0"
-    "@parcel/watcher-linux-arm64-glibc": "npm:2.3.0"
-    "@parcel/watcher-linux-arm64-musl": "npm:2.3.0"
-    "@parcel/watcher-linux-x64-glibc": "npm:2.3.0"
-    "@parcel/watcher-linux-x64-musl": "npm:2.3.0"
-    "@parcel/watcher-win32-arm64": "npm:2.3.0"
-    "@parcel/watcher-win32-ia32": "npm:2.3.0"
-    "@parcel/watcher-win32-x64": "npm:2.3.0"
+    "@parcel/watcher-android-arm64": "npm:2.4.1"
+    "@parcel/watcher-darwin-arm64": "npm:2.4.1"
+    "@parcel/watcher-darwin-x64": "npm:2.4.1"
+    "@parcel/watcher-freebsd-x64": "npm:2.4.1"
+    "@parcel/watcher-linux-arm-glibc": "npm:2.4.1"
+    "@parcel/watcher-linux-arm64-glibc": "npm:2.4.1"
+    "@parcel/watcher-linux-arm64-musl": "npm:2.4.1"
+    "@parcel/watcher-linux-x64-glibc": "npm:2.4.1"
+    "@parcel/watcher-linux-x64-musl": "npm:2.4.1"
+    "@parcel/watcher-win32-arm64": "npm:2.4.1"
+    "@parcel/watcher-win32-ia32": "npm:2.4.1"
+    "@parcel/watcher-win32-x64": "npm:2.4.1"
     detect-libc: "npm:^1.0.3"
     is-glob: "npm:^4.0.3"
     micromatch: "npm:^4.0.5"
@@ -1807,7 +1805,7 @@ __metadata:
       optional: true
     "@parcel/watcher-win32-x64":
       optional: true
-  checksum: 10/5ba2be3337153f0c26b4a0b3a4f78ee728a96c37855c1cd39a573ac60b68e3116e657404c61b121b3f77f5227ab3d2c94679a816e42e90d1a476d7c783225368
+  checksum: 10/c163dff1828fa249c00f24931332dea5a8f2fcd1bfdd0e304ccdf7619c58bff044526fa39241fd2121d2a2141f71775ce3117450d78c4df3070d152282017644
   languageName: node
   linkType: hard
 
@@ -1822,18 +1820,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/app@workspace:apps/quantel-http-transformer-proxy/app"
   dependencies:
-    "@quantel-http-transformer-proxy/generic": "npm:1.50.2"
+    "@quantel-http-transformer-proxy/generic": "npm:1.50.5-alpha.0"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@quantel-http-transformer-proxy/generic@npm:1.50.2, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
+"@quantel-http-transformer-proxy/generic@npm:1.50.5-alpha.0, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.0"
     "@types/koa-range": "npm:^0.3.2"
@@ -1841,8 +1839,7 @@ __metadata:
     "@types/koa-router": "npm:^7.4.4"
     "@types/koa__cors": "npm:^4.0.0"
     "@types/mime-types": "npm:^2.1.0"
-    "@types/mkdirp": "npm:^1.0.1"
-    "@types/node": "npm:^14.14.31"
+    "@types/node": "npm:^18"
     "@types/underscore": "npm:^1.10.24"
     "@types/xml2js": "npm:^0.4.7"
     "@types/yargs": "npm:^17.0.24"
@@ -1853,7 +1850,6 @@ __metadata:
     koa-ratelimit: "npm:^5.0.1"
     koa-router: "npm:^12.0.0"
     mime-types: "npm:^2.1.28"
-    mkdirp: "npm:^3.0.1"
     pretty-bytes: "npm:^5.5.0"
     rimraf: "npm:^5.0.5"
     tslib: "npm:^2.1.0"
@@ -1888,13 +1884,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@single-app/app@workspace:apps/single-app/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.50.2"
-    "@http-server/generic": "npm:1.50.2"
-    "@package-manager/generic": "npm:1.50.4"
-    "@quantel-http-transformer-proxy/generic": "npm:1.50.2"
-    "@sofie-package-manager/api": "npm:1.50.2"
-    "@sofie-package-manager/worker": "npm:1.50.2"
-    "@sofie-package-manager/workforce": "npm:1.50.2"
+    "@appcontainer-node/generic": "npm:1.50.5-alpha.0"
+    "@http-server/generic": "npm:1.50.5-alpha.0"
+    "@package-manager/generic": "npm:1.50.5-alpha.0"
+    "@quantel-http-transformer-proxy/generic": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/worker": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/workforce": "npm:1.50.5-alpha.0"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
@@ -1986,7 +1982,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sofie-package-manager/api@npm:1.50.2, @sofie-package-manager/api@workspace:shared/packages/api":
+"@sofie-package-manager/api@npm:1.50.5-alpha.0, @sofie-package-manager/api@workspace:shared/packages/api":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/api@workspace:shared/packages/api"
   dependencies:
@@ -2003,13 +1999,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/expectation-manager@npm:1.50.4, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
+"@sofie-package-manager/expectation-manager@npm:1.50.5-alpha.0, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2"
-    "@sofie-package-manager/worker": "npm:1.50.2"
-    "@supercharge/promise-pool": "npm:^2.4.0"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/worker": "npm:1.50.5-alpha.0"
+    "@supercharge/promise-pool": "npm:^3.2.0"
     jest: "npm:*"
     rimraf: "npm:^5.0.5"
     type-fest: "npm:3.13.1"
@@ -2017,12 +2013,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/worker@npm:1.50.2, @sofie-package-manager/worker@workspace:shared/packages/worker":
+"@sofie-package-manager/worker@npm:1.50.5-alpha.0, @sofie-package-manager/worker@workspace:shared/packages/worker":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/worker@workspace:shared/packages/worker"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
     "@types/deep-diff": "npm:^1.0.0"
     "@types/node-fetch": "npm:^2.5.8"
     "@types/proper-lockfile": "npm:^4.1.4"
@@ -2033,7 +2029,6 @@ __metadata:
     form-data: "npm:^4.0.0"
     jest: "npm:*"
     jest-mock-extended: "npm:^3.0.5"
-    mkdirp: "npm:^3.0.1"
     node-fetch: "npm:^2.6.1"
     proper-lockfile: "npm:^4.1.2"
     rimraf: "npm:^5.0.5"
@@ -2047,19 +2042,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/workforce@npm:1.50.2, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
+"@sofie-package-manager/workforce@npm:1.50.5-alpha.0, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/workforce@workspace:shared/packages/workforce"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@supercharge/promise-pool@npm:^2.4.0":
-  version: 2.4.0
-  resolution: "@supercharge/promise-pool@npm:2.4.0"
-  checksum: 10/bcd55a44a09575cc9c54845112587abab4a90d965b389534b02be1b3dda61190553f874bbe7bff0fccd2ef74493912bf093540de3ebb9ad5b145f9124b69a391
+"@supercharge/promise-pool@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "@supercharge/promise-pool@npm:3.2.0"
+  checksum: 10/c6c653a7a56cd93c103266673afe2ea0887091a286f766f9777ef5e3a416cb0faf1c5cad64f3f68de903dbfeb82ecd4e7edae5a35c4957158aa8b1730bc0c48a
   languageName: node
   linkType: hard
 
@@ -2076,12 +2071,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/internal-tests@workspace:tests/internal-tests"
   dependencies:
-    "@http-server/generic": "npm:1.50.2"
-    "@package-manager/generic": "npm:1.50.4"
-    "@sofie-package-manager/api": "npm:1.50.2"
-    "@sofie-package-manager/expectation-manager": "npm:1.50.4"
-    "@sofie-package-manager/worker": "npm:1.50.2"
-    "@sofie-package-manager/workforce": "npm:1.50.2"
+    "@http-server/generic": "npm:1.50.5-alpha.0"
+    "@package-manager/generic": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/expectation-manager": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/worker": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/workforce": "npm:1.50.5-alpha.0"
     deep-extend: "npm:^0.6.0"
     jest: "npm:*"
     tv-automation-quantel-gateway-client: "npm:^3.1.7"
@@ -2487,15 +2482,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mkdirp@npm:^1.0.1":
-  version: 1.0.2
-  resolution: "@types/mkdirp@npm:1.0.2"
-  dependencies:
-    "@types/node": "npm:*"
-  checksum: 10/72dedfb2d250f0e44ec964ac68ff6a4a03d7d9d6e83ae1d5ba6d212791af69cf051a5fac59846826242d099de56a18c8e0581861792fae8b845b3c9ad67ecdeb
-  languageName: node
-  linkType: hard
-
 "@types/node-fetch@npm:^2.5.8":
   version: 2.6.2
   resolution: "@types/node-fetch@npm:2.6.2"
@@ -2513,10 +2499,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^14.14.31":
-  version: 14.18.21
-  resolution: "@types/node@npm:14.18.21"
-  checksum: 10/e6f333886c3e9ff455bebdf3fccc719514d76a5a2453f04824dcdd305a779fe29eca8370d66d754c8e1d9f014b9063ef33a26139d50352db18a064e309abc842
+"@types/node@npm:^18":
+  version: 18.19.29
+  resolution: "@types/node@npm:18.19.29"
+  dependencies:
+    undici-types: "npm:~5.26.4"
+  checksum: 10/9a3572b488f875ca1b545cc96980f1cb54dd05da16b2dc0cc3c3cb49ceafc3a5e417f4741c711c7bb81a67a0ddd29f546dcb077e4cb9b98a492fbaf373b1fbdc
   languageName: node
   linkType: hard
 
@@ -2638,11 +2626,11 @@ __metadata:
   linkType: hard
 
 "@types/ws@npm:^8.5.4":
-  version: 8.5.4
-  resolution: "@types/ws@npm:8.5.4"
+  version: 8.5.10
+  resolution: "@types/ws@npm:8.5.10"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10/8ad37f8ec1f7a1e2b8c0d53353ac30d182277c0bce4d877a497a0b7bcfbeee1838270eb6247a6978da66cc2891106d3c77511ebc827c58967ede8e756446422f
+  checksum: 10/9b414dc5e0b6c6f1ea4b1635b3568c58707357f68076df9e7cd33194747b7d1716d5189c0dbdd68c8d2521b148e88184cf881bac7429eb0e5c989b001539ed31
   languageName: node
   linkType: hard
 
@@ -2796,18 +2784,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@worker/app@workspace:apps/worker/app"
   dependencies:
-    "@worker/generic": "npm:1.50.2"
+    "@worker/generic": "npm:1.50.5-alpha.0"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@worker/generic@npm:1.50.2, @worker/generic@workspace:apps/worker/packages/generic":
+"@worker/generic@npm:1.50.5-alpha.0, @worker/generic@workspace:apps/worker/packages/generic":
   version: 0.0.0-use.local
   resolution: "@worker/generic@workspace:apps/worker/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2"
-    "@sofie-package-manager/worker": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/worker": "npm:1.50.5-alpha.0"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
@@ -2816,18 +2804,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@workforce/app@workspace:apps/workforce/app"
   dependencies:
-    "@workforce/generic": "npm:1.50.2"
+    "@workforce/generic": "npm:1.50.5-alpha.0"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@workforce/generic@npm:1.50.2, @workforce/generic@workspace:apps/workforce/packages/generic":
+"@workforce/generic@npm:1.50.5-alpha.0, @workforce/generic@workspace:apps/workforce/packages/generic":
   version: 0.0.0-use.local
   resolution: "@workforce/generic@workspace:apps/workforce/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.2"
-    "@sofie-package-manager/workforce": "npm:1.50.2"
+    "@sofie-package-manager/api": "npm:1.50.5-alpha.0"
+    "@sofie-package-manager/workforce": "npm:1.50.5-alpha.0"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
@@ -3246,20 +3234,20 @@ __metadata:
   linkType: hard
 
 "atem-connection@npm:^3.2.0":
-  version: 3.2.0
-  resolution: "atem-connection@npm:3.2.0"
+  version: 3.5.0
+  resolution: "atem-connection@npm:3.5.0"
   dependencies:
-    "@julusian/freetype2": "npm:^1.1.0"
+    "@julusian/freetype2": "npm:^1.1.2"
     debug: "npm:^4.3.4"
     eventemitter3: "npm:^4.0.7"
     exit-hook: "npm:^2.2.1"
     nanotimer: "npm:^0.3.15"
     p-lazy: "npm:^3.1.0"
     p-queue: "npm:^6.6.2"
-    threadedclass: "npm:^1.1.1"
-    tslib: "npm:^2.3.1"
-    wavefile: "npm:^8.4.4"
-  checksum: 10/ef2ed51728d36fab3f54681577a423c3e369b9964be17a2187e97cb6585f9ef3a16ed5a23c71f4c029c3d8da73f2492ab4f0f316536f8b68a650265b10dd5918
+    threadedclass: "npm:^1.2.1"
+    tslib: "npm:^2.6.2"
+    wavefile: "npm:^8.4.6"
+  checksum: 10/42a60b31dd0ef704231d00f8e8144a7af62b69ccda47559fed8b56c05b0c6d783112f82c60ca0d2eb7a8317f964b0eee494014718ee3730db6d70eb94b831147
   languageName: node
   linkType: hard
 
@@ -5588,12 +5576,12 @@ __metadata:
   linkType: hard
 
 "follow-redirects@npm:^1.15.4":
-  version: 1.15.5
-  resolution: "follow-redirects@npm:1.15.5"
+  version: 1.15.6
+  resolution: "follow-redirects@npm:1.15.6"
   peerDependenciesMeta:
     debug:
       optional: true
-  checksum: 10/d467f13c1c6aa734599b8b369cd7a625b20081af358f6204ff515f6f4116eb440de9c4e0c49f10798eeb0df26c95dd05d5e0d9ddc5786ab1a8a8abefe92929b4
+  checksum: 10/70c7612c4cab18e546e36b991bbf8009a1a41cf85354afe04b113d1117569abf760269409cb3eb842d9f7b03d62826687086b081c566ea7b1e6613cf29030bf7
   languageName: node
   linkType: hard
 
@@ -8732,15 +8720,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mkdirp@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "mkdirp@npm:3.0.1"
-  bin:
-    mkdirp: dist/cjs/src/bin.js
-  checksum: 10/16fd79c28645759505914561e249b9a1f5fe3362279ad95487a4501e4467abeb714fd35b95307326b8fd03f3c7719065ef11a6f97b7285d7888306d1bd2232ba
-  languageName: node
-  linkType: hard
-
 "modify-values@npm:^1.0.0":
   version: 1.0.1
   resolution: "modify-values@npm:1.0.1"
@@ -9694,7 +9673,6 @@ __metadata:
     json-schema-to-typescript: "npm:^10.1.5"
     lerna: "npm:^6.6.1"
     lint-staged: "npm:^15.2.2"
-    mkdirp: "npm:^3.0.1"
     node-fetch: "npm:^2.6.9"
     rimraf: "npm:^5.0.5"
     ts-jest: "npm:^29.0.3"
@@ -11619,7 +11597,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"threadedclass@npm:^1.1.1":
+"threadedclass@npm:^1.2.1":
   version: 1.2.1
   resolution: "threadedclass@npm:1.2.1"
   dependencies:
@@ -11833,7 +11811,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.3.1, tslib@npm:^2.4.0, tslib@npm:^2.5.1":
+"tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.4.0, tslib@npm:^2.5.1, tslib@npm:^2.6.2":
   version: 2.6.2
   resolution: "tslib@npm:2.6.2"
   checksum: 10/bd26c22d36736513980091a1e356378e8b662ded04204453d353a7f34a4c21ed0afc59b5f90719d4ba756e581a162ecbf93118dc9c6be5acf70aa309188166ca
@@ -12048,6 +12026,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"undici-types@npm:~5.26.4":
+  version: 5.26.5
+  resolution: "undici-types@npm:5.26.5"
+  checksum: 10/0097779d94bc0fd26f0418b3a05472410408877279141ded2bd449167be1aed7ea5b76f756562cb3586a07f251b90799bab22d9019ceba49c037c76445f7cddd
+  languageName: node
+  linkType: hard
+
 "unique-filename@npm:^2.0.0":
   version: 2.0.1
   resolution: "unique-filename@npm:2.0.1"
@@ -12259,7 +12244,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wavefile@npm:^8.4.4":
+"wavefile@npm:^8.4.6":
   version: 8.4.6
   resolution: "wavefile@npm:8.4.6"
   dependencies:
@@ -12533,8 +12518,8 @@ __metadata:
   linkType: hard
 
 "ws@npm:^8.12.0":
-  version: 8.12.0
-  resolution: "ws@npm:8.12.0"
+  version: 8.16.0
+  resolution: "ws@npm:8.16.0"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -12543,7 +12528,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10/325fbcf6bbed07350b82d7a5bdb43e8a4e81512973241c656c2119a37883a74fe49e7cac09646f9bfc28c517cd63f4111c78f5898bcdd25a3ec2cc4e59375331
+  checksum: 10/7c511c59e979bd37b63c3aea4a8e4d4163204f00bd5633c053b05ed67835481995f61a523b0ad2b603566f9a89b34cb4965cb9fab9649fbfebd8f740cea57f17
   languageName: node
   linkType: hard
 

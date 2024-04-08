@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/worker",
-    "version": "1.50.2",
+    "version": "1.50.5-alpha.0",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
@@ -26,12 +26,11 @@
     },
     "dependencies": {
         "@parcel/watcher": "^2.3.0",
-        "@sofie-package-manager/api": "1.50.2",
+        "@sofie-package-manager/api": "1.50.5-alpha.0",
         "abort-controller": "^3.0.0",
         "atem-connection": "^3.2.0",
         "deep-diff": "^1.0.2",
         "form-data": "^4.0.0",
-        "mkdirp": "^3.0.1",
         "node-fetch": "^2.6.1",
         "proper-lockfile": "^4.1.2",
         "tmp": "~0.2.1",
