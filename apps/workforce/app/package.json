@@ -1,6 +1,6 @@
 {
     "name": "@workforce/app",
-    "version": "1.50.5-alpha.0",
+    "version": "1.50.5",
     "description": "Boilerplace",
     "private": true,
     "scripts": {
@@ -11,7 +11,7 @@
         "start": "node dist/index.js"
     },
     "dependencies": {
-        "@workforce/generic": "1.50.5-alpha.0"
+        "@workforce/generic": "1.50.5"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
