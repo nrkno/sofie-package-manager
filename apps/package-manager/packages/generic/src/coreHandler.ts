@@ -425,10 +425,10 @@ export class CoreHandler {
 		}
 
 		if (statusCode === SofieStatusCode.GOOD) {
-			for (const status of Object.values<Status | null>(this.statuses)) {
+			for (const [statusId, status] of Object.entries<Status | null>(this.statuses)) {
 				if (status && status.statusCode !== StatusCode.GOOD) {
 					statusCode = Math.max(statusCode, status.statusCode)
-					messages.push(status.message)
+					messages.push(`${status.message} ("${statusId}")`)
 				}
 			}
 		}
