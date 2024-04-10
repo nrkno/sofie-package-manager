@@ -62,6 +62,7 @@ import {
 	convProtectedString,
 	objectKeys,
 	objectValues,
+	mapToObject,
 } from '@sofie-package-manager/api'
 import deepExtend from 'deep-extend'
 import clone = require('fast-clone')
@@ -395,9 +396,9 @@ export class PackageManagerHandler {
 			...this.dataSnapshot,
 
 			reportedStatuses: {
-				reportedExpectationStatuses: this.callbacksHandler.reportedExpectationStatuses,
-				reportedPackageStatuses: this.callbacksHandler.reportedPackageStatuses,
-				reportedPackageContainerStatuses: this.callbacksHandler.reportedPackageContainerStatuses,
+				reportedExpectationStatuses: mapToObject(this.callbacksHandler.reportedExpectationStatuses),
+				reportedPackageStatuses: mapToObject(this.callbacksHandler.reportedPackageStatuses),
+				reportedPackageContainerStatuses: mapToObject(this.callbacksHandler.reportedPackageContainerStatuses),
 			},
 			expectationManager: this.expectationManager.getTroubleshootData(),
 		}
