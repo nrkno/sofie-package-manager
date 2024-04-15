@@ -1,5 +1,5 @@
 import { PromisePool } from '@supercharge/promise-pool'
-import { LoggerInstance, Reason, WorkerAgentId, stringifyError } from '@sofie-package-manager/api'
+import { LoggerInstance, Reason, WorkerAgentId, valueOfCost, stringifyError } from '@sofie-package-manager/api'
 import { ExpectationStateHandlerSession, WorkerAgentAssignment } from '../../lib/types'
 import { WorkerAgentAPI } from '../../workerAgentApi'
 import { ExpectationTracker } from '../../expectationTracker/expectationTracker'
@@ -123,7 +123,7 @@ export class TrackedWorkerAgents {
 						countQueried++
 						const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
 
-						if (cost.cost < Number.POSITIVE_INFINITY) {
+						if (cost.cost !== null) {
 							workerCosts.push({
 								worker: workerAgent.api,
 								id: workerId,
@@ -147,8 +147,8 @@ export class TrackedWorkerAgents {
 
 		workerCosts.sort((a, b) => {
 			// Lowest cost first:
-			const aCost: number = a.cost.startCost + a.cost.cost
-			const bCost: number = b.cost.startCost + b.cost.cost
+			const aCost: number = valueOfCost(a.cost.startCost) + valueOfCost(a.cost.cost)
+			const bCost: number = valueOfCost(b.cost.startCost) + valueOfCost(b.cost.cost)
 			if (aCost > bCost) return 1
 			if (aCost < bCost) return -1
 

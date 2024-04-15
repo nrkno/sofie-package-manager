@@ -37,6 +37,7 @@ import {
 	isProtectedString,
 	WorkInProgressLocalId,
 	objectEntries,
+	Cost,
 } from '@sofie-package-manager/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -379,7 +380,7 @@ export class WorkerAgent {
 		this.spinDownTime = spinDownTime
 		this.setupIntervalCheck()
 	}
-	private getStartCost(exp: Expectation.Any): { cost: number; jobCount: number } {
+	private getStartCost(exp: Expectation.Any): { cost: Cost; jobCount: number } {
 		const workerMultiplier: number = this.config.worker.costMultiplier || 1
 
 		let systemStartCost = 0
@@ -391,11 +392,16 @@ export class WorkerAgent {
 				}
 			}
 		}
+		let resultingCost: Cost = systemStartCost
+		for (const job of this.currentJobs) {
+			if (resultingCost === null) break
+
+			if (job.cost.cost === null) resultingCost = null
+			else resultingCost += job.cost.cost * (1 - job.progress) * workerMultiplier
+		}
 
 		return {
-			cost:
-				(this.currentJobs.reduce((sum, job) => sum + job.cost.cost * (1 - job.progress), 0) + systemStartCost) *
-				workerMultiplier,
+			cost: resultingCost,
 			jobCount: this.currentJobs.length,
 		}
 	}
@@ -627,7 +633,7 @@ export class WorkerAgent {
 				const startCost = this.getStartCost(exp)
 
 				return {
-					cost: costForExpectation.cost * workerMultiplier,
+					cost: costForExpectation.cost !== null ? costForExpectation.cost * workerMultiplier : null,
 					reason: {
 						user: costForExpectation.reason.user,
 						tech: `Cost: ${costForExpectation.reason.tech}, multiplier: ${workerMultiplier}, jobCount: ${startCost.jobCount}`,

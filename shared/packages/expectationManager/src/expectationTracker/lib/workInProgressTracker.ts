@@ -1,6 +1,7 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 import {
+	Cost,
 	ExpectationManagerWorkerAgent,
 	LoggerInstance,
 	Reason,
@@ -161,7 +162,7 @@ export interface WorkInProgress {
 	trackedExp: TrackedExpectation
 	workerId: WorkerAgentId
 	worker: WorkerAgentAPI
-	cost: number
-	startCost: number
+	cost: Cost
+	startCost: Cost
 	lastUpdated: number
 }

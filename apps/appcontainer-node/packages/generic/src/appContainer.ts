@@ -35,6 +35,7 @@ import {
 	LockId,
 	protectString,
 	getLogLevel,
+	Cost,
 } from '@sofie-package-manager/api'
 
 import { WorkforceAPI } from './workforceApi'
@@ -373,7 +374,7 @@ export class AppContainer {
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any
-	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }> {
 		this.logger.debug(`Got request for resources, for exp "${exp.id}"`)
 		if (this.apps.size >= this.config.appContainer.maxRunningApps) {
 			this.logger.debug(`Is already at our limit, no more resources available`)
@@ -420,7 +421,7 @@ export class AppContainer {
 
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
-	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }> {
 		this.logger.debug(`Got request for resources, for packageContainer "${packageContainer.id}"`)
 		if (this.apps.size >= this.config.appContainer.maxRunningApps) {
 			this.logger.debug(`Is already at our limit, no more resources available`)
@@ -807,7 +808,7 @@ interface AvailableAppInfo {
 	/** Whether the application can be spun up as a critical worker */
 	canRunInCriticalExpectationsOnlyMode: boolean
 	/** Some kind of value, how much it costs to run it, per minute */
-	cost: number
+	cost: Cost
 }
 
 interface RunningAppInfo {
