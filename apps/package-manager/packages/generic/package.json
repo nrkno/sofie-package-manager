@@ -21,7 +21,7 @@
         "data-store": "^4.0.3",
         "deep-extend": "^0.6.0",
         "fast-clone": "^1.5.13",
-        "nanoid": "^3.3.4",
+        "nanoid": "^5.0.7",
         "underscore": "^1.12.0"
     },
     "devDependencies": {
