@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.43.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.2...v1.43.3) (2024-04-17)
+
+
+### Bug Fixes
+
+* remove PackageInfo when the expectation is removed ([fd63ca6](https://github.com/nrkno/tv-automation-package-manager/commit/fd63ca6d4e866e0a9b22d40eb309dff5cdbf91fe))
+
+
+
+
+
 ## [1.43.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.43.1...v1.43.2) (2024-02-19)
 
 

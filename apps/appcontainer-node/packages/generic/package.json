@@ -1,6 +1,6 @@
 {
     "name": "@appcontainer-node/generic",
-    "version": "1.43.2",
+    "version": "1.43.3",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
     },
     "dependencies": {
         "@sofie-package-manager/api": "1.43.2",
-        "@sofie-package-manager/worker": "1.43.2",
+        "@sofie-package-manager/worker": "1.43.3",
         "underscore": "^1.12.0"
     },
     "devDependencies": {
