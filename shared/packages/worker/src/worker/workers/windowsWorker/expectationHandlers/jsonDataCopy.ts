@@ -338,7 +338,11 @@ export const JsonDataCopy: ExpectationWindowsHandler = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage('expectation removed')
+			if (isCorePackageInfoAccessorHandle(lookupTarget.handle)) {
+				await lookupTarget.handle.removePackageInfo(PackageInfoType.JSON, exp)
+			} else {
+				await lookupTarget.handle.removePackage('expectation removed')
+			}
 		} catch (err) {
 			return {
 				removed: false,
