@@ -25,7 +25,7 @@
         "underscore": "^1.12.0"
     },
     "devDependencies": {
-        "@types/deep-extend": "0.4.31",
+        "@types/deep-extend": "0.6.2",
         "@types/underscore": "^1.10.24",
         "jest": "*",
         "rimraf": "^5.0.5"

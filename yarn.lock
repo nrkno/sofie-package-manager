@@ -1649,7 +1649,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.50.5"
     "@sofie-package-manager/expectation-manager": "npm:1.50.5"
     "@sofie-package-manager/worker": "npm:1.50.5"
-    "@types/deep-extend": "npm:0.4.31"
+    "@types/deep-extend": "npm:0.6.2"
     "@types/underscore": "npm:^1.10.24"
     data-store: "npm:^4.0.3"
     deep-extend: "npm:^0.6.0"
@@ -2225,10 +2225,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/deep-extend@npm:0.4.31":
-  version: 0.4.31
-  resolution: "@types/deep-extend@npm:0.4.31"
-  checksum: 10/1bf2d31b485771e8da8c23bf006a7898e5419c2be887e33de3ff86e16ec63e895f4ba2a47ca2d56296eaa097f3e720828bd5429e8ab7d602a9372f0fcaa5dc87
+"@types/deep-extend@npm:0.6.2":
+  version: 0.6.2
+  resolution: "@types/deep-extend@npm:0.6.2"
+  checksum: 10/16da22923b4b1375f23888c4c28d1fa962a489ea40457a2135833831dbe4870a75894d29b632680dd2bcdb72a0a5c214f5286483f3f70ba10d52f3c816b5abd7
   languageName: node
   linkType: hard
 
