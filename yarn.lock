@@ -2388,11 +2388,11 @@ __metadata:
   linkType: hard
 
 "@types/koa-range@npm:^0.3.2":
-  version: 0.3.2
-  resolution: "@types/koa-range@npm:0.3.2"
+  version: 0.3.5
+  resolution: "@types/koa-range@npm:0.3.5"
   dependencies:
     "@types/koa": "npm:*"
-  checksum: 10/1629e71bba09cbf5aaeed95186a897bd5099ffb4596e43c45c99358186810233a53920ce0a932485f8a17236b9179c5d579bb5f807c9256247256e3e98b235a3
+  checksum: 10/6c0aafe428d69ae4b7c2dbf3c578af79bbc515e8d19b54759093399638fc5a326ad1c0f1fef90a917d4cd5bc8868a50b6ffc68ff6c55c2f570fa8ba18ef5b818
   languageName: node
   linkType: hard
 
