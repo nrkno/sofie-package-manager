@@ -2360,16 +2360,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/koa-bodyparser@npm:^4.3.0":
-  version: 4.3.7
-  resolution: "@types/koa-bodyparser@npm:4.3.7"
-  dependencies:
-    "@types/koa": "npm:*"
-  checksum: 10/3a2cac14cb4a720d017d7708fbe9e8a310b5ecebbe62703a2606bb48c775fbeaf9fd601ba9cb7add03c7059f90327d8bcad3d70443eaea383b117b5c020054ec
-  languageName: node
-  linkType: hard
-
-"@types/koa-bodyparser@npm:^4.3.12":
+"@types/koa-bodyparser@npm:^4.3.0, @types/koa-bodyparser@npm:^4.3.12":
   version: 4.3.12
   resolution: "@types/koa-bodyparser@npm:4.3.12"
   dependencies:
@@ -7635,12 +7626,13 @@ __metadata:
   linkType: hard
 
 "koa-bodyparser@npm:^4.3.0":
-  version: 4.3.0
-  resolution: "koa-bodyparser@npm:4.3.0"
+  version: 4.4.1
+  resolution: "koa-bodyparser@npm:4.4.1"
   dependencies:
     co-body: "npm:^6.0.0"
     copy-to: "npm:^2.0.1"
-  checksum: 10/c227fe0fb5a55b98fc91d865e80229b60178d216d53b732b07833eb38f48a7ed6aa768a083bc06e359db33298547e9a65842fbe9d3f0fdaf5149fe0becafc88f
+    type-is: "npm:^1.6.18"
+  checksum: 10/c741a99ccacc92ee126edad121fed2d200753348e0dedfd65ec67fcfa513b4db9f791ef3200817358ab2c120bcf8e73488cbd0b7f3c7d522a0b21bbb647ce616
   languageName: node
   linkType: hard
 
@@ -11943,7 +11935,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-is@npm:^1.6.16":
+"type-is@npm:^1.6.16, type-is@npm:^1.6.18":
   version: 1.6.18
   resolution: "type-is@npm:1.6.18"
   dependencies:
