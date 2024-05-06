@@ -2603,9 +2603,9 @@ __metadata:
   linkType: hard
 
 "@types/underscore@npm:^1.10.24":
-  version: 1.11.4
-  resolution: "@types/underscore@npm:1.11.4"
-  checksum: 10/9105a02ac25085a8e5d60ee58eba6132067b132c988f5a861ee889610c1ae09cb4daed266abd644afe6435f6f0747a131fd124b3491ace2d455dc7c1db5f23e7
+  version: 1.11.15
+  resolution: "@types/underscore@npm:1.11.15"
+  checksum: 10/5a9c262566551f61744e066d33578c0fad1139c2d5314ed77a8f867487a6d7dd18616f32df4c605070fbd569b942c6d2c083be9f9ae649f41a562b52812b06be
   languageName: node
   linkType: hard
 
