@@ -124,6 +124,7 @@ export class TrackedWorkerAgents {
 						const cost = await workerAgent.api.getCostForExpectation(trackedExp.exp)
 
 						if (cost.cost !== null) {
+						// null means that the cost is "infinite"
 							workerCosts.push({
 								worker: workerAgent.api,
 								id: workerId,

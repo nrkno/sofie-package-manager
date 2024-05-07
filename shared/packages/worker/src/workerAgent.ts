@@ -394,6 +394,7 @@ export class WorkerAgent {
 		}
 		let resultingCost: Cost = systemStartCost
 		for (const job of this.currentJobs) {
+			// null means that the cost is "infinite"
 			if (resultingCost === null) break
 
 			if (job.cost.cost === null) resultingCost = null
