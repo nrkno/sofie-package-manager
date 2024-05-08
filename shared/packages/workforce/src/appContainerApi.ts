@@ -9,6 +9,7 @@ import {
 	WorkforceId,
 	AppType,
 	AppId,
+	Cost,
 } from '@sofie-package-manager/api'
 
 /**
@@ -40,12 +41,12 @@ export class AppContainerAPI
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any
-	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }> {
 		return this._sendMessage('requestAppTypeForExpectation', exp)
 	}
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
-	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }> {
 		return this._sendMessage('requestAppTypeForPackageContainer', packageContainer)
 	}
 	async spinUp(appType: AppType): Promise<AppId> {

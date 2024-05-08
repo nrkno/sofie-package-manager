@@ -14,7 +14,8 @@ export type ReturnTypeDoYouSupportExpectation =
 			reason: Reason
 	  }
 export type ReturnTypeGetCostFortExpectation = {
-	cost: number
+	/** (null means "infinite cost") */
+	cost: Cost
 	reason: Reason
 }
 export type ReturnTypeIsExpectationReadyToStartWorkingOn =
@@ -102,4 +103,11 @@ export type ReturnTypeSetupPackageContainerMonitors =
 	  }
 export interface MonitorProperties {
 	label: string
+}
+
+/** A numeric value representing the effort needed to work on something (null means "infinitely high cost"). */
+export type Cost = number | null // Note: we're using null to represent infinity because Number.Infinity is not JSON-serializable
+/** Converts Cost into a numeric value, that can be used to compare different costs to each other */
+export function valueOfCost(cost: Cost): number {
+	return cost === null ? Number.POSITIVE_INFINITY : cost
 }

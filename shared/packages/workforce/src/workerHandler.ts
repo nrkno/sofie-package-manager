@@ -4,6 +4,8 @@ import {
 	PackageContainerExpectation,
 	AppContainerId,
 	AppType,
+	Cost,
+	valueOfCost,
 } from '@sofie-package-manager/api'
 import { Workforce } from './workforce'
 
@@ -21,12 +23,12 @@ export class WorkerHandler {
 		this.logger.debug(`Workforce: Got request for resources for exp "${exp.id}"`)
 
 		let errorReason = `No AppContainers registered`
-		let best: { appContainerId: AppContainerId; appType: AppType; cost: number } | null = null
+		let best: { appContainerId: AppContainerId; appType: AppType; cost: Cost } | null = null
 		for (const [appContainerId, appContainer] of this.workForce.appContainers.entries()) {
 			this.logger.debug(`Workforce: Asking appContainer "${appContainerId}"`)
 			const proposal = await appContainer.api.requestAppTypeForExpectation(exp)
 			if (proposal.success) {
-				if (!best || proposal.cost < best.cost) {
+				if (!best || valueOfCost(proposal.cost) < valueOfCost(best.cost)) {
 					best = {
 						appContainerId: appContainerId,
 						appType: proposal.appType,
@@ -57,12 +59,12 @@ export class WorkerHandler {
 		this.logger.debug(`Workforce: Got request for resources for packageContainer "${packageContainer.id}"`)
 
 		let errorReason = `No AppContainers registered`
-		let best: { appContainerId: AppContainerId; appType: AppType; cost: number } | null = null
+		let best: { appContainerId: AppContainerId; appType: AppType; cost: Cost } | null = null
 		for (const [appContainerId, appContainer] of this.workForce.appContainers.entries()) {
 			this.logger.debug(`Workforce: Asking appContainer "${appContainerId}"`)
 			const proposal = await appContainer.api.requestAppTypeForPackageContainer(packageContainer)
 			if (proposal.success) {
-				if (!best || proposal.cost < best.cost) {
+				if (!best || valueOfCost(proposal.cost) < valueOfCost(best.cost)) {
 					best = {
 						appContainerId: appContainerId,
 						appType: proposal.appType,

@@ -9,6 +9,7 @@ import {
 	WorkerAgentId,
 	WorkInProgressLocalId,
 } from './ids'
+import { Cost } from './worker'
 
 export interface WorkforceStatusReport {
 	workerAgents: WorkerStatusReport[]
@@ -50,7 +51,7 @@ export interface ExpectationManagerStatusReport {
 		id: WorkInProgressId
 		lastUpdated: number
 		workerId: WorkerAgentId
-		cost: number
+		cost: Cost
 		label: string
 		progress: number
 		expectationId: ExpectationId
@@ -65,8 +66,8 @@ export interface WorkerStatusReport {
 	}[]
 
 	currentJobs: {
-		cost: number
-		startCost: number
+		cost: Cost
+		startCost: Cost
 		cancelled: boolean
 		wipId: WorkInProgressLocalId
 		progress: number
