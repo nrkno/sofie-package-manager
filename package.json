@@ -72,7 +72,7 @@
     },
     "dependencies": {
         "@sofie-automation/server-core-integration": "1.50.0",
-        "@sofie-automation/shared-lib": "1.50.0"
+        "@sofie-automation/shared-lib": "1.50.1"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {
