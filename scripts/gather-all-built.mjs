@@ -18,7 +18,7 @@ const files = await fse.readdir(targetFolder)
 for (const file of files) {
 	if (
 		// Only match executables:
-		file.match(/.*\.exe$/) &&
+		file.match(/.*\.(exe|zip)$/) &&
 		// Leave the ffmpeg / ffprobe files:
 		!file.match(/ffmpeg|ffprobe/)
 	) {
