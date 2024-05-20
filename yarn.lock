@@ -1981,6 +1981,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sofie-automation/shared-lib@npm:1.50.2":
+  version: 1.50.2
+  resolution: "@sofie-automation/shared-lib@npm:1.50.2"
+  dependencies:
+    "@mos-connection/model": "npm:^3.0.4"
+    timeline-state-resolver-types: "npm:9.0.1"
+    tslib: "npm:^2.4.0"
+    type-fest: "npm:^2.19.0"
+  checksum: 10/5c6465f20e3aac7dcadafa50aac196371f2a0736c61b4f7273e26494abe7b73ea916d7f9879966d8341232d22a81a373af6bcbcdc47ac2adc4e555780758c4ce
+  languageName: node
+  linkType: hard
+
 "@sofie-package-manager/api@npm:1.50.5, @sofie-package-manager/api@workspace:shared/packages/api":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/api@workspace:shared/packages/api"
@@ -9644,7 +9656,7 @@ __metadata:
   dependencies:
     "@sofie-automation/code-standard-preset": "npm:^2.5.1"
     "@sofie-automation/server-core-integration": "npm:1.50.0"
-    "@sofie-automation/shared-lib": "npm:1.50.0"
+    "@sofie-automation/shared-lib": "npm:1.50.2"
     "@types/jest": "npm:^29.2.5"
     "@types/rimraf": "npm:^3.0.0"
     "@yao-pkg/pkg": "npm:^5.11.5"
@@ -11624,6 +11636,15 @@ __metadata:
   dependencies:
     tslib: "npm:^2.5.1"
   checksum: 10/a3886a9f480d0c01a6470a55163c8262a11ac17084d1bacb4e078ea321ad2854969ef57cc0907de4162853037738ff0d6124c809c1a0ee3b012e7723edca4086
+  languageName: node
+  linkType: hard
+
+"timeline-state-resolver-types@npm:9.0.1":
+  version: 9.0.1
+  resolution: "timeline-state-resolver-types@npm:9.0.1"
+  dependencies:
+    tslib: "npm:^2.5.1"
+  checksum: 10/17bfd8cd52069fb3571bc9cf9c8d711a1c9569ca2cf61ee9a429be8fac4035cf3b6f146d31c68dda6d8fdd5a880f72c8dbe65985d0385e3128407b08c303361a
   languageName: node
   linkType: hard
 
