@@ -62,4 +62,5 @@ export enum PriorityAdditions {
 	THUMBNAIL = 1002,
 	PREVIEW = 1003,
 	DEEP_SCAN = 1004,
+	IFRAMES_SCAN = 1005,
 }

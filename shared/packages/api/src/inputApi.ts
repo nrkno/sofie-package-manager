@@ -91,6 +91,9 @@ export namespace ExpectedPackage {
 			/** Should the package be scanned for loudness */
 			loudnessPackageSettings?: SideEffectLoudnessSettings
 
+			/** Should the package be scanned for I-frames */
+			iframes?: boolean
+
 			/** Other custom configuration */
 			[key: string]: any
 		}

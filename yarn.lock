@@ -2025,6 +2025,7 @@ __metadata:
     "@types/tmp": "npm:~0.2.2"
     abort-controller: "npm:^3.0.0"
     atem-connection: "npm:^3.2.0"
+    csv-parser: "npm:^3.0.0"
     deep-diff: "npm:^1.0.2"
     form-data: "npm:^4.0.0"
     jest: "npm:*"
@@ -4375,6 +4376,17 @@ __metadata:
   bin:
     cssesc: bin/cssesc
   checksum: 10/0e161912c1306861d8f46e1883be1cbc8b1b2879f0f509287c0db71796e4ddfb97ac96bdfca38f77f452e2c10554e1bb5678c99b07a5cf947a12778f73e47e12
+  languageName: node
+  linkType: hard
+
+"csv-parser@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "csv-parser@npm:3.0.0"
+  dependencies:
+    minimist: "npm:^1.2.0"
+  bin:
+    csv-parser: bin/csv-parser
+  checksum: 10/2f003d15d8361a94359d6715a8f05feac1252ab4d1d4e2908ea1baa0454c7e00fb99c53cdc86336635c5fd04f17b510291338df93da1e54944695f0c3b4a6bc1
   languageName: node
   linkType: hard
 
