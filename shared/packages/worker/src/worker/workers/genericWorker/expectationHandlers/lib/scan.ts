@@ -743,8 +743,9 @@ export function scanIframes(
 			.pipe(csvParser({ headers: false }))
 			.on('data', (data) => {
 				if (cancelled) return
+				const dataType = data[0]
 				const pictType = data[3]
-				if (pictType === 'I') {
+				if (dataType === 'frame' && pictType === 'I') {
 					const ptsTime = parseFloat(data[1])
 					const durationTime = parseFloat(data[2])
 					iframes.push(ptsTime)
@@ -759,6 +760,9 @@ export function scanIframes(
 					}
 					prevIframePtsTime = ptsTime
 					prevFrameDuration = durationTime
+				} else if (dataType === 'frame' && pictType === 'P') {
+					const ptsTime = parseFloat(data[1])
+					onProgress(ptsTime / duration)
 				}
 			})
 			.on('error', onError)
@@ -778,7 +782,7 @@ export function scanIframes(
 							type: CompressionType.FixedDistance,
 							distance: prevDistance,
 						})
-					} else if (iframes.length) {
+					} else if (distanceVaries && iframes.length) {
 						resolve({
 							type: CompressionType.VariableDistance,
 							iframeTimes: iframes,
