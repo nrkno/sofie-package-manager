@@ -717,9 +717,9 @@ export function scanIframes(
 		})
 
 		const iframes: number[] = []
-		let distance: number | undefined
+		let prevDistance: number | undefined
 		let prevIframePtsTime: number | undefined
-		let frameDuration: number | undefined
+		let prevFrameDuration: number | undefined
 		let distanceVaries = false
 		let maxDistance = 0
 
@@ -750,15 +750,15 @@ export function scanIframes(
 					iframes.push(ptsTime)
 					onProgress(ptsTime / duration)
 					if (prevIframePtsTime !== undefined) {
-						const newDistance = ptsTime - prevIframePtsTime
-						if (distance && Math.abs(newDistance - distance) > EPSILON) {
+						const distance = ptsTime - prevIframePtsTime
+						if (prevDistance && Math.abs(distance - prevDistance) > EPSILON) {
 							distanceVaries = true
 						}
-						maxDistance = Math.max(maxDistance, newDistance)
-						distance = newDistance
+						maxDistance = Math.max(maxDistance, distance)
+						prevDistance = distance
 					}
 					prevIframePtsTime = ptsTime
-					frameDuration = durationTime
+					prevFrameDuration = durationTime
 				}
 			})
 			.on('error', onError)
@@ -769,14 +769,14 @@ export function scanIframes(
 				ffMpegProcess = undefined
 				if (code === 0) {
 					// success
-					if (frameDuration && Math.abs(maxDistance / frameDuration - 1) < EPSILON) {
+					if (prevFrameDuration && Math.abs(maxDistance / prevFrameDuration - 1) < EPSILON) {
 						resolve({
 							type: CompressionType.Intra,
 						})
-					} else if (!distanceVaries && distance) {
+					} else if (!distanceVaries && prevDistance) {
 						resolve({
 							type: CompressionType.FixedDistance,
-							distance: distance,
+							distance: prevDistance,
 						})
 					} else if (iframes.length) {
 						resolve({
