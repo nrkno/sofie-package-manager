@@ -177,20 +177,20 @@ export const PackageIframesScan: ExpectationHandlerGenericWorker = {
 				currentProcess = new CancelablePromise<IframesScanResult>(async (resolve, reject, onCancel) => {
 					let ignoreNextCancelError = false
 
-					const scanMoreInfoProcess = scanIframes(
+					const scanIframesProcess = scanIframes(
 						sourceHandle,
 						null,
 						(progress) => {
 							workInProgress._reportProgress(sourceVersionHash, 0.21 + 0.77 * progress)
 						},
-						worker.logger.category('scanMoreInfo'),
+						worker.logger.category('scanIframes'),
 						Number(ffProbeScan.format?.duration) || 10000
 					)
 					onCancel(() => {
-						scanMoreInfoProcess.cancel()
+						scanIframesProcess.cancel()
 					})
 
-					scanMoreInfoProcess.then(
+					scanIframesProcess.then(
 						(result) => {
 							resolve(result)
 						},
@@ -211,7 +211,7 @@ export const PackageIframesScan: ExpectationHandlerGenericWorker = {
 			workInProgress._reportProgress(sourceVersionHash, 0.99)
 
 			// all done:
-			const scanOperation = await targetHandle.prepareForOperation('Deep scan', sourceHandle)
+			const scanOperation = await targetHandle.prepareForOperation('Iframe scan', sourceHandle)
 			await targetHandle.updatePackageInfo(
 				PackageInfoType.Iframes,
 				exp,
