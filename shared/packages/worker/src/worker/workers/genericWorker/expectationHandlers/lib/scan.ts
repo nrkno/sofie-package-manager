@@ -718,6 +718,7 @@ export function scanIframes(
 
 		const iframes: number[] = []
 		let prevDistance: number | undefined
+		let firstIframePtsTime: number | undefined
 		let prevIframePtsTime: number | undefined
 		let prevFrameDuration: number | undefined
 		let distanceVaries = false
@@ -748,6 +749,10 @@ export function scanIframes(
 				if (dataType === 'frame' && pictType === 'I') {
 					const ptsTime = parseFloat(data[1])
 					const durationTime = parseFloat(data[2])
+
+					if (firstIframePtsTime === undefined) {
+						firstIframePtsTime = ptsTime
+					}
 					iframes.push(ptsTime)
 					onProgress(ptsTime / duration)
 					if (prevIframePtsTime !== undefined) {
@@ -775,12 +780,12 @@ export function scanIframes(
 					// success
 					if (prevFrameDuration && Math.abs(maxDistance / prevFrameDuration - 1) < EPSILON) {
 						resolve({
-							type: CompressionType.Intra,
+							type: CompressionType.AllIntra,
 						})
-					} else if (!distanceVaries && prevDistance) {
+					} else if (!distanceVaries && prevIframePtsTime !== undefined && firstIframePtsTime !== undefined) {
 						resolve({
 							type: CompressionType.FixedDistance,
-							distance: prevDistance,
+							distance: (prevIframePtsTime - firstIframePtsTime) / iframes.length,
 						})
 					} else if (distanceVaries && iframes.length) {
 						resolve({
