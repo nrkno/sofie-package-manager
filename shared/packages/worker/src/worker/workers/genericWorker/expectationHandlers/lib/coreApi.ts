@@ -80,9 +80,13 @@ export type LoudnessScanResultForStream =
 	  }
 
 export enum CompressionType {
+	/** Undetected */
 	Unknown = 'unknown',
-	Intra = 'intra',
+	/** Every frame is a I-frame */
+	AllIntra = 'all_intra',
+	/** All I-frame are spaced evenly */
 	FixedDistance = 'fixed_distance',
+	/** I-frame distances vary */
 	VariableDistance = 'variable_distance',
 }
 
@@ -91,7 +95,7 @@ export type IframesScanResult =
 			type: CompressionType.Unknown
 	  }
 	| {
-			type: CompressionType.Intra
+			type: CompressionType.AllIntra
 	  }
 	| {
 			type: CompressionType.FixedDistance
