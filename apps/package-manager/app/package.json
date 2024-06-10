@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/app",
-    "version": "1.50.5",
+    "version": "1.50.6",
     "private": true,
     "scripts": {
         "build": "yarn rimraf dist && yarn build:main",
@@ -15,7 +15,7 @@
         "typescript": "*"
     },
     "dependencies": {
-        "@package-manager/generic": "1.50.5"
+        "@package-manager/generic": "1.50.6"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "engines": {
