@@ -59,6 +59,7 @@ export enum PriorityAdditions {
 	COPY_PROXY = 90,
 	SCAN = 100,
 	LOUDNESS_SCAN = 500,
+	IFRAMES_SCAN = 501,
 	THUMBNAIL = 1002,
 	PREVIEW = 1003,
 	DEEP_SCAN = 1004,

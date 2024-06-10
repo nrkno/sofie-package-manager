@@ -354,6 +354,56 @@ export function generatePackageLoudness(
 	})
 }
 
+export function generatePackageIframes(
+	expectation: SomeClipCopyExpectation,
+	settings: PackageManagerSettings
+): Expectation.PackageIframesScan {
+	return {
+		id: protectString<ExpectationId>(expectation.id + '_iframes'),
+		priority: expectation.priority + PriorityAdditions.IFRAMES_SCAN,
+		managerId: expectation.managerId,
+		type: Expectation.Type.PACKAGE_IFRAMES_SCAN,
+		fromPackages: expectation.fromPackages,
+
+		statusReport: {
+			label: `I-frames Scan`,
+			description: `Enumerate I-frames`,
+			displayRank: 15,
+			sendReport: expectation.statusReport.sendReport,
+		},
+
+		startRequirement: {
+			sources: expectation.endRequirement.targets,
+			content: expectation.endRequirement.content,
+			version: expectation.endRequirement.version,
+		},
+		endRequirement: {
+			targets: [
+				{
+					containerId: protectString<PackageContainerId>('__corePackageInfo'),
+					label: 'Core package info',
+					accessors: {
+						[CORE_COLLECTION_ACCESSOR_ID]: {
+							type: Accessor.AccessType.CORE_PACKAGE_INFO,
+						},
+					},
+				},
+			],
+			content: null,
+			version: null,
+		},
+		workOptions: {
+			...expectation.workOptions,
+			allowWaitForCPU: true,
+			requiredForPlayout: false,
+			usesCPUCount: 1,
+			removeDelay: settings.delayRemovalPackageInfo,
+		},
+		dependsOnFulfilled: [expectation.id],
+		triggerByFulfilledIds: [expectation.id],
+	}
+}
+
 export function generateMediaFileThumbnail(
 	expectation: SomeClipFileOnDiskCopyExpectation,
 	packageContainerId: PackageContainerId,
