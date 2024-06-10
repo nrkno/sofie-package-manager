@@ -10,6 +10,10 @@
         "__test": "jest",
         "start": "node dist/index.js"
     },
+    "peerDependencies": {
+        "@sofie-automation/shared-lib": "*",
+        "typescript": "*"
+    },
     "dependencies": {
         "@appcontainer-node/generic": "1.50.5"
     },

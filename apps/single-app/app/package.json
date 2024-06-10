@@ -10,6 +10,11 @@
         "__test": "jest",
         "start": "node --inspect dist/index.js"
     },
+    "peerDependencies": {
+        "@sofie-automation/server-core-integration": "*",
+        "@sofie-automation/shared-lib": "*",
+        "typescript": "*"
+    },
     "dependencies": {
         "@appcontainer-node/generic": "1.50.5",
         "@http-server/generic": "1.50.5",

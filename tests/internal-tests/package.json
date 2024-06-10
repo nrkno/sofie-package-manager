@@ -8,6 +8,11 @@
         "build:main": "tsc -p tsconfig.json",
         "test": "jest --runInBand --forceExit"
     },
+    "peerDependencies": {
+        "@sofie-automation/server-core-integration": "*",
+        "@sofie-automation/shared-lib": "*",
+        "typescript": "*"
+    },
     "devDependencies": {
         "deep-extend": "^0.6.0",
         "jest": "*",
