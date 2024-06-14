@@ -41,6 +41,14 @@ const htmlRendererOptions = defineArguments({
 		type: 'number',
 		describe: 'For a generic HTML template, how long to wait before considering it stopped',
 	},
+	interactive: {
+		type: 'boolean',
+		describe: 'When true, will start the process in interactive mode. See Readme for docs.',
+	},
+	test: {
+		type: 'boolean',
+		describe: 'When true, will simply trace the version and then close.',
+	},
 })
 
 export interface HTMLRendererOptionsConfig {
@@ -57,6 +65,8 @@ export interface HTMLRendererOptionsConfig {
 	genericWaitIdle: number | undefined
 	genericWaitPlay: number | undefined
 	genericWaitStop: number | undefined
+	interactive: boolean | undefined
+	test: boolean | undefined
 }
 export async function getHTMLRendererConfig(): Promise<{
 	process: ProcessConfig
@@ -85,6 +95,8 @@ export async function getHTMLRendererConfig(): Promise<{
 			genericWaitIdle: argv.genericWaitIdle,
 			genericWaitPlay: argv.genericWaitPlay,
 			genericWaitStop: argv.genericWaitStop,
+			interactive: argv.interactive,
+			test: argv.test,
 		},
 	}
 }

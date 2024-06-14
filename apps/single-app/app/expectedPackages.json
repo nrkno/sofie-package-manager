@@ -49,6 +49,18 @@
                 }
             }
         },
+        "templates0": {
+            "label": "Templates",
+            "accessors": {
+                "local": {
+                    "type": "local_folder",
+                    "label": "Local",
+                    "folderPath": "D:\\git\\gfx-templates\\10mila\\dist",
+                    "allowRead": true,
+                    "allowWrite": true
+                }
+            }
+        },
         "http0": {
             "label": "Local HTTP",
             "accessors": {
@@ -75,65 +87,32 @@
     },
     "expectedPackages": [
         {
-            "type": "media_file",
+            "type": "html_template",
             "_id": "test",
             "contentVersionHash": "abc1234",
             "content": {
                 "filePath": "amb.mp4"
             },
-            "version": {},
+            "version": {
+                "casparCG": {
+                    "data": {
+                        "name": "Johan"
+                    }
+                }
+            },
             "sources": [
                 {
                     "containerId": "source0",
                     "accessors": {
                         "local": {
-                            "type": "local_folder",
-                            "filePath": "amb.mp4"
+                            "type": "templates0",
+                            "filePath": "person.html"
                         }
                     }
                 }
             ],
             "layers": [
                 "target0"
-            ],
-            "sideEffect": {
-                "previewContainerId": null,
-                "previewPackageSettings": null,
-                "thumbnailContainerId": "thumbnails0_local",
-                "thumbnailPackageSettings": {
-                    "path": "thumbnail.png"
-                },
-                "loudnessPackageSettings": {
-                    "channelSpec": [
-                        "0",
-                        "0+1"
-                    ],
-                    "inPhaseDifference": true,
-                    "balanceDifference": true
-                }
-            }
-        },
-        {
-            "type": "json_data",
-            "_id": "json0",
-            "contentVersionHash": "abc1234",
-            "content": {
-                "path": "test.json"
-            },
-            "version": {},
-            "sources": [
-                {
-                    "containerId": "http0",
-                    "accessors": {
-                        "local": {
-                            "type": "http",
-                            "isImmutable": true
-                        }
-                    }
-                }
-            ],
-            "layers": [
-                "core0"
             ],
             "sideEffect": {}
         }

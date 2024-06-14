@@ -12,6 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	assertNever,
 	stringifyError,
+	testHtmlRenderer,
 } from '@sofie-package-manager/api'
 import { BaseWorker, GenericWorkerAgentAPI } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
@@ -31,6 +32,7 @@ import { testFFMpeg, testFFProbe } from './expectationHandlers/lib/ffmpeg'
 import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { FileVerify } from './expectationHandlers/fileVerify'
+import { RenderHTML } from './expectationHandlers/RenderHTML'
 
 export type ExpectationHandlerGenericWorker = ExpectationHandler<GenericWorker>
 
@@ -42,6 +44,8 @@ export class GenericWorker extends BaseWorker {
 	public testFFMpeg: null | string = 'Not initialized'
 	/** Contains the result of testing the FFProbe executable. null = all is well, otherwise contains error message */
 	public testFFProbe: null | string = 'Not initialized'
+	/** Contains the result of testing the HTMLRenderer executable. null = all is well, otherwise contains error message */
+	public testHTMLRenderer: null | string = 'Not initialized'
 
 	private monitor: NodeJS.Timeout | undefined
 
@@ -73,8 +77,13 @@ export class GenericWorker extends BaseWorker {
 		this.logger.debug(`Worker terminated`)
 	}
 	private async checkExecutables() {
+		console.log('Checking executables')
 		this.testFFMpeg = await testFFMpeg()
+		console.log('testFFMpeg', this.testFFMpeg)
 		this.testFFProbe = await testFFProbe()
+		console.log('testFFProbe', this.testFFProbe)
+		this.testHTMLRenderer = await testHtmlRenderer()
+		console.log('testHTMLRenderer', this.testHTMLRenderer)
 	}
 	async getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		return this.getExpectationHandler(exp).getCostForExpectation(exp, this)
@@ -122,6 +131,8 @@ export class GenericWorker extends BaseWorker {
 				return QuantelClipPreview
 			case Expectation.Type.JSON_DATA_COPY:
 				return JsonDataCopy
+			case Expectation.Type.RENDER_HTML:
+				return RenderHTML
 			default:
 				assertNever(exp)
 				// @ts-expect-error exp.type is never

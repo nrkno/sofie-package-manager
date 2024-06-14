@@ -1,1 +1,1 @@
-export { RenderHTMLOptions, renderHTML } from './renderHTML'
+export { RenderHTMLOptions, renderHTML, InteractiveAPI } from './renderHTML'

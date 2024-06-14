@@ -35,6 +35,8 @@ export interface RenderHTMLOptions {
 		wait: number
 	}[]
 	userAgent?: string
+	/** Interactive mode, overrides scripts */
+	interactive?: (api: InteractiveAPI) => Promise<void>
 }
 export async function renderHTML(options: RenderHTMLOptions): Promise<{
 	app: Electron.App
@@ -84,7 +86,9 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 		// win.webContents.on('destroyed', (e: unknown) => log('destroyed', e))
 
 		logger.verbose(`Loading URL: ${options.url}`)
-		await win.loadURL(options.url)
+		win.loadURL(options.url).catch((_e) => {
+			// ignore, instead rely on 'did-finish-load' and 'did-fail-load' later
+		})
 		logger.verbose(`Loading done`)
 
 		win.title = `HTML Renderer ${process.pid}`
@@ -95,49 +99,214 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 
 		let exitCode = 0
 
-		const waitForScripts: Promise<void>[] = []
-		const maxDelay = Math.max(...options.scripts.map((s) => s.wait))
-		for (const script of options.scripts) {
-			await sleep(script.wait)
+		let didFinishLoad = false
+		let didFailLoad: null | any = null
+		win.webContents.on('did-finish-load', () => (didFinishLoad = true))
+		win.webContents.on('did-fail-load', (e) => {
+			didFailLoad = e
+		})
 
-			if (script.takeScreenshot) {
-				const image = await win.webContents.capturePage()
-				const filename = path.join(outputFolder, script.takeScreenshot.name)
-				await fs.promises.writeFile(filename, image.toPNG())
-				logger.info(`Screenshot: ${filename}`)
-			}
-
-			if (script.fcn) {
-				logger.verbose(`Executing fcn`)
-				await Promise.resolve(script.fcn({ webContents: win.webContents }))
-			}
-			if (script.executeJs) {
-				logger.verbose(`Executing js: ${script.executeJs}`)
-				await win.webContents.executeJavaScript(script.executeJs)
-			}
-			if (script.logInfo) {
-				logger.info(script.logInfo)
-			}
-
-			if (script.startRecording) {
-				const startRecording = async () => {
-					if (!script.startRecording) return
-					const filename = path.join(outputFolder, script.startRecording.name)
-					logger.verbose(`Start recording: ${filename}`)
-					let i = 0
-
-					const tmpFolder = path.resolve(path.join(tempFolder, `recording${process.pid}`))
-					await fs.promises.mkdir(tmpFolder, {
-						recursive: true,
+		let recording: {
+			fileName: string
+			tmpFolder: string
+			writeFilePromises: Promise<void>[]
+			stopped: boolean
+		} | null = null
+		const api: InteractiveAPI = {
+			waitForLoad: async () => {
+				if (didFinishLoad) return
+				if (didFailLoad) throw new Error(`${didFailLoad}`)
+				else
+					return new Promise<void>((resolve) => {
+						win.webContents.once('did-finish-load', () => resolve())
 					})
-					const videoFilename = `${filename}.webm`
-					const croppedVideoFilename = `${filename}-cropped.webm`
-					const writeFilePromises: Promise<void>[] = []
-					const idleFrameTime = Math.max(500, maxDelay)
-					try {
-						await new Promise<void>((resolve) => {
+			},
+			takeScreenshot: async (fileName: string) => {
+				if (!fileName) throw new Error(`Invalid filename`)
+
+				const image = await win.webContents.capturePage()
+				const filename = path.join(outputFolder, fileName)
+				await fs.promises.writeFile(filename, image.toPNG())
+				return filename
+			},
+			executeJs: async (js: string) => {
+				await win.webContents.executeJavaScript(js)
+			},
+			startRecording: async (fileName: string, frameListener?: (frameIndex: number) => void) => {
+				if (recording?.stopped) {
+					await cleanupTemporaryFiles()
+					recording = null
+				}
+				if (recording) throw new Error(`Already recording`)
+
+				const filename = path.join(outputFolder, fileName)
+
+				let i = 0
+
+				const tmpFolder = path.resolve(path.join(tempFolder, `recording${process.pid}`))
+				await fs.promises.mkdir(tmpFolder, {
+					recursive: true,
+				})
+
+				recording = {
+					fileName: `${filename}.webm`,
+					tmpFolder,
+					writeFilePromises: [],
+					stopped: false,
+				}
+
+				win.webContents.beginFrameSubscription(false, (image) => {
+					if (!recording) throw new Error(`(internal error) received frame, but has no recording`)
+					i++
+					frameListener?.(i)
+
+					const buffer = image
+						.resize({
+							width,
+							height,
+						})
+						.toPNG()
+
+					const tmpFile = path.join(tmpFolder, `img${pad(i, 5)}.png`)
+					recording.writeFilePromises.push(fs.promises.writeFile(tmpFile, buffer))
+				})
+
+				return filename
+			},
+			stopRecording: async () => {
+				if (!recording) throw new Error(`No current recording`)
+				if (recording.stopped) throw new Error(`Recording already stopped`)
+				recording.stopped = true
+
+				// Wait for all current file writes to finish:
+				await Promise.all(recording.writeFilePromises)
+
+				// Convert the pngs to a video:
+				await ffmpeg(logger, [
+					'-y',
+					'-framerate',
+					'30',
+					'-s',
+					`${width}x${height}`,
+					'-i',
+					`${recording.tmpFolder}/img%05d.png`,
+					'-f',
+					'webm', // format: webm
+					'-an', // blocks all audio streams
+					'-c:v',
+					'libvpx-vp9', // encoder for video (use VP9)
+					'-auto-alt-ref',
+					'1',
+					recording.fileName,
+				])
+
+				return recording.fileName
+			},
+			cropRecording: async (croppedFilename: string) => {
+				if (!recording) throw new Error(`No recording`)
+				if (recording.stopped) throw new Error(`Recording not stopped yet`)
+
+				// Figure out the active bounding box
+				const boundingBox = {
+					x1: Infinity,
+					x2: -Infinity,
+					y1: Infinity,
+					y2: -Infinity,
+				}
+				await ffmpeg(logger, ['-i', recording.fileName, '-vf', 'bbox=min_val=50', '-f', 'null', '-'], {
+					onStderr: (data) => {
+						// [Parsed_bbox_0 @ 000002b6f5d474c0] n:25 pts:833 pts_time:0.833 x1:205 x2:236 y1:614 y2:650 w:32 h:37 crop=32:37:205:614 drawbox=205:614:32:37
+						const m = data.match(/Parsed_bbox.*x1:(?<x1>\d+).*x2:(?<x2>\d+).*y1:(?<y1>\d+).*y2:(?<y2>\d+)/)
+						if (m && m.groups) {
+							boundingBox.x1 = Math.min(boundingBox.x1, parseInt(m.groups.x1, 10))
+							boundingBox.x2 = Math.max(boundingBox.x2, parseInt(m.groups.x2, 10))
+							boundingBox.y1 = Math.min(boundingBox.y1, parseInt(m.groups.y1, 10))
+							boundingBox.y2 = Math.max(boundingBox.y2, parseInt(m.groups.y2, 10))
+						}
+					},
+				})
+
+				if (
+					boundingBox.x1 === Infinity ||
+					boundingBox.x2 === -Infinity ||
+					boundingBox.y1 === Infinity ||
+					boundingBox.y2 === -Infinity
+				) {
+					logger.warn(`Could not determine bounding box`)
+					// Just copy the full video
+					await fs.promises.copyFile(recording.fileName, croppedFilename)
+				} else {
+					// Add margins:
+					boundingBox.x1 -= 10 + (boundingBox.x1 > width * 0.65 ? 10 : 0)
+					boundingBox.x2 += 10 + (boundingBox.x2 < width * 0.65 ? 10 : 0)
+					boundingBox.y1 -= 10 + (boundingBox.y1 > height * 0.65 ? 10 : 0)
+					boundingBox.y2 += 10 + (boundingBox.y2 < height * 0.65 ? 10 : 0)
+
+					logger.verbose(`Saving cropped recording to ${croppedFilename}`)
+					// Generate a cropped video as well:
+					await ffmpeg(logger, [
+						'-y',
+						'-i',
+						recording.fileName,
+						'-filter:v',
+						`crop=${boundingBox.x2 - boundingBox.x1}:${boundingBox.y2 - boundingBox.y1}:${boundingBox.x1}:${
+							boundingBox.y1
+						}`,
+						croppedFilename,
+					])
+				}
+				return croppedFilename
+			},
+		}
+		const cleanupTemporaryFiles = async () => {
+			if (recording) {
+				await fs.promises.rm(recording.tmpFolder, { recursive: true })
+			}
+			// Look for old tmp files
+			const oldTmpFiles = await fs.promises.readdir(tempFolder)
+			for (const oldTmpFile of oldTmpFiles) {
+				const oldTmpFileath = path.join(tempFolder, oldTmpFile)
+				const stat = await fs.promises.stat(oldTmpFileath)
+				if (stat.ctimeMs < Date.now() - 60000) {
+					await fs.promises.rm(oldTmpFileath, { recursive: true })
+				}
+			}
+		}
+		if (options.interactive) {
+			await options.interactive(api)
+		} else {
+			const waitForScripts: Promise<void>[] = []
+			const maxDelay = Math.max(...options.scripts.map((s) => s.wait))
+			for (const script of options.scripts) {
+				await sleep(script.wait)
+
+				if (script.takeScreenshot) {
+					const fileName = await api.takeScreenshot(script.takeScreenshot.name)
+					logger.info(`Screenshot: ${fileName}`)
+				}
+				if (script.fcn) {
+					logger.verbose(`Executing fcn`)
+					await Promise.resolve(script.fcn({ webContents: win.webContents }))
+				}
+				if (script.executeJs) {
+					logger.verbose(`Executing js: ${script.executeJs}`)
+					await api.executeJs(script.executeJs)
+				}
+				if (script.logInfo) {
+					logger.info(script.logInfo)
+				}
+
+				if (script.startRecording) {
+					let videoFilename = 'N/A'
+					const startRecording = async () => {
+						await new Promise<void>((resolve, reject) => {
+							if (!script.startRecording) return
+
+							const startTime = Date.now()
+							const idleFrameTime = Math.max(500, maxDelay)
+							let maxFrameIndex = 0
 							const endRecording = () => {
-								logger.verbose(`Ending recording, got ${i} frames`)
+								logger.verbose(`Ending recording, got ${maxFrameIndex} frames`)
 								win.webContents.endFrameSubscription()
 								resolve()
 							}
@@ -146,20 +315,10 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 								endRecording()
 							}, idleFrameTime)
 
-							const startTime = Date.now()
-							win.webContents.beginFrameSubscription(false, (image) => {
-								i++
+							api.startRecording(script.startRecording.name, (i) => {
+								// On Frame
+								maxFrameIndex = i
 								logger.verbose(`Frame ${i}, ${Date.now() - startTime}`)
-
-								const buffer = image
-									.resize({
-										width,
-										height,
-									})
-									.toPNG()
-
-								const tmpFile = path.join(tmpFolder, `img${pad(i, 5)}.png`)
-								writeFilePromises.push(fs.promises.writeFile(tmpFile, buffer))
 
 								// End recording when idle
 								clearTimeout(endRecordingTimeout)
@@ -167,117 +326,47 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 									endRecording()
 								}, idleFrameTime)
 							})
+								.then((fileName) => {
+									logger.verbose(`Start recording: ${fileName}`)
+									videoFilename = fileName
+								})
+								.catch(reject)
 						})
 
-						await Promise.all(writeFilePromises)
-
 						logger.verbose(`Saving recording to ${videoFilename}`)
-						// Convert the pngs to a video:
-						await ffmpeg(logger, [
-							'-y',
-							'-framerate',
-							'30',
-							'-s',
-							`${width}x${height}`,
-							'-i',
-							`${tmpFolder}/img%05d.png`,
-							'-f',
-							'webm', // format: webm
-							'-an', // blocks all audio streams
-							'-c:v',
-							'libvpx-vp9', // encoder for video (use VP9)
-							'-auto-alt-ref',
-							'1',
-							videoFilename,
-						])
+						await api.stopRecording()
 
-						if (script.startRecording.cropped) {
-							// Figure out the active bounding box
-							const boundingBox = {
-								x1: Infinity,
-								x2: -Infinity,
-								y1: Infinity,
-								y2: -Infinity,
+						try {
+							if (script.startRecording?.cropped) {
+								const croppedVideoFilename = `${videoFilename}-cropped.webm`
+
+								await api.cropRecording(croppedVideoFilename)
+
+								logger.info(`Cropped video: ${croppedVideoFilename}`)
 							}
-							await ffmpeg(logger, ['-i', videoFilename, '-vf', 'bbox=min_val=50', '-f', 'null', '-'], {
-								onStderr: (data) => {
-									// [Parsed_bbox_0 @ 000002b6f5d474c0] n:25 pts:833 pts_time:0.833 x1:205 x2:236 y1:614 y2:650 w:32 h:37 crop=32:37:205:614 drawbox=205:614:32:37
-									const m = data.match(
-										/Parsed_bbox.*x1:(?<x1>\d+).*x2:(?<x2>\d+).*y1:(?<y1>\d+).*y2:(?<y2>\d+)/
-									)
-									if (m && m.groups) {
-										boundingBox.x1 = Math.min(boundingBox.x1, parseInt(m.groups.x1, 10))
-										boundingBox.x2 = Math.max(boundingBox.x2, parseInt(m.groups.x2, 10))
-										boundingBox.y1 = Math.min(boundingBox.y1, parseInt(m.groups.y1, 10))
-										boundingBox.y2 = Math.max(boundingBox.y2, parseInt(m.groups.y2, 10))
-									}
-								},
-							})
 
-							if (
-								boundingBox.x1 === Infinity ||
-								boundingBox.x2 === -Infinity ||
-								boundingBox.y1 === Infinity ||
-								boundingBox.y2 === -Infinity
-							) {
-								logger.warn(`Could not determine bounding box`)
-								// Just copy the full video
-								await fs.promises.copyFile(videoFilename, croppedVideoFilename)
+							if (!script.startRecording?.full) {
+								await fs.promises.rm(videoFilename)
 							} else {
-								// Add margins:
-								boundingBox.x1 -= 10 + (boundingBox.x1 > width * 0.65 ? 10 : 0)
-								boundingBox.x2 += 10 + (boundingBox.x2 < width * 0.65 ? 10 : 0)
-								boundingBox.y1 -= 10 + (boundingBox.y1 > height * 0.65 ? 10 : 0)
-								boundingBox.y2 += 10 + (boundingBox.y2 < height * 0.65 ? 10 : 0)
-
-								logger.verbose(`Saving cropped recording to ${croppedVideoFilename}`)
-								// Generate a cropped video as well:
-								await ffmpeg(logger, [
-									'-y',
-									'-i',
-									videoFilename,
-									'-filter:v',
-									`crop=${boundingBox.x2 - boundingBox.x1}:${boundingBox.y2 - boundingBox.y1}:${
-										boundingBox.x1
-									}:${boundingBox.y1}`,
-									croppedVideoFilename,
-								])
+								logger.info(`Video: ${videoFilename}`)
 							}
-							logger.info(`Cropped video: ${croppedVideoFilename}`)
-						}
+						} catch (e) {
+							logger.error(`Aborting due to an error: ${e}`)
+							exitCode = 1
+						} finally {
+							logger.verbose(`Removing temporary files...`)
 
-						if (!script.startRecording.full) {
-							await fs.promises.rm(videoFilename)
-						} else {
-							logger.info(`Video: ${videoFilename}`)
-						}
-					} catch (e) {
-						logger.error(`Aborting due to an error: ${e}`)
-						exitCode = 1
-					} finally {
-						logger.verbose(`Removing temporary files...`)
-						await fs.promises.rm(tmpFolder, { recursive: true })
+							await cleanupTemporaryFiles()
 
-						if (!script.startRecording.full) {
-							await fs.promises.rm(videoFilename)
-						}
-
-						// Look for old tmp files
-						const oldTmpFiles = await fs.promises.readdir(tempFolder)
-						for (const oldTmpFile of oldTmpFiles) {
-							const oldTmpFileath = path.join(tempFolder, oldTmpFile)
-							const stat = await fs.promises.stat(oldTmpFileath)
-							if (stat.ctimeMs < Date.now() - 60000) {
-								await fs.promises.rm(oldTmpFileath, { recursive: true })
+							if (!script.startRecording?.full) {
+								await fs.promises.rm(videoFilename)
 							}
 						}
 					}
+					waitForScripts.push(startRecording())
 				}
-				waitForScripts.push(startRecording())
 			}
 		}
-
-		await Promise.all(waitForScripts)
 
 		win.close()
 
@@ -332,4 +421,12 @@ async function ffmpeg(
 			} else resolve()
 		})
 	})
+}
+export type InteractiveAPI = {
+	waitForLoad: () => Promise<void>
+	takeScreenshot: (fileName: string) => Promise<string>
+	startRecording: (fileName: string, frameListener?: (frameIndex: number) => void) => Promise<string>
+	stopRecording: () => Promise<string>
+	cropRecording: (fileName: string) => Promise<string>
+	executeJs: (js: string) => Promise<any>
 }
