@@ -123,7 +123,7 @@ jobs:
 
       - name: Build and push http-server to GHCR
         if: steps.check-build-and-push.outputs.enable == 'true' && steps.check-ghcr.outputs.enable == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/http-server/app/Dockerfile
@@ -134,7 +134,7 @@ jobs:
 
       - name: Build and push http-server to DockerHub
         if: steps.check-build-and-push.outputs.enable == 'true' && steps.dockerhub.outputs.dockerhub-publish == '1'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/http-server/app/Dockerfile
@@ -145,7 +145,7 @@ jobs:
 
       - name: Build and push quantel-http-transformer-proxy to GHCR
         if: steps.check-build-and-push.outputs.enable == 'true' && steps.check-ghcr.outputs.enable == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/quantel-http-transformer-proxy/app/Dockerfile
@@ -156,7 +156,7 @@ jobs:
 
       - name: Build and push quantel-http-transformer-proxy to DockerHub
         if: steps.check-build-and-push.outputs.enable == 'true' && steps.dockerhub.outputs.dockerhub-publish == '1'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/quantel-http-transformer-proxy/app/Dockerfile
