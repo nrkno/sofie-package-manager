@@ -2,7 +2,7 @@ import { BrowserWindow, app, ipcMain } from 'electron'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import { LoggerInstance, getFFMpegExecutable, testFFMpeg } from '@sofie-package-manager/api'
+import { LoggerInstance, escapeFilePath, getFFMpegExecutable, testFFMpeg } from '@sofie-package-manager/api'
 import { sleep } from '@sofie-automation/shared-lib/dist/lib/lib'
 
 export interface RenderHTMLOptions {
@@ -85,11 +85,18 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 		// win.webContents.on('plugin-crashed', (e: unknown) => log('plugin-crashed', e))
 		// win.webContents.on('destroyed', (e: unknown) => log('destroyed', e))
 
+		let didFinishLoad = false
+		let didFailLoad: null | any = null
+		win.webContents.on('did-finish-load', () => (didFinishLoad = true))
+		win.webContents.on('did-fail-load', (e) => {
+			didFailLoad = e
+		})
+
 		logger.verbose(`Loading URL: ${options.url}`)
 		win.loadURL(options.url).catch((_e) => {
 			// ignore, instead rely on 'did-finish-load' and 'did-fail-load' later
 		})
-		logger.verbose(`Loading done`)
+		// logger.verbose(`Loading done`)
 
 		win.title = `HTML Renderer ${process.pid}`
 
@@ -99,13 +106,6 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 
 		let exitCode = 0
 
-		let didFinishLoad = false
-		let didFailLoad: null | any = null
-		win.webContents.on('did-finish-load', () => (didFinishLoad = true))
-		win.webContents.on('did-fail-load', (e) => {
-			didFailLoad = e
-		})
-
 		let recording: {
 			fileName: string
 			tmpFolder: string
@@ -114,19 +114,31 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 		} | null = null
 		const api: InteractiveAPI = {
 			waitForLoad: async () => {
+				console.log('waitForLoad...')
 				if (didFinishLoad) return
 				if (didFailLoad) throw new Error(`${didFailLoad}`)
 				else
-					return new Promise<void>((resolve) => {
+					await new Promise<void>((resolve) => {
 						win.webContents.once('did-finish-load', () => resolve())
 					})
+
+				console.log('waitForLoad done')
 			},
 			takeScreenshot: async (fileName: string) => {
 				if (!fileName) throw new Error(`Invalid filename`)
 
 				const image = await win.webContents.capturePage()
 				const filename = path.join(outputFolder, fileName)
-				await fs.promises.writeFile(filename, image.toPNG())
+
+				await fs.promises.mkdir(path.dirname(filename), { recursive: true })
+
+				if (fileName.endsWith('.png')) {
+					await fs.promises.writeFile(filename, image.toPNG())
+				} else if (fileName.endsWith('.jpeg')) {
+					await fs.promises.writeFile(filename, image.toJPEG(90))
+				} else {
+					throw new Error(`Unsupported file format: ${fileName}`)
+				}
 				return filename
 			},
 			executeJs: async (js: string) => {
@@ -140,16 +152,15 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 				if (recording) throw new Error(`Already recording`)
 
 				const filename = path.join(outputFolder, fileName)
+				await fs.promises.mkdir(path.dirname(filename), { recursive: true })
 
 				let i = 0
 
 				const tmpFolder = path.resolve(path.join(tempFolder, `recording${process.pid}`))
-				await fs.promises.mkdir(tmpFolder, {
-					recursive: true,
-				})
+				await fs.promises.mkdir(tmpFolder, { recursive: true })
 
 				recording = {
-					fileName: `${filename}.webm`,
+					fileName: `${filename}`,
 					tmpFolder,
 					writeFilePromises: [],
 					stopped: false,
@@ -181,6 +192,17 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 				// Wait for all current file writes to finish:
 				await Promise.all(recording.writeFilePromises)
 
+				let format: string
+				if (recording.fileName.endsWith('.webm')) {
+					format = 'webm'
+				} else if (recording.fileName.endsWith('.mp4')) {
+					format = 'mp4'
+				} else if (recording.fileName.endsWith('.mov')) {
+					format = 'mov'
+				} else {
+					throw new Error(`Unsupported file format: ${recording.fileName}`)
+				}
+
 				// Convert the pngs to a video:
 				await ffmpeg(logger, [
 					'-y',
@@ -191,20 +213,23 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 					'-i',
 					`${recording.tmpFolder}/img%05d.png`,
 					'-f',
-					'webm', // format: webm
+					format, // format: webm
 					'-an', // blocks all audio streams
 					'-c:v',
 					'libvpx-vp9', // encoder for video (use VP9)
 					'-auto-alt-ref',
 					'1',
-					recording.fileName,
+					escapeFilePath(recording.fileName),
 				])
 
 				return recording.fileName
 			},
-			cropRecording: async (croppedFilename: string) => {
+			cropRecording: async (croppedFilename0: string) => {
 				if (!recording) throw new Error(`No recording`)
-				if (recording.stopped) throw new Error(`Recording not stopped yet`)
+				if (!recording.stopped) throw new Error(`Recording not stopped yet`)
+
+				const croppedFilename = path.join(outputFolder, croppedFilename0)
+				await fs.promises.mkdir(path.dirname(croppedFilename), { recursive: true })
 
 				// Figure out the active bounding box
 				const boundingBox = {
@@ -213,18 +238,24 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 					y1: Infinity,
 					y2: -Infinity,
 				}
-				await ffmpeg(logger, ['-i', recording.fileName, '-vf', 'bbox=min_val=50', '-f', 'null', '-'], {
-					onStderr: (data) => {
-						// [Parsed_bbox_0 @ 000002b6f5d474c0] n:25 pts:833 pts_time:0.833 x1:205 x2:236 y1:614 y2:650 w:32 h:37 crop=32:37:205:614 drawbox=205:614:32:37
-						const m = data.match(/Parsed_bbox.*x1:(?<x1>\d+).*x2:(?<x2>\d+).*y1:(?<y1>\d+).*y2:(?<y2>\d+)/)
-						if (m && m.groups) {
-							boundingBox.x1 = Math.min(boundingBox.x1, parseInt(m.groups.x1, 10))
-							boundingBox.x2 = Math.max(boundingBox.x2, parseInt(m.groups.x2, 10))
-							boundingBox.y1 = Math.min(boundingBox.y1, parseInt(m.groups.y1, 10))
-							boundingBox.y2 = Math.max(boundingBox.y2, parseInt(m.groups.y2, 10))
-						}
-					},
-				})
+				await ffmpeg(
+					logger,
+					['-i', escapeFilePath(recording.fileName), '-vf', 'bbox=min_val=50', '-f', 'null', '-'],
+					{
+						onStderr: (data) => {
+							// [Parsed_bbox_0 @ 000002b6f5d474c0] n:25 pts:833 pts_time:0.833 x1:205 x2:236 y1:614 y2:650 w:32 h:37 crop=32:37:205:614 drawbox=205:614:32:37
+							const m = data.match(
+								/Parsed_bbox.*x1:(?<x1>\d+).*x2:(?<x2>\d+).*y1:(?<y1>\d+).*y2:(?<y2>\d+)/
+							)
+							if (m && m.groups) {
+								boundingBox.x1 = Math.min(boundingBox.x1, parseInt(m.groups.x1, 10))
+								boundingBox.x2 = Math.max(boundingBox.x2, parseInt(m.groups.x2, 10))
+								boundingBox.y1 = Math.min(boundingBox.y1, parseInt(m.groups.y1, 10))
+								boundingBox.y2 = Math.max(boundingBox.y2, parseInt(m.groups.y2, 10))
+							}
+						},
+					}
+				)
 
 				if (
 					boundingBox.x1 === Infinity ||
@@ -247,13 +278,14 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 					await ffmpeg(logger, [
 						'-y',
 						'-i',
-						recording.fileName,
+						escapeFilePath(recording.fileName),
 						'-filter:v',
 						`crop=${boundingBox.x2 - boundingBox.x1}:${boundingBox.y2 - boundingBox.y1}:${boundingBox.x1}:${
 							boundingBox.y1
 						}`,
-						croppedFilename,
+						escapeFilePath(croppedFilename),
 					])
+					logger.verbose(`Saved cropped recording`)
 				}
 				return croppedFilename
 			},
@@ -275,6 +307,8 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 		if (options.interactive) {
 			await options.interactive(api)
 		} else {
+			await api.waitForLoad()
+
 			const waitForScripts: Promise<void>[] = []
 			const maxDelay = Math.max(...options.scripts.map((s) => s.wait))
 			for (const script of options.scripts) {

@@ -7,7 +7,7 @@
 _This is used for a HTML file that follows the typical CasparCG lifespan (`update(data); play(); stop()`)_
 
 ```bash
-htmlrenderer.exe --url=file://C:/templates/mytemplate.html  outputPath=C:\\rendered --screenshots=true --recording=true --recording-cropped=true --casparData='{"name":"John Doe"}' --casparDelay=1000
+htmlrenderer.exe -- --url=file://C:/templates/mytemplate.html  outputPath=C:\\rendered --screenshots=true --recording=true --recording-cropped=true --casparData='{"name":"John Doe"}' --casparDelay=1000
 ```
 
 ### Standalone HTML template
@@ -15,7 +15,7 @@ htmlrenderer.exe --url=file://C:/templates/mytemplate.html  outputPath=C:\\rende
 _This is used for a HTML file that doesn't require any additional input during its run._
 
 ```bash
-htmlrenderer.exe --url=https://bouncingdvdlogo.com outputPath=C:\\rendered --screenshots=true --recording=true --recording-cropped=true  --genericWaitIdle=1000 --genericWaitPlay=1000 --genericWaitStop=1000
+htmlrenderer.exe -- --url=https://bouncingdvdlogo.com outputPath=C:\\rendered --screenshots=true --recording=true --recording-cropped=true  --genericWaitIdle=1000 --genericWaitPlay=1000 --genericWaitStop=1000
 ```
 
 ### Interactive mode
@@ -23,7 +23,7 @@ htmlrenderer.exe --url=https://bouncingdvdlogo.com outputPath=C:\\rendered --scr
 _This is used for HTML templates that require manual handling (like, external API calls need to be made)_
 
 ```bash
-htmlrenderer.exe --url=https://bouncingdvdlogo.com outputPath=C:\\rendered --interactive=1
+htmlrenderer.exe -- --url=https://bouncingdvdlogo.com outputPath=C:\\rendered --interactive=1
 ```
 
 In interactive mode, commands are sent to the renderer via the console. The following commands are available:

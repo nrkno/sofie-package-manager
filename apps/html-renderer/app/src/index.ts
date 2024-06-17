@@ -1,9 +1,12 @@
+import { WebSocketServer } from 'ws'
+import * as portFinder from 'portfinder'
 import {
 	setupLogger,
 	initializeLogger,
 	assertNever,
-	InteractiveReply,
+	InteractiveStdOut,
 	InteractiveMessage,
+	InteractiveReply,
 } from '@sofie-package-manager/api'
 import { renderHTML, RenderHTMLOptions, InteractiveAPI } from '@html-renderer/generic'
 import { getHTMLRendererConfig } from './config'
@@ -41,45 +44,77 @@ async function main(): Promise<void> {
 
 	if (config.htmlRenderer.interactive) {
 		interactive = async (api: InteractiveAPI) => {
-			// Signal that we're ready to receive input:
-			interactiveLog({ status: 'ready' })
-			process.stdin.on('data', (data) => {
-				const str = data.toString()
-				try {
-					const message = JSON.parse(str) as InteractiveMessage
-					if (typeof message === 'object') {
-						if (message.do === 'waitForLoad') {
-							api.waitForLoad()
-								.then(() => interactiveLog({ reply: 'waitForLoad' }))
-								.catch((e: unknown) => interactiveLog({ reply: 'waitForLoad', error: `${e}` }))
-						} else if (message.do === 'takeScreenshot') {
-							api.takeScreenshot(message.fileName)
-								.then(() => interactiveLog({ reply: 'takeScreenshot' }))
-								.catch((e: unknown) => interactiveLog({ reply: 'takeScreenshot', error: `${e}` }))
-						} else if (message.do === 'startRecording') {
-							api.startRecording(message.fileName)
-								.then(() => interactiveLog({ reply: 'startRecording' }))
-								.catch((e: unknown) => interactiveLog({ reply: 'startRecording', error: `${e}` }))
-						} else if (message.do === 'stopRecording') {
-							api.stopRecording()
-								.then(() => interactiveLog({ reply: 'stopRecording' }))
-								.catch((e: unknown) => interactiveLog({ reply: 'stopRecording', error: `${e}` }))
-						} else if (message.do === 'cropRecording') {
-							api.cropRecording(message.fileName)
-								.then(() => interactiveLog({ reply: 'cropRecording' }))
-								.catch((e: unknown) => interactiveLog({ reply: 'cropRecording', error: `${e}` }))
-						} else if (message.do === 'executeJs') {
-							api.executeJs(message.js)
-								.then(() => interactiveLog({ reply: 'executeJs' }))
-								.catch((e: unknown) => interactiveLog({ reply: 'executeJs', error: `${e}` }))
-						} else {
-							assertNever(message)
-							interactiveLog({ reply: 'unsupported', error: `Unsupported message: ${str}` })
-						}
-					} else interactiveLog({ reply: 'unsupported', error: `Unsupported message: ${str}` })
-				} catch (e) {
-					interactiveLog({ reply: 'unsupported', error: `Error parsing message (${e})` })
+			const port = await portFinder.getPortPromise()
+			const wss = new WebSocketServer({
+				port,
+			})
+			await new Promise<void>((resolve, reject) => {
+				wss.once('listening', resolve)
+				wss.once('error', reject)
+			})
+
+			await new Promise<void>((resolve, reject) => {
+				const interactiveLogStdOut = (message: InteractiveStdOut) => {
+					// eslint-disable-next-line no-console
+					console.log(JSON.stringify(message))
 				}
+
+				// Signal that we're listening to at websocket port:
+				interactiveLogStdOut({ status: 'listening', port })
+
+				wss.on('connection', (ws) => {
+					console.log('client connected')
+
+					const interactiveLog = (message: InteractiveReply) => {
+						ws.send(JSON.stringify(message))
+					}
+					const onError = (message: any) => {
+						interactiveLog(message)
+						reject(new Error(message.error))
+					}
+
+					ws.on('message', (data) => {
+						const str = data.toString()
+						console.log('received', str)
+						try {
+							const message = JSON.parse(str) as InteractiveMessage
+							if (typeof message === 'object') {
+								if (message.do === 'waitForLoad') {
+									api.waitForLoad()
+										.then(() => interactiveLog({ reply: 'waitForLoad' }))
+										.catch((e: unknown) => onError({ reply: 'waitForLoad', error: `${e}` }))
+								} else if (message.do === 'takeScreenshot') {
+									api.takeScreenshot(message.fileName)
+										.then(() => interactiveLog({ reply: 'takeScreenshot' }))
+										.catch((e: unknown) => onError({ reply: 'takeScreenshot', error: `${e}` }))
+								} else if (message.do === 'startRecording') {
+									api.startRecording(message.fileName)
+										.then(() => interactiveLog({ reply: 'startRecording' }))
+										.catch((e: unknown) => onError({ reply: 'startRecording', error: `${e}` }))
+								} else if (message.do === 'stopRecording') {
+									api.stopRecording()
+										.then(() => interactiveLog({ reply: 'stopRecording' }))
+										.catch((e: unknown) => onError({ reply: 'stopRecording', error: `${e}` }))
+								} else if (message.do === 'cropRecording') {
+									api.cropRecording(message.fileName)
+										.then(() => interactiveLog({ reply: 'cropRecording' }))
+										.catch((e: unknown) => onError({ reply: 'cropRecording', error: `${e}` }))
+								} else if (message.do === 'executeJs') {
+									api.executeJs(message.js)
+										.then(() => interactiveLog({ reply: 'executeJs' }))
+										.catch((e: unknown) => onError({ reply: 'executeJs', error: `${e}` }))
+								} else if (message.do === 'close') {
+									resolve()
+								} else {
+									assertNever(message)
+									onError({ reply: 'unsupported', error: `Unsupported message: ${str}` })
+								}
+							} else onError({ reply: 'unsupported', error: `Unsupported message: ${str}` })
+						} catch (e) {
+							onError({ reply: 'unsupported', error: `Error parsing message (${e})` })
+						}
+					})
+				})
 			})
 		}
 	} else if (config.htmlRenderer.casparData) {
@@ -181,7 +216,9 @@ async function main(): Promise<void> {
 			'No "interactive", "casparData" or "genericWaitIdle"/"genericWaitPlay"/"genericWaitStop" parameters provided'
 		)
 	}
-	logger.info(JSON.stringify(scripts))
+	if (scripts.length === 0) {
+		logger.info(JSON.stringify(scripts))
+	}
 
 	const { exitCode, app } = await renderHTML({
 		logger,
@@ -205,9 +242,4 @@ main().catch((e) => {
 })
 function compact<T>(array: (T | undefined | null | false)[]): T[] {
 	return array.filter(Boolean) as T[]
-}
-
-function interactiveLog(message: InteractiveReply) {
-	// eslint-disable-next-line no-console
-	console.log(JSON.stringify(message))
 }

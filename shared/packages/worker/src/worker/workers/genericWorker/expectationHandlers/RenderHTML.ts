@@ -1,6 +1,7 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import WebSocket from 'ws'
 import { BaseWorker } from '../../../worker'
 import { UniversalVersion, getStandardCost, makeUniversalVersion } from '../lib/lib'
 import {
@@ -19,6 +20,10 @@ import {
 	assertNever,
 	hash,
 	protectString,
+	InteractiveStdOut,
+	InteractiveReply,
+	InteractiveMessage,
+	literal,
 } from '@sofie-package-manager/api'
 
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -237,32 +242,30 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 
 				// Prefix the work-in-progress artifacts with a unique identifier
 				const filePrefix = hash(`${process.pid}_${Math.random()}`)
-				const tempSteps = steps.map((step) => {
-					const tempStep = {
-						...step,
-						duration: 500, // Used to calculate total duration
+				const executeSteps = steps.map((step) => {
+					const executeStep = {
+						step,
+						duration: 'duration' in step ? step.duration : 500, // Used to calculate total duration
 					}
-					if ('fileName' in tempStep) {
-						tempStep.fileName = `${filePrefix}_${tempStep.fileName}`
+					if ('fileName' in executeStep.step) {
+						executeStep.step.fileName = `${filePrefix}_${executeStep.step.fileName}`
 					}
-					if ('duration' in step) {
-						tempStep.duration = step.duration
-					}
-					return tempStep
+					return executeStep
 				})
-				const totalTempStepDuration = tempSteps.reduce((prev, cur) => prev + cur.duration, 0) || 1
-				const { fileNames: tempFileNames } = getFileNames(tempSteps)
+				const totalTempStepDuration = executeSteps.reduce((prev, cur) => prev + cur.duration, 0) || 1
+				const { fileNames: outputFileNames } = getFileNames(executeSteps.map((s) => s.step))
 				// Remote old files, if they exist:
 				await Promise.all(
-					tempFileNames.map(async (fileName) => unlinkIfExists(path.join(outputPath, fileName)))
+					outputFileNames.map(async (fileName) => unlinkIfExists(path.join(outputPath, fileName)))
 				)
-				workInProgress._reportProgress(actualSourceVersionHash, 0.1)
+				workInProgress._reportProgress(actualSourceVersionHash, 0.05)
 
 				// Render HTML file according to the steps:
 				await new Promise<void>((resolve, reject) => {
 					htmlRendererProcess = spawn(
 						getHtmlRendererExecutable(),
 						compact<string>([
+							`--`,
 							`--url=${url}`,
 							exp.endRequirement.version.renderer?.width !== undefined &&
 								`--width=${exp.endRequirement.version.renderer?.width}]`,
@@ -301,87 +304,140 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 					let waitingForReady = true
 					let waitingForCommand: string | null = null
 					let stepDuration = 0
-					const sendNextCommand = () => {
-						const cmd = tempSteps[stepIndex]
-						if (cmd) {
-							htmlRendererProcess?.stdin.write(JSON.stringify(cmd) + '\n')
-							waitingForCommand = cmd.do
-							stepIndex++
 
-							stepDuration += cmd.duration
+					const setupWebSocketConnection = async (port: number) => {
+						const sendNextCommand = () => {
+							const nextStep = executeSteps[stepIndex]
+							stepIndex++
+							console.log('sendNextCommand', nextStep)
+
+							if (nextStep) {
+								stepDuration += nextStep.duration
+								if (nextStep.step.do === 'sleep') {
+									setTimeout(() => {
+										sendNextCommand()
+									}, nextStep.step.duration)
+									waitingForCommand = null
+								} else {
+									// Send command to the renderer
+									const cmd: InteractiveMessage = nextStep.step
+
+									ws.send(JSON.stringify(cmd) + '\n')
+									waitingForCommand = cmd.do
+								}
+							} else {
+								// Done, no more commands to send.
+								// Send a close command to the renderer
+								ws.send(JSON.stringify(literal<InteractiveMessage>({ do: 'close' })))
+
+								setTimeout(() => {
+									ws.close()
+									// killProcess()
+									resolve()
+								}, 500)
+							}
 
 							workInProgress._reportProgress(
 								actualSourceVersionHash,
 								0.1 + 0.49 * (stepDuration / totalTempStepDuration)
 							)
-						} else {
-							// Done, no more commands to send
-							killProcess()
-							resolve()
 						}
+						workInProgress._reportProgress(actualSourceVersionHash, 0.08)
+
+						const ws = new WebSocket(`ws://127.0.0.1:${port}`)
+						ws.on('message', (data) => {
+							const str = data.toString()
+							console.log('websocket received', str)
+
+							let message: InteractiveReply
+							try {
+								message = JSON.parse(str)
+							} catch {
+								// ignore parse errors
+								return
+							}
+
+							if (message.reply) {
+								if (!waitingForCommand) {
+									reject(
+										new Error(
+											`Unexpected reply from HTMLRenderer: ${message.reply} (not waiting for command)`
+										)
+									)
+									killProcess()
+								} else if (message.reply === waitingForCommand) {
+									// This message indicates that the HTML renderer has completed the previous command
+									waitingForCommand = null
+									sendNextCommand()
+								} else {
+									reject(
+										new Error(
+											`Unexpected reply from HTMLRenderer: ${message.reply} (not waiting for command)`
+										)
+									)
+									killProcess()
+								}
+							} else {
+								assertNever(message)
+								// Other output, log and ignore:
+								worker.logger.silly(`HTMLRenderer: ${str}`)
+							}
+						})
+						await new Promise<void>((resolve, reject) => {
+							ws.once('open', resolve)
+							ws.once('error', reject)
+						})
+						console.log('WebSocket connected')
+
+						workInProgress._reportProgress(actualSourceVersionHash, 0.1)
+
+						sendNextCommand()
 					}
 
 					htmlRendererProcess.stderr.on('data', (data) => {
 						const str = data.toString()
+						console.log('stderr', str)
 						lastFewLines.push(str)
 						if (lastFewLines.length > 10) lastFewLines.shift()
 					})
 					htmlRendererProcess.stdout.on('data', (data) => {
 						const str = data.toString()
+						console.log('stdout', str)
 
 						lastFewLines.push(str)
 						if (lastFewLines.length > 10) lastFewLines.shift()
 
-						let message: Record<string, any>
+						let message: InteractiveStdOut
 						try {
 							message = JSON.parse(str)
 						} catch {
 							// ignore parse errors
 							return
 						}
-						if (message.status === 'ready') {
-							// This message indicates that the HTML renderer is ready to accept interactive commands
+						if (message.status === 'listening') {
+							// This message indicates that the HTML renderer is ready to accept interactive commands on the websocket server
 							if (waitingForReady) {
 								waitingForReady = false
-								sendNextCommand()
-							} else {
-								reject(
-									new Error(`Unexpected reply from HTMLRenderer: ${message} (not waiting for ready)`)
-								)
-								killProcess()
-							}
-						} else if (message.reply) {
-							if (!waitingForCommand) {
-								reject(
-									new Error(
-										`Unexpected reply from HTMLRenderer: ${message.reply} (not waiting for command)`
-									)
-								)
-								killProcess()
-							} else if (message.reply === waitingForCommand) {
-								// This message indicates that the HTML renderer has completed the previous command
-								waitingForCommand = null
-								sendNextCommand()
+								setupWebSocketConnection(message.port).catch(reject)
 							} else {
 								reject(
 									new Error(
-										`Unexpected reply from HTMLRenderer: ${message.reply} (not waiting for command)`
+										`Unexpected reply from HTMLRenderer: ${message} (not waiting for 'listening')`
 									)
 								)
 								killProcess()
 							}
 						} else {
-							// Other output, log and ignore:
-							worker.logger.silly(`HTMLRenderer: ${str}`)
+							assertNever(message.status)
 						}
 					})
 				})
 
 				// Move files to the target:
 
-				for (let i = 0; i < tempFileNames.length; i++) {
+				for (let i = 0; i < outputFileNames.length; i++) {
 					if (wasCancelled) break
-					const tempFileName = tempFileNames[i]
+					const tempFileName = outputFileNames[i]
 					const fileName = fileNames[i]
 					const localFileSourceHandle = new LocalFolderAccessorHandle(
 						worker,
@@ -401,10 +457,10 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 
 					const fileOperation = await lookupTarget.handle.prepareForOperation(
 						'Copy file, using streams',
-						lookupSource.handle
+						localFileSourceHandle
 					)
 
-					workInProgress._reportProgress(actualSourceVersionHash, 0.6 + 0.3 * (i / tempFileNames.length))
+					workInProgress._reportProgress(actualSourceVersionHash, 0.6 + 0.3 * (i / outputFileNames.length))
 
 					const fileSize = (await fs.stat(localFileSourceHandle.fullPath)).size
 					const byteCounter = new ByteCounter()
@@ -415,19 +471,22 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 							const progress = bytes / fileSize
 							workInProgress._reportProgress(
 								actualSourceVersionHash,
-								0.6 + 0.3 * ((i + progress) / tempFileNames.length)
+								0.6 + 0.3 * ((i + progress) / outputFileNames.length)
 							)
 						}
 					})
 
 					sourceStream = await localFileSourceHandle.getPackageReadStream()
 					writeStream = await lookupTarget.handle.putPackageStream(sourceStream.readStream.pipe(byteCounter))
+					writeStream.on('error', (err) => {
+						workInProgress._reportError(err)
+					})
 
 					if (writeStream.usingCustomProgressEvent) {
 						writeStream.on('progress', (progress) => {
 							workInProgress._reportProgress(
 								actualSourceVersionHash,
-								0.6 + 0.3 * ((i + progress) / tempFileNames.length)
+								0.6 + 0.3 * ((i + progress) / outputFileNames.length)
 							)
 						})
 					}
@@ -439,9 +498,10 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 						sourceStream.readStream.on('error', (err) => {
 							reject(err)
 						})
-						writeStream.on('error', (err) => {
+						writeStream.once('error', (err) => {
 							reject(err)
 						})
+
 						writeStream.once('close', () => {
 							resolve()
 						})
@@ -460,7 +520,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 
 				// Clean temp files:
 				await Promise.all(
-					tempFileNames.map(async (fileName) => unlinkIfExists(path.join(outputPath, fileName)))
+					outputFileNames.map(async (fileName) => unlinkIfExists(path.join(outputPath, fileName)))
 				)
 				workInProgress._reportProgress(actualSourceVersionHash, 0.95)
 
@@ -581,13 +641,13 @@ async function lookupSources(
 async function lookupTargets(
 	worker: BaseWorker,
 	exp: Expectation.RenderHTML,
-	fileName: string
+	filePath: string
 ): Promise<LookupPackageContainer<UniversalVersion>> {
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.endRequirement.targets,
 		{
-			fileName,
+			filePath,
 		},
 		exp.workOptions,
 		{
@@ -598,10 +658,12 @@ async function lookupTargets(
 }
 type Steps = Required<Expectation.RenderHTML['endRequirement']['version']>['steps']
 function getSteps(exp: Expectation.RenderHTML): Steps {
+	let steps: Steps
 	if (exp.endRequirement.version.casparCG) {
+		// Generate a set of steps for standard CasparCG templates
 		const casparData = exp.endRequirement.version.casparCG.data
 		const casparDataJSON = typeof casparData === 'string' ? casparData : JSON.stringify(casparData)
-		return [
+		steps = [
 			{ do: 'waitForLoad' },
 			{ do: 'takeScreenshot', fileName: 'idle.png' },
 			{ do: 'startRecording', fileName: 'preview.webm' },
@@ -613,9 +675,19 @@ function getSteps(exp: Expectation.RenderHTML): Steps {
 			{ do: 'sleep', duration: 1000 },
 			{ do: 'takeScreenshot', fileName: 'stop.png' },
 			{ do: 'stopRecording' },
+			{ do: 'cropRecording', fileName: 'preview-cropped.webm' },
 		]
+	} else {
+		steps = exp.endRequirement.version.steps || []
 	}
-	return exp.endRequirement.version.steps || []
+	// Add prefix to steps fileName:
+	return steps.map((org) => {
+		const step = { ...org }
+		if ('fileName' in step) {
+			step.fileName = `${exp.endRequirement.content.prefix ?? ''}${step.fileName}`
+		}
+		return step
+	})
 }
 function getFileNames(steps: Steps) {
 	const fileNames: string[] = []

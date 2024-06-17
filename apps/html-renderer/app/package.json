@@ -25,14 +25,19 @@
             "eslint"
         ]
     },
+    "peerDependencies": {
+        "ws": "*"
+    },
     "dependencies": {
         "@html-renderer/generic": "1.50.5",
         "@sofie-automation/shared-lib": "1.50.0",
         "@sofie-package-manager/api": "1.50.5",
+        "portfinder": "^1.0.32",
         "tslib": "^2.1.0",
         "yargs": "^17.7.2"
     },
     "devDependencies": {
+        "@types/ws": "^8.5.4",
         "archiver": "^7.0.1",
         "electron": "^30.0.6",
         "electron-builder": "^24.13.3",

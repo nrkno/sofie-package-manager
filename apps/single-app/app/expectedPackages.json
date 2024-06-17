@@ -55,7 +55,7 @@
                 "local": {
                     "type": "local_folder",
                     "label": "Local",
-                    "folderPath": "D:\\git\\gfx-templates\\10mila\\dist",
+                    "folderPath": "C:\\git\\gfx-templates\\10mila\\dist",
                     "allowRead": true,
                     "allowWrite": true
                 }
@@ -91,21 +91,21 @@
             "_id": "test",
             "contentVersionHash": "abc1234",
             "content": {
-                "filePath": "amb.mp4"
+                "outputPrefix": "Johan1"
             },
             "version": {
                 "casparCG": {
                     "data": {
-                        "name": "Johan"
+                        "name": "Johan1"
                     }
                 }
             },
             "sources": [
                 {
-                    "containerId": "source0",
+                    "containerId": "templates0",
                     "accessors": {
                         "local": {
-                            "type": "templates0",
+                            "type": "local_folder",
                             "filePath": "person.html"
                         }
                     }

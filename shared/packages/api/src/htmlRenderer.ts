@@ -73,13 +73,13 @@ export async function testExecutable(executable: string): Promise<string | null>
 			resolve(`Process ${executable} emitted error: ${stringifyError(err)}`)
 		})
 		htmlRendererProcess.on('exit', (code) => {
-			const m = output.match(/version ([\w.]+)/) // version 1.50.1
+			const m = output.match(/Version: ([\w.]+)/i) // Version 1.50.1
 
 			if (code === 0) {
 				if (m) {
 					resolve(null)
 				} else {
-					resolve(`Process ${executable} bad version: ${output}`)
+					resolve(`Process ${executable} bad version: "${output}"`)
 				}
 			} else {
 				resolve(`Process ${executable} exited with code ${code}`)
@@ -88,7 +88,10 @@ export async function testExecutable(executable: string): Promise<string | null>
 	})
 }
 
-/** Messages sent into HTMLRenderer process over stdin */
+/** Messages sent from HTMLRenderer process over stdout */
+export type InteractiveStdOut = { status: 'listening'; port: number }
+
+/** Messages sent into HTMLRenderer process over websocket */
 export type InteractiveMessage =
 	| { do: 'waitForLoad' }
 	| { do: 'takeScreenshot'; fileName: string }
@@ -96,9 +99,9 @@ export type InteractiveMessage =
 	| { do: 'stopRecording' }
 	| { do: 'cropRecording'; fileName: string }
 	| { do: 'executeJs'; js: string }
-/** Messages sent from HTMLRenderer process over stdout */
+	| { do: 'close' }
+/** Messages sent from HTMLRenderer process over websocket */
 export type InteractiveReply =
-	| { status: 'ready' }
 	| { reply: 'unsupported'; error: string }
 	| { reply: 'waitForLoad'; error?: string }
 	| { reply: 'takeScreenshot'; error?: string }

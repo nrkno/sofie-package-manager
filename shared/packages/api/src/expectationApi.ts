@@ -346,7 +346,10 @@ export namespace Expectation {
 		}
 		endRequirement: {
 			targets: SpecificPackageContainerOnPackage.FileTarget[]
-			content: Record<string, never>
+			content: {
+				/** Prefix of output files */
+				prefix?: string
+			}
 			version: {
 				renderer?: {
 					width?: number

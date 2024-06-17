@@ -628,9 +628,13 @@ export function generateHTMLRender(
 ): Expectation.RenderHTML {
 	const expWrapHTMLTemplate = expWrap as ExpectedPackageWrapHTMLTemplate
 
+	const expectedPackage = expWrap.expectedPackage as ExpectedPackage.ExpectedPackageHtmlTemplate
+
 	const endRequirement: Expectation.RenderHTML['endRequirement'] = {
 		targets: expWrapHTMLTemplate.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
-		content: {},
+		content: {
+			prefix: expectedPackage.content.outputPrefix,
+		},
 		version: {
 			...expWrapHTMLTemplate.expectedPackage.version,
 		},
