@@ -385,7 +385,7 @@ export function mapToObject<T>(map: Map<any, T>): { [key: string]: T } {
 }
 /**
  * Like path.join(),
- * but this fixes an issue in path.join where it doesn't handle paths double slashes together with relatice paths correctly
+ * but this fixes an issue in path.join where it doesn't handle paths double slashes together with relative paths correctly
  */
 export function betterPathJoin(...paths: string[]): string {
 	// return path.join(...paths)
@@ -394,9 +394,10 @@ export function betterPathJoin(...paths: string[]): string {
 
 	let prefix = ''
 	if (firstPath.startsWith('//') || firstPath.startsWith('\\\\')) {
-		prefix = path.sep + path.sep //  "//" or "\\\\" depending on platform
+		// Preserve the prefix, as path.join will remove it:
+		prefix = '//'
 		firstPath = firstPath.slice(2)
 	}
 
-	return prefix + path.join(firstPath, ...restPaths)
+	return (prefix + path.join(firstPath, ...restPaths)).replace(/[\\/]/g, path.sep)
 }

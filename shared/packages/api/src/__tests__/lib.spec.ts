@@ -230,6 +230,7 @@ describe('lib', () => {
 	test('betterPathJoin', () => {
 		const fixSep = (str: string) => str.replace(/\//g, path.sep)
 
+		expect(betterPathJoin('\\\\a\\b/c')).toBe(fixSep('//a/b/c'))
 		expect(betterPathJoin('a/b', 'c')).toBe(fixSep('a/b/c'))
 		expect(betterPathJoin('a/b', '../c')).toBe(fixSep('a/c'))
 		expect(betterPathJoin('a/b', '/c')).toBe(fixSep('a/b/c'))
