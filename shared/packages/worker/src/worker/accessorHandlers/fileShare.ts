@@ -28,6 +28,8 @@ import {
 	DataId,
 	AccessorId,
 	MonitorId,
+	betterPathResolve,
+	betterPathIsAbsolute,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { GenericWorker } from '../workers/genericWorker/genericWorker'
@@ -134,7 +136,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
 
 			// Don't allow absolute file paths:
-			if (path.isAbsolute(this.filePath))
+			if (betterPathIsAbsolute(this.filePath))
 				return {
 					success: false,
 					reason: {
@@ -144,8 +146,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				}
 
 			// Ensure that the file path is not outside of the folder path:
-			const fullPath = path.resolve(this.fullPath)
-			const folderPath = path.resolve(this.folderPath)
+			const fullPath = betterPathResolve(this.fullPath)
+			const folderPath = betterPathResolve(this.folderPath)
 			if (!fullPath.startsWith(folderPath))
 				return {
 					success: false,

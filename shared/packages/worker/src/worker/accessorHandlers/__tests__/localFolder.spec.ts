@@ -47,7 +47,9 @@ test('checkHandleBasic', () => {
 
 	// All OK:
 	expect(getLocalFolderAccessor({ folderPath: '/a/b/c' }, { filePath: 'amb.amp4' }).checkHandleBasic()).toMatchObject(
-		{ success: true }
+		{
+			success: true,
+		}
 	)
 
 	// Absolute file path:

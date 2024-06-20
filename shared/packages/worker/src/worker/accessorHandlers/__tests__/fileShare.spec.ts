@@ -48,7 +48,9 @@ test('checkHandleBasic', () => {
 	// All OK:
 	expect(
 		getFileShareAccessor({ folderPath: '\\\\nas01\\media' }, { filePath: 'amb.amp4' }).checkHandleBasic()
-	).toMatchObject({ success: true })
+	).toMatchObject({
+		success: true,
+	})
 
 	// Absolute file path:
 	expect(
