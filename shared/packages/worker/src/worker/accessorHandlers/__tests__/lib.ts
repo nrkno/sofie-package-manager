@@ -1,7 +1,7 @@
 import { protectString, LoggerInstance } from '@sofie-package-manager/api'
-import { GenericWorker } from '../../worker'
+import { BaseWorker } from '../../worker'
 
-export class PassiveTestWorker extends GenericWorker {
+export class PassiveTestWorker extends BaseWorker {
 	constructor(logger: LoggerInstance) {
 		super(
 			logger,

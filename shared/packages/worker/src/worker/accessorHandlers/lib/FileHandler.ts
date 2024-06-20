@@ -17,6 +17,7 @@ import {
 	protectString,
 	MonitorId,
 	AccessorId,
+	betterPathJoin,
 } from '@sofie-package-manager/api'
 
 import { BaseWorker } from '../../worker'
@@ -130,8 +131,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 	getFullPath(filePath: string): string {
 		filePath = removeBasePath(this.orgFolderPath, filePath)
 
-		return path.join(this.folderPath, filePath)
+		return betterPathJoin(this.folderPath, filePath)
 	}
+
 	getMetadataPath(filePath: string): string {
 		return this.getFullPath(filePath) + '_metadata.json'
 	}

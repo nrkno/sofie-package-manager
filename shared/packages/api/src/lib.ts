@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import path from 'path'
 import { compact } from 'underscore'
 import { AnyProtectedString } from './ProtectedString'
 
@@ -381,4 +382,21 @@ export function mapToObject<T>(map: Map<any, T>): { [key: string]: T } {
 		o[key] = value
 	})
 	return o
+}
+/**
+ * Like path.join(),
+ * but this fixes an issue in path.join where it doesn't handle paths double slashes together with relatice paths correctly
+ */
+export function betterPathJoin(...paths: string[]): string {
+	// return path.join(...paths)
+	let firstPath = paths[0]
+	const restPaths = paths.slice(1)
+
+	let prefix = ''
+	if (firstPath.startsWith('//') || firstPath.startsWith('\\\\')) {
+		prefix = path.sep + path.sep //  "//" or "\\\\" depending on platform
+		firstPath = firstPath.slice(2)
+	}
+
+	return prefix + path.join(firstPath, ...restPaths)
 }

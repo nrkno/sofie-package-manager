@@ -68,14 +68,13 @@ test('checkHandleBasic', () => {
 	})
 
 	// File path outside of folder path:
-	// Something strange happening in with path.join() when the folder begins with double slashes, so can't test this..
-	// expect(
-	// 	getFileShareAccessor({ folderPath: '//nas01/media' }, { filePath: '../secret/amb.amp4' }).checkHandleBasic()
-	// ).toMatchObject({
-	// 	success: false,
-	// 	reason: {
-	// 		user: `File path is outside of folder path`,
-	// 		tech: expect.stringMatching(/Full path.*does not start with/),
-	// 	},
-	// })
+	expect(
+		getFileShareAccessor({ folderPath: '//nas01/media' }, { filePath: '../secret/amb.amp4' }).checkHandleBasic()
+	).toMatchObject({
+		success: false,
+		reason: {
+			user: `File path is outside of folder path`,
+			tech: expect.stringMatching(/Full path.*does not start with/),
+		},
+	})
 })

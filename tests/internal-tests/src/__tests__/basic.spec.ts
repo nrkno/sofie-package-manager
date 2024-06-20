@@ -239,7 +239,7 @@ describeForAllPlatforms(
 			// To be written
 			expect(1).toEqual(1)
 		})
-		test.only('Be able to handle 1000 expectations', async () => {
+		test('Be able to handle 1000 expectations', async () => {
 			const COUNT = 1000
 			const WORKER_COUNT = 10
 
@@ -268,7 +268,6 @@ describeForAllPlatforms(
 					statusReport: {
 						label: `Copy file${i}`,
 						description: `Copy file${i} because test`,
-						requiredForPlayout: true,
 						displayRank: 0,
 						sendReport: true,
 					},
@@ -282,7 +281,9 @@ describeForAllPlatforms(
 						},
 						version: { type: Expectation.Version.Type.FILE_ON_DISK },
 					},
-					workOptions: {},
+					workOptions: {
+						requiredForPlayout: true,
+					},
 				})
 			}
 			fs.__mockSetDirectory('/targets/target0')
@@ -335,12 +336,17 @@ describeForAllPlatforms(
 					},
 					startRequirement: {
 						sources: [
-							getLocalSource(SOURCE0, 'myData0.json') as Expectation.SpecificPackageContainerOnPackage.JSONDataSource,
+							getLocalSource(
+								SOURCE0,
+								'myData0.json'
+							) as Expectation.SpecificPackageContainerOnPackage.JSONDataSource,
 						],
 					},
 					endRequirement: {
 						targets: [
-							getCorePackageInfoTarget(TARGET1) as Expectation.SpecificPackageContainerOnPackage.JSONDataTarget,
+							getCorePackageInfoTarget(
+								TARGET1
+							) as Expectation.SpecificPackageContainerOnPackage.JSONDataTarget,
 						],
 						content: {},
 						version: { type: Expectation.Version.Type.JSON_DATA },
@@ -428,8 +434,10 @@ describeForAllPlatforms(
 				for (const exp of Object.values(expectations)) {
 					const PACKAGE = exp.fromPackages[0].id
 
-					packageStatuses.actual[PACKAGE] = env.containerStatuses[TARGET0].packages[PACKAGE]?.packageStatus?.status
-					packageStatuses.expected[PACKAGE] = ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+					packageStatuses.actual[PACKAGE] =
+						env.containerStatuses[TARGET0].packages[PACKAGE]?.packageStatus?.status
+					packageStatuses.expected[PACKAGE] =
+						ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				}
 				expect(packageStatuses.actual).toMatchObject(packageStatuses.expected)
 			}, 1000 + env.WAIT_JOB_TIME * 2 + COPY_TIME * 10)
