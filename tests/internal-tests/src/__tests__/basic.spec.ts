@@ -298,7 +298,7 @@ describeForAllPlatforms(
 				expect(env.containerStatuses[TARGET0].packages[lastPackage].packageStatus?.status).toEqual(
 					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				)
-			}, env.WAIT_JOB_TIME * 10)
+			}, 10000)
 
 			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
@@ -310,7 +310,7 @@ describeForAllPlatforms(
 			for (const workerId of workerIds) {
 				await env.removeWorker(workerId)
 			}
-		})
+		}, 10000)
 		test.skip('Media file preview from local to file share', async () => {
 			// To be written
 			expect(1).toEqual(1)
