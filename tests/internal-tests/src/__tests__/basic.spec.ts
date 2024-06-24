@@ -302,7 +302,7 @@ describeForAllPlatforms(
 
 			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
-			expect(await fsStat('/targets/target0/myFolder/file0Target.mp4')).toMatchObject({
+			expect(await fsStat('/targets/target0/myFolder/fileTarget0.mp4')).toMatchObject({
 				size: 1234,
 			})
 
