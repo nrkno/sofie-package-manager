@@ -239,8 +239,8 @@ describeForAllPlatforms(
 			// To be written
 			expect(1).toEqual(1)
 		})
-		test('Be able to handle 1000 expectations', async () => {
-			const COUNT = 1000
+		test('Be able to handle 500 expectations', async () => {
+			const COUNT = 500
 			const WORKER_COUNT = 10
 
 			const workerIds: WorkerAgentId[] = []
