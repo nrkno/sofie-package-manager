@@ -46,12 +46,7 @@ export class FileStorage extends Storage {
 		await fsMkDir(this._basePath, { recursive: true })
 	}
 
-	async listPackages(ctx: CTX): Promise<true | BadResponse> {
-		type PackageInfo = {
-			path: string
-			size: string
-			modified: string
-		}
+	async listPackages(ctx: CTX): Promise<{ packages: PackageInfo[] } | BadResponse> {
 		const packages: PackageInfo[] = []
 
 		const getAllFiles = async (basePath: string, dirPath: string) => {
@@ -84,9 +79,8 @@ export class FileStorage extends Storage {
 			return 0
 		})
 
-		ctx.body = { packages: packages }
-
-		return true
+		ctx.body = { packages }
+		return { packages }
 	}
 	private async getFileInfo(paramPath: string): Promise<
 		| {
