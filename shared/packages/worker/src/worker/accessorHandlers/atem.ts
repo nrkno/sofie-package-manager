@@ -11,6 +11,7 @@ import {
 	AccessorHandlerTryPackageReadResult,
 	AccessorHandlerRunCronJobResult,
 	PackageOperation,
+	AccessorHandlerCheckHandleBasicResult,
 } from './genericHandle'
 import { Expectation, Accessor, AccessorOnPackage, AccessorId, escapeFilePath } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
@@ -72,15 +73,45 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 		return this.worker.accessorCache['atem'] as Atem
 	}
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
+		if (this.accessor.type !== Accessor.AccessType.ATEM_MEDIA_STORE) {
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `ATEM Accessor type is not ATEM ("${this.accessor.type}")!`,
+				},
+			}
+		}
+		if (!this.accessor.mediaType) {
+			return {
+				success: false,
+				reason: {
+					user: `Accessor mediaType not set`,
+					tech: `Accessor mediaType not set`,
+				},
+			}
+		}
+		if (typeof this.accessor.bankIndex !== 'number') {
+			return {
+				success: false,
+				reason: {
+					user: `Accessor bankIndex not set`,
+					tech: `Accessor bankIndex not set`,
+				},
+			}
+		}
+		return { success: true }
+	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		const defaultResult = defaultCheckHandleRead(this.accessor)
 		if (defaultResult) return defaultResult
-		return this.checkAccessor()
+		return { success: true }
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		const defaultResult = defaultCheckHandleWrite(this.accessor)
 		if (defaultResult) return defaultResult
-		return this.checkAccessor()
+		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		// Check if the package exists:
@@ -423,36 +454,6 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		} // not applicable
 	}
 
-	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
-		if (this.accessor.type !== Accessor.AccessType.ATEM_MEDIA_STORE) {
-			return {
-				success: false,
-				reason: {
-					user: `There is an internal issue in Package Manager`,
-					tech: `ATEM Accessor type is not ATEM ("${this.accessor.type}")!`,
-				},
-			}
-		}
-		if (!this.accessor.mediaType) {
-			return {
-				success: false,
-				reason: {
-					user: `Accessor mediaType not set`,
-					tech: `Accessor mediaType not set`,
-				},
-			}
-		}
-		if (typeof this.accessor.bankIndex !== 'number') {
-			return {
-				success: false,
-				reason: {
-					user: `Accessor bankIndex not set`,
-					tech: `Accessor bankIndex not set`,
-				},
-			}
-		}
-		return { success: true }
-	}
 	/** Computes an ATEM clip hash by concatenating the hashes for all the individual frames
 	 * then hashing that.
 	 */

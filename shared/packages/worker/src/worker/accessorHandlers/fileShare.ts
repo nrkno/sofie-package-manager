@@ -1,6 +1,7 @@
 import { promisify } from 'util'
 import fs from 'fs'
 import {
+	AccessorHandlerCheckHandleBasicResult,
 	AccessorHandlerCheckHandleReadResult,
 	AccessorHandlerCheckHandleWriteResult,
 	AccessorHandlerCheckPackageContainerWriteAccessResult,
@@ -27,6 +28,8 @@ import {
 	DataId,
 	AccessorId,
 	MonitorId,
+	betterPathResolve,
+	betterPathIsAbsolute,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { GenericWorker } from '../workers/genericWorker/genericWorker'
@@ -51,6 +54,12 @@ const pExec = promisify(exec)
 const PREPARE_FILE_ACCESS_TIMEOUT = INNER_ACTION_TIMEOUT * 0.5
 const PREPARE_FILE_ACCESS_TIMEOUT_INNER = PREPARE_FILE_ACCESS_TIMEOUT * 0.8
 
+export interface Content {
+	/** This is set when the class-instance is only going to be used for PackageContainer access.*/
+	onlyContainerAccess?: boolean
+	filePath?: string
+}
+
 /** Accessor handle for accessing files on a network share */
 export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle<Metadata> {
 	static readonly type = FileShareAccessorHandleType
@@ -59,11 +68,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 	public disableDriveMapping = false
 
-	private content: {
-		/** This is set when the class-instance is only going to be used for PackageContainer access.*/
-		onlyContainerAccess?: boolean
-		filePath?: string
-	}
+	private content: Content
 	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
 
 	constructor(
@@ -114,17 +119,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	get packageName(): string {
 		return this.fullPath
 	}
-	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		const defaultResult = defaultCheckHandleRead(this.accessor)
-		if (defaultResult) return defaultResult
-		return this.checkAccessor()
-	}
-	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		const defaultResult = defaultCheckHandleWrite(this.accessor)
-		if (defaultResult) return defaultResult
-		return this.checkAccessor()
-	}
-	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
 		if (this.accessor.type !== Accessor.AccessType.FILE_SHARE) {
 			return {
 				success: false,
@@ -139,7 +134,39 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		if (!this.content.onlyContainerAccess) {
 			if (!this.filePath)
 				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
+
+			// Don't allow absolute file paths:
+			if (betterPathIsAbsolute(this.filePath))
+				return {
+					success: false,
+					reason: {
+						user: `File path is an absolute path`,
+						tech: `File path "${this.filePath}" is an absolute path`,
+					},
+				}
+
+			// Ensure that the file path is not outside of the folder path:
+			const fullPath = betterPathResolve(this.fullPath)
+			const folderPath = betterPathResolve(this.folderPath)
+			if (!fullPath.startsWith(folderPath))
+				return {
+					success: false,
+					reason: {
+						user: `File path is outside of folder path`,
+						tech: `Full path "${fullPath}" does not start with "${folderPath}"`,
+					},
+				}
 		}
+		return { success: true }
+	}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
+		return { success: true }
+	}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
 		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {

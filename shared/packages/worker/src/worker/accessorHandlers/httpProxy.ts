@@ -11,6 +11,7 @@ import {
 	AccessorHandlerCheckPackageReadAccessResult,
 	AccessorHandlerTryPackageReadResult,
 	PackageOperation,
+	AccessorHandlerCheckHandleBasicResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -65,15 +66,45 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 	get packageName(): string {
 		return this.fullUrl
 	}
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
+		if (this.accessor.type !== Accessor.AccessType.HTTP_PROXY) {
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `HTTPProxy Accessor type is not HTTP_PROXY ("${this.accessor.type}")!`,
+				},
+			}
+		}
+		if (!this.accessor.baseUrl)
+			return {
+				success: false,
+				reason: {
+					user: `Accessor baseUrl not set`,
+					tech: `Accessor baseUrl not set`,
+				},
+			}
+		if (!this.content.onlyContainerAccess) {
+			if (!this.filePath)
+				return {
+					success: false,
+					reason: {
+						user: `filePath not set`,
+						tech: `filePath not set`,
+					},
+				}
+		}
+		return { success: true }
+	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		const defaultResult = defaultCheckHandleRead(this.accessor)
 		if (defaultResult) return defaultResult
-		return this.checkAccessor()
+		return { success: true }
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		const defaultResult = defaultCheckHandleWrite(this.accessor)
 		if (defaultResult) return defaultResult
-		return this.checkAccessor()
+		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const header = await this.fetchHeader()
@@ -232,36 +263,6 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		return rebaseUrl(this.baseUrl, this.filePath)
 	}
 
-	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
-		if (this.accessor.type !== Accessor.AccessType.HTTP_PROXY) {
-			return {
-				success: false,
-				reason: {
-					user: `There is an internal issue in Package Manager`,
-					tech: `HTTPProxy Accessor type is not HTTP_PROXY ("${this.accessor.type}")!`,
-				},
-			}
-		}
-		if (!this.accessor.baseUrl)
-			return {
-				success: false,
-				reason: {
-					user: `Accessor baseUrl not set`,
-					tech: `Accessor baseUrl not set`,
-				},
-			}
-		if (!this.content.onlyContainerAccess) {
-			if (!this.filePath)
-				return {
-					success: false,
-					reason: {
-						user: `filePath not set`,
-						tech: `filePath not set`,
-					},
-				}
-		}
-		return { success: true }
-	}
 	private get baseUrl(): string {
 		if (!this.accessor.baseUrl) throw new Error(`HTTPAccessorHandle: accessor.baseUrl not set!`)
 		return this.accessor.baseUrl

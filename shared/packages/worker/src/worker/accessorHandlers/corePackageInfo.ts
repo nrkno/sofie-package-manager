@@ -1,4 +1,5 @@
 import {
+	AccessorHandlerCheckHandleBasicResult,
 	AccessorHandlerCheckHandleReadResult,
 	AccessorHandlerCheckHandleWriteResult,
 	AccessorHandlerCheckPackageContainerWriteAccessResult,
@@ -57,15 +58,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	get packageName(): string {
 		return 'PackageInfo' // Not really supported for this type of accessor
 	}
-	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		// Note: We assume that we always have write access here, no need to check this.accessor.allowRead
-		return this.checkAccessor()
-	}
-	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		// Note: We assume that we always have write access here, no need to check this.accessor.allowWrite
-		return this.checkAccessor()
-	}
-	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
 		if (this.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO) {
 			return {
 				success: false,
@@ -75,6 +68,14 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 				},
 			}
 		}
+		return { success: true }
+	}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		// Note: We assume that we always have write access here, no need to check this.accessor.allowRead
+		return { success: true }
+	}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		// Note: We assume that we always have write access here, no need to check this.accessor.allowWrite
 		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {

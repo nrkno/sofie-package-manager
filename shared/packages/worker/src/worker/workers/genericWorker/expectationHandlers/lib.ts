@@ -161,6 +161,18 @@ export async function lookupAccessorHandles<Metadata>(
 					expectationWorkOptions
 				)
 
+				// Check that the accessor is valid at the most basic level:
+				const basicResult = handle.checkHandleBasic()
+				if (!basicResult.success) {
+					errorReason = {
+						user: `There is an issue with the Package: ${basicResult.reason.user})`,
+						tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+							basicResult.reason.tech
+						}`,
+					}
+					continue // Maybe next accessor works?
+				}
+
 				if (checks.read) {
 					// Check that the accessor-handle supports reading:
 					const readResult = handle.checkHandleRead()
