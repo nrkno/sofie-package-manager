@@ -5,7 +5,7 @@ import mime from 'mime-types'
 import prettyBytes from 'pretty-bytes'
 import { asyncPipe, CTX, CTXPost } from '../lib'
 import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
-import { BadResponse, Storage } from './storage'
+import { BadResponse, PackageInfo, Storage } from './storage'
 import { Readable } from 'stream'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
@@ -39,7 +39,7 @@ export class FileStorage extends Storage {
 	}
 
 	getInfo(): string {
-		return this._basePath
+		return `basePath: "${this._basePath}", cleanFileAge: ${this.config.httpServer.cleanFileAge}`
 	}
 
 	async init(): Promise<void> {

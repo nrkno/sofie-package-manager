@@ -8,9 +8,9 @@ import cors from '@koa/cors'
 import bodyParser from 'koa-bodyparser'
 
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
-import { BadResponse, Storage } from './storage/storage'
+import { BadResponse, Storage, isBadResponse } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
-import { CTX, valueOrFirst } from './lib'
+import { CTX, PACKAGE_JSON_VERSION, valueOrFirst } from './lib'
 import { parseFormData } from 'pechkin'
 
 const fsReadFile = promisify(fs.readFile)
@@ -23,6 +23,8 @@ export class PackageProxyServer {
 
 	private storage: Storage
 	private logger: LoggerInstance
+
+	private startupTime = Date.now()
 
 	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
 		this.logger = logger.category('PackageProxyServer')
@@ -123,17 +125,12 @@ export class PackageProxyServer {
 
 		// Convenient pages:
 		this.router.get('/', async (ctx) => {
-			let packageJson = { version: '0.0.0' }
-			try {
-				packageJson = JSON.parse(
-					await fsReadFile('../package.json', {
-						encoding: 'utf8',
-					})
-				)
-			} catch (err) {
-				// ignore
+			ctx.body = {
+				name: 'Package proxy server',
+				version: PACKAGE_JSON_VERSION,
+				uptime: Date.now() - this.startupTime,
+				info: this.storage.getInfo(),
 			}
-			ctx.body = { name: 'Package proxy server', version: packageJson.version, info: this.storage.getInfo() }
 		})
 		this.router.get('/uploadForm/:path+', async (ctx) => {
 			// ctx.response.status = result.code
@@ -165,10 +162,10 @@ export class PackageProxyServer {
 			}
 		})
 	}
-	private async handleStorage(ctx: CTX, storageFcn: () => Promise<true | BadResponse>) {
+	private async handleStorage(ctx: CTX, storageFcn: () => Promise<any | BadResponse>) {
 		try {
 			const result = await storageFcn()
-			if (result !== true) {
+			if (isBadResponse(result)) {
 				ctx.response.status = result.code
 				ctx.body = result.reason
 			}

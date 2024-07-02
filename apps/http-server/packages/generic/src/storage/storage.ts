@@ -18,3 +18,16 @@ export interface BadResponse {
 	code: number
 	reason: string
 }
+export function isBadResponse(v: unknown): v is BadResponse {
+	return (
+		typeof v === 'object' &&
+		typeof (v as BadResponse).code === 'number' &&
+		typeof (v as BadResponse).reason === 'string'
+	)
+}
+
+export type PackageInfo = {
+	path: string
+	size: string
+	modified: string
+}
