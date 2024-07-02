@@ -8,9 +8,9 @@ import cors from '@koa/cors'
 import bodyParser from 'koa-bodyparser'
 
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
-import { BadResponse, Storage } from './storage/storage'
+import { BadResponse, PackageInfo, Storage, isBadResponse } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
-import { CTX, valueOrFirst } from './lib'
+import { CTX, PACKAGE_JSON_VERSION, valueOrFirst } from './lib'
 import { parseFormData } from 'pechkin'
 
 const fsReadFile = promisify(fs.readFile)
@@ -23,6 +23,8 @@ export class PackageProxyServer {
 
 	private storage: Storage
 	private logger: LoggerInstance
+
+	private startupTime = Date.now()
 
 	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
 		this.logger = logger.category('PackageProxyServer')
@@ -88,6 +90,9 @@ export class PackageProxyServer {
 		this.router.get('/packages', async (ctx) => {
 			await this.handleStorage(ctx, async () => this.storage.listPackages(ctx))
 		})
+		this.router.get('/list', async (ctx) => {
+			await this.handleStorageHTMLList(ctx, async () => this.storage.listPackages(ctx))
+		})
 		this.router.get('/package/:path+', async (ctx) => {
 			await this.handleStorage(ctx, async () => this.storage.getPackage(ctx.params.path, ctx))
 		})
@@ -123,17 +128,12 @@ export class PackageProxyServer {
 
 		// Convenient pages:
 		this.router.get('/', async (ctx) => {
-			let packageJson = { version: '0.0.0' }
-			try {
-				packageJson = JSON.parse(
-					await fsReadFile('../package.json', {
-						encoding: 'utf8',
-					})
-				)
-			} catch (err) {
-				// ignore
+			ctx.body = {
+				name: 'Package proxy server',
+				version: PACKAGE_JSON_VERSION,
+				uptime: Date.now() - this.startupTime,
+				info: this.storage.getInfo(),
 			}
-			ctx.body = { name: 'Package proxy server', version: packageJson.version, info: this.storage.getInfo() }
 		})
 		this.router.get('/uploadForm/:path+', async (ctx) => {
 			// ctx.response.status = result.code
@@ -165,12 +165,58 @@ export class PackageProxyServer {
 			}
 		})
 	}
-	private async handleStorage(ctx: CTX, storageFcn: () => Promise<true | BadResponse>) {
+	private async handleStorage(ctx: CTX, storageFcn: () => Promise<any | BadResponse>) {
 		try {
 			const result = await storageFcn()
-			if (result !== true) {
+			if (isBadResponse(result)) {
 				ctx.response.status = result.code
 				ctx.body = result.reason
+			}
+		} catch (err) {
+			this.logger.error(`Error in handleStorage: ${stringifyError(err)} `)
+			ctx.response.status = 500
+			ctx.body = 'Internal server error'
+		}
+	}
+	private async handleStorageHTMLList(
+		ctx: CTX,
+		storageFcn: () => Promise<{ packages: PackageInfo[] } | BadResponse>
+	) {
+		try {
+			const result = await storageFcn()
+			if (isBadResponse(result)) {
+				ctx.response.status = result.code
+				ctx.body = result.reason
+			} else {
+				const packages = result.packages
+
+				ctx.set('Content-Type', 'text/html')
+				ctx.body = `<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: Arial, sans-serif; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ddd; padding: 8px; }
+
+</style>
+</head>
+<body>
+<h1>Packages</h1>
+<table>
+${packages
+	.map(
+		(pkg) =>
+			`<tr>
+		<td><a href="/package/${pkg.path}">${pkg.path}</a></td>
+		<td>${pkg.size}</td>
+		<td>${pkg.modified}</td>
+	</tr>`
+	)
+	.join('')}
+</table>
+</body>
+</html>`
 			}
 		} catch (err) {
 			this.logger.error(`Error in handleStorage: ${stringifyError(err)} `)

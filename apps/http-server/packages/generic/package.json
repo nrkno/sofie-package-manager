@@ -5,7 +5,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "yarn rimraf dist && yarn build:main",
+        "build": "yarn rimraf dist && node scripts/prebuild.js && yarn build:main",
         "build:main": "tsc -p tsconfig.json",
         "__test": "jest"
     },

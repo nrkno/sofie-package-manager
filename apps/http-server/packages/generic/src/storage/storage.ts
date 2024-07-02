@@ -4,7 +4,7 @@ import { CTX, CTXPost } from '../lib'
 export abstract class Storage {
 	abstract init(): Promise<void>
 	abstract getInfo(): string
-	abstract listPackages(ctx: CTX): Promise<true | BadResponse>
+	abstract listPackages(ctx: CTX): Promise<{ packages: PackageInfo[] } | BadResponse>
 	abstract headPackage(path: string, ctx: CTX): Promise<true | BadResponse>
 	abstract getPackage(path: string, ctx: CTX): Promise<true | BadResponse>
 	abstract postPackage(
@@ -17,4 +17,17 @@ export abstract class Storage {
 export interface BadResponse {
 	code: number
 	reason: string
+}
+export function isBadResponse(v: unknown): v is BadResponse {
+	return (
+		typeof v === 'object' &&
+		typeof (v as BadResponse).code === 'number' &&
+		typeof (v as BadResponse).reason === 'string'
+	)
+}
+
+export type PackageInfo = {
+	path: string
+	size: string
+	modified: string
 }
