@@ -2,14 +2,14 @@ const fs = require('fs').promises
 
 async function main() {
 	const packageJson = JSON.parse(await fs.readFile('package.json', 'utf8'))
-	let libStr = await fs.readFile('src/lib.ts', 'utf8')
+	let libStr = await fs.readFile('src/packageVersion.ts', 'utf8')
 
 	libStr = libStr.replace(
 		/export const PACKAGE_JSON_VERSION =.*/,
 		`export const PACKAGE_JSON_VERSION = '${packageJson.version}'`
 	)
 
-	await fs.writeFile('src/lib.ts', libStr, 'utf8')
+	await fs.writeFile('src/packageVersion.ts', libStr, 'utf8')
 }
 
 main().catch((e) => {

@@ -10,8 +10,9 @@ import bodyParser from 'koa-bodyparser'
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
 import { BadResponse, PackageInfo, Sidecar, Storage, isBadResponse } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
-import { CTX, PACKAGE_JSON_VERSION, valueOrFirst } from './lib'
+import { CTX, valueOrFirst } from './lib'
 import { parseFormData } from 'pechkin'
+import { PACKAGE_JSON_VERSION } from './packageVersion'
 
 const fsReadFile = promisify(fs.readFile)
 
