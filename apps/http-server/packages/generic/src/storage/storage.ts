@@ -1,18 +1,26 @@
 import { Readable } from 'stream'
-import { CTX, CTXPost } from '../lib'
+import { CTXPost } from '../lib'
 
 export abstract class Storage {
 	abstract init(): Promise<void>
 	abstract getInfo(): string
-	abstract listPackages(ctx: CTX): Promise<{ packages: PackageInfo[] } | BadResponse>
-	abstract headPackage(path: string, ctx: CTX): Promise<true | BadResponse>
-	abstract getPackage(path: string, ctx: CTX): Promise<true | BadResponse>
+	abstract listPackages(): Promise<
+		| {
+				sidecar: Sidecar
+				body: {
+					packages: PackageInfo[]
+				}
+		  }
+		| BadResponse
+	>
+	abstract headPackage(path: string): Promise<{ sidecar: Sidecar } | BadResponse>
+	abstract getPackage(path: string): Promise<{ sidecar: Sidecar; body: any } | BadResponse>
 	abstract postPackage(
 		path: string,
 		ctx: CTXPost,
 		fileStreamOrText: string | Readable | undefined
-	): Promise<true | BadResponse>
-	abstract deletePackage(path: string, ctx: CTXPost): Promise<true | BadResponse>
+	): Promise<{ sidecar: Sidecar; body: any } | BadResponse>
+	abstract deletePackage(path: string): Promise<{ sidecar: Sidecar; body: any } | BadResponse>
 }
 export interface BadResponse {
 	code: number
@@ -30,4 +38,14 @@ export type PackageInfo = {
 	path: string
 	size: string
 	modified: string
+}
+
+export interface Sidecar {
+	statusCode: number
+	type?: string
+	length?: number
+	lastModified?: Date
+	headers: {
+		[key: string]: string
+	}
 }

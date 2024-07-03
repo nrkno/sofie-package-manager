@@ -3,9 +3,9 @@ import path from 'path'
 import { promisify } from 'util'
 import mime from 'mime-types'
 import prettyBytes from 'pretty-bytes'
-import { asyncPipe, CTX, CTXPost } from '../lib'
+import { asyncPipe, CTXPost } from '../lib'
 import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
-import { BadResponse, PackageInfo, Storage } from './storage'
+import { BadResponse, PackageInfo, Sidecar, Storage } from './storage'
 import { Readable } from 'stream'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
@@ -46,7 +46,7 @@ export class FileStorage extends Storage {
 		await fsMkDir(this._basePath, { recursive: true })
 	}
 
-	async listPackages(ctx: CTX): Promise<{ packages: PackageInfo[] } | BadResponse> {
+	async listPackages(): Promise<{ sidecar: Sidecar; body: { packages: PackageInfo[] } } | BadResponse> {
 		const packages: PackageInfo[] = []
 
 		const getAllFiles = async (basePath: string, dirPath: string) => {
@@ -79,8 +79,12 @@ export class FileStorage extends Storage {
 			return 0
 		})
 
-		ctx.body = { packages }
-		return { packages }
+		const sidecar: Sidecar = {
+			statusCode: 200,
+			headers: {},
+		}
+
+		return { sidecar, body: { packages } }
 	}
 	private async getFileInfo(paramPath: string): Promise<
 		| {
@@ -112,40 +116,42 @@ export class FileStorage extends Storage {
 			lastModified: stat.mtime,
 		}
 	}
-	async headPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+	async headPackage(paramPath: string): Promise<{ sidecar: Sidecar } | BadResponse> {
 		const fileInfo = await this.getFileInfo(paramPath)
 
 		if (!fileInfo.found) {
 			return { code: 404, reason: 'Package not found' }
 		}
 
-		this.setHeaders(fileInfo, ctx)
+		const sidecar: Sidecar = {
+			statusCode: 204,
+			headers: {},
+		}
+		this.updateSideCarWithFileInfo(sidecar, fileInfo)
 
-		ctx.response.status = 204
-
-		ctx.body = undefined
-
-		return true
+		return { sidecar }
 	}
-	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+	async getPackage(paramPath: string): Promise<{ sidecar: Sidecar; body: any } | BadResponse> {
 		const fileInfo = await this.getFileInfo(paramPath)
 
 		if (!fileInfo.found) {
 			return { code: 404, reason: 'Package not found' }
 		}
-
-		this.setHeaders(fileInfo, ctx)
+		const sidecar: Sidecar = {
+			statusCode: 200,
+			headers: {},
+		}
+		this.updateSideCarWithFileInfo(sidecar, fileInfo)
 
 		const readStream = fs.createReadStream(fileInfo.fullPath)
-		ctx.body = readStream
 
-		return true
+		return { sidecar, body: readStream }
 	}
 	async postPackage(
 		paramPath: string,
 		ctx: CTXPost,
 		fileStreamOrText: string | Readable | undefined
-	): Promise<true | BadResponse> {
+	): Promise<{ sidecar: Sidecar; body: any } | BadResponse> {
 		const fullPath = path.join(this._basePath, paramPath)
 
 		await fsMkDir(path.dirname(fullPath), { recursive: true })
@@ -158,25 +164,28 @@ export class FileStorage extends Storage {
 			plainText = fileStreamOrText
 		}
 
+		const sidecar: Sidecar = {
+			statusCode: 200,
+			headers: {},
+		}
+
 		if (plainText) {
 			// store plain text into file
 			await fsWriteFile(fullPath, plainText)
 
-			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
-			ctx.response.status = 201
-			return true
+			sidecar.statusCode = 201
+			return { sidecar, body: { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` } }
 		} else if (fileStreamOrText && typeof fileStreamOrText !== 'string') {
 			const fileStream = fileStreamOrText
 			await asyncPipe(fileStream, fs.createWriteStream(fullPath))
 
-			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
-			ctx.response.status = 201
-			return true
+			sidecar.statusCode = 201
+			return { sidecar, body: { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` } }
 		} else {
 			return { code: 400, reason: 'No files provided' }
 		}
 	}
-	async deletePackage(paramPath: string, ctx: CTXPost): Promise<true | BadResponse> {
+	async deletePackage(paramPath: string): Promise<{ sidecar: Sidecar; body: any } | BadResponse> {
 		const fullPath = path.join(this._basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
@@ -185,8 +194,12 @@ export class FileStorage extends Storage {
 
 		await fsUnlink(fullPath)
 
-		ctx.body = { message: `Deleted "${paramPath}"` }
-		return true
+		const sidecar: Sidecar = {
+			statusCode: 200,
+			headers: {},
+		}
+
+		return { sidecar, body: { message: `Deleted "${paramPath}"` } }
 	}
 
 	private async exists(fullPath: string) {
@@ -274,16 +287,16 @@ export class FileStorage extends Storage {
 	 * @param {CTX} ctx
 	 * @memberof FileStorage
 	 */
-	private setHeaders(info: FileInfo, ctx: CTX) {
-		ctx.type = info.mimeType
-		ctx.length = info.length
-		ctx.lastModified = info.lastModified
+	private updateSideCarWithFileInfo(sidecar: Sidecar, info: FileInfo): void {
+		sidecar.type = info.mimeType
+		sidecar.length = info.length
+		sidecar.lastModified = info.lastModified
 
 		// Check the config. 0 or -1 means it's disabled:
 		if (this.config.httpServer.cleanFileAge >= 0) {
-			ctx.set(
-				'Expires',
-				FileStorage.calculateExpiresTimestamp(info.lastModified, this.config.httpServer.cleanFileAge)
+			sidecar.headers['Expires'] = FileStorage.calculateExpiresTimestamp(
+				info.lastModified,
+				this.config.httpServer.cleanFileAge
 			)
 		}
 	}

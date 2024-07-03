@@ -8,7 +8,7 @@ import cors from '@koa/cors'
 import bodyParser from 'koa-bodyparser'
 
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
-import { BadResponse, PackageInfo, Storage, isBadResponse } from './storage/storage'
+import { BadResponse, PackageInfo, Sidecar, Storage, isBadResponse } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
 import { CTX, PACKAGE_JSON_VERSION, valueOrFirst } from './lib'
 import { parseFormData } from 'pechkin'
@@ -88,16 +88,16 @@ export class PackageProxyServer {
 		})
 
 		this.router.get('/packages', async (ctx) => {
-			await this.handleStorage(ctx, async () => this.storage.listPackages(ctx))
+			await this.handleStorage(ctx, async () => this.storage.listPackages())
 		})
 		this.router.get('/list', async (ctx) => {
-			await this.handleStorageHTMLList(ctx, async () => this.storage.listPackages(ctx))
+			await this.handleStorageHTMLList(ctx, async () => this.storage.listPackages())
 		})
 		this.router.get('/package/:path+', async (ctx) => {
-			await this.handleStorage(ctx, async () => this.storage.getPackage(ctx.params.path, ctx))
+			await this.handleStorage(ctx, async () => this.storage.getPackage(ctx.params.path))
 		})
 		this.router.head('/package/:path+', async (ctx) => {
-			await this.handleStorage(ctx, async () => this.storage.headPackage(ctx.params.path, ctx))
+			await this.handleStorage(ctx, async () => this.storage.headPackage(ctx.params.path))
 		})
 		this.router.post('/package/:path+', async (ctx) => {
 			this.logger.debug(`POST ${ctx.request.URL}`)
@@ -123,7 +123,7 @@ export class PackageProxyServer {
 		})
 		this.router.delete('/package/:path+', async (ctx) => {
 			this.logger.debug(`DELETE ${ctx.request.URL}`)
-			await this.handleStorage(ctx, async () => this.storage.deletePackage(ctx.params.path, ctx))
+			await this.handleStorage(ctx, async () => this.storage.deletePackage(ctx.params.path))
 		})
 
 		// Convenient pages:
@@ -165,12 +165,23 @@ export class PackageProxyServer {
 			}
 		})
 	}
-	private async handleStorage(ctx: CTX, storageFcn: () => Promise<any | BadResponse>) {
+	private async handleStorage(ctx: CTX, storageFcn: () => Promise<{ sidecar: Sidecar; body?: any } | BadResponse>) {
 		try {
 			const result = await storageFcn()
 			if (isBadResponse(result)) {
 				ctx.response.status = result.code
 				ctx.body = result.reason
+			} else {
+				ctx.response.status = result.sidecar.statusCode
+				if (result.sidecar.type !== undefined) ctx.type = result.sidecar.type
+				if (result.sidecar.length !== undefined) ctx.length = result.sidecar.length
+				if (result.sidecar.lastModified !== undefined) ctx.lastModified = result.sidecar.lastModified
+
+				for (const [key, value] of Object.entries<string>(result.sidecar.headers)) {
+					ctx.set(key, value)
+				}
+
+				if (result.body) ctx.body = result.body
 			}
 		} catch (err) {
 			this.logger.error(`Error in handleStorage: ${stringifyError(err)} `)
@@ -180,7 +191,7 @@ export class PackageProxyServer {
 	}
 	private async handleStorageHTMLList(
 		ctx: CTX,
-		storageFcn: () => Promise<{ packages: PackageInfo[] } | BadResponse>
+		storageFcn: () => Promise<{ body: { packages: PackageInfo[] } } | BadResponse>
 	) {
 		try {
 			const result = await storageFcn()
@@ -188,7 +199,7 @@ export class PackageProxyServer {
 				ctx.response.status = result.code
 				ctx.body = result.reason
 			} else {
-				const packages = result.packages
+				const packages = result.body.packages
 
 				ctx.set('Content-Type', 'text/html')
 				ctx.body = `<!DOCTYPE html>
