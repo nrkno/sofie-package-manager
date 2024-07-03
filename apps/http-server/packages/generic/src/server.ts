@@ -220,7 +220,7 @@ ${packages
 	.map(
 		(pkg) =>
 			`<tr>
-		<td><a href="/package/${pkg.path}">${pkg.path}</a></td>
+		<td><a href="package/${pkg.path}">${pkg.path}</a></td>
 		<td>${pkg.size}</td>
 		<td>${pkg.modified}</td>
 	</tr>`
