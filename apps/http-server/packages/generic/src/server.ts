@@ -8,7 +8,7 @@ import cors from '@koa/cors'
 import bodyParser from 'koa-bodyparser'
 
 import { HTTPServerConfig, LoggerInstance, stringifyError, first } from '@sofie-package-manager/api'
-import { BadResponse, PackageInfo, Sidecar, Storage, isBadResponse } from './storage/storage'
+import { BadResponse, PackageInfo, ResponseMeta, Storage, isBadResponse } from './storage/storage'
 import { FileStorage } from './storage/fileStorage'
 import { CTX, valueOrFirst } from './lib'
 import { parseFormData } from 'pechkin'
@@ -167,20 +167,22 @@ export class PackageProxyServer {
 			}
 		})
 	}
-	private async handleStorage(ctx: CTX, storageFcn: () => Promise<{ sidecar: Sidecar; body?: any } | BadResponse>) {
+	private async handleStorage(ctx: CTX, storageFcn: () => Promise<{ meta: ResponseMeta; body?: any } | BadResponse>) {
 		try {
 			const result = await storageFcn()
 			if (isBadResponse(result)) {
 				ctx.response.status = result.code
 				ctx.body = result.reason
 			} else {
-				ctx.response.status = result.sidecar.statusCode
-				if (result.sidecar.type !== undefined) ctx.type = result.sidecar.type
-				if (result.sidecar.length !== undefined) ctx.length = result.sidecar.length
-				if (result.sidecar.lastModified !== undefined) ctx.lastModified = result.sidecar.lastModified
+				ctx.response.status = result.meta.statusCode
+				if (result.meta.type !== undefined) ctx.type = result.meta.type
+				if (result.meta.length !== undefined) ctx.length = result.meta.length
+				if (result.meta.lastModified !== undefined) ctx.lastModified = result.meta.lastModified
 
-				for (const [key, value] of Object.entries<string>(result.sidecar.headers)) {
-					ctx.set(key, value)
+				if (result.meta.headers) {
+					for (const [key, value] of Object.entries<string>(result.meta.headers)) {
+						ctx.set(key, value)
+					}
 				}
 
 				if (result.body) ctx.body = result.body

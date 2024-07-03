@@ -6,21 +6,21 @@ export abstract class Storage {
 	abstract getInfo(): string
 	abstract listPackages(): Promise<
 		| {
-				sidecar: Sidecar
+				meta: ResponseMeta
 				body: {
 					packages: PackageInfo[]
 				}
 		  }
 		| BadResponse
 	>
-	abstract headPackage(path: string): Promise<{ sidecar: Sidecar } | BadResponse>
-	abstract getPackage(path: string): Promise<{ sidecar: Sidecar; body: any } | BadResponse>
+	abstract headPackage(path: string): Promise<{ meta: ResponseMeta } | BadResponse>
+	abstract getPackage(path: string): Promise<{ meta: ResponseMeta; body: any } | BadResponse>
 	abstract postPackage(
 		path: string,
 		ctx: CTXPost,
 		fileStreamOrText: string | Readable | undefined
-	): Promise<{ sidecar: Sidecar; body: any } | BadResponse>
-	abstract deletePackage(path: string): Promise<{ sidecar: Sidecar; body: any } | BadResponse>
+	): Promise<{ meta: ResponseMeta; body: any } | BadResponse>
+	abstract deletePackage(path: string): Promise<{ meta: ResponseMeta; body: any } | BadResponse>
 }
 export interface BadResponse {
 	code: number
@@ -40,12 +40,12 @@ export type PackageInfo = {
 	modified: string
 }
 
-export interface Sidecar {
+export interface ResponseMeta {
 	statusCode: number
 	type?: string
 	length?: number
 	lastModified?: Date
-	headers: {
+	headers?: {
 		[key: string]: string
 	}
 }
