@@ -12,6 +12,7 @@ import { BadResponse, PackageInfo, Sidecar, Storage, isBadResponse } from './sto
 import { FileStorage } from './storage/fileStorage'
 import { CTX, valueOrFirst } from './lib'
 import { parseFormData } from 'pechkin'
+// eslint-disable-next-line node/no-unpublished-import
 import { PACKAGE_JSON_VERSION } from './packageVersion'
 
 const fsReadFile = promisify(fs.readFile)
