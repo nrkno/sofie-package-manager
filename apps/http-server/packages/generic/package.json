@@ -1,6 +1,6 @@
 {
     "name": "@http-server/generic",
-    "version": "1.50.6",
+    "version": "1.50.7",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",

@@ -596,13 +596,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@http-server/app@workspace:apps/http-server/app"
   dependencies:
-    "@http-server/generic": "npm:1.50.6"
+    "@http-server/generic": "npm:1.50.7"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@http-server/generic@npm:1.50.6, @http-server/generic@workspace:apps/http-server/packages/generic":
+"@http-server/generic@npm:1.50.7, @http-server/generic@workspace:apps/http-server/packages/generic":
   version: 0.0.0-use.local
   resolution: "@http-server/generic@workspace:apps/http-server/packages/generic"
   dependencies:
@@ -1892,7 +1892,7 @@ __metadata:
   resolution: "@single-app/app@workspace:apps/single-app/app"
   dependencies:
     "@appcontainer-node/generic": "npm:1.50.6"
-    "@http-server/generic": "npm:1.50.6"
+    "@http-server/generic": "npm:1.50.7"
     "@package-manager/generic": "npm:1.50.6"
     "@quantel-http-transformer-proxy/generic": "npm:1.50.6"
     "@sofie-package-manager/api": "npm:1.50.6"
@@ -2096,7 +2096,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/internal-tests@workspace:tests/internal-tests"
   dependencies:
-    "@http-server/generic": "npm:1.50.6"
+    "@http-server/generic": "npm:1.50.7"
     "@package-manager/generic": "npm:1.50.6"
     "@sofie-package-manager/api": "npm:1.50.6"
     "@sofie-package-manager/expectation-manager": "npm:1.50.6"

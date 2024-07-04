@@ -1,6 +1,6 @@
 {
     "name": "@tests/internal-tests",
-    "version": "1.50.6",
+    "version": "1.50.7",
     "description": "Internal tests",
     "private": true,
     "scripts": {
@@ -19,7 +19,7 @@
         "tv-automation-quantel-gateway-client": "^3.1.7"
     },
     "dependencies": {
-        "@http-server/generic": "1.50.6",
+        "@http-server/generic": "1.50.7",
         "@package-manager/generic": "1.50.6",
         "@sofie-package-manager/api": "1.50.6",
         "@sofie-package-manager/expectation-manager": "1.50.6",

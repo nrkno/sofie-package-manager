@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.50.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.6...v1.50.7) (2024-07-04)
+
+
+### Bug Fixes
+
+* http-server: add '/list' endpoint, that displays a HTML page with a list of the packages ([1acfb0c](https://github.com/nrkno/tv-automation-package-manager/commit/1acfb0c21d0b4a0cbf76a959cff83ea2a8cdd102))
+* improve the info message at '/' and refactor ([d5ac4a1](https://github.com/nrkno/tv-automation-package-manager/commit/d5ac4a15468f568a27d2d8704559fd4ded7e36f3))
+* the path need to be relative to account for when the http-server is proxied ([79e67b4](https://github.com/nrkno/tv-automation-package-manager/commit/79e67b4d1c189a643b6ac8ed8b2c190db2cecf84))
+
+
+
+
+
 # [1.50.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.4...v1.50.5) (2024-04-09)
 
 **Note:** Version bump only for package @http-server/generic
