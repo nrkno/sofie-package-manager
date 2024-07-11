@@ -21,12 +21,12 @@ import {
 	Reason,
 	AccessorId,
 	MonitorId,
+	rebaseUrl,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
-import { rebaseUrl } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** Accessor handle for accessing files in HTTP- */

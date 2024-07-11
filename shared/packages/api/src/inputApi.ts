@@ -326,7 +326,7 @@ export namespace Accessor {
 		allowWrite: false
 
 		/** Base url (url to the host), for example http://myhost.com/fileShare/ */
-		baseUrl: string
+		baseUrl?: string
 
 		/** Name/Id of the network the share exists on. Used to differ between different local networks. Leave empty if globally accessible. */
 		networkId?: string

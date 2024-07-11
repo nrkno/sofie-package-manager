@@ -215,14 +215,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 				},
 			}
 		}
-		if (!this.accessor.baseUrl && this.accessor.baseUrl !== '')
-			return {
-				success: false,
-				reason: {
-					user: `Accessor baseUrl not set`,
-					tech: `Accessor baseUrl not set`,
-				},
-			}
+		// Note: For the HTTP-accessor, we allow this.accessor.baseUrl to be empty/falsy
+		// (which means that the content path needs to be a full URL)
+
 		if (!this.content.onlyContainerAccess) {
 			if (!this.path)
 				return {
@@ -236,8 +231,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return { success: true }
 	}
 	private get baseUrl(): string {
-		if (!this.accessor.baseUrl) throw new Error(`HTTPAccessorHandle: accessor.baseUrl not set!`)
-		return this.accessor.baseUrl
+		return this.accessor.baseUrl ?? ''
 	}
 	get path(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
