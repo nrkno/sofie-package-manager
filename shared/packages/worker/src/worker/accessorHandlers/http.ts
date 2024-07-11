@@ -21,12 +21,12 @@ import {
 	Reason,
 	AccessorId,
 	MonitorId,
+	rebaseUrl,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
 import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
-import { rebaseUrl } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** Accessor handle for accessing files in a local folder */
@@ -253,36 +253,64 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		const ttl = this.accessor.isImmutable
 			? 1000 * 60 * 60 * 24 // 1 day
 			: 1000 // a second
-		const { headers, status, statusText } = await this.worker.cacheData(
-			this.type,
-			this.fullUrl,
-			async () => {
-				const response = await fetchWithController(this.fullUrl, {
-					method: 'HEAD',
-				}).response
-				response.body.on('error', () => {
-					// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
-				})
 
-				const headers: HTTPHeaders = {
-					contentType: response.headers.get('content-type'),
-					contentLength: response.headers.get('content-length'),
-					lastModified: response.headers.get('last-modified'),
-					etags: response.headers.get('etag'),
-				}
-				return {
-					headers,
-					status: response.status,
-					statusText: response.statusText,
-				}
-			},
-			ttl
-		)
+		if (this.accessor.supportHEAD) {
+			return await this.worker.cacheData(
+				this.type,
+				`HEAD ${this.fullUrl}`,
+				async () => {
+					const r = fetchWithController(this.fullUrl, {
+						method: 'HEAD',
+					})
+					const response = await r.response
+					response.body.on('error', (e) => {
+						this.worker.logger.warn(`fetchHeader: Error ${e}`)
+					})
 
-		return {
-			status: status,
-			statusText: statusText,
-			headers: headers,
+					const headers: HTTPHeaders = {
+						contentType: response.headers.get('content-type'),
+						contentLength: response.headers.get('content-length'),
+						lastModified: response.headers.get('last-modified'),
+						etags: response.headers.get('etag'),
+					}
+					return {
+						headers,
+						status: response.status,
+						statusText: response.statusText,
+					}
+				},
+				ttl
+			)
+		} else {
+			// The source does NOT support HEAD requests, send a GET instead and abort the response:
+			return await this.worker.cacheData(
+				this.type,
+				`GET ${this.fullUrl}`,
+				async () => {
+					const r = fetchWithController(this.fullUrl, {
+						method: 'GET',
+					})
+					const response = await r.response
+					response.body.on('error', () => {
+						// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
+					})
+
+					const headers: HTTPHeaders = {
+						contentType: response.headers.get('content-type'),
+						contentLength: response.headers.get('content-length'),
+						lastModified: response.headers.get('last-modified'),
+						etags: response.headers.get('etag'),
+					}
+					// We're not interested in the actual body, so abort the request:
+					r.controller.abort()
+					return {
+						headers,
+						status: response.status,
+						statusText: response.statusText,
+					}
+				},
+				ttl
+			)
 		}
 	}
 

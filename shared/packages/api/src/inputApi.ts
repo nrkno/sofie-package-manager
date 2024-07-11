@@ -330,6 +330,12 @@ export namespace Accessor {
 
 		/** Name/Id of the network the share exists on. Used to differ between different local networks. Leave empty if globally accessible. */
 		networkId?: string
+
+		/** If true, assumes that a source never changes once it has been fetched. */
+		isImmutable?: boolean
+
+		/** If true, assumes that the source supports HEAD requests. Otherwise, GET requests will be sent to check availability. */
+		supportHEAD?: boolean
 	}
 	/** Definition of access to the HTTP-proxy server that comes with Package Manager. */
 	export interface HTTPProxy extends Base {
@@ -409,9 +415,6 @@ export namespace AccessorOnPackage {
 	export interface HTTP extends Partial<Accessor.HTTP> {
 		/** URL path to resource (combined with .baseUrl gives the full URL), for example: /folder/myFile */
 		url?: string
-
-		/** If true, assumes that a source never changes once it has been fetched. */
-		isImmutable?: boolean
 	}
 	export interface Quantel extends Partial<Accessor.Quantel> {
 		guid?: string
