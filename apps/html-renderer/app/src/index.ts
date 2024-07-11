@@ -32,7 +32,7 @@ async function main(): Promise<void> {
 	}
 	url = url.trim()
 	// Is a url
-	if (url.match(/^(https?)|(file)/)) {
+	if (url.match(/^((https?)|(file))/)) {
 		// Do nothing
 	} else {
 		// Assume it's a file path
