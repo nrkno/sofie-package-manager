@@ -11,14 +11,14 @@ into a single folder, for convenience
 
 const targetFolder = 'deploy/'
 
-// await rimraf(targetFolder)
+
 await fse.mkdirp(targetFolder)
 // clear folder:
 const files = await fse.readdir(targetFolder)
 for (const file of files) {
 	if (
 		// Only match executables:
-		file.match(/.*\.exe$/) &&
+		file.match(/.*\.(exe|zip)$/) &&
 		// Leave the ffmpeg / ffprobe files:
 		!file.match(/ffmpeg|ffprobe/)
 	) {
@@ -32,7 +32,17 @@ for (const deployfolder of deployfolders) {
 	if (deployfolder.match(/boilerplate/)) continue
 
 	console.log(`Copying: ${deployfolder}`)
-	await fse.copy(deployfolder, targetFolder)
+	await fse.copy(deployfolder, targetFolder, {
+		filter: (src, _dest) =>  {
+			const m = (
+				// Is executable or zip
+				src.match(/.*\.(exe|zip)$/) ||
+				// Is the deploy folder
+				src.endsWith('deploy')
+			)
+			return !!m
+		}
+	})
 }
 
 console.log(`All files have been copied to: ${targetFolder}`)

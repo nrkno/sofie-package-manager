@@ -14,6 +14,7 @@ import {
 	ExpectationId,
 } from '@sofie-package-manager/api'
 import {
+	ExpectedPackageWrapHTMLTemplate,
 	ExpectedPackageWrapJSONData,
 	ExpectedPackageWrapMediaFile,
 	ExpectedPackageWrapQuantel,
@@ -401,7 +402,7 @@ export function generateMediaFileThumbnail(
 			allowWaitForCPU: true,
 			requiredForPlayout: false,
 			usesCPUCount: 1,
-			removeDelay: 0, // The removal of the thumnail shouldn't be delayed
+			removeDelay: 0, // The removal of the thumbnail shouldn't be delayed
 			removePackageOnUnFulfill: true,
 		},
 		dependsOnFulfilled: [expectation.id],
@@ -616,6 +617,74 @@ export function generateJsonDataCopy(
 			removeDelay: settings.delayRemoval,
 			useTemporaryFilePath: settings.useTemporaryFilePath,
 			allowWaitForCPU: false,
+		},
+	}
+	return exp
+}
+export function generateHTMLRender(
+	managerId: ExpectationManagerId,
+	expWrap: ExpectedPackageWrap,
+	settings: PackageManagerSettings
+): Expectation.RenderHTML {
+	const expWrapHTMLTemplate = expWrap as ExpectedPackageWrapHTMLTemplate
+
+	const expectedPackage = expWrap.expectedPackage as ExpectedPackage.ExpectedPackageHtmlTemplate
+
+	const endRequirement: Expectation.RenderHTML['endRequirement'] = {
+		targets: expWrapHTMLTemplate.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
+		content: {
+			prefix: expectedPackage.content.outputPrefix,
+		},
+		version: {
+			...expWrapHTMLTemplate.expectedPackage.version,
+		},
+	}
+	if (
+		endRequirement.version.renderer?.width === undefined &&
+		endRequirement.version.renderer?.height === undefined &&
+		endRequirement.version.renderer?.zoom === undefined
+	) {
+		// Default: Render as thumbnails:
+		if (!endRequirement.version.renderer) endRequirement.version.renderer = {}
+		endRequirement.version.renderer.width = 1920 / 4
+		endRequirement.version.renderer.height = 1080 / 4
+		endRequirement.version.renderer.zoom = 1 / 4
+	}
+
+	const exp: Expectation.RenderHTML = {
+		id: protectString<ExpectationId>(hashObj(endRequirement)),
+		priority: expWrap.priority + PriorityAdditions.PREVIEW,
+		managerId: managerId,
+		fromPackages: [
+			{
+				id: expWrap.expectedPackage._id,
+				expectedContentVersionHash: expWrap.expectedPackage.contentVersionHash,
+			},
+		],
+		type: Expectation.Type.RENDER_HTML,
+		statusReport: {
+			label: `Rendering HTML template`,
+			description: `Rendering HTML template "${expWrapHTMLTemplate.expectedPackage.content.path}"`,
+			displayRank: 11,
+			sendReport: !expWrap.external,
+		},
+
+		startRequirement: {
+			sources: expWrapHTMLTemplate.sources,
+			content: expWrapHTMLTemplate.expectedPackage.content,
+			version: {
+				type: Expectation.Version.Type.FILE_ON_DISK,
+			},
+		},
+
+		endRequirement,
+		workOptions: {
+			allowWaitForCPU: true,
+			requiredForPlayout: false,
+			usesCPUCount: 1,
+			removeDelay: 0, // The removal of the thumbnail shouldn't be delayed
+			removePackageOnUnFulfill: true,
+			useTemporaryFilePath: settings.useTemporaryFilePath,
 		},
 	}
 	return exp

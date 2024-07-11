@@ -26,6 +26,7 @@ export namespace Expectation {
 		| QuantelClipPreview
 		| JsonDataCopy
 		| FileVerify
+		| RenderHTML
 
 	/** Defines the Expectation type, used to separate the different Expectations */
 	export enum Type {
@@ -34,6 +35,7 @@ export namespace Expectation {
 		MEDIA_FILE_THUMBNAIL = 'media_file_thumbnail',
 		MEDIA_FILE_PREVIEW = 'media_file_preview',
 		FILE_VERIFY = 'file_verify',
+		RENDER_HTML = 'render_html',
 
 		PACKAGE_SCAN = 'package_scan',
 		PACKAGE_DEEP_SCAN = 'package_deep_scan',
@@ -84,7 +86,7 @@ export namespace Expectation {
 			version: any
 		}
 		/** Contains info that can be used during work on an expectation. Changes in this does NOT cause an invalidation of the expectation. */
-		workOptions: WorkOptions.Base
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay & WorkOptions.UseTemporaryFilePath
 		/** Reference to another expectation.
 		 * Won't start until ALL other expectations are fulfilled.
 		 * If any of the other expectations are not fulfilled, this wont be fulfilled either.
@@ -310,7 +312,7 @@ export namespace Expectation {
 		type: Type.JSON_DATA_COPY
 
 		startRequirement: {
-			sources: SpecificPackageContainerOnPackage.JSONDataSource[]
+			sources: SpecificPackageContainerOnPackage.FileSource[]
 		}
 		endRequirement: {
 			targets: SpecificPackageContainerOnPackage.JSONDataTarget[]
@@ -330,6 +332,75 @@ export namespace Expectation {
 			sources: []
 		}
 		endRequirement: FileCopy['endRequirement']
+	}
+	/** Defines a "Verify File". Doesn't really do any work, just checks that the File exists at the Target. */
+	export interface RenderHTML extends Base {
+		type: Type.RENDER_HTML
+
+		startRequirement: {
+			sources: SpecificPackageContainerOnPackage.HTMLFileSource[]
+			content: {
+				path: string
+			}
+			version: Version.ExpectedFileOnDisk
+		}
+		endRequirement: {
+			targets: SpecificPackageContainerOnPackage.FileTarget[]
+			content: {
+				/** Prefix of output files */
+				prefix?: string
+			}
+			version: {
+				renderer?: {
+					width?: number
+					height?: number
+					zoom?: number
+					/** (defaults to black) */
+					backgroundColor?: string
+					userAgent?: string
+				}
+
+				/**
+				 * Convenience settings for a template that follows the typical CasparCG steps;
+				 * update(data); play(); stop();
+				 * If this is set, steps are overridden */
+				casparCG?: {
+					/**
+					 * Data to send into the update() function of a CasparCG Template.
+					 * Strings will be piped through as-is, objects will be JSON.stringified.
+					 */
+					data: { [key: string]: any } | null | string
+
+					/** How long to wait between each action in a CasparCG template, (default: 1000ms) */
+					delay?: number
+				}
+
+				steps?: (
+					| { do: 'waitForLoad' }
+					| { do: 'sleep'; duration: number }
+					| {
+							do: 'sendHTTPCommand'
+							url: string
+							/** GET, POST, PUT etc.. */
+							method: string
+							body?: ArrayBuffer | ArrayBufferView | NodeJS.ReadableStream | string | URLSearchParams
+
+							headers?: Record<string, string>
+					  }
+					| { do: 'takeScreenshot'; fileName: string }
+					| { do: 'startRecording'; fileName: string }
+					| { do: 'stopRecording' }
+					| { do: 'cropRecording'; fileName: string }
+					| { do: 'executeJs'; js: string }
+					// Store an object in memory
+					| { do: 'storeObject'; key: string; value: Record<string, any> }
+					// Modify an object in memory. Path is a dot-separated string
+					| { do: 'modifyObject'; key: string; path: string; value: any }
+					// Send an object to the renderer as a postMessage
+					| { do: 'injectObject'; key: string }
+				)[]
+			}
+		}
 	}
 
 	/** Contains definitions of specific PackageContainer types, used in the Expectation-definitions */
@@ -387,6 +458,17 @@ export namespace Expectation {
 					| AccessorOnPackage.FileShare
 					| AccessorOnPackage.HTTPProxy
 					| AccessorOnPackage.CorePackageCollection
+			}
+		}
+
+		/** Defines a PackageContainer for reading a HTML file. */
+		export interface HTMLFileSource extends PackageContainerOnPackage {
+			accessors: {
+				[accessorId: string]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
+					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
 			}
 		}
 	}

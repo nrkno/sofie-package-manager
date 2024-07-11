@@ -28,12 +28,17 @@ export const StatusCode = SofieStatusCode
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace ExpectedPackage {
-	export type Any = ExpectedPackageMediaFile | ExpectedPackageQuantelClip | ExpectedPackageJSONData
+	export type Any =
+		| ExpectedPackageMediaFile
+		| ExpectedPackageQuantelClip
+		| ExpectedPackageJSONData
+		| ExpectedPackageHtmlTemplate
 
 	export enum PackageType {
 		MEDIA_FILE = 'media_file',
 		QUANTEL_CLIP = 'quantel_clip',
 		JSON_DATA = 'json_data',
+		HTML_TEMPLATE = 'html_template',
 
 		// TALLY_LABEL = 'tally_label'
 
@@ -188,6 +193,63 @@ export namespace ExpectedPackage {
 					| AccessorOnPackage.HTTPProxy
 					| AccessorOnPackage.LocalFolder
 					| AccessorOnPackage.FileShare
+			}
+		}[]
+	}
+	export interface ExpectedPackageHtmlTemplate extends Base {
+		type: PackageType.HTML_TEMPLATE
+		content: {
+			/** path to the HTML template */
+			path: string
+			/** Add prefix to output artifacts */
+			outputPrefix: string
+		}
+		version: {
+			renderer?: {
+				/** Renderer width, defaults to 1920 */
+				width?: number
+				/** Renderer width, defaults to 1080 */
+				height?: number
+				/** Zoom level, defaults to 1 */
+				zoom?: number
+				/** (defaults to black) */
+				backgroundColor?: string
+				userAgent?: string
+			}
+
+			/**
+			 * Convenience settings for a template that follows the typical CasparCG steps;
+			 * update(data); play(); stop();
+			 * If this is set, steps are overridden */
+			casparCG?: {
+				/**
+				 * Data to send into the update() function of a CasparCG Template.
+				 * Strings will be piped through as-is, objects will be JSON.stringified.
+				 */
+				data: { [key: string]: any } | null | string
+
+				/** How long to wait between each action in a CasparCG template, (default: 1000ms) */
+				delay?: number
+			}
+
+			steps?: (
+				| { do: 'waitForLoad' }
+				| { do: 'sleep'; duration: number }
+				| { do: 'takeScreenshot'; fileName: string }
+				| { do: 'startRecording'; fileName: string }
+				| { do: 'stopRecording' }
+				| { do: 'cropRecording'; fileName: string }
+				| { do: 'executeJs'; js: string }
+			)[]
+		}
+		sources: {
+			containerId: PackageContainerId
+			accessors: {
+				[accessorId: AccessorId]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
+					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
 			}
 		}[]
 	}

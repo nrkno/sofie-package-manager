@@ -1,0 +1,75 @@
+{
+    "name": "@html-renderer/app",
+    "version": "1.50.5",
+    "description": "HTML-renderer",
+    "private": true,
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "yarn rimraf dist && yarn build:main",
+        "build:main": "tsc -p tsconfig.json",
+        "build-win32": "yarn prepare-build-win32 && electron-builder && yarn post-build-win32",
+        "prepare-build-win32": "node scripts/prepare_build.js",
+        "post-build-win32": "node scripts/post_build.js",
+        "__test": "jest",
+        "start": "electron dist/index.js"
+    },
+    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+    "engines": {
+        "node": ">=18"
+    },
+    "lint-staged": {
+        "*.{js,css,json,md,scss}": [
+            "prettier"
+        ],
+        "*.{ts,tsx}": [
+            "eslint"
+        ]
+    },
+    "peerDependencies": {
+        "ws": "*"
+    },
+    "dependencies": {
+        "@html-renderer/generic": "1.50.5",
+        "@sofie-automation/shared-lib": "1.50.0",
+        "@sofie-package-manager/api": "1.50.5",
+        "portfinder": "^1.0.32",
+        "tslib": "^2.1.0",
+        "yargs": "^17.7.2"
+    },
+    "devDependencies": {
+        "@types/ws": "^8.5.4",
+        "archiver": "^7.0.1",
+        "electron": "^30.0.6",
+        "electron-builder": "^24.13.3",
+        "lerna": "^6.6.1",
+        "rimraf": "^5.0.5"
+    },
+    "build": {
+        "productName": "html-renderer",
+        "appId": "no.nrk.sofie.html-renderer",
+        "win": {
+            "extraFiles": [],
+            "target": [
+                {
+                    "target": "portable",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ]
+        },
+        "linux": {
+            "extraFiles": []
+        },
+        "electronVersion": "30.0.6",
+        "files": [
+            "dist/**/*"
+        ],
+        "portable": {
+            "artifactName": "html-renderer.exe"
+        },
+        "directories": {
+            "output": "deploy"
+        }
+    }
+}

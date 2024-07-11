@@ -71,6 +71,18 @@
                     "allowWrite": true
                 }
             }
+        },
+        "theinternet": {
+            "label": "HTTP",
+            "accessors": {
+                "http": {
+                    "type": "http",
+                    "label": "http",
+                    "baseUrl": "",
+                    "allowRead": true,
+                    "allowWrite": false
+                }
+            }
         }
     },
     "expectedPackages": [
@@ -134,6 +146,61 @@
             ],
             "layers": [
                 "core0"
+            ],
+            "sideEffect": {}
+        },
+        {
+            "type": "html_template",
+            "_id": "test-html",
+            "contentVersionHash": "abc1234",
+            "content": {
+                "path": "https://www.bouncingdvdlogo.com/",
+                "outputPrefix": ""
+            },
+            "version": {
+                "renderer": {
+                    "width": 480,
+                    "height": 320,
+                    "zoom": 0.25
+                },
+                "steps": [
+                    {
+                        "do": "waitForLoad"
+                    },
+                    {
+                        "do": "startRecording",
+                        "fileName": "bouncingdvdlogo_recording.webm"
+                    },
+                    {
+                        "do": "sleep",
+                        "duration": 1000
+                    },
+                    {
+                        "do": "takeScreenshot",
+                        "fileName": "bouncingdvdlogo_screenshot.png"
+                    },
+                    {
+                        "do": "sleep",
+                        "duration": 4000
+                    },
+                    {
+                        "do": "stopRecording"
+                    }
+                ]
+            },
+            "sources": [
+                {
+                    "containerId": "theinternet",
+                    "accessors": {
+                        "http": {
+                            "type": "http",
+                            "url": ""
+                        }
+                    }
+                }
+            ],
+            "layers": [
+                "thumbnails0_local"
             ],
             "sideEffect": {}
         }

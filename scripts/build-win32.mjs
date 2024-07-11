@@ -65,7 +65,7 @@ if (!executableName) {
 	ps = []
 
 	// Remove things that arent used, to reduce file size:
-	log(`Remove unused files...`)
+	log(`Remove unused files before build...`)
 	const copiedFiles = [
 		...(await glob(`${basePath}/node_modules/@*/app/*`)),
 		...(await glob(`${basePath}/node_modules/@*/generic/*`)),
