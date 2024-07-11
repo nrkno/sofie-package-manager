@@ -198,7 +198,7 @@ export class PackageManagerHandler {
 		if (this.coreHandler.notUsingCore) return // Abort if we are not using core
 		this.logger.debug('Renewing observers')
 
-		const triggerUpdateOnAnyChange = (observer: Observer) => {
+		const triggerUpdateOnAnyChange = (observer: Observer<any>) => {
 			observer.added = () => {
 				this.triggerUpdatedExpectedPackages()
 			}

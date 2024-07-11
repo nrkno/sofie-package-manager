@@ -71,8 +71,8 @@
         "node": ">=18"
     },
     "dependencies": {
-        "@sofie-automation/server-core-integration": "1.50.0",
-        "@sofie-automation/shared-lib": "1.50.0"
+        "@sofie-automation/server-core-integration": "1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0",
+        "@sofie-automation/shared-lib": "1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {

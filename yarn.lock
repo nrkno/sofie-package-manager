@@ -685,7 +685,7 @@ __metadata:
   resolution: "@html-renderer/app@workspace:apps/html-renderer/app"
   dependencies:
     "@html-renderer/generic": "npm:1.50.5"
-    "@sofie-automation/shared-lib": "npm:1.50.0"
+    "@sofie-automation/shared-lib": "npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0"
     "@sofie-package-manager/api": "npm:1.50.5"
     "@types/ws": "npm:^8.5.4"
     archiver: "npm:^7.0.1"
@@ -2100,30 +2100,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sofie-automation/server-core-integration@npm:1.50.0":
-  version: 1.50.0
-  resolution: "@sofie-automation/server-core-integration@npm:1.50.0"
+"@sofie-automation/server-core-integration@npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0":
+  version: 1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0
+  resolution: "@sofie-automation/server-core-integration@npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0"
   dependencies:
-    "@sofie-automation/shared-lib": "npm:1.50.0"
+    "@sofie-automation/shared-lib": "npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0"
     ejson: "npm:^2.2.3"
     eventemitter3: "npm:^4.0.7"
     faye-websocket: "npm:^0.11.4"
     got: "npm:^11.8.6"
     tslib: "npm:^2.4.0"
     underscore: "npm:^1.13.4"
-  checksum: 10/b0699de75e871f30684cb0056922cb2955725c7759dc3888cd83d6a7c260c4227d5cc79a16d2d0288eae6e6acfb8cd9dec7080248daf003b31baceb2f99cf7b9
+  checksum: 10/85a4b2d8acbf36f6dbc72c0dc0f3b05e9268c3cd10e89d1eaf5a1bc70ea44651cbb070b9af335f692520a0fbbd062d5747f7a271b9130179581b20c0bf8a7c99
   languageName: node
   linkType: hard
 
-"@sofie-automation/shared-lib@npm:1.50.0":
-  version: 1.50.0
-  resolution: "@sofie-automation/shared-lib@npm:1.50.0"
+"@sofie-automation/shared-lib@npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0":
+  version: 1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0
+  resolution: "@sofie-automation/shared-lib@npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0"
   dependencies:
     "@mos-connection/model": "npm:^3.0.4"
-    timeline-state-resolver-types: "npm:9.0.0"
+    timeline-state-resolver-types: "npm:9.0.1"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^2.19.0"
-  checksum: 10/69036c85e5bf0adca0d997db7138de6fb8398a12cd48c5fa1c9be1139baf9e09f098edaf77572588425fbebf9ff9c6d5f0634acf50e41444f9b593f2e60814ff
+  checksum: 10/4ff4f24fc87c4b79bfb592312bfcfc782bcf02e21b25dcffb04edd1de0a3f0fd4ddae005f198d8729fb37894e111233f04f712f83e443f7a310bc5e2b4a81e24
   languageName: node
   linkType: hard
 
@@ -10582,8 +10582,8 @@ __metadata:
   resolution: "package-manager-monorepo@workspace:."
   dependencies:
     "@sofie-automation/code-standard-preset": "npm:^2.5.1"
-    "@sofie-automation/server-core-integration": "npm:1.50.0"
-    "@sofie-automation/shared-lib": "npm:1.50.0"
+    "@sofie-automation/server-core-integration": "npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0"
+    "@sofie-automation/shared-lib": "npm:1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0"
     "@types/jest": "npm:^29.2.5"
     "@types/rimraf": "npm:^3.0.0"
     "@yao-pkg/pkg": "npm:^5.11.5"
@@ -12786,12 +12786,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"timeline-state-resolver-types@npm:9.0.0":
-  version: 9.0.0
-  resolution: "timeline-state-resolver-types@npm:9.0.0"
+"timeline-state-resolver-types@npm:9.0.1":
+  version: 9.0.1
+  resolution: "timeline-state-resolver-types@npm:9.0.1"
   dependencies:
     tslib: "npm:^2.5.1"
-  checksum: 10/a3886a9f480d0c01a6470a55163c8262a11ac17084d1bacb4e078ea321ad2854969ef57cc0907de4162853037738ff0d6124c809c1a0ee3b012e7723edca4086
+  checksum: 10/17bfd8cd52069fb3571bc9cf9c8d711a1c9569ca2cf61ee9a429be8fac4035cf3b6f146d31c68dda6d8fdd5a880f72c8dbe65985d0385e3128407b08c303361a
   languageName: node
   linkType: hard
 

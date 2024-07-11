@@ -63,7 +63,7 @@ export interface CoreConfig {
  */
 export class CoreHandler {
 	private logger: LoggerInstance
-	public _observers: Array<Observer> = []
+	public _observers: Array<Observer<any>> = []
 	public deviceSettings: { [key: string]: any } = {}
 
 	public delayRemoval = 0
@@ -332,7 +332,7 @@ export class CoreHandler {
 	retireExecuteFunction(cmdId: string): void {
 		delete this._executedFunctions[cmdId]
 	}
-	observe(collectionName: string): Observer {
+	observe(collectionName: string): Observer<any> {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
 		if (!this.core) throw new Error('Core not initialized!')
 		return this.core.observe(collectionName)
