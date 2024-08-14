@@ -169,6 +169,12 @@ const workerArguments = defineArguments({
 		default: process.env.WORKER_PICK_UP_CRITICAL_EXPECTATIONS_ONLY === '1' || false,
 		describe: 'If set to 1, the worker will only pick up expectations that are marked as critical for playout.',
 	},
+	failureLimit: {
+		type: 'number',
+		default: process.env.WORKER_FAILURE_LIMIT || 0,
+		describe:
+			'If set, the worker will count the number of failures it encounters while working and will restart once this number is exceeded in a period of 60 seconds.',
+	},
 })
 /** CLI-argument-definitions for the AppContainer process */
 const appContainerArguments = defineArguments({
@@ -426,6 +432,7 @@ export interface WorkerConfig {
 		costMultiplier: number
 		considerCPULoad: number | null
 		pickUpCriticalExpectationsOnly: boolean
+		failureLimit: number
 	} & WorkerAgentConfig
 }
 export async function getWorkerConfig(): Promise<WorkerConfig> {
@@ -452,6 +459,8 @@ export async function getWorkerConfig(): Promise<WorkerConfig> {
 				(typeof argv.considerCPULoad === 'string' ? parseFloat(argv.considerCPULoad) : argv.considerCPULoad) ||
 				null,
 			pickUpCriticalExpectationsOnly: argv.pickUpCriticalExpectationsOnly,
+			failureLimit:
+				(typeof argv.failureLimit === 'string' ? parseInt(argv.failureLimit) : argv.failureLimit) || 0,
 		},
 	}
 }

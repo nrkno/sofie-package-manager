@@ -14,12 +14,12 @@ export async function startProcess(): Promise<void> {
 	const processHandler = new ProcessHandler(logger)
 	processHandler.init(config.process)
 
-	const workforce = new WorkerAgent(logger, config)
+	const workerAgent = new WorkerAgent(logger, config)
 
 	process.on('exit', (code) => {
 		logger.info(`Worker: Closing with exitCode: ${code}`)
-		workforce.terminate()
+		workerAgent.terminate()
 	})
 
-	workforce.init().catch(logger.error)
+	workerAgent.init().catch(logger.error)
 }
