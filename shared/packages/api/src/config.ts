@@ -246,6 +246,12 @@ const appContainerArguments = defineArguments({
 		describe:
 			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
 	},
+	failureLimit: {
+		type: 'number',
+		default: process.env.WORKER_FAILURE_LIMIT || 0,
+		describe:
+			'If set, the worker will count the number of failures it encounters while working and will restart once this number is exceeded in a period of 60 seconds.',
+	},
 })
 /** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
@@ -500,6 +506,8 @@ export async function getAppContainerConfig(): Promise<AppContainerProcessConfig
 					(typeof argv.considerCPULoad === 'string'
 						? parseFloat(argv.considerCPULoad)
 						: argv.considerCPULoad) || null,
+				failureLimit:
+					(typeof argv.failureLimit === 'string' ? parseFloat(argv.failureLimit) : argv.failureLimit) || 0,
 			},
 		},
 	}
