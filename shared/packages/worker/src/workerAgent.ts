@@ -801,9 +801,8 @@ export class WorkerAgent {
 	}
 
 	private async trackException<ReturnType>(fnc: Promise<ReturnType>): Promise<ReturnType> {
-		fnc.catch((reason) => {
+		fnc.catch(() => {
 			this.IFailed()
-			throw reason
 		})
 		return fnc
 	}
