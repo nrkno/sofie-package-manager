@@ -261,9 +261,13 @@ export class BrowserRenderer implements InteractiveAPI {
 
 		// Figure out the active bounding box
 		const boundingBox = {
+			/** left */
 			x1: Infinity,
+			/** right */
 			x2: -Infinity,
+			/** top */
 			y1: Infinity,
+			/** bottom */
 			y2: -Infinity,
 		}
 		await this.ffmpeg(
@@ -295,7 +299,9 @@ export class BrowserRenderer implements InteractiveAPI {
 			!Number.isFinite(boundingBox.x1) ||
 			!Number.isFinite(boundingBox.x2) ||
 			!Number.isFinite(boundingBox.y1) ||
-			!Number.isFinite(boundingBox.y2)
+			!Number.isFinite(boundingBox.y2) ||
+			boundingBox.x1 > boundingBox.x2 ||
+			boundingBox.y1 > boundingBox.y2
 		) {
 			this.logger.warn(`Could not determine bounding box`)
 			// Just copy the full video
@@ -306,6 +312,12 @@ export class BrowserRenderer implements InteractiveAPI {
 			boundingBox.x2 += 10
 			boundingBox.y1 -= 10
 			boundingBox.y2 += 10
+
+			// Cap to the video size:
+			boundingBox.x1 = Math.min(this.width, Math.max(0, boundingBox.x1))
+			boundingBox.x2 = Math.min(this.width, Math.max(0, boundingBox.x2))
+			boundingBox.y1 = Math.min(this.height, Math.max(0, boundingBox.y1))
+			boundingBox.y2 = Math.min(this.height, Math.max(0, boundingBox.y2))
 
 			this.logger.verbose(`Saving cropped recording to ${croppedFilename}`)
 			// Generate a cropped video as well:

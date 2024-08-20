@@ -679,25 +679,23 @@ class HTMLRenderer {
 	}
 
 	private spawnHTMLRendererProcess() {
-		this.htmlRendererProcess = spawn(
-			getHtmlRendererExecutable(),
-			compact<string>([
-				`--`,
-				`--url=${this.url}`,
-				this.exp.endRequirement.version.renderer?.width !== undefined &&
-					`--width=${this.exp.endRequirement.version.renderer?.width}`,
-				this.exp.endRequirement.version.renderer?.height !== undefined &&
-					`--height=${this.exp.endRequirement.version.renderer?.height}`,
-				this.exp.endRequirement.version.renderer?.zoom !== undefined &&
-					`--zoom=${this.exp.endRequirement.version.renderer?.zoom}`,
-				`--outputPath=${this.outputPath}`,
-				`--background=${this.exp.endRequirement.version.renderer?.background ?? 'default'}`,
-				`--interactive=true`,
-			]),
-			{
-				windowsVerbatimArguments: true, // To fix an issue with arguments on Windows
-			}
-		)
+		const args = compact<string>([
+			`--`,
+			`--url=${this.url}`,
+			this.exp.endRequirement.version.renderer?.width !== undefined &&
+				`--width=${this.exp.endRequirement.version.renderer?.width}`,
+			this.exp.endRequirement.version.renderer?.height !== undefined &&
+				`--height=${this.exp.endRequirement.version.renderer?.height}`,
+			this.exp.endRequirement.version.renderer?.zoom !== undefined &&
+				`--zoom=${this.exp.endRequirement.version.renderer?.zoom}`,
+			`--outputPath=${this.outputPath}`,
+			`--background=${this.exp.endRequirement.version.renderer?.background ?? 'default'}`,
+			`--interactive=true`,
+		])
+		this.worker.logger.info('AAAA ' + JSON.stringify(args))
+		this.htmlRendererProcess = spawn(getHtmlRendererExecutable(), args, {
+			windowsVerbatimArguments: true, // To fix an issue with arguments on Windows
+		})
 
 		const onClose = (code: number | null) => {
 			if (this.htmlRendererProcess) {
