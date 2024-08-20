@@ -32,7 +32,7 @@ import { testFFMpeg, testFFProbe } from './expectationHandlers/lib/ffmpeg'
 import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { FileVerify } from './expectationHandlers/fileVerify'
-import { RenderHTML } from './expectationHandlers/RenderHTML'
+import { RenderHTML } from './expectationHandlers/renderHTML'
 
 export type ExpectationHandlerGenericWorker = ExpectationHandler<GenericWorker>
 
