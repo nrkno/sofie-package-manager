@@ -161,7 +161,8 @@
                 "renderer": {
                     "width": 480,
                     "height": 320,
-                    "zoom": 0.25
+                    "zoom": 0.25,
+                    "background": "green"
                 },
                 "steps": [
                     {
@@ -181,10 +182,14 @@
                     },
                     {
                         "do": "sleep",
-                        "duration": 4000
+                        "duration": 2000
                     },
                     {
                         "do": "stopRecording"
+                    },
+                    {
+                        "do": "cropRecording",
+                        "fileName": "bouncingdvdlogo_recording-cropped.webm"
                     }
                 ]
             },
