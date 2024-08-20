@@ -17,6 +17,10 @@ const htmlRendererOptions = defineArguments({
 	width: { type: 'number', describe: 'Width of the HTML renderer (default: 1920)' },
 	height: { type: 'number', describe: 'Width of the HTML renderer (default: 1080)' },
 	zoom: { type: 'number', describe: 'Zoom factor of the HTML renderer (default: 1)' },
+	background: {
+		type: 'string',
+		describe: 'Background color, #RRGGBB, CSS-string or "transparent" or "default" (defaults: "default")',
+	},
 	outputPath: { type: 'string', describe: 'File path to where the output files will be saved' },
 	tempPath: { type: 'string', describe: 'File path to where temporary files will be saved (default: "tmp")' },
 	screenshots: { type: 'boolean', describe: 'When true, will capture screenshots' },
@@ -61,6 +65,7 @@ export interface HTMLRendererOptionsConfig {
 	width: number | undefined
 	height: number | undefined
 	zoom: number | undefined
+	background: string | undefined
 	outputPath: string | undefined
 	tempPath: string | undefined
 	screenshots: boolean | undefined
@@ -92,6 +97,7 @@ export async function getHTMLRendererConfig(): Promise<{
 			width: argv.width,
 			height: argv.height,
 			zoom: argv.zoom,
+			background: argv.background,
 			outputPath: argv.outputPath,
 			tempPath: argv.tempPath,
 			screenshots: argv.screenshots,

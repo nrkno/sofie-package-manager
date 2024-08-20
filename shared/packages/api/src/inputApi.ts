@@ -212,8 +212,8 @@ export namespace ExpectedPackage {
 				height?: number
 				/** Zoom level, defaults to 1 */
 				zoom?: number
-				/** (defaults to black) */
-				backgroundColor?: string
+				/** Background color, #RRGGBB, CSS-string, "transparent" or "default" (defaults to "default") */
+				background?: string
 				userAgent?: string
 			}
 

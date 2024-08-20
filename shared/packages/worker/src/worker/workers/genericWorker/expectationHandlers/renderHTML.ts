@@ -691,6 +691,7 @@ class HTMLRenderer {
 				this.exp.endRequirement.version.renderer?.zoom !== undefined &&
 					`--zoom=${this.exp.endRequirement.version.renderer?.zoom}`,
 				`--outputPath=${this.outputPath}`,
+				`--background=${this.exp.endRequirement.version.renderer?.background ?? 'default'}`,
 				`--interactive=true`,
 			]),
 			{

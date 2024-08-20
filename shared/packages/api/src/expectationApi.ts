@@ -355,8 +355,8 @@ export namespace Expectation {
 					width?: number
 					height?: number
 					zoom?: number
-					/** (defaults to black) */
-					backgroundColor?: string
+					/** Background color, #RRGGBB, CSS-string, "transparent" or "default" (defaults to "default") */
+					background?: string
 					userAgent?: string
 				}
 

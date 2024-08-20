@@ -15,8 +15,8 @@ export interface RenderHTMLOptions {
 	height?: number
 	/** Zoom factor */
 	zoom?: number
-	/** Background color, default to black */
-	backgroundColor?: string
+	/** Background color, default to "default" */
+	background?: string
 
 	tempFolder?: string
 	outputFolder?: string
@@ -66,6 +66,9 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 				// preload: join(__dirname, 'preload.js'),
 				nodeIntegration: false,
 			},
+			transparent: true,
+			backgroundColor: '#00000000', // This is needed to be able to capture transparent screenshots
+			frame: false,
 			height,
 			width,
 		})
@@ -106,10 +109,14 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 		// logger.verbose(`Loading done`)
 
 		win.title = `HTML Renderer ${process.pid}`
-
-		await win.webContents.insertCSS(
-			`html,body{ background-color: #${options.backgroundColor ?? '000000'} !important;}`
-		)
+		let backgroundColor = options.background ?? 'default'
+		if (backgroundColor.match(/^[0-f]+$/)) {
+			// "RRGGBB" format
+			backgroundColor = '#' + backgroundColor
+		}
+		if (backgroundColor !== 'default') {
+			await win.webContents.insertCSS(`html,body{ background: ${backgroundColor} !important;}`)
+		}
 
 		let exitCode = 0
 

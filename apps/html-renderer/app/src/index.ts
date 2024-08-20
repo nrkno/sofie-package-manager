@@ -225,6 +225,7 @@ async function main(): Promise<void> {
 		width: config.htmlRenderer.width ?? 1920,
 		height: config.htmlRenderer.height ?? 1080,
 		zoom: config.htmlRenderer.zoom ?? 1,
+		background: config.htmlRenderer.background,
 		outputFolder: config.htmlRenderer.outputPath ?? '',
 		tempFolder: config.htmlRenderer.tempPath ?? 'tmp',
 		url,
