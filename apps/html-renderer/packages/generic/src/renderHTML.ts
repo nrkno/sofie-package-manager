@@ -276,20 +276,20 @@ export async function renderHTML(options: RenderHTMLOptions): Promise<{
 				)
 
 				if (
-					boundingBox.x1 === Infinity ||
-					boundingBox.x2 === -Infinity ||
-					boundingBox.y1 === Infinity ||
-					boundingBox.y2 === -Infinity
+					!Number.isFinite(boundingBox.x1) ||
+					!Number.isFinite(boundingBox.x2) ||
+					!Number.isFinite(boundingBox.y1) ||
+					!Number.isFinite(boundingBox.y2)
 				) {
 					logger.warn(`Could not determine bounding box`)
 					// Just copy the full video
 					await fs.promises.copyFile(recording.fileName, croppedFilename)
 				} else {
-					// Add margins:
-					boundingBox.x1 -= 10 + (boundingBox.x1 > width * 0.65 ? 10 : 0)
-					boundingBox.x2 += 10 + (boundingBox.x2 < width * 0.65 ? 10 : 0)
-					boundingBox.y1 -= 10 + (boundingBox.y1 > height * 0.65 ? 10 : 0)
-					boundingBox.y2 += 10 + (boundingBox.y2 < height * 0.65 ? 10 : 0)
+					// Add margins:, to account for things like drop shadows
+					boundingBox.x1 -= 10
+					boundingBox.x2 += 10
+					boundingBox.y1 -= 10
+					boundingBox.y2 += 10
 
 					logger.verbose(`Saving cropped recording to ${croppedFilename}`)
 					// Generate a cropped video as well:

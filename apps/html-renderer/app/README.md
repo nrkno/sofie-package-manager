@@ -10,7 +10,7 @@ _This is used for a HTML file that follows the typical CasparCG lifespan (`updat
 html-renderer.exe -- --url=file://C:/templates/mytemplate.html  outputPath="C:\\rendered" --screenshots=true --recording=true --recording-cropped=true --casparData='{"name":"John Doe"}' --casparDelay=1000
 ```
 
-### Standalone HTML template
+### Generic HTML template
 
 _This is used for a HTML file that doesn't require any additional input during its run._
 

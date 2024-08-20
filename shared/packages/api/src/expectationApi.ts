@@ -396,8 +396,13 @@ export namespace Expectation {
 					| { do: 'storeObject'; key: string; value: Record<string, any> }
 					// Modify an object in memory. Path is a dot-separated string
 					| { do: 'modifyObject'; key: string; path: string; value: any }
-					// Send an object to the renderer as a postMessage
-					| { do: 'injectObject'; key: string }
+					// Send an object to the renderer as a postMessage (so basically does a executeJs: window.postMessage(memory[key]))
+					| {
+							do: 'injectObject'
+							key: string
+							/** The method to receive the value. Defaults to window.postMessage */
+							receivingFunction: string
+					  }
 				)[]
 			}
 		}

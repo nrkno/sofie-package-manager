@@ -902,10 +902,12 @@ class HTMLRenderer {
 				const obj = this.storedDataObjects[currentStep.step.key]
 				if (!obj) throw new Error(`Object "${currentStep.step.key}" not found`)
 
+				const receivingFunction = currentStep.step.receivingFunction ?? 'window.postMessage'
+
 				// Execute javascript in the renderer, to simulate a postMessage event:
 				const cmd: InteractiveMessage = {
 					do: 'executeJs',
-					js: `window.postMessage(${JSON.stringify(obj)})`,
+					js: `${receivingFunction}(${JSON.stringify(obj)})`,
 				}
 				// Send command to the renderer:
 				this.setCommandToRenderer(cmd)

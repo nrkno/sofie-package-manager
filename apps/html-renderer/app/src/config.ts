@@ -25,7 +25,11 @@ const htmlRendererOptions = defineArguments({
 		type: 'boolean',
 		describe: 'When true, will capture a recording cropped to the non-black area',
 	},
-	casparData: { type: 'string', describe: '(JSON) data to send into the update() function of a CasparCG Template' },
+	casparData: {
+		type: 'string',
+		describe:
+			'(JSON) data to send into the update() function of a CasparCG Template. This needs to be a stringified JSON object, a string (in quotes) etc..',
+	},
 	casparDelay: {
 		type: 'number',
 		describe: 'How long to wait between each action in a CasparCG template (default: 1000ms)',
