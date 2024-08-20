@@ -96,12 +96,19 @@ export type InteractiveStdOut = { status: 'listening'; port: number }
 
 /** Messages sent into HTMLRenderer process over websocket */
 export type InteractiveMessage =
+	// Tell the HTML Renderer to wait for the page to load, it'll then emit the waitForLoad reply when page has loaded
 	| { do: 'waitForLoad' }
+	// Tell the HTML Renderer to take a screenshot, it'll then emit the takeScreenshot reply when done
 	| { do: 'takeScreenshot'; fileName: string }
+	// Tell the HTML Renderer to start recording, it'll then emit the startRecording reply when the recording has started
 	| { do: 'startRecording'; fileName: string }
+	// Tell the HTML Renderer to stop recording, it'll then emit the stopRecording reply when the recording has stopped
 	| { do: 'stopRecording' }
+	// Tell the HTML Renderer to crop the recording, it'll then emit the cropRecording reply when the recording has been cropped
 	| { do: 'cropRecording'; fileName: string }
+	// Tell the HTML Renderer to execute some JavaScript in the page, it'll then emit the executeJs reply when the script has been executed
 	| { do: 'executeJs'; js: string }
+	// Tell the HTML Renderer to close and quit
 	| { do: 'close' }
 /** Messages sent from HTMLRenderer process over websocket */
 export type InteractiveReply =
