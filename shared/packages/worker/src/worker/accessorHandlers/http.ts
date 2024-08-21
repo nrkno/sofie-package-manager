@@ -254,34 +254,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			? 1000 * 60 * 60 * 24 // 1 day
 			: 1000 // a second
 
-		if (this.accessor.supportHEAD) {
-			return await this.worker.cacheData(
-				this.type,
-				`HEAD ${this.fullUrl}`,
-				async () => {
-					const r = fetchWithController(this.fullUrl, {
-						method: 'HEAD',
-					})
-					const response = await r.response
-					response.body.on('error', (e) => {
-						this.worker.logger.warn(`fetchHeader: Error ${e}`)
-					})
-
-					const headers: HTTPHeaders = {
-						contentType: response.headers.get('content-type'),
-						contentLength: response.headers.get('content-length'),
-						lastModified: response.headers.get('last-modified'),
-						etags: response.headers.get('etag'),
-					}
-					return {
-						headers,
-						status: response.status,
-						statusText: response.statusText,
-					}
-				},
-				ttl
-			)
-		} else {
+		if (this.accessor.useGETinsteadOfHEAD) {
 			// The source does NOT support HEAD requests, send a GET instead and abort the response:
 			return await this.worker.cacheData(
 				this.type,
@@ -303,6 +276,33 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 					}
 					// We're not interested in the actual body, so abort the request:
 					r.controller.abort()
+					return {
+						headers,
+						status: response.status,
+						statusText: response.statusText,
+					}
+				},
+				ttl
+			)
+		} else {
+			return await this.worker.cacheData(
+				this.type,
+				`HEAD ${this.fullUrl}`,
+				async () => {
+					const r = fetchWithController(this.fullUrl, {
+						method: 'HEAD',
+					})
+					const response = await r.response
+					response.body.on('error', (e) => {
+						this.worker.logger.warn(`fetchHeader: Error ${e}`)
+					})
+
+					const headers: HTTPHeaders = {
+						contentType: response.headers.get('content-type'),
+						contentLength: response.headers.get('content-length'),
+						lastModified: response.headers.get('last-modified'),
+						etags: response.headers.get('etag'),
+					}
 					return {
 						headers,
 						status: response.status,

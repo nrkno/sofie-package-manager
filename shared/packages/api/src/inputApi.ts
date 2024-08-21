@@ -334,8 +334,8 @@ export namespace Accessor {
 		/** If true, assumes that a source never changes once it has been fetched. */
 		isImmutable?: boolean
 
-		/** If true, assumes that the source supports HEAD requests. Otherwise, GET requests will be sent to check availability. */
-		supportHEAD?: boolean
+		/** If true, assumes that the source doesn't support HEAD requests and will use GET instead. If false, HEAD requests will be sent to check availability. */
+		useGETinsteadOfHEAD?: boolean
 	}
 	/** Definition of access to the HTTP-proxy server that comes with Package Manager. */
 	export interface HTTPProxy extends Base {
