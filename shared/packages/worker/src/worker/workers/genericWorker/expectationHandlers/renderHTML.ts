@@ -801,9 +801,7 @@ class HTMLRenderer {
 
 						this.doNextCommand()
 					} else {
-						this.onError(
-							new Error(`Unexpected reply from HTMLRenderer: ${message.reply} (not waiting for command)`)
-						)
+						this.onError(new Error(`Unexpected reply from HTMLRenderer: ${message.reply}`))
 					}
 				} else {
 					assertNever(message)
@@ -871,6 +869,9 @@ class HTMLRenderer {
 					headers: step.headers,
 					body: step.body,
 				})
+					.then(() => {
+						this.doNextCommand()
+					})
 					.catch((err) => {
 						this.onError(
 							new Error(
@@ -880,36 +881,65 @@ class HTMLRenderer {
 							)
 						)
 					})
-					.finally(() => {
-						this.doNextCommand()
-					})
 			} else if (currentStep.step.do === 'storeObject') {
 				this.worker.logger.debug(`HTMLRenderer: Store object "${currentStep.step.key}"`)
-				this.storedDataObjects[currentStep.step.key] = currentStep.step.value
-				this.doNextCommand()
+				try {
+					const value =
+						typeof currentStep.step.value === 'string'
+							? JSON.parse(currentStep.step.value)
+							: currentStep.step.value
+					this.storedDataObjects[currentStep.step.key] = value
+					this.doNextCommand()
+				} catch (e) {
+					this.onError(
+						new Error(
+							`HTMLRenderer: Error when parsing value in storeObject for key "${
+								currentStep.step.key
+							}": ${stringifyError(e)}`
+						)
+					)
+				}
 			} else if (currentStep.step.do === 'modifyObject') {
 				this.worker.logger.debug(`HTMLRenderer: Modify object "${currentStep.step.key}"`)
 
-				const obj = this.storedDataObjects[currentStep.step.key]
-				if (!obj) throw new Error(`Object "${currentStep.step.key}" not found`)
-
-				modifyObject(obj, currentStep.step.path, currentStep.step.value)
-				this.doNextCommand()
+				try {
+					const obj = this.storedDataObjects[currentStep.step.key]
+					if (!obj) throw new Error(`Object "${currentStep.step.key}" not found`)
+					modifyObject(obj, currentStep.step.path, currentStep.step.value)
+					this.doNextCommand()
+				} catch (e) {
+					this.onError(
+						new Error(
+							`HTMLRenderer: Error when modifying object for key "${
+								currentStep.step.key
+							}": ${stringifyError(e)}`
+						)
+					)
+				}
 			} else if (currentStep.step.do === 'injectObject') {
 				this.worker.logger.debug(`HTMLRenderer: Inject object "${currentStep.step.key}"`)
+				try {
+					const obj = this.storedDataObjects[currentStep.step.key]
+					if (!obj) throw new Error(`Object "${currentStep.step.key}" not found`)
 
-				const obj = this.storedDataObjects[currentStep.step.key]
-				if (!obj) throw new Error(`Object "${currentStep.step.key}" not found`)
+					const receivingFunction = currentStep.step.receivingFunction ?? 'window.postMessage'
 
-				const receivingFunction = currentStep.step.receivingFunction ?? 'window.postMessage'
-
-				// Execute javascript in the renderer, to simulate a postMessage event:
-				const cmd: InteractiveMessage = {
-					do: 'executeJs',
-					js: `${receivingFunction}(${JSON.stringify(obj)})`,
+					// Execute javascript in the renderer, to simulate a postMessage event:
+					const cmd: InteractiveMessage = {
+						do: 'executeJs',
+						js: `${receivingFunction}(${JSON.stringify(obj)})`,
+					}
+					// Send command to the renderer:
+					this.setCommandToRenderer(cmd)
+				} catch (e) {
+					this.onError(
+						new Error(
+							`HTMLRenderer: Error when injecting object for key "${
+								currentStep.step.key
+							}": ${stringifyError(e)}`
+						)
+					)
 				}
-				// Send command to the renderer:
-				this.setCommandToRenderer(cmd)
 			} else {
 				this.worker.logger.debug(`HTMLRenderer: Send command: ${JSON.stringify(currentStep.step)}`)
 

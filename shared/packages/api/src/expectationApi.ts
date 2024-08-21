@@ -393,7 +393,12 @@ export namespace Expectation {
 					| { do: 'cropRecording'; fileName: string }
 					| { do: 'executeJs'; js: string }
 					// Store an object in memory
-					| { do: 'storeObject'; key: string; value: Record<string, any> }
+					| {
+							do: 'storeObject'
+							key: string
+							/** The value to store into memory. Either an object, or a JSON-stringified object */
+							value: Record<string, any> | string
+					  }
 					// Modify an object in memory. Path is a dot-separated string
 					| { do: 'modifyObject'; key: string; path: string; value: any }
 					// Send an object to the renderer as a postMessage (so basically does a executeJs: window.postMessage(memory[key]))
