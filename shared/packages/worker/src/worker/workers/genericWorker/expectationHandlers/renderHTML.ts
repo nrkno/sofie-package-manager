@@ -679,20 +679,24 @@ class HTMLRenderer {
 	}
 
 	private spawnHTMLRendererProcess() {
+		let width = this.exp.endRequirement.version.renderer?.width
+		let height = this.exp.endRequirement.version.renderer?.height
+		const scale = this.exp.endRequirement.version.renderer?.scale
+		if (width !== undefined && height !== undefined && scale !== undefined) {
+			width = Math.floor(width * scale)
+			height = Math.floor(height * scale)
+		}
+
 		const args = compact<string>([
 			`--`,
 			`--url=${this.url}`,
-			this.exp.endRequirement.version.renderer?.width !== undefined &&
-				`--width=${this.exp.endRequirement.version.renderer?.width}`,
-			this.exp.endRequirement.version.renderer?.height !== undefined &&
-				`--height=${this.exp.endRequirement.version.renderer?.height}`,
-			this.exp.endRequirement.version.renderer?.zoom !== undefined &&
-				`--zoom=${this.exp.endRequirement.version.renderer?.zoom}`,
+			width !== undefined && `--width=${width}`,
+			height !== undefined && `--height=${height}`,
+			scale !== undefined && `--zoom=${scale}`,
 			`--outputPath=${this.outputPath}`,
 			`--background=${this.exp.endRequirement.version.renderer?.background ?? 'default'}`,
 			`--interactive=true`,
 		])
-		this.worker.logger.info('AAAA ' + JSON.stringify(args))
 		this.htmlRendererProcess = spawn(getHtmlRendererExecutable(), args, {
 			windowsVerbatimArguments: true, // To fix an issue with arguments on Windows
 		})
