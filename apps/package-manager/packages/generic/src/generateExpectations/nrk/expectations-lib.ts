@@ -642,13 +642,13 @@ export function generateHTMLRender(
 	if (
 		endRequirement.version.renderer?.width === undefined &&
 		endRequirement.version.renderer?.height === undefined &&
-		endRequirement.version.renderer?.zoom === undefined
+		endRequirement.version.renderer?.scale === undefined
 	) {
 		// Default: Render as thumbnails:
 		if (!endRequirement.version.renderer) endRequirement.version.renderer = {}
-		endRequirement.version.renderer.width = 1920 / 4
-		endRequirement.version.renderer.height = 1080 / 4
-		endRequirement.version.renderer.zoom = 1 / 4
+		endRequirement.version.renderer.width = 1920
+		endRequirement.version.renderer.height = 1080
+		endRequirement.version.renderer.scale = 1 / 4
 	}
 
 	const exp: Expectation.RenderHTML = {

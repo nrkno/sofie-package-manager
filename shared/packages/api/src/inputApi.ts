@@ -210,8 +210,12 @@ export namespace ExpectedPackage {
 				width?: number
 				/** Renderer width, defaults to 1080 */
 				height?: number
-				/** Zoom level, defaults to 1 */
-				zoom?: number
+				/**
+				 * Scale the rendered width and height with this value, and also zoom the content accordingly.
+				 * For example, if the width is 1920 and scale is 0.5, the width will be scaled to 960.
+				 * (Defaults to 1)
+				 */
+				scale?: number
 				/** Background color, #RRGGBB, CSS-string, "transparent" or "default" (defaults to "default") */
 				background?: string
 				userAgent?: string
