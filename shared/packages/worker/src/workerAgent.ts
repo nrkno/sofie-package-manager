@@ -80,6 +80,7 @@ export class WorkerAgent {
 	private intervalCheckTimer: NodeJS.Timeout | null = null
 	private lastWorkTime = 0
 	private failureCounter = 0
+	private failurePeriodCounter = 0
 	private intervalFailureTimer: NodeJS.Timeout | null = null
 	private activeMonitors: Map<PackageContainerId, Map<MonitorId, MonitorInProgress>> = new Map()
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
@@ -893,18 +894,26 @@ export class WorkerAgent {
 		}
 	}
 	private setupIntervalErrorCheck() {
-		if (this.config.worker.failureLimit <= 0) return
+		if (this.config.worker.failurePeriodLimit <= 0) return
 		if (this.intervalFailureTimer) clearInterval(this.intervalFailureTimer)
-		this.intervalFailureTimer = setInterval(() => this.intervalErrorCheck(), FAILURE_CHECK_INTERVAL)
+		this.intervalFailureTimer = setInterval(() => this.intervalErrorCheck(), this.config.worker.failurePeriod)
 	}
 	private intervalErrorCheck() {
-		if (this.config.worker.failureLimit >= 0 && this.failureCounter < this.config.worker.failureLimit) {
-			// reset the failureCounter when the interval elapses and it doesn't cross the threshold
-			this.failureCounter = 0
+		if (this.failureCounter === 0) {
+			// reset the failurePeriodCounter when there were no exceptions in the period
+			this.failurePeriodCounter = 0
+			// everything seems fine
 			return
-		} else {
+		}
+
+		if (this.failureCounter > 0) {
+			this.failurePeriodCounter++
+			this.failureCounter = 0
+		}
+
+		if (this.failurePeriodCounter >= this.config.worker.failurePeriodLimit) {
 			this.logger.error(
-				`Worker: Failed failureLimit check: ${this.failureCounter} errors in a ${FAILURE_CHECK_INTERVAL}ms window. Requesting spin down.`
+				`Worker: Failed failurePeriodLimit check: ${this.failurePeriodCounter} periods with errors. Requesting spin down.`
 			)
 			this.requestShutDown()
 		}
@@ -935,5 +944,3 @@ interface CurrentJob {
 	wipId: WorkInProgressLocalId
 	workInProgress: IWorkInProgress | null
 }
-
-const FAILURE_CHECK_INTERVAL = 60 * 1000

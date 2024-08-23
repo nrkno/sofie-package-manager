@@ -298,8 +298,11 @@ export class AppContainer {
 				this.config.appContainer.worker.networkIds.length
 					? `--networkIds=${this.config.appContainer.worker.networkIds.join(';')}`
 					: '',
-				this.config.appContainer.worker.failureLimit
-					? `--failureLimit=${this.config.appContainer.worker.failureLimit}`
+				this.config.appContainer.worker.failurePeriodLimit
+					? `--failurePeriodLimit=${this.config.appContainer.worker.failurePeriodLimit}`
+					: '',
+				this.config.appContainer.worker.failurePeriod
+					? `--failurePeriod=${this.config.appContainer.worker.failurePeriod}`
 					: '',
 			]
 		}
