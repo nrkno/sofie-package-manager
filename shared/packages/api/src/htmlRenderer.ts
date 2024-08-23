@@ -34,11 +34,11 @@ export async function testHtmlRenderer(): Promise<string | null> {
 			]
 		} else {
 			alternatives = [
-				'html-renderer',
+				'./html-renderer',
 				path.resolve('html-renderer/html-renderer'),
 				path.resolve('../html-renderer'),
 				path.resolve('../html-renderer/html-renderer'),
-				path.resolve('../../html-renderer/app/deploy/html-renderer/html-renderer'),
+				path.resolve('../../html-renderer/app/deploy/linux-unpacked/html-renderer'),
 			]
 		}
 
