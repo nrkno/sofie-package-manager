@@ -63,7 +63,7 @@ async function main(): Promise<void> {
 				interactiveLogStdOut({ status: 'listening', port })
 
 				wss.on('connection', (ws) => {
-					console.log('client connected')
+					logger.info('client connected')
 
 					const interactiveLog = (message: InteractiveReply) => {
 						ws.send(JSON.stringify(message))
@@ -238,6 +238,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e) => {
+	// eslint-disable-next-line no-console
 	console.error(e)
 	// eslint-disable-next-line no-process-exit
 	process.exit(1)
