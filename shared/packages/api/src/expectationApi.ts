@@ -347,12 +347,13 @@ export namespace Expectation {
 		endRequirement: {
 			targets: SpecificPackageContainerOnPackage.FileTarget[]
 			content: {
-				/** Prefix of output files */
-				prefix?: string
+				// empty
 			}
 			version: {
 				renderer?: {
+					/** Renderer width, defaults to 1920 */
 					width?: number
+					/** Renderer height, defaults to 1080 */
 					height?: number
 					/**
 					 * Scale the rendered width and height with this value, and also zoom the content accordingly.
@@ -411,7 +412,7 @@ export namespace Expectation {
 							do: 'injectObject'
 							key: string
 							/** The method to receive the value. Defaults to window.postMessage */
-							receivingFunction: string
+							receivingFunction?: string
 					  }
 				)[]
 			}

@@ -80,7 +80,9 @@ export namespace ExpectedPackage {
 			/** Reference to a PackageContainer */
 			containerId: PackageContainerId
 			/** Locally defined Accessors, these are combined (deep extended) with the PackageContainer (if it is found) Accessors */
-			accessors: Record<AccessorId, AccessorOnPackage.Any>
+			accessors: {
+				[accessorId: AccessorId]: AccessorOnPackage.Any
+			}
 		}[]
 
 		/** The sideEffect is used by the Package Manager to generate extra artifacts, such as thumbnails & previews */
@@ -201,14 +203,12 @@ export namespace ExpectedPackage {
 		content: {
 			/** path to the HTML template */
 			path: string
-			/** Add prefix to output artifacts */
-			outputPrefix: string
 		}
 		version: {
 			renderer?: {
 				/** Renderer width, defaults to 1920 */
 				width?: number
-				/** Renderer width, defaults to 1080 */
+				/** Renderer height, defaults to 1080 */
 				height?: number
 				/**
 				 * Scale the rendered width and height with this value, and also zoom the content accordingly.
@@ -239,11 +239,36 @@ export namespace ExpectedPackage {
 			steps?: (
 				| { do: 'waitForLoad' }
 				| { do: 'sleep'; duration: number }
+				| {
+						do: 'sendHTTPCommand'
+						url: string
+						/** GET, POST, PUT etc.. */
+						method: string
+						body?: ArrayBuffer | ArrayBufferView | NodeJS.ReadableStream | string | URLSearchParams
+
+						headers?: Record<string, string>
+				  }
 				| { do: 'takeScreenshot'; fileName: string }
 				| { do: 'startRecording'; fileName: string }
 				| { do: 'stopRecording' }
 				| { do: 'cropRecording'; fileName: string }
 				| { do: 'executeJs'; js: string }
+				// Store an object in memory
+				| {
+						do: 'storeObject'
+						key: string
+						/** The value to store into memory. Either an object, or a JSON-stringified object */
+						value: Record<string, any> | string
+				  }
+				// Modify an object in memory. Path is a dot-separated string
+				| { do: 'modifyObject'; key: string; path: string; value: any }
+				// Send an object to the renderer as a postMessage (so basically does a executeJs: window.postMessage(memory[key]))
+				| {
+						do: 'injectObject'
+						key: string
+						/** The method to receive the value. Defaults to window.postMessage */
+						receivingFunction?: string
+				  }
 			)[]
 		}
 		sources: {

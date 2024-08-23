@@ -352,14 +352,7 @@ function getSteps(exp: Expectation.RenderHTML): Steps {
 	} else {
 		steps = exp.endRequirement.version.steps || []
 	}
-	// Add prefix to steps fileName:
-	return steps.map((org) => {
-		const step = { ...org }
-		if ('fileName' in step) {
-			step.fileName = `${exp.endRequirement.content.prefix ?? ''}${step.fileName}`
-		}
-		return step
-	})
+	return steps
 }
 function getFileNames(steps: Steps) {
 	const fileNames: string[] = []

@@ -632,11 +632,9 @@ export function generateHTMLRender(
 
 	const endRequirement: Expectation.RenderHTML['endRequirement'] = {
 		targets: expWrapHTMLTemplate.targets as Expectation.SpecificPackageContainerOnPackage.FileTarget[],
-		content: {
-			prefix: expectedPackage.content.outputPrefix,
-		},
+		content: {},
 		version: {
-			...expWrapHTMLTemplate.expectedPackage.version,
+			...expectedPackage.version,
 		},
 	}
 	if (
@@ -664,14 +662,16 @@ export function generateHTMLRender(
 		type: Expectation.Type.RENDER_HTML,
 		statusReport: {
 			label: `Rendering HTML template`,
-			description: `Rendering HTML template "${expWrapHTMLTemplate.expectedPackage.content.path}"`,
+			description: `Rendering HTML template "${expectedPackage.content.path}"`,
 			displayRank: 11,
 			sendReport: !expWrap.external,
 		},
 
 		startRequirement: {
 			sources: expWrapHTMLTemplate.sources,
-			content: expWrapHTMLTemplate.expectedPackage.content,
+			content: {
+				path: expectedPackage.content.path,
+			},
 			version: {
 				type: Expectation.Version.Type.FILE_ON_DISK,
 			},

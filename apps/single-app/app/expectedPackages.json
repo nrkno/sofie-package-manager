@@ -155,14 +155,13 @@
             "contentVersionHash": "abc1234",
             "content": {
                 "path": "https://www.bouncingdvdlogo.com/",
-                "outputPrefix": ""
             },
             "version": {
                 "renderer": {
-                    "width": 480,
-                    "height": 320,
-                    "zoom": 0.25,
-                    "background": "green"
+                    "width": 1920,
+                    "height": 1080,
+                    "scale": 0.25,
+                    "background": "red"
                 },
                 "steps": [
                     {
