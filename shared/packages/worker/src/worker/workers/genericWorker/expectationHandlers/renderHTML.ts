@@ -24,6 +24,8 @@ import {
 	InteractiveReply,
 	InteractiveMessage,
 	literal,
+	htmlTemplateGetSteps,
+	htmlTemplateGetFileNamesFromSteps,
 } from '@sofie-package-manager/api'
 
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -329,46 +331,11 @@ async function lookupTargets(
 	)
 }
 type Steps = Required<Expectation.RenderHTML['endRequirement']['version']>['steps']
-function getSteps(exp: Expectation.RenderHTML): Steps {
-	let steps: Steps
-	if (exp.endRequirement.version.casparCG) {
-		// Generate a set of steps for standard CasparCG templates
-		const casparData = exp.endRequirement.version.casparCG.data
-		const casparDataJSON = typeof casparData === 'string' ? casparData : JSON.stringify(casparData)
-		steps = [
-			{ do: 'waitForLoad' },
-			{ do: 'takeScreenshot', fileName: 'idle.png' },
-			{ do: 'startRecording', fileName: 'preview.webm' },
-			{ do: 'executeJs', js: `update(${casparDataJSON})` },
-			{ do: 'executeJs', js: `play()` },
-			{ do: 'sleep', duration: 1000 },
-			{ do: 'takeScreenshot', fileName: 'play.png' },
-			{ do: 'executeJs', js: `stop()` },
-			{ do: 'sleep', duration: 1000 },
-			{ do: 'takeScreenshot', fileName: 'stop.png' },
-			{ do: 'stopRecording' },
-			{ do: 'cropRecording', fileName: 'preview-cropped.webm' },
-		]
-	} else {
-		steps = exp.endRequirement.version.steps || []
-	}
-	return steps
+function getSteps(exp: Expectation.RenderHTML) {
+	return htmlTemplateGetSteps(exp.endRequirement.version)
 }
 function getFileNames(steps: Steps) {
-	const fileNames: string[] = []
-	let mainFileName: string | undefined = undefined
-	for (const step of steps) {
-		if (step.do === 'takeScreenshot') {
-			fileNames.push(step.fileName)
-			if (!mainFileName) mainFileName = step.fileName
-		} else if (step.do === 'startRecording') {
-			fileNames.push(step.fileName)
-			mainFileName = step.fileName
-		} else if (step.do === 'cropRecording') {
-			fileNames.push(step.fileName)
-		}
-	}
-	return { fileNames, mainFileName }
+	return htmlTemplateGetFileNamesFromSteps(steps)
 }
 function compact<T>(array: (T | undefined | null | false)[]): T[] {
 	return array.filter(Boolean) as T[]
