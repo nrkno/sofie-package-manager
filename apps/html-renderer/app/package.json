@@ -30,7 +30,7 @@
     },
     "dependencies": {
         "@html-renderer/generic": "1.50.5",
-        "@sofie-automation/shared-lib": "1.50.4-nightly-fix-package-manager-html-rendering-types-20240711-124249-45c25b9.0",
+        "@sofie-automation/shared-lib": "1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0",
         "@sofie-package-manager/api": "1.50.6",
         "portfinder": "^1.0.32",
         "tslib": "^2.1.0",
