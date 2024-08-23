@@ -122,7 +122,8 @@
                     ],
                     "inPhaseDifference": true,
                     "balanceDifference": true
-                }
+                },
+				"iframes": true
             }
         },
         {

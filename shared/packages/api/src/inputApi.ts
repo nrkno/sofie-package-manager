@@ -98,6 +98,9 @@ export namespace ExpectedPackage {
 			/** Should the package be scanned for loudness */
 			loudnessPackageSettings?: SideEffectLoudnessSettings
 
+			/** Should the package be scanned for I-frames */
+			iframes?: SideEffectIframesScanSettings
+
 			/** Other custom configuration */
 			[key: string]: any
 		}
@@ -132,6 +135,8 @@ export namespace ExpectedPackage {
 	}
 
 	export type SideEffectLoudnessSettingsChannelSpec = `${number}` | `${number}+${number}`
+
+	export type SideEffectIframesScanSettings = Record<string, never>
 
 	export interface ExpectedPackageMediaFile extends Base {
 		type: PackageType.MEDIA_FILE

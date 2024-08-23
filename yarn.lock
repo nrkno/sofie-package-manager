@@ -45,23 +45,27 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/app@workspace:apps/appcontainer-node/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.50.5"
+    "@appcontainer-node/generic": "npm:1.50.6"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
+  peerDependencies:
+    "@sofie-automation/shared-lib": "*"
+    typescript: "*"
   languageName: unknown
   linkType: soft
 
-"@appcontainer-node/generic@npm:1.50.5, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
+"@appcontainer-node/generic@npm:1.50.6, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.5"
-    "@sofie-package-manager/worker": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
+    "@sofie-package-manager/worker": "npm:1.50.6"
     "@types/underscore": "npm:^1.10.24"
     rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
   peerDependencies:
     "@sofie-automation/shared-lib": "*"
+    typescript: "*"
   languageName: unknown
   linkType: soft
 
@@ -717,18 +721,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@http-server/app@workspace:apps/http-server/app"
   dependencies:
-    "@http-server/generic": "npm:1.50.5"
+    "@http-server/generic": "npm:1.50.7"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@http-server/generic@npm:1.50.5, @http-server/generic@workspace:apps/http-server/packages/generic":
+"@http-server/generic@npm:1.50.7, @http-server/generic@workspace:apps/http-server/packages/generic":
   version: 0.0.0-use.local
   resolution: "@http-server/generic@workspace:apps/http-server/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
     "@types/busboy": "npm:^1.5.0"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.12"
@@ -1781,20 +1785,24 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@package-manager/app@workspace:apps/package-manager/app"
   dependencies:
-    "@package-manager/generic": "npm:1.50.5"
+    "@package-manager/generic": "npm:1.50.6"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
+  peerDependencies:
+    "@sofie-automation/server-core-integration": "*"
+    "@sofie-automation/shared-lib": "*"
+    typescript: "*"
   languageName: unknown
   linkType: soft
 
-"@package-manager/generic@npm:1.50.5, @package-manager/generic@workspace:apps/package-manager/packages/generic":
+"@package-manager/generic@npm:1.50.6, @package-manager/generic@workspace:apps/package-manager/packages/generic":
   version: 0.0.0-use.local
   resolution: "@package-manager/generic@workspace:apps/package-manager/packages/generic"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.50.5"
-    "@sofie-package-manager/expectation-manager": "npm:1.50.5"
-    "@sofie-package-manager/worker": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
+    "@sofie-package-manager/expectation-manager": "npm:1.50.6"
+    "@sofie-package-manager/worker": "npm:1.50.6"
     "@types/deep-extend": "npm:0.6.2"
     "@types/underscore": "npm:^1.10.24"
     data-store: "npm:^4.0.3"
@@ -1965,18 +1973,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/app@workspace:apps/quantel-http-transformer-proxy/app"
   dependencies:
-    "@quantel-http-transformer-proxy/generic": "npm:1.50.5"
+    "@quantel-http-transformer-proxy/generic": "npm:1.50.6"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@quantel-http-transformer-proxy/generic@npm:1.50.5, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
+"@quantel-http-transformer-proxy/generic@npm:1.50.6, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.0"
     "@types/koa-range": "npm:^0.3.2"
@@ -2029,16 +2037,20 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@single-app/app@workspace:apps/single-app/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.50.5"
-    "@http-server/generic": "npm:1.50.5"
-    "@package-manager/generic": "npm:1.50.5"
-    "@quantel-http-transformer-proxy/generic": "npm:1.50.5"
-    "@sofie-package-manager/api": "npm:1.50.5"
-    "@sofie-package-manager/worker": "npm:1.50.5"
-    "@sofie-package-manager/workforce": "npm:1.50.5"
+    "@appcontainer-node/generic": "npm:1.50.6"
+    "@http-server/generic": "npm:1.50.7"
+    "@package-manager/generic": "npm:1.50.6"
+    "@quantel-http-transformer-proxy/generic": "npm:1.50.6"
+    "@sofie-package-manager/api": "npm:1.50.6"
+    "@sofie-package-manager/worker": "npm:1.50.6"
+    "@sofie-package-manager/workforce": "npm:1.50.6"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
+  peerDependencies:
+    "@sofie-automation/server-core-integration": "*"
+    "@sofie-automation/shared-lib": "*"
+    typescript: "*"
   languageName: unknown
   linkType: soft
 
@@ -2127,7 +2139,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sofie-package-manager/api@npm:1.50.5, @sofie-package-manager/api@workspace:shared/packages/api":
+"@sofie-automation/shared-lib@npm:1.50.2":
+  version: 1.50.2
+  resolution: "@sofie-automation/shared-lib@npm:1.50.2"
+  dependencies:
+    "@mos-connection/model": "npm:^3.0.4"
+    timeline-state-resolver-types: "npm:9.0.1"
+    tslib: "npm:^2.4.0"
+    type-fest: "npm:^2.19.0"
+  checksum: 10/5c6465f20e3aac7dcadafa50aac196371f2a0736c61b4f7273e26494abe7b73ea916d7f9879966d8341232d22a81a373af6bcbcdc47ac2adc4e555780758c4ce
+  languageName: node
+  linkType: hard
+
+"@sofie-package-manager/api@npm:1.50.6, @sofie-package-manager/api@workspace:shared/packages/api":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/api@workspace:shared/packages/api"
   dependencies:
@@ -2144,12 +2168,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/expectation-manager@npm:1.50.5, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
+"@sofie-package-manager/expectation-manager@npm:1.50.6, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.5"
-    "@sofie-package-manager/worker": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
+    "@sofie-package-manager/worker": "npm:1.50.6"
     "@supercharge/promise-pool": "npm:^3.2.0"
     jest: "npm:*"
     rimraf: "npm:^5.0.5"
@@ -2158,12 +2182,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/worker@npm:1.50.5, @sofie-package-manager/worker@workspace:shared/packages/worker":
+"@sofie-package-manager/worker@npm:1.50.6, @sofie-package-manager/worker@workspace:shared/packages/worker":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/worker@workspace:shared/packages/worker"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
     "@types/deep-diff": "npm:^1.0.0"
     "@types/node-fetch": "npm:^2.5.8"
     "@types/proper-lockfile": "npm:^4.1.4"
@@ -2171,6 +2195,7 @@ __metadata:
     "@types/ws": "npm:^8.5.4"
     abort-controller: "npm:^3.0.0"
     atem-connection: "npm:^3.2.0"
+    csv-parser: "npm:^3.0.0"
     deep-diff: "npm:^1.0.2"
     form-data: "npm:^4.0.0"
     jest: "npm:*"
@@ -2189,11 +2214,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/workforce@npm:1.50.5, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
+"@sofie-package-manager/workforce@npm:1.50.6, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/workforce@workspace:shared/packages/workforce"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
@@ -2218,17 +2243,21 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/internal-tests@workspace:tests/internal-tests"
   dependencies:
-    "@http-server/generic": "npm:1.50.5"
-    "@package-manager/generic": "npm:1.50.5"
-    "@sofie-package-manager/api": "npm:1.50.5"
-    "@sofie-package-manager/expectation-manager": "npm:1.50.5"
-    "@sofie-package-manager/worker": "npm:1.50.5"
-    "@sofie-package-manager/workforce": "npm:1.50.5"
+    "@http-server/generic": "npm:1.50.7"
+    "@package-manager/generic": "npm:1.50.6"
+    "@sofie-package-manager/api": "npm:1.50.6"
+    "@sofie-package-manager/expectation-manager": "npm:1.50.6"
+    "@sofie-package-manager/worker": "npm:1.50.6"
+    "@sofie-package-manager/workforce": "npm:1.50.6"
     deep-extend: "npm:^0.6.0"
     jest: "npm:*"
     tv-automation-quantel-gateway-client: "npm:^3.1.7"
     underscore: "npm:^1.12.0"
     windows-network-drive: "npm:^4.0.1"
+  peerDependencies:
+    "@sofie-automation/server-core-integration": "*"
+    "@sofie-automation/shared-lib": "*"
+    typescript: "*"
   languageName: unknown
   linkType: soft
 
@@ -2794,9 +2823,9 @@ __metadata:
   linkType: hard
 
 "@types/underscore@npm:^1.10.24":
-  version: 1.11.4
-  resolution: "@types/underscore@npm:1.11.4"
-  checksum: 10/9105a02ac25085a8e5d60ee58eba6132067b132c988f5a861ee889610c1ae09cb4daed266abd644afe6435f6f0747a131fd124b3491ace2d455dc7c1db5f23e7
+  version: 1.11.15
+  resolution: "@types/underscore@npm:1.11.15"
+  checksum: 10/5a9c262566551f61744e066d33578c0fad1139c2d5314ed77a8f867487a6d7dd18616f32df4c605070fbd569b942c6d2c083be9f9ae649f41a562b52812b06be
   languageName: node
   linkType: hard
 
@@ -2984,18 +3013,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@worker/app@workspace:apps/worker/app"
   dependencies:
-    "@worker/generic": "npm:1.50.5"
+    "@worker/generic": "npm:1.50.6"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@worker/generic@npm:1.50.5, @worker/generic@workspace:apps/worker/packages/generic":
+"@worker/generic@npm:1.50.6, @worker/generic@workspace:apps/worker/packages/generic":
   version: 0.0.0-use.local
   resolution: "@worker/generic@workspace:apps/worker/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.5"
-    "@sofie-package-manager/worker": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
+    "@sofie-package-manager/worker": "npm:1.50.6"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
@@ -3004,18 +3033,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@workforce/app@workspace:apps/workforce/app"
   dependencies:
-    "@workforce/generic": "npm:1.50.5"
+    "@workforce/generic": "npm:1.50.6"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@workforce/generic@npm:1.50.5, @workforce/generic@workspace:apps/workforce/packages/generic":
+"@workforce/generic@npm:1.50.6, @workforce/generic@workspace:apps/workforce/packages/generic":
   version: 0.0.0-use.local
   resolution: "@workforce/generic@workspace:apps/workforce/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.50.5"
-    "@sofie-package-manager/workforce": "npm:1.50.5"
+    "@sofie-package-manager/api": "npm:1.50.6"
+    "@sofie-package-manager/workforce": "npm:1.50.6"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
@@ -4874,6 +4903,17 @@ __metadata:
   bin:
     cssesc: bin/cssesc
   checksum: 10/0e161912c1306861d8f46e1883be1cbc8b1b2879f0f509287c0db71796e4ddfb97ac96bdfca38f77f452e2c10554e1bb5678c99b07a5cf947a12778f73e47e12
+  languageName: node
+  linkType: hard
+
+"csv-parser@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "csv-parser@npm:3.0.0"
+  dependencies:
+    minimist: "npm:^1.2.0"
+  bin:
+    csv-parser: bin/csv-parser
+  checksum: 10/2f003d15d8361a94359d6715a8f05feac1252ab4d1d4e2908ea1baa0454c7e00fb99c53cdc86336635c5fd04f17b510291338df93da1e54944695f0c3b4a6bc1
   languageName: node
   linkType: hard
 
@@ -8047,14 +8087,14 @@ __metadata:
   linkType: hard
 
 "jest-mock-extended@npm:^3.0.5":
-  version: 3.0.5
-  resolution: "jest-mock-extended@npm:3.0.5"
+  version: 3.0.7
+  resolution: "jest-mock-extended@npm:3.0.7"
   dependencies:
-    ts-essentials: "npm:^7.0.3"
+    ts-essentials: "npm:^10.0.0"
   peerDependencies:
     jest: ^24.0.0 || ^25.0.0 || ^26.0.0 || ^27.0.0 || ^28.0.0 || ^29.0.0
     typescript: ^3.0.0 || ^4.0.0 || ^5.0.0
-  checksum: 10/02b025754cf8c0280d5d529601fc1db10c555578dbd56bdd2663f344b1626871d923ab02894246e08f5b31979370c95f25516bee7dc48979dc136a55fdf22568
+  checksum: 10/7d5fb9d4ad07dbed9d4f1dd011eb26ca20d9ca4aab3c807749f761220315ef8a6bdf767b1ce1e68ae10405e35ba899c4fcee55cf327deb2d9950910e818f40fa
   languageName: node
   linkType: hard
 
@@ -12795,6 +12835,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"timeline-state-resolver-types@npm:9.0.1":
+  version: 9.0.1
+  resolution: "timeline-state-resolver-types@npm:9.0.1"
+  dependencies:
+    tslib: "npm:^2.5.1"
+  checksum: 10/17bfd8cd52069fb3571bc9cf9c8d711a1c9569ca2cf61ee9a429be8fac4035cf3b6f146d31c68dda6d8fdd5a880f72c8dbe65985d0385e3128407b08c303361a
+  languageName: node
+  linkType: hard
+
 "timers-ext@npm:^0.1.7":
   version: 0.1.7
   resolution: "timers-ext@npm:0.1.7"
@@ -12922,8 +12971,11 @@ __metadata:
   version: 7.0.3
   resolution: "ts-essentials@npm:7.0.3"
   peerDependencies:
-    typescript: ">=3.7.0"
-  checksum: 10/021b4263ddd58897171f3f5c467b5c872f76ba2ea07dfc11fa9667ba8d62ccb7f390db3e581139dcc6da94c3ff6306921f574acdb2b94cbc9d7da3e859e24665
+    typescript: ">=4.5.0"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: 10/cee2ba41a5d78688246550e8e30ce201bce7fbcfb9ccb517460a5823143e1b35937e6764cc146d09a132d7da0f2d758a1d45e47a550b6928b98154d3b5f732d8
   languageName: node
   linkType: hard
 

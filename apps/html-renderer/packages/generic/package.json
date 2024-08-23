@@ -25,7 +25,7 @@
         "@sofie-automation/shared-lib": "*"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.50.5",
+        "@sofie-package-manager/api": "1.50.6",
         "electron": "^30.0.6"
     },
     "devDependencies": {

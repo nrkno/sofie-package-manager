@@ -17,6 +17,7 @@ export namespace Expectation {
 		| PackageScan
 		| PackageDeepScan
 		| PackageLoudnessScan
+		| PackageIframesScan
 		| MediaFileThumbnail
 		| MediaFilePreview
 		| QuantelClipCopy
@@ -40,6 +41,7 @@ export namespace Expectation {
 		PACKAGE_SCAN = 'package_scan',
 		PACKAGE_DEEP_SCAN = 'package_deep_scan',
 		PACKAGE_LOUDNESS_SCAN = 'package_loudness_scan',
+		PACKAGE_IFRAMES_SCAN = 'package_iframes_scan',
 
 		QUANTEL_CLIP_COPY = 'quantel_clip_copy',
 		// QUANTEL_CLIP_SCAN = 'quantel_clip_scan',
@@ -214,6 +216,21 @@ export namespace Expectation {
 				/** Calculate balance difference between stereo channels in the tracks */
 				balanceDifference: boolean
 			}
+		}
+		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
+	}
+	export interface PackageIframesScan extends Base {
+		type: Type.PACKAGE_IFRAMES_SCAN
+
+		startRequirement: {
+			sources: SpecificPackageContainerOnPackage.FileSource[] | SpecificPackageContainerOnPackage.QuantelClip[]
+			content: FileCopy['endRequirement']['content'] | QuantelClipCopy['endRequirement']['content']
+			version: FileCopy['endRequirement']['version'] | QuantelClipCopy['endRequirement']['version']
+		}
+		endRequirement: {
+			targets: SpecificPackageContainerOnPackage.CorePackage[]
+			content: null // not using content, entries are stored using this.fromPackages
+			version: null
 		}
 		workOptions: WorkOptions.Base & WorkOptions.RemoveDelay
 	}

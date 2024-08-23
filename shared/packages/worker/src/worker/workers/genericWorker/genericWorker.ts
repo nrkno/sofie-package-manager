@@ -33,6 +33,7 @@ import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { FileVerify } from './expectationHandlers/fileVerify'
 import { RenderHTML } from './expectationHandlers/renderHTML'
+import { PackageIframesScan } from './expectationHandlers/packageIframesScan'
 
 export type ExpectationHandlerGenericWorker = ExpectationHandler<GenericWorker>
 
@@ -115,6 +116,8 @@ export class GenericWorker extends BaseWorker {
 				return PackageDeepScan
 			case Expectation.Type.PACKAGE_LOUDNESS_SCAN:
 				return PackageLoudnessScan
+			case Expectation.Type.PACKAGE_IFRAMES_SCAN:
+				return PackageIframesScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
 				return MediaFileThumbnail
 			case Expectation.Type.MEDIA_FILE_PREVIEW:

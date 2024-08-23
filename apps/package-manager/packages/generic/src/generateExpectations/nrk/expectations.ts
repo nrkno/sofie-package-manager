@@ -28,6 +28,7 @@ import {
 	generatePackageCopyFileProxy,
 	generatePackageLoudness,
 	generateHTMLRender,
+	generatePackageIframes,
 } from './expectations-lib'
 import { getSmartbullExpectedPackages, shouldBeIgnored } from './smartbull'
 import { TEMPORARY_STORAGE_ID } from './lib'
@@ -226,7 +227,7 @@ function getSideEffectOfExpectation(
 		expectation0.type === Expectation.Type.FILE_VERIFY ||
 		expectation0.type === Expectation.Type.FILE_COPY_PROXY
 	) {
-		const expectation = expectation0 as Expectation.FileCopy | Expectation.FileVerify | Expectation.FileCopyProxy
+		const expectation = expectation0
 
 		if (!expectation0.external) {
 			// All files that have been copied should also be scanned:
@@ -285,6 +286,11 @@ function getSideEffectOfExpectation(
 				settings
 			)
 			expectations[loudness.id] = loudness
+		}
+
+		if (expectation0.sideEffect?.iframes) {
+			const iframes = generatePackageIframes(expectation, settings)
+			expectations[iframes.id] = iframes
 		}
 	} else if (expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY) {
 		const expectation = expectation0 as Expectation.QuantelClipCopy
@@ -354,7 +360,7 @@ function getCopyToTemporaryStorage(
 		expectation0.type === Expectation.Type.FILE_VERIFY ||
 		expectation0.type === Expectation.Type.QUANTEL_CLIP_COPY
 	) {
-		const expectation = expectation0 as Expectation.FileCopy | Expectation.FileVerify | Expectation.QuantelClipCopy
+		const expectation = expectation0
 		const proxy: GenerateExpectation | undefined = generatePackageCopyFileProxy(
 			expectation,
 			settings,
