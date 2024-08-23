@@ -39,7 +39,7 @@
     "devDependencies": {
         "@types/ws": "^8.5.4",
         "archiver": "^7.0.1",
-        "electron": "^30.0.6",
+        "electron": "30.0.6",
         "electron-builder": "^24.13.3",
         "lerna": "^6.6.1",
         "rimraf": "^5.0.5"
@@ -59,9 +59,10 @@
             ]
         },
         "linux": {
+            "target": "dir",
+            "executableName": "html-renderer",
             "extraFiles": []
         },
-        "electronVersion": "30.0.6",
         "files": [
             "dist/**/*"
         ],

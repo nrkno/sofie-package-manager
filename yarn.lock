@@ -693,7 +693,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.50.6"
     "@types/ws": "npm:^8.5.4"
     archiver: "npm:^7.0.1"
-    electron: "npm:^30.0.6"
+    electron: "npm:30.0.6"
     electron-builder: "npm:^24.13.3"
     lerna: "npm:^6.6.1"
     portfinder: "npm:^1.0.32"
@@ -5425,7 +5425,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:^30.0.6":
+"electron@npm:30.0.6, electron@npm:^30.0.6":
   version: 30.0.6
   resolution: "electron@npm:30.0.6"
   dependencies:

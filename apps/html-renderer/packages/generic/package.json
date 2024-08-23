@@ -22,11 +22,11 @@
         ]
     },
     "peerDependencies": {
-        "@sofie-automation/shared-lib": "*"
+        "@sofie-automation/shared-lib": "*",
+        "electron": "*"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.50.6",
-        "electron": "^30.0.6"
+        "@sofie-package-manager/api": "1.50.6"
     },
     "devDependencies": {
         "rimraf": "^5.0.5"
