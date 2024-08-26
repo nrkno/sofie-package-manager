@@ -109,6 +109,9 @@ export class BrowserRenderer implements InteractiveAPI {
 			await fs.promises.writeFile(filename, image.toPNG())
 		} else if (fileName.endsWith('.jpeg')) {
 			await fs.promises.writeFile(filename, image.toJPEG(90))
+		} else if (!fileName.includes('.')) {
+			// No file format, default to png:
+			await fs.promises.writeFile(filename, image.toPNG())
 		} else {
 			throw new Error(`Unsupported file format: ${fileName}`)
 		}
