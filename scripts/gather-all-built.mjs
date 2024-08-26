@@ -36,7 +36,8 @@ for (const deployfolder of deployfolders) {
 		filter: (src, _dest) =>  {
 			const m = (
 				// Is executable or zip
-				src.match(/.*\.(exe|zip)$/) ||
+				src.endsWith('.exe') ||
+				src.endsWith('.zip') ||
 				// Is the deploy folder
 				src.endsWith('deploy')
 			)
