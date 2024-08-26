@@ -710,10 +710,10 @@ __metadata:
   resolution: "@html-renderer/generic@workspace:apps/html-renderer/packages/generic"
   dependencies:
     "@sofie-package-manager/api": "npm:1.50.6"
-    electron: "npm:^30.0.6"
     rimraf: "npm:^5.0.5"
   peerDependencies:
     "@sofie-automation/shared-lib": "*"
+    electron: "*"
   languageName: unknown
   linkType: soft
 
@@ -5425,7 +5425,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:30.0.6, electron@npm:^30.0.6":
+"electron@npm:30.0.6":
   version: 30.0.6
   resolution: "electron@npm:30.0.6"
   dependencies:
