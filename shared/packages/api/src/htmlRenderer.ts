@@ -1,11 +1,11 @@
-import { spawn } from 'child_process'
+import { spawn, ChildProcessWithoutNullStreams, SpawnOptionsWithoutStdio } from 'child_process'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { stringifyError } from './lib'
 
 let overriddenHTMLRendererPath: string | null = null
 /**
- * Override the paths of the html-renderer executables, intended for unit testing purposes
+ * Override the paths of the html-renderer executables, intended for unit testing purposes or when running in development mode
  * @param paths Paths to executables
  */
 export function overrideHTMLRendererExecutables(overridePath: string | null): void {
@@ -17,9 +17,26 @@ export interface HTMLRendererProcess {
 	cancel: () => void
 }
 let htmlRenderExecutable = 'N/A' // Is set when testHtmlRenderer is run
-export function getHtmlRendererExecutable(): string {
+function getHtmlRendererExecutable(): string {
 	if (overriddenHTMLRendererPath) return overriddenHTMLRendererPath
 	return htmlRenderExecutable
+}
+
+export function spawnHtmlRendererExecutable(
+	args: string[],
+	options?: SpawnOptionsWithoutStdio
+): ChildProcessWithoutNullStreams {
+	const executable = getHtmlRendererExecutable()
+
+	if (executable.includes('yarn --cwd')) {
+		// Is is development mode and executing using yarn. Use shell mode:
+		return spawn(executable, args, {
+			...options,
+			shell: true,
+		})
+	} else {
+		return spawn(executable, args, options)
+	}
 }
 /** Check if HTML-Renderer is available, returns null if no error found */
 export async function testHtmlRenderer(): Promise<string | null> {
@@ -52,17 +69,28 @@ export async function testHtmlRenderer(): Promise<string | null> {
 			// If it exists, use that path:
 			htmlRenderExecutable = alternative
 		}
+
 		if (htmlRenderExecutable === 'N/A') {
-			return `Not able to find any HTML-Renderer executable, tried: ${alternatives.join(', ')}`
+			if (
+				process.execPath.endsWith('node.exe') || // windows
+				process.execPath.endsWith('node') // linux
+			) {
+				// Process runs as a node process, we're probably in development mode.
+				// Use the source code directly instead of the executable:
+				overrideHTMLRendererExecutables(`yarn --cwd ${path.resolve('../../html-renderer/app')} start`)
+			} else {
+				return `Not able to find any HTML-Renderer executable, tried: ${alternatives.join(', ')}`
+			}
 		}
 	}
 
-	return testExecutable(getHtmlRendererExecutable())
+	return testHtmlRendererExecutable()
 }
 
-export async function testExecutable(executable: string): Promise<string | null> {
+export async function testHtmlRendererExecutable(): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {
-		const htmlRendererProcess = spawn(executable, ['--', '--test=true'])
+		const executablePath = getHtmlRendererExecutable()
+		const htmlRendererProcess = spawnHtmlRendererExecutable(['--', '--test=true'])
 		let output = ''
 		htmlRendererProcess.stderr.on('data', (data) => {
 			const str = data.toString()
@@ -73,7 +101,7 @@ export async function testExecutable(executable: string): Promise<string | null>
 			output += str
 		})
 		htmlRendererProcess.on('error', (err) => {
-			resolve(`Process ${executable} emitted error: ${stringifyError(err)}`)
+			resolve(`Process ${executablePath} emitted error: ${stringifyError(err)}`)
 		})
 		htmlRendererProcess.on('exit', (code) => {
 			const m = output.match(/Version: ([\w.]+)/i) // Version 1.50.1
@@ -82,10 +110,10 @@ export async function testExecutable(executable: string): Promise<string | null>
 				if (m) {
 					resolve(null)
 				} else {
-					resolve(`Process ${executable} bad version: "${output}"`)
+					resolve(`Process ${executablePath} bad version: "${output}"`)
 				}
 			} else {
-				resolve(`Process ${executable} exited with code ${code}`)
+				resolve(`Process ${executablePath} exited with code ${code}`)
 			}
 		})
 	})

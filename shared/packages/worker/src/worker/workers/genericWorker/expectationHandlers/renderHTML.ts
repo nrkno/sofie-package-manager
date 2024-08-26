@@ -1,4 +1,4 @@
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
+import { ChildProcessWithoutNullStreams } from 'child_process'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import WebSocket from 'ws'
@@ -16,7 +16,7 @@ import {
 	AccessorId,
 	startTimer,
 	hashObj,
-	getHtmlRendererExecutable,
+	spawnHtmlRendererExecutable,
 	assertNever,
 	hash,
 	protectString,
@@ -657,7 +657,7 @@ class HTMLRenderer {
 			`--background=${this.exp.endRequirement.version.renderer?.background ?? 'default'}`,
 			`--interactive=true`,
 		])
-		this.htmlRendererProcess = spawn(getHtmlRendererExecutable(), args, {
+		this.htmlRendererProcess = spawnHtmlRendererExecutable(args, {
 			windowsVerbatimArguments: true, // To fix an issue with arguments on Windows
 		})
 
