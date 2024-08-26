@@ -1,4 +1,5 @@
 import EventEmitter from 'events'
+import { isRunningInTest } from './lib'
 /* eslint-disable no-console */
 
 /** An EventEmitter which does a check that you've remembered to listen to the 'error' event */
@@ -21,7 +22,7 @@ export class HelpfulEventEmitter extends EventEmitter {
 						console.error(`Stack: ${orgError.stack}`)
 
 						// If we're running in Jest, it's better to make it a little more obvious that something is wrong:
-						if (process.env.JEST_WORKER_ID !== undefined) {
+						if (isRunningInTest()) {
 							// Since no error listener is registered, this'll cause the process to exit and tests to fail:
 							this.emit('error', orgError)
 						}
@@ -29,7 +30,7 @@ export class HelpfulEventEmitter extends EventEmitter {
 				}
 
 				// If we're running in Jest, it's better to make it a little more obvious that something is wrong:
-				if (process.env.JEST_WORKER_ID !== undefined && !this.listenerCount('error')) {
+				if (isRunningInTest() && !this.listenerCount('error')) {
 					// Since no error listener is registered, this'll cause the process to exit and tests to fail:
 					this.emit('error', orgError)
 				}

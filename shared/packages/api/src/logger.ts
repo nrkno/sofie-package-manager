@@ -1,7 +1,7 @@
 import _ from 'underscore'
 import * as Winston from 'winston'
 import { ProcessConfig } from './config'
-import { stringifyError } from './lib'
+import { isRunningInTest, stringifyError } from './lib'
 
 const { combine, label, json, timestamp, printf } = Winston.format
 
@@ -142,7 +142,7 @@ export function setupLogger(
 				transports: [transportConsole],
 			})
 		}
-		if (handleProcess && process.env.JEST_WORKER_ID === undefined) {
+		if (handleProcess && !isRunningInTest()) {
 			// Is not running in Jest
 			logger.info('Logging to Console')
 		}

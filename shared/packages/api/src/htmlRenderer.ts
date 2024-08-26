@@ -1,7 +1,7 @@
 import { spawn, ChildProcessWithoutNullStreams, SpawnOptionsWithoutStdio } from 'child_process'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { stringifyError } from './lib'
+import { isRunningInDevelopment, stringifyError } from './lib'
 
 let overriddenHTMLRendererPath: string | null = null
 /**
@@ -71,10 +71,7 @@ export async function testHtmlRenderer(): Promise<string | null> {
 		}
 
 		if (htmlRenderExecutable === 'N/A') {
-			if (
-				process.execPath.endsWith('node.exe') || // windows
-				process.execPath.endsWith('node') // linux
-			) {
+			if (isRunningInDevelopment()) {
 				// Process runs as a node process, we're probably in development mode.
 				// Use the source code directly instead of the executable:
 				overrideHTMLRendererExecutables(`yarn --cwd ${path.resolve('../../html-renderer/app')} start`)
