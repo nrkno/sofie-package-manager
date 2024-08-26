@@ -23,8 +23,8 @@ export class AppContainerAPI
 	async ping(): Promise<void> {
 		return this._sendMessage('ping')
 	}
-	async requestSpinDown(): Promise<void> {
-		return this._sendMessage('requestSpinDown')
+	async requestSpinDown(force?: boolean): Promise<void> {
+		return this._sendMessage('requestSpinDown', force)
 	}
 	async workerStorageWriteLock(
 		dataId: DataId,

@@ -223,13 +223,26 @@ export class AppContainer {
 				const app = this.apps.get(clientId)
 				if (app) app.lastPing = Date.now()
 			},
-			requestSpinDown: async (): Promise<void> => {
+			requestSpinDown: async (force?: boolean): Promise<void> => {
 				const app = this.apps.get(clientId)
-				if (!app || !app.isAutoScaling) return
-				if (this.getAutoScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
-					this.spinDown(clientId, `Requested by app`).catch((error) => {
+				if (!app) return
+
+				if (force) {
+					// The Worker is forcefully asking to be spun down.
+					this.spinDown(clientId, `Forced by app`).catch((error) => {
 						this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
 					})
+					// Note: this.monitorApps() will soon spin up another Worker if needed
+				} else {
+					// The Worker is kindly asking to be spun down.
+					// The appcontainer will determine if it should be spun down.
+
+					if (!app.isAutoScaling) return
+					if (this.getAutoScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
+						this.spinDown(clientId, `Requested by app`).catch((error) => {
+							this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
+						})
+					}
 				}
 			},
 			workerStorageWriteLock: async (

@@ -881,9 +881,9 @@ export class WorkerAgent {
 			})
 		}
 	}
-	private requestShutDown() {
+	private requestShutDown(force?: boolean) {
 		if (this.appContainerAPI.connected) {
-			this.appContainerAPI.requestSpinDown().catch((err) => {
+			this.appContainerAPI.requestSpinDown(force).catch((err) => {
 				this.logger.error(`Worker: appContainerAPI.requestSpinDown failed: ${stringifyError(err)}`)
 			})
 		} else {
@@ -915,7 +915,7 @@ export class WorkerAgent {
 			this.logger.error(
 				`Worker: Failed failurePeriodLimit check: ${this.failurePeriodCounter} periods with errors. Requesting spin down.`
 			)
-			this.requestShutDown()
+			this.requestShutDown(true)
 		}
 	}
 	/**
