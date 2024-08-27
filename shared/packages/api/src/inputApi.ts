@@ -28,12 +28,17 @@ export const StatusCode = SofieStatusCode
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace ExpectedPackage {
-	export type Any = ExpectedPackageMediaFile | ExpectedPackageQuantelClip | ExpectedPackageJSONData
+	export type Any =
+		| ExpectedPackageMediaFile
+		| ExpectedPackageQuantelClip
+		| ExpectedPackageJSONData
+		| ExpectedPackageHtmlTemplate
 
 	export enum PackageType {
 		MEDIA_FILE = 'media_file',
 		QUANTEL_CLIP = 'quantel_clip',
 		JSON_DATA = 'json_data',
+		HTML_TEMPLATE = 'html_template',
 
 		// TALLY_LABEL = 'tally_label'
 
@@ -75,7 +80,9 @@ export namespace ExpectedPackage {
 			/** Reference to a PackageContainer */
 			containerId: PackageContainerId
 			/** Locally defined Accessors, these are combined (deep extended) with the PackageContainer (if it is found) Accessors */
-			accessors: Record<AccessorId, AccessorOnPackage.Any>
+			accessors: {
+				[accessorId: AccessorId]: AccessorOnPackage.Any
+			}
 		}[]
 
 		/** The sideEffect is used by the Package Manager to generate extra artifacts, such as thumbnails & previews */
@@ -196,6 +203,90 @@ export namespace ExpectedPackage {
 			}
 		}[]
 	}
+	export interface ExpectedPackageHtmlTemplate extends Base {
+		type: PackageType.HTML_TEMPLATE
+		content: {
+			/** path to the HTML template */
+			path: string
+		}
+		version: {
+			renderer?: {
+				/** Renderer width, defaults to 1920 */
+				width?: number
+				/** Renderer height, defaults to 1080 */
+				height?: number
+				/**
+				 * Scale the rendered width and height with this value, and also zoom the content accordingly.
+				 * For example, if the width is 1920 and scale is 0.5, the width will be scaled to 960.
+				 * (Defaults to 1)
+				 */
+				scale?: number
+				/** Background color, #RRGGBB, CSS-string, "transparent" or "default" (defaults to "default") */
+				background?: string
+				userAgent?: string
+			}
+
+			/**
+			 * Convenience settings for a template that follows the typical CasparCG steps;
+			 * update(data); play(); stop();
+			 * If this is set, steps are overridden */
+			casparCG?: {
+				/**
+				 * Data to send into the update() function of a CasparCG Template.
+				 * Strings will be piped through as-is, objects will be JSON.stringified.
+				 */
+				data: { [key: string]: any } | null | string
+
+				/** How long to wait between each action in a CasparCG template, (default: 1000ms) */
+				delay?: number
+			}
+
+			steps?: (
+				| { do: 'waitForLoad' }
+				| { do: 'sleep'; duration: number }
+				| {
+						do: 'sendHTTPCommand'
+						url: string
+						/** GET, POST, PUT etc.. */
+						method: string
+						body?: ArrayBuffer | ArrayBufferView | NodeJS.ReadableStream | string | URLSearchParams
+
+						headers?: Record<string, string>
+				  }
+				| { do: 'takeScreenshot'; fileName: string }
+				| { do: 'startRecording'; fileName: string }
+				| { do: 'stopRecording' }
+				| { do: 'cropRecording'; fileName: string }
+				| { do: 'executeJs'; js: string }
+				// Store an object in memory
+				| {
+						do: 'storeObject'
+						key: string
+						/** The value to store into memory. Either an object, or a JSON-stringified object */
+						value: Record<string, any> | string
+				  }
+				// Modify an object in memory. Path is a dot-separated string
+				| { do: 'modifyObject'; key: string; path: string; value: any }
+				// Send an object to the renderer as a postMessage (so basically does a executeJs: window.postMessage(memory[key]))
+				| {
+						do: 'injectObject'
+						key: string
+						/** The method to receive the value. Defaults to window.postMessage */
+						receivingFunction?: string
+				  }
+			)[]
+		}
+		sources: {
+			containerId: PackageContainerId
+			accessors: {
+				[accessorId: AccessorId]:
+					| AccessorOnPackage.LocalFolder
+					| AccessorOnPackage.FileShare
+					| AccessorOnPackage.HTTP
+					| AccessorOnPackage.HTTPProxy
+			}
+		}[]
+	}
 }
 
 /** A PackageContainer defines a place that contains Packages, that can be read or written to.
@@ -269,10 +360,16 @@ export namespace Accessor {
 		allowWrite: false
 
 		/** Base url (url to the host), for example http://myhost.com/fileShare/ */
-		baseUrl: string
+		baseUrl?: string
 
 		/** Name/Id of the network the share exists on. Used to differ between different local networks. Leave empty if globally accessible. */
 		networkId?: string
+
+		/** If true, assumes that a source never changes once it has been fetched. */
+		isImmutable?: boolean
+
+		/** If true, assumes that the source doesn't support HEAD requests and will use GET instead. If false, HEAD requests will be sent to check availability. */
+		useGETinsteadOfHEAD?: boolean
 	}
 	/** Definition of access to the HTTP-proxy server that comes with Package Manager. */
 	export interface HTTPProxy extends Base {
@@ -352,9 +449,6 @@ export namespace AccessorOnPackage {
 	export interface HTTP extends Partial<Accessor.HTTP> {
 		/** URL path to resource (combined with .baseUrl gives the full URL), for example: /folder/myFile */
 		url?: string
-
-		/** If true, assumes that a source never changes once it has been fetched. */
-		isImmutable?: boolean
 	}
 	export interface Quantel extends Partial<Accessor.Quantel> {
 		guid?: string

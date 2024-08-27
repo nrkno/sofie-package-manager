@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import { HelpfulEventEmitter } from './HelpfulEventEmitter'
-import { stringifyError } from './lib'
+import { isRunningInTest, stringifyError } from './lib'
 
 import { AppContainerId, ExpectationManagerId, WorkerAgentId, WorkforceId } from './ids'
 import { MethodsInterfaceBase } from './methods'
@@ -12,8 +12,7 @@ export const PING_TIME = 10 * 1000
  * If the sender doesn't recieve a reply after this time,
  * the message is considered lost.
  */
-export const MESSAGE_TIMEOUT = process.env.JEST_WORKER_ID !== undefined ? 3000 : 10000
-// Note: JEST_WORKER_ID is set when running in unit tests
+export const MESSAGE_TIMEOUT = isRunningInTest() ? 3000 : 10000
 
 /**
  * Execution timeout.

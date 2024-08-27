@@ -23,10 +23,10 @@ import {
 	Reason,
 	INNER_ACTION_TIMEOUT,
 	AccessorId,
+	rebaseUrl,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
-import { rebaseUrl } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** The minimum amount of frames where a clip is minimumly playable */

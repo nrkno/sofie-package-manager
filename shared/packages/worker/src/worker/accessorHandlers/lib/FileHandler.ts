@@ -17,13 +17,13 @@ import {
 	protectString,
 	MonitorId,
 	AccessorId,
+	removeBasePath,
 } from '@sofie-package-manager/api'
 
 import { BaseWorker } from '../../worker'
 
 import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
-import { removeBasePath } from './pathJoin'
 import { FileEvent, FileWatcher, IFileWatcher } from './FileWatcher'
 import { updateJSONFileBatch } from './json-write-file'
 

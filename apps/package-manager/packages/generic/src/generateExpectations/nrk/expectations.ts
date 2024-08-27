@@ -27,6 +27,7 @@ import {
 	generateJsonDataCopy,
 	generatePackageCopyFileProxy,
 	generatePackageLoudness,
+	generateHTMLRender,
 	generatePackageIframes,
 } from './expectations-lib'
 import { getSmartbullExpectedPackages, shouldBeIgnored } from './smartbull'
@@ -127,6 +128,8 @@ function getBasicExpectations(
 				exp = generateQuantelCopy(managerId, packageWrap)
 			} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.JSON_DATA) {
 				exp = generateJsonDataCopy(managerId, packageWrap, settings)
+			} else if (packageWrap.expectedPackage.type === ExpectedPackage.PackageType.HTML_TEMPLATE) {
+				exp = generateHTMLRender(managerId, packageWrap, settings)
 			}
 			if (exp) {
 				results.push({

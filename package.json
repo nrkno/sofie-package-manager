@@ -71,8 +71,8 @@
         "node": ">=18"
     },
     "dependencies": {
-        "@sofie-automation/server-core-integration": "1.50.0",
-        "@sofie-automation/shared-lib": "1.50.2"
+        "@sofie-automation/server-core-integration": "1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0",
+        "@sofie-automation/shared-lib": "1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
     },
     "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
     "lint-staged": {

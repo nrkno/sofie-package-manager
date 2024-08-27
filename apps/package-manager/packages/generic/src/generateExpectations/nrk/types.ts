@@ -30,6 +30,14 @@ export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
 		accessors: NonNullable<ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']>
 	}[]
 }
+export interface ExpectedPackageWrapHTMLTemplate extends ExpectedPackageWrap {
+	expectedPackage: ExpectedPackage.ExpectedPackageHtmlTemplate
+	sources: {
+		containerId: PackageContainerId
+		label: string
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageHtmlTemplate['sources'][0]['accessors']>
+	}[]
+}
 
 /*
 Notes on priorities:
