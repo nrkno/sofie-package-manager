@@ -178,7 +178,7 @@ const workerArguments = defineArguments({
 	failurePeriod: {
 		type: 'number',
 		default: parseInt(process.env.WORKER_FAILURE_PERIOD || '', 10) || 5 * 60 * 1000,
-		describe: 'This is the period of time used by "failurePeriodLimit"',
+		describe: 'This is the period of time used by "failurePeriodLimit" (milliseconds)',
 	},
 })
 /** CLI-argument-definitions for the AppContainer process */
