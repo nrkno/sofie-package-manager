@@ -239,78 +239,7 @@ describeForAllPlatforms(
 			// To be written
 			expect(1).toEqual(1)
 		})
-		test('Be able to handle 500 expectations', async () => {
-			const COUNT = 500
-			const WORKER_COUNT = 10
 
-			const workerIds: WorkerAgentId[] = []
-			for (let i = 0; i < WORKER_COUNT; i++) {
-				workerIds.push(await env.addWorker())
-			}
-
-			const expectations: Record<ExpectationId, Expectation.Any> = {}
-			const packages: ExpectedPackageId[] = []
-
-			for (let i = 0; i < COUNT; i++) {
-				const fileName = `file0Source${i}.mp4`
-				const packageId = protectString<ExpectedPackageId>(`package${i}`)
-				const exp = protectString<ExpectationId>(`copy${i}`)
-
-				fs.__mockSetFile(`/sources/source0/${fileName}`, 1234)
-				packages.push(packageId)
-
-				expectations[exp] = literal<Expectation.FileCopy>({
-					id: exp,
-					priority: i,
-					managerId: MANAGER0,
-					fromPackages: [{ id: packageId, expectedContentVersionHash: 'abcd1234' }],
-					type: Expectation.Type.FILE_COPY,
-					statusReport: {
-						label: `Copy file${i}`,
-						description: `Copy file${i} because test`,
-						displayRank: 0,
-						sendReport: true,
-					},
-					startRequirement: {
-						sources: [getLocalSource(SOURCE0, fileName)],
-					},
-					endRequirement: {
-						targets: [getLocalTarget(TARGET0, `myFolder/fileTarget${i}.mp4`)],
-						content: {
-							filePath: `fileTarget${i}.mp4`,
-						},
-						version: { type: Expectation.Version.Type.FILE_ON_DISK },
-					},
-					workOptions: {
-						requiredForPlayout: true,
-					},
-				})
-			}
-			fs.__mockSetDirectory('/targets/target0')
-
-			env.expectationManager.updateExpectations(expectations)
-
-			const lastPackage = packages[packages.length - 1]
-			// Wait for the jobs to complete:
-			await waitUntil(() => {
-				expect(env.containerStatuses[TARGET0]).toBeTruthy()
-				expect(env.containerStatuses[TARGET0].packages[lastPackage]).toBeTruthy()
-				expect(env.containerStatuses[TARGET0].packages[lastPackage].packageStatus?.status).toEqual(
-					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
-				)
-			}, 10000)
-
-			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
-
-			expect(await fsStat('/targets/target0/myFolder/fileTarget0.mp4')).toMatchObject({
-				size: 1234,
-			})
-
-			// Clean up:
-			for (const workerId of workerIds) {
-				await env.removeWorker(workerId)
-			}
-		}, 10000)
 		test.skip('Media file preview from local to file share', async () => {
 			// To be written
 			expect(1).toEqual(1)
@@ -446,6 +375,78 @@ describeForAllPlatforms(
 			expect(workforceRequestResourcesForExpectation.mock.calls.length).toBeGreaterThan(5)
 			expect(workforceRequestResourcesForExpectation.mock.calls.length).toBeLessThan(12)
 		}, 5000)
+		test('Be able to handle 500 expectations', async () => {
+			const COUNT = 500
+			const WORKER_COUNT = 10
+
+			const workerIds: WorkerAgentId[] = []
+			for (let i = 0; i < WORKER_COUNT; i++) {
+				workerIds.push(await env.addWorker())
+			}
+
+			const expectations: Record<ExpectationId, Expectation.Any> = {}
+			const packages: ExpectedPackageId[] = []
+
+			for (let i = 0; i < COUNT; i++) {
+				const fileName = `file0Source${i}.mp4`
+				const packageId = protectString<ExpectedPackageId>(`package${i}`)
+				const exp = protectString<ExpectationId>(`copy${i}`)
+
+				fs.__mockSetFile(`/sources/source0/${fileName}`, 1234)
+				packages.push(packageId)
+
+				expectations[exp] = literal<Expectation.FileCopy>({
+					id: exp,
+					priority: i,
+					managerId: MANAGER0,
+					fromPackages: [{ id: packageId, expectedContentVersionHash: 'abcd1234' }],
+					type: Expectation.Type.FILE_COPY,
+					statusReport: {
+						label: `Copy file${i}`,
+						description: `Copy file${i} because test`,
+						displayRank: 0,
+						sendReport: true,
+					},
+					startRequirement: {
+						sources: [getLocalSource(SOURCE0, fileName)],
+					},
+					endRequirement: {
+						targets: [getLocalTarget(TARGET0, `myFolder/fileTarget${i}.mp4`)],
+						content: {
+							filePath: `fileTarget${i}.mp4`,
+						},
+						version: { type: Expectation.Version.Type.FILE_ON_DISK },
+					},
+					workOptions: {
+						requiredForPlayout: true,
+					},
+				})
+			}
+			fs.__mockSetDirectory('/targets/target0')
+
+			env.expectationManager.updateExpectations(expectations)
+
+			const lastPackage = packages[packages.length - 1]
+			// Wait for the jobs to complete:
+			await waitUntil(() => {
+				expect(env.containerStatuses[TARGET0]).toBeTruthy()
+				expect(env.containerStatuses[TARGET0].packages[lastPackage]).toBeTruthy()
+				expect(env.containerStatuses[TARGET0].packages[lastPackage].packageStatus?.status).toEqual(
+					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
+				)
+			}, 10000)
+
+			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
+
+			expect(await fsStat('/targets/target0/myFolder/fileTarget0.mp4')).toMatchObject({
+				size: 1234,
+			})
+
+			// Clean up:
+			for (const workerId of workerIds) {
+				await env.removeWorker(workerId)
+			}
+		}, 10000)
 	}
 )
 
