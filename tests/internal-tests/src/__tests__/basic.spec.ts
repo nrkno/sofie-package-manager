@@ -75,7 +75,6 @@ describeForAllPlatforms(
 			fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
 			fs.__mockSetDirectory('/targets/target0')
 			// console.log(fs.__printAllFiles())
-
 			env.expectationManager.updateExpectations({
 				[EXP_copy0]: literal<Expectation.FileCopy>({
 					id: EXP_copy0,

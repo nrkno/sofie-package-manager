@@ -31,8 +31,9 @@ describeForAllPlatforms(
 		afterAll(() => {
 			env.terminate()
 		})
-		beforeEach(() => {
+		afterEach(async () => {
 			env.reset()
+			await env.expectationManager.waitForIdle()
 			QGatewayClient.resetMock()
 		})
 	},

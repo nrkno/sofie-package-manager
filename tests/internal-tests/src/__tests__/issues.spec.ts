@@ -69,12 +69,13 @@ describeForAllPlatforms(
 			env.terminate()
 		})
 		beforeEach(() => {
-			fs.__mockReset()
-			env.reset()
 			fs.__mockSetAccessDelay(0) // Reset any access delay
 		})
-		afterEach(() => {
-			fs.__mockSetAccessDelay(0) // Reset any access delay
+		afterEach(async () => {
+			env.reset()
+			await env.expectationManager.waitForIdle()
+			fs.__mockReset()
+			fs.__restoreCallbackInterceptor()
 		})
 	},
 	(_platform: string) => {
