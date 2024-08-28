@@ -290,6 +290,7 @@ describeForAllPlatforms(
 			env.setLogFilterFunction((level, ...args) => {
 				const str = args.join(',')
 				// Suppress some logged warnings:
+				if (level === 'warn' && str.includes('Cancelling job')) return false
 				if (level === 'warn' && str.includes('stalled, restarting')) return false
 				if (level === 'error' && str.includes('cancelling timed out work')) return false
 				return true
@@ -310,7 +311,9 @@ describeForAllPlatforms(
 
 			// Wait until the work have been aborted, and restarted:
 			await waitUntil(() => {
-				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
+				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(
+					expect.stringMatching(/new|waiting/)
+				)
 			}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 			// Add another worker:
