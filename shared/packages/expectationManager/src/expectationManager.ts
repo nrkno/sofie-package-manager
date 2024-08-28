@@ -102,6 +102,10 @@ export class ExpectationManager {
 		this.internalManager.tracker.receivedUpdates.restartAllExpectations = true
 		this.internalManager.tracker.triggerEvaluationNow()
 	}
+	/** Returns a promise which resolves when there are no more works in progress */
+	async waitForIdle(): Promise<void> {
+		return this.internalManager.tracker.waitForIdle()
+	}
 	/** Request that an Expectation is aborted.
 	 * "Aborted" means that any current work is cancelled and any finished work will be removed.
 	 * Any future attempts to check on the Expectation will be ignored.

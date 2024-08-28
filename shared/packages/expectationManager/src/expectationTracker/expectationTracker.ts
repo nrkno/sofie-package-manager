@@ -77,16 +77,34 @@ export class ExpectationTracker extends HelpfulEventEmitter {
 	}
 	public resetWork(): void {
 		this.receivedUpdates.clear()
-		this.trackedExpectations.clear()
-		this.trackedPackageContainers.clear()
 
-		this.scheduler.triggerEvaluation(true)
+		this.scheduler.abortAndTriggerEvaluation()
 	}
 	/**
 	 * Set the scheduler to trigger another evaluation ASAP
 	 */
 	public triggerEvaluationNow(): void {
 		this.scheduler.triggerEvaluation(true)
+	}
+
+	/** Returns a promise which resolves when there are no more works in progress */
+	async waitForIdle(): Promise<void> {
+		// Wait for the scheduler to be idle:
+		await new Promise<void>((resolve) => {
+			if (this.scheduler.isRunning()) {
+				this.scheduler.once('idle', resolve)
+			} else {
+				resolve()
+			}
+		})
+		// Wait for any works in progress to finish:
+		await new Promise<void>((resolve) => {
+			if (this.worksInProgress.hasWorksInProgress()) {
+				this.worksInProgress.once('idle', resolve)
+			} else {
+				resolve()
+			}
+		})
 	}
 
 	/** Returns the appropriate time to wait before checking a fulfilled expectation again */

@@ -46,19 +46,17 @@ export class StatusReportCache {
 					workerId: workerId,
 				}
 			}),
-			worksInProgress: Array.from(this.manager.tracker.worksInProgress.getWorksInProgress().entries()).map(
-				([id, wip]) => {
-					return {
-						id: id,
-						lastUpdated: wip.lastUpdated,
-						workerId: wip.workerId,
-						cost: wip.cost,
-						label: wip.trackedExp.exp.statusReport.label,
-						progress: Math.floor((wip.trackedExp.status.workProgress || 0) * 1000) / 1000,
-						expectationId: wip.trackedExp.id,
-					}
+			worksInProgress: Array.from(this.manager.tracker.worksInProgress.getWorksInProgress()).map(([id, wip]) => {
+				return {
+					id: id,
+					lastUpdated: wip.lastUpdated,
+					workerId: wip.workerId,
+					cost: wip.cost,
+					label: wip.trackedExp.exp.statusReport.label,
+					progress: Math.floor((wip.trackedExp.status.workProgress || 0) * 1000) / 1000,
+					expectationId: wip.trackedExp.id,
 				}
-			),
+			}),
 		}
 		const expectationStatistics = statusReport.expectationStatistics
 		for (const exp of this.manager.tracker.getSortedTrackedExpectations()) {

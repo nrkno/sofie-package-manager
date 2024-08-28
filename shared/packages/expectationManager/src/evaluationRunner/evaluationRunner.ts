@@ -31,12 +31,19 @@ export class EvaluationRunner {
 
 	public logger: LoggerInstance
 	private instanceId: number
+	private _abortRun = false
 
 	constructor(logger: LoggerInstance, public manager: InternalManager, public tracker: ExpectationTracker) {
 		this.instanceId = EvaluationRunner.instanceId++
 		this.logger = logger.category(`Runner_${this.instanceId}`)
 	}
-	public async run(): Promise<EvaluationResult> {
+	/**
+	 * Aborts the current run of the EvaluationRunner.
+	 */
+	public abort(): void {
+		this._abortRun = true
+	}
+	public async run(): Promise<EvaluationResult | undefined> {
 		this.logger.debug(Date.now() / 1000 + ' _evaluateExpectations ----------')
 
 		const times: { [key: string]: number } = {}
@@ -49,6 +56,7 @@ export class EvaluationRunner {
 				await this.updateReceivedData_Expectations().promise
 			}
 			times['timeUpdateReceivedExpectations'] = timer.get()
+			if (this._abortRun) return
 		}
 
 		{
@@ -58,6 +66,7 @@ export class EvaluationRunner {
 				await this._updateReceivedData_TrackedPackageContainers()
 			}
 			times['timeUpdateReceivedPackageContainerExpectations'] = timer.get()
+			if (this._abortRun) return
 		}
 
 		{
@@ -66,6 +75,7 @@ export class EvaluationRunner {
 			// Iterate through the PackageContainerExpectations:
 			await this._evaluateAllTrackedPackageContainers()
 			times['timeEvaluateAllTrackedPackageContainers'] = timer.get()
+			if (this._abortRun) return
 		}
 
 		{
@@ -73,10 +83,12 @@ export class EvaluationRunner {
 
 			this.tracker.worksInProgress.checkWorksInProgress()
 			times['timeMonitorWorksInProgress'] = timer.get()
+			if (this._abortRun) return
 		}
 
 		// Iterate through all Expectations:
 		const { runAgainASAP, times: evaluateTimes } = await this._evaluateAllExpectations()
+		if (this._abortRun) return
 
 		for (const key in evaluateTimes) {
 			times[key] = evaluateTimes[key]
@@ -92,6 +104,7 @@ export class EvaluationRunner {
 			runAgainASAP,
 		})
 	}
+
 	/** Goes through the incoming data and stores it */
 	private updateReceivedData_Expectations(): {
 		promise: Promise<void>
@@ -311,6 +324,8 @@ export class EvaluationRunner {
 
 		// Step 1: Evaluate the Expectations which are in the states that can be handled in parallel:
 		for (const handleState of handleStatesParallel) {
+			if (this._abortRun) return { runAgainASAP, times }
+
 			const timer = startTimer()
 			// Filter out the ones that are in the state we're about to handle:
 			const trackedWithState = tracked.filter((trackedExp) => trackedExp.state === handleState)
@@ -333,6 +348,8 @@ export class EvaluationRunner {
 						}
 					})
 					.process(async (trackedExp) => {
+						if (this._abortRun) return
+
 						await evaluateExpectationState(this, trackedExp)
 						postProcessSession(trackedExp)
 					})
@@ -355,7 +372,10 @@ export class EvaluationRunner {
 
 		const timer = startTimer()
 		// Step 2: Evaluate the expectations, now one by one:
+
 		for (const trackedExp of tracked) {
+			if (this._abortRun) return { runAgainASAP, times }
+
 			// Only handle the states that
 			if (handleStatesSerial.includes(trackedExp.state)) {
 				// Evaluate the Expectation:

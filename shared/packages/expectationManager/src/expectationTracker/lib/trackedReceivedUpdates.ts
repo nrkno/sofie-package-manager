@@ -33,9 +33,9 @@ export class TrackedReceivedUpdates {
 
 	public clear(): void {
 		this._expectations.clear()
-		this._expectationsHasBeenUpdated = false
+		this._expectationsHasBeenUpdated = true
 		this._packageContainers.clear()
-		this._packageContainersHasBeenUpdated = false
+		this._packageContainersHasBeenUpdated = true
 		this._restartExpectations.clear()
 		this._abortExpectations.clear()
 		this._restartPackageContainers.clear()

@@ -62,11 +62,12 @@ describeForAllPlatforms(
 		afterAll(() => {
 			env.terminate()
 		})
-		beforeEach(() => {
+		afterEach(async () => {
+			env.reset()
+			await env.expectationManager.waitForIdle()
+			QGatewayClient.resetMock()
 			fs.__mockReset()
 			fs.__restoreCallbackInterceptor()
-			env.reset()
-			QGatewayClient.resetMock()
 		})
 	},
 	(platform) => {

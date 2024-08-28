@@ -1,5 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
+import { EventEmitter } from 'events'
 import {
 	Cost,
 	ExpectationManagerWorkerAgent,
@@ -19,15 +20,19 @@ import { WorkerAgentAPI } from '../../workerAgentApi'
  * This class tracks works-in-progress.
  * It receives update-events from a Worker
  */
-export class WorkInProgressTracker {
+export class WorkInProgressTracker extends EventEmitter {
 	private worksInProgress: Map<WorkInProgressId, WorkInProgress> = new Map()
 
 	private logger: LoggerInstance
 	constructor(logger: LoggerInstance, private tracker: ExpectationTracker) {
+		super()
 		this.logger = logger.category('WIPTracker')
 	}
-	public getWorksInProgress(): Map<WorkInProgressId, WorkInProgress> {
-		return this.worksInProgress
+	public getWorksInProgress(): IterableIterator<[WorkInProgressId, WorkInProgress]> {
+		return this.worksInProgress.entries()
+	}
+	public hasWorksInProgress(): boolean {
+		return this.worksInProgress.size > 0
 	}
 	public upsert(workerId: WorkerAgentId, wipId: WorkInProgressLocalId, wip: WorkInProgress): void {
 		this.worksInProgress.set(this.getId(workerId, wipId), wip)
@@ -37,6 +42,8 @@ export class WorkInProgressTracker {
 	}
 	private remove(id: WorkInProgressId): void {
 		this.worksInProgress.delete(id)
+
+		if (this.worksInProgress.size === 0) this.emit('idle') // All works are done
 	}
 	/** Monitor the Works in progress, to restart them if necessary. */
 	public checkWorksInProgress(): void {
@@ -147,7 +154,7 @@ export class WorkInProgressTracker {
 			} else {
 				// Expectation not in WORKING state, ignore
 			}
-			this.worksInProgress.delete(this.getId(clientId, wipId))
+			this.remove(this.getId(clientId, wipId))
 		} else {
 			// not found, ignore
 		}
