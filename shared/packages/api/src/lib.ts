@@ -430,3 +430,17 @@ export function betterPathIsAbsolute(p: string): boolean {
 		p.startsWith('\\') // \server\path, path.isAbsolute() doesn't handle this on Linux
 	)
 }
+
+/** Returns true if we're running tests (in Jest) */
+export function isRunningInTest(): boolean {
+	// Note: JEST_WORKER_ID is set when running in unit tests
+	return process.env.JEST_WORKER_ID !== undefined
+}
+export function isRunningInDevelopment(): boolean {
+	return (
+		!isRunningInTest() &&
+		// Process runs as a node process, we're probably in development mode.:
+		(process.execPath.endsWith('node.exe') || // windows
+			process.execPath.endsWith('node')) // linux
+	)
+}

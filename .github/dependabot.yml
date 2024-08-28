@@ -12,3 +12,5 @@ updates:
       interval: "weekly"
     reviewers:
       - "@nrkno/sofie-ops"
+    # Only create security updates
+    open-pull-requests-limit: 0

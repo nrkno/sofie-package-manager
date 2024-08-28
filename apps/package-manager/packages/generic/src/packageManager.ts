@@ -12,13 +12,14 @@ import {
 import {
 	PackageManagerActivePlaylist,
 	PackageManagerActiveRundown,
-	PackageManagerExpectedPackage,
 	PackageManagerExpectedPackageBase,
-	PackageManagerPackageContainers,
-	PackageManagerPlayoutContext,
 	// eslint-disable-next-line node/no-extraneous-import
 } from '@sofie-automation/shared-lib/dist/package-manager/publications'
-import { Observer, PeripheralDeviceId } from '@sofie-automation/server-core-integration'
+import {
+	Observer,
+	PeripheralDeviceId,
+	PeripheralDevicePubSubCollectionsNames,
+} from '@sofie-automation/server-core-integration'
 // eslint-disable-next-line node/no-extraneous-import
 import { UpdateExpectedPackageWorkStatusesChanges } from '@sofie-automation/shared-lib/dist/peripheralDevice/methodsAPI'
 // eslint-disable-next-line node/no-extraneous-import
@@ -198,7 +199,7 @@ export class PackageManagerHandler {
 		if (this.coreHandler.notUsingCore) return // Abort if we are not using core
 		this.logger.debug('Renewing observers')
 
-		const triggerUpdateOnAnyChange = (observer: Observer) => {
+		const triggerUpdateOnAnyChange = (observer: Observer<any>) => {
 			observer.added = () => {
 				this.triggerUpdatedExpectedPackages()
 			}
@@ -211,12 +212,18 @@ export class PackageManagerHandler {
 			this._observers.push(observer)
 		}
 
-		const expectedPackagesObserver = this.coreHandler.observe('deviceExpectedPackages')
-		triggerUpdateOnAnyChange(expectedPackagesObserver)
-
-		triggerUpdateOnAnyChange(this.coreHandler.observe('packageManagerPlayoutContext'))
-		triggerUpdateOnAnyChange(this.coreHandler.observe('packageManagerPackageContainers'))
-		triggerUpdateOnAnyChange(this.coreHandler.observe('packageManagerExpectedPackages'))
+		triggerUpdateOnAnyChange(
+			this.coreHandler.observe(PeripheralDevicePubSubCollectionsNames.packageManagerExpectedPackages)
+		)
+		triggerUpdateOnAnyChange(
+			this.coreHandler.observe(PeripheralDevicePubSubCollectionsNames.packageManagerPlayoutContext)
+		)
+		triggerUpdateOnAnyChange(
+			this.coreHandler.observe(PeripheralDevicePubSubCollectionsNames.packageManagerPackageContainers)
+		)
+		triggerUpdateOnAnyChange(
+			this.coreHandler.observe(PeripheralDevicePubSubCollectionsNames.packageManagerExpectedPackages)
+		)
 	}
 	public triggerUpdatedExpectedPackages(): void {
 		if (this._triggerUpdatedExpectedPackagesTimeout) {
@@ -255,7 +262,7 @@ export class PackageManagerHandler {
 
 			if (!this.coreHandler.notUsingCore) {
 				const playoutContextObj = this.coreHandler
-					.getCollection<PackageManagerPlayoutContext>('packageManagerPlayoutContext')
+					.getCollection(PeripheralDevicePubSubCollectionsNames.packageManagerPlayoutContext)
 					.find()[0]
 				if (playoutContextObj) {
 					activePlaylist = playoutContextObj.activePlaylist
@@ -266,7 +273,7 @@ export class PackageManagerHandler {
 				}
 
 				const packageContainersObj = this.coreHandler
-					.getCollection<PackageManagerPackageContainers>('packageManagerPackageContainers')
+					.getCollection(PeripheralDevicePubSubCollectionsNames.packageManagerPackageContainers)
 					.find()[0]
 				if (packageContainersObj) {
 					Object.assign(packageContainers, packageContainersObj.packageContainers)
@@ -277,7 +284,7 @@ export class PackageManagerHandler {
 
 				// Add from Core collections:
 				const expectedPackagesObjs = this.coreHandler
-					.getCollection<PackageManagerExpectedPackage>('packageManagerExpectedPackages')
+					.getCollection(PeripheralDevicePubSubCollectionsNames.packageManagerExpectedPackages)
 					.find()
 
 				const expectedPackagesCore: ExpectedPackageWrap[] = []

@@ -71,6 +71,18 @@
                     "allowWrite": true
                 }
             }
+        },
+        "theinternet": {
+            "label": "HTTP",
+            "accessors": {
+                "http": {
+                    "type": "http",
+                    "label": "http",
+                    "baseUrl": "",
+                    "allowRead": true,
+                    "allowWrite": false
+                }
+            }
         }
     },
     "expectedPackages": [
@@ -135,6 +147,65 @@
             ],
             "layers": [
                 "core0"
+            ],
+            "sideEffect": {}
+        },
+        {
+            "type": "html_template",
+            "_id": "test-html",
+            "contentVersionHash": "abc1234",
+            "content": {
+                "path": "https://www.bouncingdvdlogo.com/",
+            },
+            "version": {
+                "renderer": {
+                    "width": 1920,
+                    "height": 1080,
+                    "scale": 0.25,
+                    "background": "red"
+                },
+                "steps": [
+                    {
+                        "do": "waitForLoad"
+                    },
+                    {
+                        "do": "startRecording",
+                        "fileName": "bouncingdvdlogo_recording.webm"
+                    },
+                    {
+                        "do": "sleep",
+                        "duration": 1000
+                    },
+                    {
+                        "do": "takeScreenshot",
+                        "fileName": "bouncingdvdlogo_screenshot.png"
+                    },
+                    {
+                        "do": "sleep",
+                        "duration": 2000
+                    },
+                    {
+                        "do": "stopRecording"
+                    },
+                    {
+                        "do": "cropRecording",
+                        "fileName": "bouncingdvdlogo_recording-cropped.webm"
+                    }
+                ]
+            },
+            "sources": [
+                {
+                    "containerId": "theinternet",
+                    "accessors": {
+                        "http": {
+                            "type": "http",
+                            "url": ""
+                        }
+                    }
+                }
+            ],
+            "layers": [
+                "thumbnails0_local"
             ],
             "sideEffect": {}
         }

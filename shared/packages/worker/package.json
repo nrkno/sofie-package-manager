@@ -14,13 +14,15 @@
     },
     "peerDependencies": {
         "@sofie-automation/shared-lib": "*",
-        "typescript": "*"
+        "typescript": "*",
+        "ws": "*"
     },
     "devDependencies": {
         "@types/deep-diff": "^1.0.0",
         "@types/node-fetch": "^2.5.8",
         "@types/proper-lockfile": "^4.1.4",
         "@types/tmp": "~0.2.2",
+        "@types/ws": "^8.5.4",
         "jest": "*",
         "jest-mock-extended": "^3.0.5",
         "rimraf": "^5.0.5"

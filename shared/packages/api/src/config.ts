@@ -11,7 +11,7 @@ import { AppContainerId, WorkerAgentId } from './ids'
  */
 
 /** Generic CLI-argument-definitions for any process */
-const processOptions = defineArguments({
+export const processOptions = defineArguments({
 	logPath: { type: 'string', describe: 'Set to write logs to this file' },
 	logLevel: { type: 'string', describe: 'Set default log level. (Might be overwritten by Sofie Core)' },
 
@@ -293,12 +293,12 @@ export interface ProcessConfig {
 	/** Paths to certificates to load, for SSL-connections */
 	certificates: string[]
 }
-function getProcessConfig(argv: {
+export function getProcessConfig(argv: {
 	logPath: string | undefined
 	logLevel: string | undefined
 	unsafeSSL: boolean
 	certificates: string | undefined
-}) {
+}): ProcessConfig {
 	const certs: string[] = (argv.certificates || process.env.CERTIFICATES || '').split(';') || []
 	return {
 		logPath: argv.logPath,
@@ -583,11 +583,11 @@ export async function getQuantelHTTPTransformerProxyConfig(): Promise<QuantelHTT
 // ---------------------------------------------------------------------------------
 
 /** Helper function, to get strict typings for the yargs-Options. */
-function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
+export function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
 	return opts
 }
 
-function getProcessArgv() {
+export function getProcessArgv(): string[] {
 	// Note: process.argv typically looks like this:
 	// [
 	// 	'C:\\Program Files\\nodejs\\node.exe',

@@ -601,7 +601,8 @@ export class AppContainer {
 		availableApp: AvailableAppInfo,
 		useCriticalOnlyMode: boolean
 	): cp.ChildProcess {
-		const cwd = process.execPath.match(/node.exe$/)
+		const isRunningInDevelopmentMode = process.execPath.endsWith('node.exe') || process.execPath.endsWith('node')
+		const cwd = isRunningInDevelopmentMode
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
 
