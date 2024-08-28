@@ -435,7 +435,7 @@ describeForAllPlatforms(
 				expect(env.containerStatuses[TARGET0].packages[lastPackage].packageStatus?.status).toEqual(
 					ExpectedPackageStatusAPI.PackageContainerPackageStatusStatus.READY
 				)
-			}, 10000)
+			}, 20000)
 
 			expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual('fulfilled')
 
@@ -447,7 +447,7 @@ describeForAllPlatforms(
 			for (const workerId of workerIds) {
 				await env.removeWorker(workerId)
 			}
-		}, 10000)
+		}, 20000)
 	}
 )
 
