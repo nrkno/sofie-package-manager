@@ -79,6 +79,9 @@ export class WorkerAgent {
 	private spinDownTime = 0
 	private intervalCheckTimer: NodeJS.Timeout | null = null
 	private lastWorkTime = 0
+	private failureCounter = 0
+	private failurePeriodCounter = 0
+	private intervalFailureTimer: NodeJS.Timeout | null = null
 	private activeMonitors: Map<PackageContainerId, Map<MonitorId, MonitorInProgress>> = new Map()
 	private initWorkForceAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
 	private initAppContainerAPIPromise?: { resolve: () => void; reject: (reason?: any) => void }
@@ -253,6 +256,8 @@ export class WorkerAgent {
 		// Wait for this.workforceAPI to be ready before continuing:
 		await pWorkForce
 
+		this.setupIntervalErrorCheck()
+
 		this.IDidSomeWork()
 	}
 	terminate(): void {
@@ -260,6 +265,8 @@ export class WorkerAgent {
 
 		this.terminated = true
 		this.workforceAPI.terminate()
+
+		if (this.intervalFailureTimer) clearInterval(this.intervalFailureTimer)
 
 		for (const expectationManager of this.expectationManagers.values()) {
 			expectationManager.api.terminate()
@@ -545,6 +552,7 @@ export class WorkerAgent {
 			this.IDidSomeWork()
 			if (job.cancelled) return // Don't send updates on cancelled work
 			job.lastUpdated = Date.now()
+			this.IFailed()
 			this.removeJob(job)
 			this.logger.warn(
 				`Worker "${this.id}" stopped job ${job.wipId}, (${exp.id}), due to error: (${
@@ -764,7 +772,7 @@ export class WorkerAgent {
 		// Wrap the methods, so that we can cut off communication upon termination: (this is used in tests)
 		for (const key of Object.keys(methods) as Array<keyof Omit<ExpectationManagerWorkerAgent.WorkerAgent, 'id'>>) {
 			const fcn = methods[key] as any
-			methods[key] = ((...args: any[]) => {
+			methods[key] = (async (...args: any[]) => {
 				if (this.terminated)
 					return new Promise((_resolve, reject) => {
 						// Simulate a timed out message:
@@ -772,7 +780,7 @@ export class WorkerAgent {
 							reject('Timeout')
 						}, 200)
 					})
-				return fcn(...args)
+				return this.trackException(fcn(...args))
 			}) as any
 		}
 		// Connect to the ExpectationManager:
@@ -791,6 +799,13 @@ export class WorkerAgent {
 			url === '__internal' ? { type: 'internal' } : { type: 'websocket', url: expectationManager.url }
 
 		await expectationManager.api.init(connectionOptions, methods)
+	}
+
+	private async trackException<ReturnType>(fnc: Promise<ReturnType>): Promise<ReturnType> {
+		fnc.catch(() => {
+			this.IFailed()
+		})
+		return fnc
 	}
 
 	private async updateListOfExpectationManagers(newExpectationManagers: { id: ExpectationManagerId; url: string }[]) {
@@ -854,16 +869,7 @@ export class WorkerAgent {
 				if (!this.activeMonitors.size) {
 					this.logger.debug(`Worker: is idle, requesting spinning down`)
 
-					if (this.appContainerAPI.connected) {
-						this.appContainerAPI.requestSpinDown().catch((err) => {
-							this.logger.error(`Worker: appContainerAPI.requestSpinDown failed: ${stringifyError(err)}`)
-						})
-					} else {
-						// Huh, we're not connected to the appContainer.
-						// Well, we want to spin down anyway, so we'll do it:
-						// eslint-disable-next-line no-process-exit
-						process.exit(54)
-					}
+					this.requestShutDown()
 				}
 			}
 		}
@@ -875,12 +881,55 @@ export class WorkerAgent {
 			})
 		}
 	}
+	private requestShutDown(force?: boolean) {
+		if (this.appContainerAPI.connected) {
+			this.appContainerAPI.requestSpinDown(force).catch((err) => {
+				this.logger.error(`Worker: appContainerAPI.requestSpinDown failed: ${stringifyError(err)}`)
+			})
+		} else {
+			// Huh, we're not connected to the appContainer.
+			// Well, we want to spin down anyway, so we'll do it:
+			// eslint-disable-next-line no-process-exit
+			process.exit(54)
+		}
+	}
+	private setupIntervalErrorCheck() {
+		if (this.config.worker.failurePeriodLimit <= 0) return
+		if (this.intervalFailureTimer) clearInterval(this.intervalFailureTimer)
+		this.intervalFailureTimer = setInterval(() => this.intervalErrorCheck(), this.config.worker.failurePeriod)
+	}
+	private intervalErrorCheck() {
+		if (this.failureCounter === 0) {
+			// reset the failurePeriodCounter when there were no exceptions in the period
+			this.failurePeriodCounter = 0
+			// everything seems fine
+			return
+		}
+
+		if (this.failureCounter > 0) {
+			this.failurePeriodCounter++
+			this.failureCounter = 0
+		}
+
+		if (this.failurePeriodCounter >= this.config.worker.failurePeriodLimit) {
+			this.logger.error(
+				`Worker: Failed failurePeriodLimit check: ${this.failurePeriodCounter} periods with errors. Requesting spin down.`
+			)
+			this.requestShutDown(true)
+		}
+	}
 	/**
 	 * To be called when some actual work has been done.
 	 * If this is not called for a certain amount of time, the worker will be considered idle and will be spun down
 	 */
 	private IDidSomeWork() {
 		this.lastWorkTime = Date.now()
+	}
+	/**
+	 * To be called when some work has failed
+	 */
+	private IFailed() {
+		this.failureCounter++
 	}
 	private getNextWipId(): WorkInProgressLocalId {
 		return protectString<WorkInProgressLocalId>(`${this._wipI++}`)
