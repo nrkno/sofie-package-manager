@@ -291,7 +291,7 @@ export class EvaluationRunner {
 
 		// Step 0: Reset the session:
 		for (const trackedExp of tracked) {
-			trackedExp.session = null
+			trackedExp.session = {}
 		}
 
 		const postProcessSession = (trackedExp: TrackedExpectation) => {
@@ -360,7 +360,7 @@ export class EvaluationRunner {
 		// Step 1.5: Reset the session:
 		// Because during the next iteration, the worker-assignment need to be done in series
 		for (const trackedExp of tracked) {
-			trackedExp.session = null
+			trackedExp.session = {}
 		}
 
 		this.logger.debug(`Handle other states..`)

@@ -19,7 +19,6 @@ export async function evaluateExpectationStateWaiting({
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.WAITING)
 
 	// Check if the expectation is ready to start:
-	if (!trackedExp.session) trackedExp.session = {}
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 
 	if (trackedExp.session.assignedWorker) {
