@@ -26,6 +26,7 @@ import {
 	literal,
 	htmlTemplateGetSteps,
 	htmlTemplateGetFileNamesFromSteps,
+	escapeFilePath,
 } from '@sofie-package-manager/api'
 
 import { IWorkInProgress, WorkInProgress } from '../../../lib/workInProgress'
@@ -649,11 +650,11 @@ class HTMLRenderer {
 
 		const args = compact<string>([
 			`--`,
-			`--url=${this.url}`,
+			`--url=${escapeFilePath(this.url)}`,
 			width !== undefined && `--width=${width}`,
 			height !== undefined && `--height=${height}`,
 			scale !== undefined && `--zoom=${scale}`,
-			`--outputPath=${this.outputPath}`,
+			`--outputPath=${escapeFilePath(this.outputPath)}`,
 			`--background=${this.exp.endRequirement.version.renderer?.background ?? 'default'}`,
 			`--interactive=true`,
 		])
