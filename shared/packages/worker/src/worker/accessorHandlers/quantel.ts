@@ -14,6 +14,7 @@ import {
 	AccessorHandlerCheckHandleWriteResult,
 	AccessorHandlerRunCronJobResult,
 	PackageOperation,
+	AccessorHandlerCheckHandleBasicResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -74,26 +75,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		const content = this.getContent()
 		return content.guid || content.title || 'unknown'
 	}
-	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
-		const defaultResult = defaultCheckHandleRead(this.accessor)
-		if (defaultResult) return defaultResult
-		return this.checkAccessor()
-	}
-	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
-		const defaultResult = defaultCheckHandleWrite(this.accessor)
-		if (defaultResult) return defaultResult
-		if (!this.accessor.serverId) {
-			return {
-				success: false,
-				reason: {
-					user: `serverId not set, this is required for a target`,
-					tech: `serverId not set (required for target)`,
-				},
-			}
-		}
-		return this.checkAccessor()
-	}
-	private checkAccessor(): AccessorHandlerCheckHandleReadResult {
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
 		if (this.accessor.type !== Accessor.AccessType.QUANTEL) {
 			return {
 				success: false,
@@ -127,6 +109,25 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				}
 		}
 
+		return { success: true }
+	}
+	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
+		const defaultResult = defaultCheckHandleRead(this.accessor)
+		if (defaultResult) return defaultResult
+		return { success: true }
+	}
+	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
+		const defaultResult = defaultCheckHandleWrite(this.accessor)
+		if (defaultResult) return defaultResult
+		if (!this.accessor.serverId) {
+			return {
+				success: false,
+				reason: {
+					user: `serverId not set, this is required for a target`,
+					tech: `serverId not set (required for target)`,
+				},
+			}
+		}
 		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {

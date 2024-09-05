@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import path from 'path'
 import { compact } from 'underscore'
 import { AnyProtectedString } from './ProtectedString'
 
@@ -382,6 +383,54 @@ export function mapToObject<T>(map: Map<any, T>): { [key: string]: T } {
 	})
 	return o
 }
+/**
+ * Like path.join(),
+ * but this fixes an issue in path.join where it doesn't handle paths double slashes together with relative paths correctly
+ * And it also returns predictable results on both Windows and Linux
+ */
+export function betterPathJoin(...paths: string[]): string {
+	// Replace slashes with the correct path separator, because "C:\\a\\b" is not interpreted correctly on Linux (but C:/a/b is)
+	paths = paths.map((p) => p.replace(/[\\/]/g, path.sep))
+
+	let firstPath = paths[0]
+	const restPaths = paths.slice(1)
+
+	let prefix = ''
+	if (firstPath.startsWith('//') || firstPath.startsWith('\\\\')) {
+		// Preserve the prefix, as path.join will remove it:
+		prefix = path.sep + path.sep
+		firstPath = firstPath.slice(2)
+	}
+
+	return prefix + path.join(firstPath, ...restPaths)
+}
+/**
+ * Like path.resolve(),
+ * but it returns predictable results on both Windows and Linux
+ */
+export function betterPathResolve(p: string): string {
+	p = p.replace(/[\\/]/g, path.sep)
+
+	// let prefix = ''
+	if (p.startsWith('//') || p.startsWith('\\\\')) {
+		return path.sep + path.sep + path.normalize(p.slice(2))
+	} else {
+		return path.resolve(p)
+	}
+}
+/**
+ * Like path.isAbsolute(),
+ * but it returns same results on both Windows and Linux
+ */
+export function betterPathIsAbsolute(p: string): boolean {
+	return (
+		path.isAbsolute(p) ||
+		Boolean(p.match(/^\w:/)) || // C:\, path.isAbsolute() doesn't handle this on Linux
+		p.startsWith('\\\\') || // \\server\path, path.isAbsolute() doesn't handle this on Linux
+		p.startsWith('\\') // \server\path, path.isAbsolute() doesn't handle this on Linux
+	)
+}
+
 /** Returns true if we're running tests (in Jest) */
 export function isRunningInTest(): boolean {
 	// Note: JEST_WORKER_ID is set when running in unit tests

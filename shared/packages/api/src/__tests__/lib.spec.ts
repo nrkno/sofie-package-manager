@@ -1,4 +1,15 @@
-import { deferGets, diff, promiseTimeout, stringMaxLength, stringifyError, waitTime } from '../lib'
+import * as path from 'path'
+import {
+	betterPathIsAbsolute,
+	betterPathJoin,
+	betterPathResolve,
+	deferGets,
+	diff,
+	promiseTimeout,
+	stringMaxLength,
+	stringifyError,
+	waitTime,
+} from '../lib'
 
 describe('lib', () => {
 	test('diff', () => {
@@ -225,6 +236,39 @@ describe('lib', () => {
 		expect(stringMaxLength('0123456789abcdefg', 10)).toBe('012...defg')
 		expect(stringMaxLength('0123456789abcdefg', 9)).toBe('012...efg')
 		expect(stringMaxLength('0123456789abcdefg', 8)).toBe('01...efg')
+	})
+	test('betterPathJoin', () => {
+		const fixSep = (str: string) => str.replace(/\//g, path.sep)
+
+		expect(betterPathJoin('\\\\a\\b/c')).toBe(fixSep('//a/b/c'))
+		expect(betterPathJoin('a/b', 'c')).toBe(fixSep('a/b/c'))
+		expect(betterPathJoin('a/b', '../c')).toBe(fixSep('a/c'))
+		expect(betterPathJoin('a/b', '/c')).toBe(fixSep('a/b/c'))
+		expect(betterPathJoin('C:\\a\\b', 'c\\d')).toBe(fixSep('C:/a/b/c/d'))
+		expect(betterPathJoin('C:\\a\\b', '../c')).toBe(fixSep('C:/a/c'))
+
+		expect(betterPathJoin('\\\\a\\b', '../c')).toBe(fixSep('//a/c')) // This is where path.join fails
+		expect(betterPathJoin('//a/b', '../c')).toBe(fixSep('//a/c')) // This is where path.join fails
+	})
+	test('betterPathResolve', () => {
+		const fixSep = (str: string) => str.replace(/\//g, path.sep)
+
+		expect(betterPathResolve('a/b/c')).toBe(path.resolve(fixSep('a/b/c')))
+		expect(betterPathResolve('a/b/c')).toBe(path.resolve(fixSep('a/b/c')))
+
+		expect(betterPathResolve('\\\\a\\b')).toBe(fixSep('//a/b'))
+		expect(betterPathResolve('\\\\a\\b\\c')).toBe(fixSep('//a/b/c'))
+	})
+	test('betterPathIsAbsolute', () => {
+		expect(betterPathIsAbsolute('a/b/c')).toBe(false)
+		expect(betterPathIsAbsolute('./a/b/c')).toBe(false)
+		expect(betterPathIsAbsolute('../a/b/c')).toBe(false)
+
+		expect(betterPathIsAbsolute('/a')).toBe(true)
+		expect(betterPathIsAbsolute('C:\\a\\b\\c')).toBe(true)
+		expect(betterPathIsAbsolute('\\\\a\\b\\c')).toBe(true)
+		expect(betterPathIsAbsolute('\\a')).toBe(true)
+		expect(betterPathIsAbsolute('//a')).toBe(true)
 	})
 })
 export {}

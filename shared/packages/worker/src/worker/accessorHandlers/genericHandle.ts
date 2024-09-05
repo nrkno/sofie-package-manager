@@ -78,6 +78,12 @@ export abstract class GenericAccessorHandle<Metadata> {
 	// abstract static doYouSupportAccess(worker: GenericWorker, accessor: AccessorOnPackage.Any): boolean
 
 	/**
+	 * Checks if there are any issues with the properties in the accessor or content for being able to be used at all.
+	 * @returns undefined if all is OK / string with error message
+	 */
+	abstract checkHandleBasic(): AccessorHandlerCheckHandleBasicResult
+
+	/**
 	 * Checks if there are any issues with the properties in the accessor or content for being able to read
 	 * @returns undefined if all is OK / string with error message
 	 */
@@ -215,6 +221,7 @@ type AccessorHandlerResultBad = {
 /** Default result returned from most accessorHandler-methods */
 export type AccessorHandlerResultGeneric = AccessorHandlerResultSuccess | AccessorHandlerResultBad
 
+export type AccessorHandlerCheckHandleBasicResult = AccessorHandlerResultGeneric
 export type AccessorHandlerCheckHandleReadResult = AccessorHandlerResultGeneric
 export type AccessorHandlerCheckHandleWriteResult = AccessorHandlerCheckHandleReadResult
 export type AccessorHandlerCheckPackageReadAccessResult = AccessorHandlerResultGeneric
