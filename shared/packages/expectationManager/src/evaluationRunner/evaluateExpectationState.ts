@@ -24,7 +24,6 @@ export async function evaluateExpectationState(
 	const tracker: ExpectationTracker = runner.tracker
 
 	const timeSinceLastEvaluation = Date.now() - trackedExp.lastEvaluationTime
-	if (!trackedExp.session) trackedExp.session = {}
 	if (trackedExp.session.hadError) return // There was an error during the session.
 
 	if (trackedExp.session.expectationCanBeRemoved) return // The expectation has been removed

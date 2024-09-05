@@ -4,7 +4,7 @@ import { promisify } from 'util'
 import mime from 'mime-types'
 import prettyBytes from 'pretty-bytes'
 import { asyncPipe, CTXPost } from '../lib'
-import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
+import { betterPathResolve, HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
 import { BadResponse, PackageInfo, ResponseMeta, Storage } from './storage'
 import { Readable } from 'stream'
 
@@ -31,7 +31,7 @@ export class FileStorage extends Storage {
 	private logger: LoggerInstance
 	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
 		super()
-		this._basePath = path.resolve(this.config.httpServer.basePath)
+		this._basePath = betterPathResolve(this.config.httpServer.basePath)
 		this.logger = logger.category('FileStorage')
 
 		// Run this on startup, so that if there are any critical errors we'll see them right away:

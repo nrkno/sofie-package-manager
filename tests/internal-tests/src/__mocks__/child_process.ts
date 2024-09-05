@@ -187,7 +187,7 @@ async function robocopy(spawned: SpawnedProcess, args: string[]) {
 		spawned.emit('exit', 1) // OK
 		spawned.emit('close', 1) // OK
 	} catch (err) {
-		// console.log(err)
+		console.error('ROBOCOPY MOCK ERROR: ' + err)
 		spawned.emit('exit', 16) // Serious error. Robocopy did not copy any files.
 		spawned.emit('close', 16) // Serious error. Robocopy did not copy any files.
 	}

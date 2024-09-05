@@ -170,7 +170,6 @@ export class TrackedExpectationAPI {
 	 * Handle an Expectation that had no worker assigned
 	 */
 	public noWorkerAssigned(trackedExp: TrackedExpectation): void {
-		if (!trackedExp.session) throw new Error('Internal error: noWorkerAssigned: session not set')
 		if (trackedExp.session.assignedWorker)
 			throw new Error('Internal error: noWorkerAssigned can only be called when assignedWorker is falsy')
 

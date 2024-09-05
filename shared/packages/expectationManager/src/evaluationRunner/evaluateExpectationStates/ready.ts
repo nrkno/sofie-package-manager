@@ -17,7 +17,6 @@ export async function evaluateExpectationStateReady({
 }: EvaluateContext): Promise<void> {
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.READY)
 	// Start working on it:
-	if (!trackedExp.session) trackedExp.session = {}
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 
 	if (

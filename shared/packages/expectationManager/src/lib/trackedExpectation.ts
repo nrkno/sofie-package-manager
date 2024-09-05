@@ -54,8 +54,8 @@ export interface TrackedExpectation {
 		targetCanBeUsedWhileTransferring?: boolean
 		sourceIsPlaceholder?: boolean
 	}
-	/** A storage which is persistant only for a short while, during an evaluation of the Expectation. */
-	session: ExpectationStateHandlerSession | null
+	/** A storage which is persistent only for a short while, during an evaluation of the Expectation. */
+	session: ExpectationStateHandlerSession
 }
 
 export function expLabel(exp: TrackedExpectation): string {
@@ -120,6 +120,6 @@ export function getDefaultTrackedExpectation(
 		},
 		prevStatusReasons: existingtrackedExp?.prevStatusReasons || {},
 		status: {},
-		session: null,
+		session: {},
 	}
 }
