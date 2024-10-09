@@ -30,6 +30,14 @@ export interface ExpectedPackageWrapJSONData extends ExpectedPackageWrap {
 		accessors: NonNullable<ExpectedPackage.ExpectedPackageJSONData['sources'][0]['accessors']>
 	}[]
 }
+export interface ExpectedPackageWrapHTMLTemplate extends ExpectedPackageWrap {
+	expectedPackage: ExpectedPackage.ExpectedPackageHtmlTemplate
+	sources: {
+		containerId: PackageContainerId
+		label: string
+		accessors: NonNullable<ExpectedPackage.ExpectedPackageHtmlTemplate['sources'][0]['accessors']>
+	}[]
+}
 
 /*
 Notes on priorities:
@@ -59,6 +67,7 @@ export enum PriorityAdditions {
 	COPY_PROXY = 90,
 	SCAN = 100,
 	LOUDNESS_SCAN = 500,
+	IFRAMES_SCAN = 501,
 	THUMBNAIL = 1002,
 	PREVIEW = 1003,
 	DEEP_SCAN = 1004,

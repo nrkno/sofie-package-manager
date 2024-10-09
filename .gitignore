@@ -40,3 +40,5 @@ ffprobe.exe
 apps/single-app/app/expectedPackages.json_smartbull
 .ffmpeg/
 signtool.exe
+apps/single-app/app/tmp/
+apps/single-app/app/tmpRenderHTML/

@@ -11,6 +11,7 @@ import {
 	AccessorHandlerCheckPackageReadAccessResult,
 	AccessorHandlerTryPackageReadResult,
 	PackageOperation,
+	AccessorHandlerCheckHandleBasicResult,
 } from './genericHandle'
 import {
 	Accessor,
@@ -21,12 +22,12 @@ import {
 	Reason,
 	AccessorId,
 	MonitorId,
+	rebaseUrl,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { fetchWithController, fetchWithTimeout } from './lib/fetch'
 import FormData from 'form-data'
 import { MonitorInProgress } from '../lib/monitorInProgress'
-import { rebaseUrl } from './lib/pathJoin'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
 /** Accessor handle for accessing files in a local folder */
@@ -64,15 +65,41 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	get packageName(): string {
 		return this.path
 	}
+	checkHandleBasic(): AccessorHandlerCheckHandleBasicResult {
+		if (this.accessor.type !== Accessor.AccessType.HTTP) {
+			return {
+				success: false,
+				reason: {
+					user: `There is an internal issue in Package Manager`,
+					tech: `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`,
+				},
+			}
+		}
+		// Note: For the HTTP-accessor, we allow this.accessor.baseUrl to be empty/falsy
+		// (which means that the content path needs to be a full URL)
+
+		if (!this.content.onlyContainerAccess) {
+			if (!this.path)
+				return {
+					success: false,
+					reason: {
+						user: `filePath not set`,
+						tech: `filePath not set`,
+					},
+				}
+		}
+
+		return { success: true }
+	}
 	checkHandleRead(): AccessorHandlerCheckHandleReadResult {
 		const defaultResult = defaultCheckHandleRead(this.accessor)
 		if (defaultResult) return defaultResult
-		return this.checkAccessor()
+		return { success: true }
 	}
 	checkHandleWrite(): AccessorHandlerCheckHandleWriteResult {
 		const defaultResult = defaultCheckHandleWrite(this.accessor)
 		if (defaultResult) return defaultResult
-		return this.checkAccessor()
+		return { success: true }
 	}
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const header = await this.fetchHeader()
@@ -205,39 +232,8 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		return rebaseUrl(this.baseUrl, this.path)
 	}
 
-	private checkAccessor(): AccessorHandlerCheckHandleWriteResult {
-		if (this.accessor.type !== Accessor.AccessType.HTTP) {
-			return {
-				success: false,
-				reason: {
-					user: `There is an internal issue in Package Manager`,
-					tech: `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`,
-				},
-			}
-		}
-		if (!this.accessor.baseUrl && this.accessor.baseUrl !== '')
-			return {
-				success: false,
-				reason: {
-					user: `Accessor baseUrl not set`,
-					tech: `Accessor baseUrl not set`,
-				},
-			}
-		if (!this.content.onlyContainerAccess) {
-			if (!this.path)
-				return {
-					success: false,
-					reason: {
-						user: `filePath not set`,
-						tech: `filePath not set`,
-					},
-				}
-		}
-		return { success: true }
-	}
 	private get baseUrl(): string {
-		if (!this.accessor.baseUrl) throw new Error(`HTTPAccessorHandle: accessor.baseUrl not set!`)
-		return this.accessor.baseUrl
+		return this.accessor.baseUrl ?? ''
 	}
 	get path(): string {
 		if (this.content.onlyContainerAccess) throw new Error('onlyContainerAccess is set!')
@@ -259,36 +255,64 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		const ttl = this.accessor.isImmutable
 			? 1000 * 60 * 60 * 24 // 1 day
 			: 1000 // a second
-		const { headers, status, statusText } = await this.worker.cacheData(
-			this.type,
-			this.fullUrl,
-			async () => {
-				const response = await fetchWithController(this.fullUrl, {
-					method: 'HEAD',
-				}).response
-				response.body.on('error', () => {
-					// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
-				})
 
-				const headers: HTTPHeaders = {
-					contentType: response.headers.get('content-type'),
-					contentLength: response.headers.get('content-length'),
-					lastModified: response.headers.get('last-modified'),
-					etags: response.headers.get('etag'),
-				}
-				return {
-					headers,
-					status: response.status,
-					statusText: response.statusText,
-				}
-			},
-			ttl
-		)
+		if (this.accessor.useGETinsteadOfHEAD) {
+			// The source does NOT support HEAD requests, send a GET instead and abort the response:
+			return await this.worker.cacheData(
+				this.type,
+				`GET ${this.fullUrl}`,
+				async () => {
+					const r = fetchWithController(this.fullUrl, {
+						method: 'GET',
+					})
+					const response = await r.response
+					response.body.on('error', () => {
+						// Swallow the error. Since we're aborting the request, we're not interested in the body anyway.
+					})
 
-		return {
-			status: status,
-			statusText: statusText,
-			headers: headers,
+					const headers: HTTPHeaders = {
+						contentType: response.headers.get('content-type'),
+						contentLength: response.headers.get('content-length'),
+						lastModified: response.headers.get('last-modified'),
+						etags: response.headers.get('etag'),
+					}
+					// We're not interested in the actual body, so abort the request:
+					r.controller.abort()
+					return {
+						headers,
+						status: response.status,
+						statusText: response.statusText,
+					}
+				},
+				ttl
+			)
+		} else {
+			return await this.worker.cacheData(
+				this.type,
+				`HEAD ${this.fullUrl}`,
+				async () => {
+					const r = fetchWithController(this.fullUrl, {
+						method: 'HEAD',
+					})
+					const response = await r.response
+					response.body.on('error', (e) => {
+						this.worker.logger.warn(`fetchHeader: Error ${e}`)
+					})
+
+					const headers: HTTPHeaders = {
+						contentType: response.headers.get('content-type'),
+						contentLength: response.headers.get('content-length'),
+						lastModified: response.headers.get('last-modified'),
+						etags: response.headers.get('etag'),
+					}
+					return {
+						headers,
+						status: response.status,
+						statusText: response.statusText,
+					}
+				},
+				ttl
+			)
 		}
 	}
 

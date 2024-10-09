@@ -12,6 +12,7 @@ import {
 	ReturnTypeRunPackageContainerCronJob,
 	assertNever,
 	stringifyError,
+	testHtmlRenderer,
 } from '@sofie-package-manager/api'
 import { BaseWorker, GenericWorkerAgentAPI } from '../../worker'
 import { FileCopy } from './expectationHandlers/fileCopy'
@@ -31,6 +32,8 @@ import { testFFMpeg, testFFProbe } from './expectationHandlers/lib/ffmpeg'
 import { JsonDataCopy } from './expectationHandlers/jsonDataCopy'
 import { SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
 import { FileVerify } from './expectationHandlers/fileVerify'
+import { RenderHTML } from './expectationHandlers/renderHTML'
+import { PackageIframesScan } from './expectationHandlers/packageIframesScan'
 
 export type ExpectationHandlerGenericWorker = ExpectationHandler<GenericWorker>
 
@@ -42,8 +45,10 @@ export class GenericWorker extends BaseWorker {
 	public testFFMpeg: null | string = 'Not initialized'
 	/** Contains the result of testing the FFProbe executable. null = all is well, otherwise contains error message */
 	public testFFProbe: null | string = 'Not initialized'
+	/** Contains the result of testing the HTMLRenderer executable. null = all is well, otherwise contains error message */
+	public testHTMLRenderer: null | string = 'Not initialized'
 
-	private monitor: NodeJS.Timeout | undefined
+	private monitorExecutables: NodeJS.Timeout | undefined
 
 	constructor(
 		logger: LoggerInstance,
@@ -58,23 +63,24 @@ export class GenericWorker extends BaseWorker {
 	}
 	async init(): Promise<void> {
 		await this.checkExecutables()
-		this.monitor = setInterval(() => {
+		this.monitorExecutables = setInterval(() => {
 			this.checkExecutables().catch((err) => {
 				this.logger.error(`Error in checkExecutables: ${stringifyError(err)}`)
 			})
-		}, 10 * 1000)
+		}, 1000 * 60 * 5) // Check every 5 minutes
 		this.logger.debug(`Worker initialized`)
 	}
 	terminate(): void {
-		if (this.monitor) {
-			clearInterval(this.monitor)
-			delete this.monitor
+		if (this.monitorExecutables) {
+			clearInterval(this.monitorExecutables)
+			delete this.monitorExecutables
 		}
 		this.logger.debug(`Worker terminated`)
 	}
 	private async checkExecutables() {
 		this.testFFMpeg = await testFFMpeg()
 		this.testFFProbe = await testFFProbe()
+		this.testHTMLRenderer = await testHtmlRenderer()
 	}
 	async getCostFortExpectation(exp: Expectation.Any): Promise<ReturnTypeGetCostFortExpectation> {
 		return this.getExpectationHandler(exp).getCostForExpectation(exp, this)
@@ -110,6 +116,8 @@ export class GenericWorker extends BaseWorker {
 				return PackageDeepScan
 			case Expectation.Type.PACKAGE_LOUDNESS_SCAN:
 				return PackageLoudnessScan
+			case Expectation.Type.PACKAGE_IFRAMES_SCAN:
+				return PackageIframesScan
 			case Expectation.Type.MEDIA_FILE_THUMBNAIL:
 				return MediaFileThumbnail
 			case Expectation.Type.MEDIA_FILE_PREVIEW:
@@ -122,6 +130,8 @@ export class GenericWorker extends BaseWorker {
 				return QuantelClipPreview
 			case Expectation.Type.JSON_DATA_COPY:
 				return JsonDataCopy
+			case Expectation.Type.RENDER_HTML:
+				return RenderHTML
 			default:
 				assertNever(exp)
 				// @ts-expect-error exp.type is never

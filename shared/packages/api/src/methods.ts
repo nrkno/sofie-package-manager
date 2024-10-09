@@ -4,6 +4,7 @@ import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/pack
 import { Expectation } from './expectationApi'
 import { PackageContainerExpectation } from './packageContainerApi'
 import {
+	Cost,
 	ReturnTypeDisposePackageContainerMonitors,
 	ReturnTypeDoYouSupportExpectation,
 	ReturnTypeDoYouSupportPackageContainer,
@@ -160,10 +161,10 @@ export namespace ExpectationManagerWorkerAgent {
 	}
 
 	export interface ExpectationCost {
-		/** Cost for working on the Expectation */
-		cost: number
+		/** Cost for working on the Expectation (null means "infinite cost") */
+		cost: Cost
 		/** Cost "in queue" until working on the Expectation can start */
-		startCost: number
+		startCost: Cost
 		reason: Reason
 	}
 	export type MessageFromWorker = (
@@ -234,10 +235,10 @@ export namespace WorkForceAppContainer {
 
 		requestAppTypeForExpectation: (
 			exp: Expectation.Any
-		) => Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }>
+		) => Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }>
 		requestAppTypeForPackageContainer: (
 			packageContainer: PackageContainerExpectation
-		) => Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }>
+		) => Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }>
 
 		spinUp: (appType: AppType) => Promise<AppId>
 		spinDown: (appId: AppId, reason: string) => Promise<void>
@@ -270,7 +271,7 @@ export namespace AppContainerWorkerAgent {
 		id: WorkerAgentId
 
 		ping: () => Promise<void>
-		requestSpinDown: () => Promise<void>
+		requestSpinDown: (force?: boolean) => Promise<void>
 		/** Acquire a write lock, the returned id is then used in workerStorageWrite to write */
 		workerStorageWriteLock: (dataId: DataId, customTimeout?: number) => Promise<{ lockId: LockId; current: any }>
 		workerStorageReleaseLock: (dataId: DataId, lockId: LockId) => Promise<void>

@@ -8,12 +8,14 @@ import {
 	CoreCredentials,
 	StatusCode as SofieStatusCode,
 	protectString,
-	unprotectString,
-	PeripheralDeviceForDevice,
 	PeripheralDeviceId,
 	PeripheralDeviceCommand,
 	ExternalPeripheralDeviceAPI,
 	PeripheralDeviceAPI,
+	PeripheralDevicePubSub,
+	PeripheralDevicePubSubCollectionsNames,
+	PeripheralDevicePubSubCollections,
+	CollectionDocCheck,
 } from '@sofie-automation/server-core-integration'
 
 import { DeviceConfig } from './connector'
@@ -34,7 +36,6 @@ import {
 	ExpectationId,
 	PackageContainerId,
 	AppId,
-	CoreProtectedString,
 } from '@sofie-package-manager/api'
 import {
 	DEFAULT_DELAY_REMOVAL_PACKAGE,
@@ -44,6 +45,7 @@ import {
 import { PackageManagerHandler } from './packageManager'
 import { getCredentials } from './credentials'
 import { FakeCore } from './fakeCore'
+import { PeripheralDeviceCommandId } from '@sofie-automation/shared-lib/dist/core/model/Ids'
 
 let packageJson: any
 try {
@@ -63,7 +65,7 @@ export interface CoreConfig {
  */
 export class CoreHandler {
 	private logger: LoggerInstance
-	public _observers: Array<Observer> = []
+	public _observers: Array<Observer<any>> = []
 	public deviceSettings: { [key: string]: any } = {}
 
 	public delayRemoval = 0
@@ -77,7 +79,7 @@ export class CoreHandler {
 
 	private _deviceOptions: DeviceConfig
 	private _onConnected?: () => any
-	private _executedFunctions: { [id: string]: boolean } = {}
+	private _executedFunctions = new Set<PeripheralDeviceCommandId>()
 	private _packageManagerHandler?: PackageManagerHandler
 	private _coreConfig?: CoreConfig
 	private processHandler?: ProcessHandler
@@ -156,22 +158,33 @@ export class CoreHandler {
 		this.logger.info('Core: Setting up subscriptions..')
 		this.logger.info('DeviceId: ' + this.core.deviceId)
 		await Promise.all([
-			this.core.autoSubscribe('peripheralDeviceForDevice', this.core.deviceId),
-			this.core.autoSubscribe('peripheralDeviceCommands', this.core.deviceId),
-			this.core.autoSubscribe('packageManagerPlayoutContext', this.core.deviceId),
-			this.core.autoSubscribe('packageManagerPackageContainers', this.core.deviceId),
-			this.core.autoSubscribe('packageManagerExpectedPackages', this.core.deviceId, undefined),
+			this.core.autoSubscribe(PeripheralDevicePubSub.peripheralDeviceForDevice, this.core.deviceId),
+			this.core.autoSubscribe(PeripheralDevicePubSub.peripheralDeviceCommands, this.core.deviceId),
+			this.core.autoSubscribe(PeripheralDevicePubSub.packageManagerPlayoutContext, this.core.deviceId, undefined),
+			this.core.autoSubscribe(
+				PeripheralDevicePubSub.packageManagerPackageContainers,
+				this.core.deviceId,
+				undefined
+			),
+			this.core.autoSubscribe(
+				PeripheralDevicePubSub.packageManagerExpectedPackages,
+				this.core.deviceId,
+				undefined,
+				undefined
+			),
 		])
 
 		this.logger.info('Core: Subscriptions are set up!')
 
 		// setup observers
-		const observer = this.core.observe('peripheralDeviceForDevice')
-		observer.added = (id: string) => this.onDeviceChanged(protectString(id))
-		observer.changed = (id: string) => this.onDeviceChanged(protectString(id))
+		const observer = this.core.observe(PeripheralDevicePubSubCollectionsNames.peripheralDeviceForDevice)
+		observer.added = (id: PeripheralDeviceId) => this.onDeviceChanged(id)
+		observer.changed = (id: PeripheralDeviceId) => this.onDeviceChanged(id)
 		this.setupObserverForPeripheralDeviceCommands()
 
-		const peripheralDevices = this.core.getCollection<PeripheralDeviceForDevice>('peripheralDeviceForDevice')
+		const peripheralDevices = this.core.getCollection(
+			PeripheralDevicePubSubCollectionsNames.peripheralDeviceForDevice
+		)
 		if (peripheralDevices) {
 			peripheralDevices.find({}).forEach((device) => {
 				this.onDeviceChanged(device._id)
@@ -231,7 +244,7 @@ export class CoreHandler {
 	}
 	onDeviceChanged(id: PeripheralDeviceId): void {
 		if (id === this.core.deviceId) {
-			const col = this.core.getCollection<PeripheralDeviceForDevice>('peripheralDeviceForDevice')
+			const col = this.core.getCollection(PeripheralDevicePubSubCollectionsNames.peripheralDeviceForDevice)
 			if (!col) throw new Error('collection "peripheralDeviceForDevice" not found!')
 
 			const device = col.findOne(id)
@@ -285,14 +298,14 @@ export class CoreHandler {
 
 	executeFunction(cmd: PeripheralDeviceCommand): void {
 		if (cmd) {
-			if (this._executedFunctions[unprotectString(cmd._id)]) return // prevent it from running multiple times
+			if (this._executedFunctions.has(cmd._id)) return // prevent it from running multiple times
 
 			// Ignore specific commands, to reduce noise:
 			if (cmd.functionName !== 'getExpetationManagerStatus') {
 				this.logger.debug(`Executing function "${cmd.functionName}", args: ${JSON.stringify(cmd.args)}`)
 			}
 
-			this._executedFunctions[unprotectString(cmd._id)] = true
+			this._executedFunctions.add(cmd._id)
 			const cb = (err: any, res?: any) => {
 				if (err) {
 					this.logger.error(`executeFunction error: ${stringifyError(err)}`)
@@ -329,19 +342,25 @@ export class CoreHandler {
 			}
 		}
 	}
-	retireExecuteFunction(cmdId: string): void {
-		delete this._executedFunctions[cmdId]
+	retireExecuteFunction(cmdId: PeripheralDeviceCommandId): void {
+		this._executedFunctions.delete(cmdId)
 	}
-	observe(collectionName: string): Observer {
+	observe(collectionName: keyof PeripheralDevicePubSubCollections): Observer<any> {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
 		if (!this.core) throw new Error('Core not initialized!')
 		return this.core.observe(collectionName)
 	}
-	getCollection<
-		DBObj extends {
-			_id: CoreProtectedString<any> | string
-		} = never
-	>(collectionName: string): Collection<DBObj> {
+
+	// getCollection<K extends keyof PubSubCollections>(collectionName: K): Collection<CollectionDocCheck<PubSubCollections[K]>>;
+
+	// getCollection<
+	// 	DBObj extends {
+	// 		_id: CoreProtectedString<any> | string
+	// 	} = never
+	// >(collectionName: keyof PeripheralDevicePubSubCollections): Collection<DBObj> {
+	getCollection<K extends keyof PeripheralDevicePubSubCollections>(
+		collectionName: K
+	): Collection<CollectionDocCheck<PeripheralDevicePubSubCollections[K]>> {
 		if (!this.core && this.notUsingCore) throw new Error('core.observe called, even though notUsingCore is true.')
 		if (!this.core) throw new Error('Core not initialized!')
 		return this.core.getCollection(collectionName)
@@ -356,30 +375,30 @@ export class CoreHandler {
 		return this.core?.connected || false
 	}
 	private setupObserverForPeripheralDeviceCommands(): void {
-		const observer = this.core.observe('peripheralDeviceCommands')
+		const observer = this.core.observe(PeripheralDevicePubSubCollectionsNames.peripheralDeviceCommands)
 		this._observers.push(observer)
 
-		const addedChangedCommand = (id: string) => {
-			const cmds = this.core.getCollection<PeripheralDeviceCommand>('peripheralDeviceCommands')
+		const addedChangedCommand = (id: PeripheralDeviceCommandId) => {
+			const cmds = this.core.getCollection(PeripheralDevicePubSubCollectionsNames.peripheralDeviceCommands)
 			if (!cmds) throw Error('"peripheralDeviceCommands" collection not found!')
 
-			const cmd = cmds.findOne(protectString(id))
+			const cmd = cmds.findOne(id)
 			if (!cmd) throw Error('PeripheralCommand "' + id + '" not found!')
 
 			if (cmd.deviceId === this.core.deviceId) {
 				this.executeFunction(cmd)
 			}
 		}
-		observer.added = (id: string) => {
+		observer.added = (id: PeripheralDeviceCommandId) => {
 			addedChangedCommand(id)
 		}
-		observer.changed = (id: string) => {
+		observer.changed = (id: PeripheralDeviceCommandId) => {
 			addedChangedCommand(id)
 		}
-		observer.removed = (id: string) => {
+		observer.removed = (id: PeripheralDeviceCommandId) => {
 			this.retireExecuteFunction(id)
 		}
-		const cmds = this.core.getCollection<PeripheralDeviceCommand>('peripheralDeviceCommands')
+		const cmds = this.core.getCollection(PeripheralDevicePubSubCollectionsNames.peripheralDeviceCommands)
 		if (!cmds) throw Error('"peripheralDeviceCommands" collection not found!')
 
 		cmds.find({}).forEach((cmd) => {
@@ -425,10 +444,10 @@ export class CoreHandler {
 		}
 
 		if (statusCode === SofieStatusCode.GOOD) {
-			for (const status of Object.values<Status | null>(this.statuses)) {
+			for (const [statusId, status] of Object.entries<Status | null>(this.statuses)) {
 				if (status && status.statusCode !== StatusCode.GOOD) {
 					statusCode = Math.max(statusCode, status.statusCode)
-					messages.push(status.message)
+					messages.push(`${status.message} ("${statusId}")`)
 				}
 			}
 		}

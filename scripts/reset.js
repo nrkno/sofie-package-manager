@@ -1,7 +1,6 @@
 /* eslint-disable node/no-unpublished-require */
-const promisify = require('util').promisify
 const { glob } = require('glob')
-const rimraf = promisify(require('rimraf'))
+const rimraf = require('rimraf').rimraf
 
 /*
 	Removing all /node_modules and /dist folders

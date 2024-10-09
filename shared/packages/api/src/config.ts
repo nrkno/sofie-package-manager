@@ -11,7 +11,7 @@ import { AppContainerId, WorkerAgentId } from './ids'
  */
 
 /** Generic CLI-argument-definitions for any process */
-const processOptions = defineArguments({
+export const processOptions = defineArguments({
 	logPath: { type: 'string', describe: 'Set to write logs to this file' },
 	logLevel: { type: 'string', describe: 'Set default log level. (Might be overwritten by Sofie Core)' },
 
@@ -169,6 +169,17 @@ const workerArguments = defineArguments({
 		default: process.env.WORKER_PICK_UP_CRITICAL_EXPECTATIONS_ONLY === '1' || false,
 		describe: 'If set to 1, the worker will only pick up expectations that are marked as critical for playout.',
 	},
+	failurePeriodLimit: {
+		type: 'number',
+		default: parseInt(process.env.WORKER_FAILURE_PERIOD_LIMIT || '', 10) || 0,
+		describe:
+			'If set, the worker will count the number of periods of time where it encounters errors while working and will restart once the number of consequent periods of time is exceeded.',
+	},
+	failurePeriod: {
+		type: 'number',
+		default: parseInt(process.env.WORKER_FAILURE_PERIOD || '', 10) || 5 * 60 * 1000,
+		describe: 'This is the period of time used by "failurePeriodLimit" (milliseconds)',
+	},
 })
 /** CLI-argument-definitions for the AppContainer process */
 const appContainerArguments = defineArguments({
@@ -240,6 +251,17 @@ const appContainerArguments = defineArguments({
 		describe:
 			'If set, the worker will consider the CPU load of the system it runs on before it accepts jobs. Set to a value between 0 and 1, the worker will accept jobs if the CPU load is below the configured value.',
 	},
+	failurePeriodLimit: {
+		type: 'number',
+		default: parseInt(process.env.WORKER_FAILURE_PERIOD_LIMIT || '', 10) || 0,
+		describe:
+			'If set, the worker will count the number of periods of time where it encounters errors while working and will restart once the number of consequent periods of time is exceeded.',
+	},
+	failurePeriod: {
+		type: 'number',
+		default: parseInt(process.env.WORKER_FAILURE_PERIOD || '', 10) || 5 * 60 * 1000,
+		describe: 'This is the period of time used by "failurePeriodLimit" (milliseconds)',
+	},
 })
 /** CLI-argument-definitions for the "Single" process */
 const singleAppArguments = defineArguments({
@@ -293,12 +315,12 @@ export interface ProcessConfig {
 	/** Paths to certificates to load, for SSL-connections */
 	certificates: string[]
 }
-function getProcessConfig(argv: {
+export function getProcessConfig(argv: {
 	logPath: string | undefined
 	logLevel: string | undefined
 	unsafeSSL: boolean
 	certificates: string | undefined
-}) {
+}): ProcessConfig {
 	const certs: string[] = (argv.certificates || process.env.CERTIFICATES || '').split(';') || []
 	return {
 		logPath: argv.logPath,
@@ -426,6 +448,8 @@ export interface WorkerConfig {
 		costMultiplier: number
 		considerCPULoad: number | null
 		pickUpCriticalExpectationsOnly: boolean
+		failurePeriodLimit: number
+		failurePeriod: number
 	} & WorkerAgentConfig
 }
 export async function getWorkerConfig(): Promise<WorkerConfig> {
@@ -452,6 +476,12 @@ export async function getWorkerConfig(): Promise<WorkerConfig> {
 				(typeof argv.considerCPULoad === 'string' ? parseFloat(argv.considerCPULoad) : argv.considerCPULoad) ||
 				null,
 			pickUpCriticalExpectationsOnly: argv.pickUpCriticalExpectationsOnly,
+			failurePeriodLimit:
+				(typeof argv.failurePeriodLimit === 'string'
+					? parseInt(argv.failurePeriodLimit)
+					: argv.failurePeriodLimit) || 0,
+			failurePeriod:
+				(typeof argv.failurePeriod === 'string' ? parseInt(argv.failurePeriod) : argv.failurePeriod) || 0,
 		},
 	}
 }
@@ -491,6 +521,12 @@ export async function getAppContainerConfig(): Promise<AppContainerProcessConfig
 					(typeof argv.considerCPULoad === 'string'
 						? parseFloat(argv.considerCPULoad)
 						: argv.considerCPULoad) || null,
+				failurePeriodLimit:
+					(typeof argv.failurePeriodLimit === 'string'
+						? parseInt(argv.failurePeriodLimit)
+						: argv.failurePeriodLimit) || 0,
+				failurePeriod:
+					(typeof argv.failurePeriod === 'string' ? parseInt(argv.failurePeriod) : argv.failurePeriod) || 0,
 			},
 		},
 	}
@@ -583,11 +619,11 @@ export async function getQuantelHTTPTransformerProxyConfig(): Promise<QuantelHTT
 // ---------------------------------------------------------------------------------
 
 /** Helper function, to get strict typings for the yargs-Options. */
-function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
+export function defineArguments<O extends { [key: string]: Options }>(opts: O): O {
 	return opts
 }
 
-function getProcessArgv() {
+export function getProcessArgv(): string[] {
 	// Note: process.argv typically looks like this:
 	// [
 	// 	'C:\\Program Files\\nodejs\\node.exe',

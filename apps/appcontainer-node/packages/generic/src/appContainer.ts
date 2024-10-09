@@ -35,6 +35,7 @@ import {
 	LockId,
 	protectString,
 	getLogLevel,
+	Cost,
 } from '@sofie-package-manager/api'
 
 import { WorkforceAPI } from './workforceApi'
@@ -222,13 +223,26 @@ export class AppContainer {
 				const app = this.apps.get(clientId)
 				if (app) app.lastPing = Date.now()
 			},
-			requestSpinDown: async (): Promise<void> => {
+			requestSpinDown: async (force?: boolean): Promise<void> => {
 				const app = this.apps.get(clientId)
-				if (!app || !app.isAutoScaling) return
-				if (this.getAutoScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
-					this.spinDown(clientId, `Requested by app`).catch((error) => {
+				if (!app) return
+
+				if (force) {
+					// The Worker is forcefully asking to be spun down.
+					this.spinDown(clientId, `Forced by app`).catch((error) => {
 						this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
 					})
+					// Note: this.monitorApps() will soon spin up another Worker if needed
+				} else {
+					// The Worker is kindly asking to be spun down.
+					// The appcontainer will determine if it should be spun down.
+
+					if (!app.isAutoScaling) return
+					if (this.getAutoScalingAppCount(app.appType) > this.config.appContainer.minRunningApps) {
+						this.spinDown(clientId, `Requested by app`).catch((error) => {
+							this.logger.error(`Error when spinning down app "${clientId}": ${stringifyError(error)}`)
+						})
+					}
 				}
 			},
 			workerStorageWriteLock: async (
@@ -296,6 +310,12 @@ export class AppContainer {
 					: '',
 				this.config.appContainer.worker.networkIds.length
 					? `--networkIds=${this.config.appContainer.worker.networkIds.join(';')}`
+					: '',
+				this.config.appContainer.worker.failurePeriodLimit
+					? `--failurePeriodLimit=${this.config.appContainer.worker.failurePeriodLimit}`
+					: '',
+				this.config.appContainer.worker.failurePeriod
+					? `--failurePeriod=${this.config.appContainer.worker.failurePeriod}`
 					: '',
 			]
 		}
@@ -373,7 +393,7 @@ export class AppContainer {
 
 	async requestAppTypeForExpectation(
 		exp: Expectation.Any
-	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }> {
 		this.logger.debug(`Got request for resources, for exp "${exp.id}"`)
 		if (this.apps.size >= this.config.appContainer.maxRunningApps) {
 			this.logger.debug(`Is already at our limit, no more resources available`)
@@ -420,7 +440,7 @@ export class AppContainer {
 
 	async requestAppTypeForPackageContainer(
 		packageContainer: PackageContainerExpectation
-	): Promise<{ success: true; appType: AppType; cost: number } | { success: false; reason: Reason }> {
+	): Promise<{ success: true; appType: AppType; cost: Cost } | { success: false; reason: Reason }> {
 		this.logger.debug(`Got request for resources, for packageContainer "${packageContainer.id}"`)
 		if (this.apps.size >= this.config.appContainer.maxRunningApps) {
 			this.logger.debug(`Is already at our limit, no more resources available`)
@@ -600,7 +620,8 @@ export class AppContainer {
 		availableApp: AvailableAppInfo,
 		useCriticalOnlyMode: boolean
 	): cp.ChildProcess {
-		const cwd = process.execPath.match(/node.exe$/)
+		const isRunningInDevelopmentMode = process.execPath.endsWith('node.exe') || process.execPath.endsWith('node')
+		const cwd = isRunningInDevelopmentMode
 			? undefined // Process runs as a node process, we're probably in development mode.
 			: path.dirname(process.execPath) // Process runs as a node process, we're probably in development mode.
 
@@ -807,7 +828,7 @@ interface AvailableAppInfo {
 	/** Whether the application can be spun up as a critical worker */
 	canRunInCriticalExpectationsOnlyMode: boolean
 	/** Some kind of value, how much it costs to run it, per minute */
-	cost: number
+	cost: Cost
 }
 
 interface RunningAppInfo {

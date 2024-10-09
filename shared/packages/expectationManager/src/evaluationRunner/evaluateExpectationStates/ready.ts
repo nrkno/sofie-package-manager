@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
-import { stringifyError } from '@sofie-package-manager/api'
+import { valueOfCost, stringifyError } from '@sofie-package-manager/api'
 import { expLabel } from '../../lib/trackedExpectation'
 import { assertState, EvaluateContext } from '../lib'
 
@@ -17,13 +17,12 @@ export async function evaluateExpectationStateReady({
 }: EvaluateContext): Promise<void> {
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.READY)
 	// Start working on it:
-	if (!trackedExp.session) trackedExp.session = {}
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 
 	if (
 		trackedExp.session.assignedWorker &&
 		// Only allow starting if the job can start in a short while:
-		trackedExp.session.assignedWorker.cost.startCost > 0 // 2022-03-25: We're setting this to 0 to only allow one job per worker
+		valueOfCost(trackedExp.session.assignedWorker.cost.startCost) > 0 // 2022-03-25: We're setting this to 0 to only allow one job per worker
 	) {
 		trackedExp.session.noAssignedWorkerReason = {
 			user: `Workers are busy`,

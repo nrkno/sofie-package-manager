@@ -1,6 +1,6 @@
 {
     "name": "@package-manager/generic",
-    "version": "1.50.5-alpha.0",
+    "version": "1.50.6",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -15,17 +15,16 @@
     },
     "dependencies": {
         "@parcel/watcher": "^2.3.0",
-        "@sofie-package-manager/api": "1.50.5-alpha.0",
-        "@sofie-package-manager/expectation-manager": "1.50.5-alpha.0",
-        "@sofie-package-manager/worker": "1.50.5-alpha.0",
+        "@sofie-package-manager/api": "1.50.6",
+        "@sofie-package-manager/expectation-manager": "1.50.6",
+        "@sofie-package-manager/worker": "1.50.6",
         "data-store": "^4.0.3",
         "deep-extend": "^0.6.0",
         "fast-clone": "^1.5.13",
-        "nanoid": "^3.3.4",
         "underscore": "^1.12.0"
     },
     "devDependencies": {
-        "@types/deep-extend": "0.4.31",
+        "@types/deep-extend": "0.6.2",
         "@types/underscore": "^1.10.24",
         "jest": "*",
         "rimraf": "^5.0.5"

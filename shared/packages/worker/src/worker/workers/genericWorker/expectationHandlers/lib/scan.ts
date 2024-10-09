@@ -1,4 +1,5 @@
 import { execFile, ChildProcess, spawn } from 'child_process'
+import csvParser from 'csv-parser'
 import {
 	Expectation,
 	assertNever,
@@ -17,7 +18,14 @@ import {
 import { LocalFolderAccessorHandle } from '../../../../accessorHandlers/localFolder'
 import { QuantelAccessorHandle } from '../../../../accessorHandlers/quantel'
 import { CancelablePromise } from '../../../../lib/cancelablePromise'
-import { FieldOrder, LoudnessScanResult, LoudnessScanResultForStream, ScanAnomaly } from './coreApi'
+import {
+	CompressionType,
+	FieldOrder,
+	IframesScanResult,
+	LoudnessScanResult,
+	LoudnessScanResultForStream,
+	ScanAnomaly,
+} from './coreApi'
 import { generateFFProbeFromClipData } from './quantelFormats'
 import { FileShareAccessorHandle } from '../../../../accessorHandlers/fileShare'
 import { HTTPProxyAccessorHandle } from '../../../../accessorHandlers/httpProxy'
@@ -651,6 +659,154 @@ export function scanLoudness(
 
 		resolve({
 			channels: packageScanResult,
+		})
+	})
+}
+const EPSILON = 0.00001
+export function scanIframes(
+	sourceHandle:
+		| LocalFolderAccessorHandle<any>
+		| FileShareAccessorHandle<any>
+		| HTTPAccessorHandle<any>
+		| HTTPProxyAccessorHandle<any>
+		| QuantelAccessorHandle<any>,
+	_targetVersion: Expectation.PackageIframesScan['endRequirement']['version'],
+	/** Callback which is called when there is some new progress */
+	onProgress: (
+		/** Progress, goes from 0 to 1 */
+		progress: number
+	) => void,
+	_logger: LoggerInstance,
+	duration: number
+): CancelablePromise<IframesScanResult> {
+	return new CancelablePromise<IframesScanResult>(async (resolve, reject, onCancel) => {
+		let cancelled = false
+
+		const args = [
+			'-hide_banner',
+			'-select_streams',
+			'v',
+			'-show_frames',
+			'-print_format',
+			'csv',
+			'-show_entries',
+			'frame=pts_time,duration_time,pict_type',
+		]
+
+		args.push(...(await getFFMpegInputArgsFromAccessorHandle(sourceHandle)))
+
+		let ffMpegProcess: ChildProcess | undefined = undefined
+
+		const killFFMpeg = () => {
+			// ensure this function doesn't throw, since it is called from various error event handlers
+			try {
+				ffMpegProcess?.stdin?.write('q') // send "q" to quit, because .kill() doesn't quite do it.
+				ffMpegProcess?.kill()
+			} catch (e) {
+				// This is probably OK, errors likely means that the process is already dead
+			}
+		}
+		onCancel(() => {
+			cancelled = true
+			killFFMpeg()
+			reject('Cancelled')
+		})
+
+		ffMpegProcess = spawn(getFFProbeExecutable(), args, {
+			windowsVerbatimArguments: true, // To fix an issue with ffmpeg.exe on Windows
+		})
+
+		const iframes: number[] = []
+		let prevDistance: number | undefined
+		let firstIframePtsTime: number | undefined
+		let prevIframePtsTime: number | undefined
+		let prevFrameDuration: number | undefined
+		let distanceVaries = false
+		let maxDistance = 0
+
+		if (!ffMpegProcess.stdout) {
+			throw new Error('spawned ffmpeg-process stdout is null!')
+		}
+
+		const onError = (err: unknown, context: string | undefined) => {
+			if (ffMpegProcess) {
+				killFFMpeg()
+
+				reject(
+					`Error parsing FFMpeg data. Error: "${err} ${
+						err && typeof err === 'object' ? (err as Error).stack : ''
+					}", context: "${context}" `
+				)
+			}
+		}
+
+		ffMpegProcess.stdout
+			.pipe(csvParser({ headers: false }))
+			.on('data', (data) => {
+				if (cancelled) return
+				const dataType = data[0]
+				const pictType = data[3]
+				if (dataType === 'frame' && pictType === 'I') {
+					const ptsTime = parseFloat(data[1])
+					const durationTime = parseFloat(data[2])
+
+					if (firstIframePtsTime === undefined) {
+						firstIframePtsTime = ptsTime
+					}
+					iframes.push(ptsTime)
+					onProgress(ptsTime / duration)
+					if (prevIframePtsTime !== undefined) {
+						const distance = ptsTime - prevIframePtsTime
+						if (prevDistance && Math.abs(distance - prevDistance) > EPSILON) {
+							distanceVaries = true
+						}
+						maxDistance = Math.max(maxDistance, distance)
+						prevDistance = distance
+					}
+					prevIframePtsTime = ptsTime
+					prevFrameDuration = durationTime
+				} else if (dataType === 'frame' && pictType === 'P') {
+					const ptsTime = parseFloat(data[1])
+					onProgress(ptsTime / duration)
+				}
+			})
+			.on('error', onError)
+
+		const onClose = (code: number | null) => {
+			if (cancelled) return
+			if (ffMpegProcess) {
+				ffMpegProcess = undefined
+				if (code === 0) {
+					// success
+					if (prevFrameDuration && Math.abs(maxDistance / prevFrameDuration - 1) < EPSILON) {
+						resolve({
+							type: CompressionType.AllIntra,
+						})
+					} else if (!distanceVaries && prevIframePtsTime !== undefined && firstIframePtsTime !== undefined) {
+						resolve({
+							type: CompressionType.FixedDistance,
+							distance: (prevIframePtsTime - firstIframePtsTime) / iframes.length,
+						})
+					} else if (distanceVaries && iframes.length) {
+						resolve({
+							type: CompressionType.VariableDistance,
+							iframeTimes: iframes,
+						})
+					} else {
+						resolve({
+							type: CompressionType.Unknown,
+						})
+					}
+				} else {
+					reject(`FFMpeg exited with code ${code}`)
+				}
+			}
+		}
+		ffMpegProcess.on('close', (code) => {
+			onClose(code)
+		})
+		ffMpegProcess.on('exit', (code) => {
+			onClose(code)
 		})
 	})
 }

@@ -16,10 +16,10 @@ import {
 	ExpectedPackageId,
 	AppId,
 	WorkerAgentId,
+	mapToObject,
 } from '@sofie-package-manager/api'
 import { InternalManager } from './internalManager/internalManager'
 import { ExpectationTrackerConstants } from './lib/constants'
-import { mapToObject } from './lib/lib'
 
 /**
  * The Expectation Manager is responsible for tracking the state of the Expectations,

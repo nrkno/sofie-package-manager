@@ -17,13 +17,14 @@ import {
 	protectString,
 	MonitorId,
 	AccessorId,
+	betterPathJoin,
+	removeBasePath,
 } from '@sofie-package-manager/api'
 
 import { BaseWorker } from '../../worker'
 
 import { GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
-import { removeBasePath } from './pathJoin'
 import { FileEvent, FileWatcher, IFileWatcher } from './FileWatcher'
 import { updateJSONFileBatch } from './json-write-file'
 
@@ -130,8 +131,9 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 	getFullPath(filePath: string): string {
 		filePath = removeBasePath(this.orgFolderPath, filePath)
 
-		return path.join(this.folderPath, filePath)
+		return betterPathJoin(this.folderPath, filePath)
 	}
+
 	getMetadataPath(filePath: string): string {
 		return this.getFullPath(filePath) + '_metadata.json'
 	}

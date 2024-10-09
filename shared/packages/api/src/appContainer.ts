@@ -24,6 +24,8 @@ export interface AppContainerConfig {
 		windowsDriveLetters: WorkerAgentConfig['windowsDriveLetters']
 		costMultiplier: number
 		considerCPULoad: number | null
+		failurePeriodLimit: number
+		failurePeriod: number
 	}
 }
 

@@ -1,6 +1,6 @@
 {
     "name": "@sofie-package-manager/worker",
-    "version": "1.50.5-alpha.0",
+    "version": "1.50.6",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "license": "MIT",
@@ -13,22 +13,26 @@
         "node": ">=18"
     },
     "peerDependencies": {
-        "@sofie-automation/shared-lib": "*"
+        "@sofie-automation/shared-lib": "*",
+        "typescript": "*",
+        "ws": "*"
     },
     "devDependencies": {
         "@types/deep-diff": "^1.0.0",
         "@types/node-fetch": "^2.5.8",
         "@types/proper-lockfile": "^4.1.4",
         "@types/tmp": "~0.2.2",
+        "@types/ws": "^8.5.4",
         "jest": "*",
         "jest-mock-extended": "^3.0.5",
         "rimraf": "^5.0.5"
     },
     "dependencies": {
         "@parcel/watcher": "^2.3.0",
-        "@sofie-package-manager/api": "1.50.5-alpha.0",
+        "@sofie-package-manager/api": "1.50.6",
         "abort-controller": "^3.0.0",
         "atem-connection": "^3.2.0",
+        "csv-parser": "^3.0.0",
         "deep-diff": "^1.0.2",
         "form-data": "^4.0.0",
         "node-fetch": "^2.6.1",

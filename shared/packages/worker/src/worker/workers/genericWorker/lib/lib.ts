@@ -8,6 +8,7 @@ import {
 	ReturnTypeGetCostFortExpectation,
 	PackageContainerId,
 	AccessorId,
+	Cost,
 } from '@sofie-package-manager/api'
 import { prioritizeAccessors } from '../../../lib/lib'
 import { AccessorHandlerResultGeneric } from '../../../accessorHandlers/genericHandle'
@@ -161,20 +162,23 @@ export function findBestAccessorOnPackageContainer(
 }
 /** Return a standard cost for the various accessorHandler types */
 export function getStandardCost(exp: Expectation.Any, worker: BaseWorker): ReturnTypeGetCostFortExpectation {
-	let sourceCost: number = Number.POSITIVE_INFINITY
+	// null means that the cost is "infinite"
+	let sourceCost: Cost
 	if (exp.startRequirement.sources.length > 0) {
 		const source = findBestPackageContainerWithAccessToPackage(worker, exp.startRequirement.sources)
-		sourceCost = source ? getAccessorCost(source.accessor.type) : Number.POSITIVE_INFINITY
+		sourceCost = source ? getAccessorCost(source.accessor.type) : null
 	} else {
 		// If there are no sources defined, there is no cost for the source
 		sourceCost = 0
 	}
 
 	const target = findBestPackageContainerWithAccessToPackage(worker, exp.endRequirement.targets)
-	const targetCost = target ? getAccessorCost(target.accessor.type) : Number.POSITIVE_INFINITY
+	const targetCost: Cost = target ? getAccessorCost(target.accessor.type) : null
+
+	const resultingCost: Cost = sourceCost !== null && targetCost !== null ? 30 * (sourceCost + targetCost) : null
 
 	return {
-		cost: 30 * (sourceCost + targetCost),
+		cost: resultingCost,
 		reason: {
 			user: `Source cost: ${sourceCost}, Target cost: ${targetCost}`,
 			tech: `Source cost: ${sourceCost}, Target cost: ${targetCost}`,

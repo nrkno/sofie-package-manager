@@ -83,6 +83,8 @@ const defaultTestConfig: SingleAppConfig = {
 		costMultiplier: 1,
 		considerCPULoad: null,
 		pickUpCriticalExpectationsOnly: false,
+		failurePeriod: 0,
+		failurePeriodLimit: 0,
 	},
 	quantelHTTPTransformerProxy: {
 		port: 0,
@@ -103,6 +105,8 @@ const defaultTestConfig: SingleAppConfig = {
 			windowsDriveLetters: ['X', 'Y', 'Z'],
 			costMultiplier: 1,
 			considerCPULoad: null,
+			failurePeriod: 0,
+			failurePeriodLimit: 0,
 		},
 	},
 }

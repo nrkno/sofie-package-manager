@@ -14,7 +14,6 @@ export async function evaluateExpectationStateAborted({
 }: EvaluateContext): Promise<void> {
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.ABORTED)
 
-	if (!trackedExp.session) trackedExp.session = {}
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
 		// Start by removing the expectation

@@ -17,7 +17,6 @@ export async function evaluateExpectationStateRemoved({
 	/** When true, the expectation can be removed */
 	let removeTheExpectation = false
 
-	if (!trackedExp.session) trackedExp.session = {}
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
 		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)

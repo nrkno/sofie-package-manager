@@ -1,5 +1,4 @@
 import { CoreCredentials, PeripheralDeviceId, protectString } from '@sofie-automation/server-core-integration'
-import { nanoid } from 'nanoid'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const DataStore = require('data-store')
@@ -14,11 +13,20 @@ export function getCredentials(name: string): CoreCredentials {
 	let credentials: CoreCredentials = store.get('CoreCredentials')
 	if (!credentials) {
 		credentials = {
-			deviceId: protectString<PeripheralDeviceId>(nanoid()),
-			deviceToken: nanoid(),
+			deviceId: protectString<PeripheralDeviceId>(randomString()),
+			deviceToken: randomString(),
 		}
 		store.set('CoreCredentials', credentials)
 	}
 
 	return credentials
+}
+
+function randomString(length = 20): string {
+	const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+	let result = ''
+	for (let i = length; i > 0; --i) {
+		result += chars[Math.floor(Math.random() * chars.length)]
+	}
+	return result
 }

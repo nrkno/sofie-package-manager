@@ -3,9 +3,9 @@ import path from 'path'
 import { promisify } from 'util'
 import mime from 'mime-types'
 import prettyBytes from 'pretty-bytes'
-import { asyncPipe, CTX, CTXPost } from '../lib'
-import { HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
-import { BadResponse, Storage } from './storage'
+import { asyncPipe, CTXPost } from '../lib'
+import { betterPathResolve, HTTPServerConfig, LoggerInstance } from '@sofie-package-manager/api'
+import { BadResponse, PackageInfo, ResponseMeta, Storage } from './storage'
 import { Readable } from 'stream'
 
 // Note: Explicit types here, due to that for some strange reason, promisify wont pass through the correct typings.
@@ -31,7 +31,7 @@ export class FileStorage extends Storage {
 	private logger: LoggerInstance
 	constructor(logger: LoggerInstance, private config: HTTPServerConfig) {
 		super()
-		this._basePath = path.resolve(this.config.httpServer.basePath)
+		this._basePath = betterPathResolve(this.config.httpServer.basePath)
 		this.logger = logger.category('FileStorage')
 
 		// Run this on startup, so that if there are any critical errors we'll see them right away:
@@ -39,19 +39,14 @@ export class FileStorage extends Storage {
 	}
 
 	getInfo(): string {
-		return this._basePath
+		return `basePath: "${this._basePath}", cleanFileAge: ${this.config.httpServer.cleanFileAge}`
 	}
 
 	async init(): Promise<void> {
 		await fsMkDir(this._basePath, { recursive: true })
 	}
 
-	async listPackages(ctx: CTX): Promise<true | BadResponse> {
-		type PackageInfo = {
-			path: string
-			size: string
-			modified: string
-		}
+	async listPackages(): Promise<{ meta: ResponseMeta; body: { packages: PackageInfo[] } } | BadResponse> {
 		const packages: PackageInfo[] = []
 
 		const getAllFiles = async (basePath: string, dirPath: string) => {
@@ -84,9 +79,11 @@ export class FileStorage extends Storage {
 			return 0
 		})
 
-		ctx.body = { packages: packages }
+		const meta: ResponseMeta = {
+			statusCode: 200,
+		}
 
-		return true
+		return { meta, body: { packages } }
 	}
 	private async getFileInfo(paramPath: string): Promise<
 		| {
@@ -118,40 +115,40 @@ export class FileStorage extends Storage {
 			lastModified: stat.mtime,
 		}
 	}
-	async headPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+	async headPackage(paramPath: string): Promise<{ meta: ResponseMeta } | BadResponse> {
 		const fileInfo = await this.getFileInfo(paramPath)
 
 		if (!fileInfo.found) {
 			return { code: 404, reason: 'Package not found' }
 		}
 
-		this.setHeaders(fileInfo, ctx)
+		const meta: ResponseMeta = {
+			statusCode: 204,
+		}
+		this.updateMetaWithFileInfo(meta, fileInfo)
 
-		ctx.response.status = 204
-
-		ctx.body = undefined
-
-		return true
+		return { meta }
 	}
-	async getPackage(paramPath: string, ctx: CTX): Promise<true | BadResponse> {
+	async getPackage(paramPath: string): Promise<{ meta: ResponseMeta; body: any } | BadResponse> {
 		const fileInfo = await this.getFileInfo(paramPath)
 
 		if (!fileInfo.found) {
 			return { code: 404, reason: 'Package not found' }
 		}
-
-		this.setHeaders(fileInfo, ctx)
+		const meta: ResponseMeta = {
+			statusCode: 200,
+		}
+		this.updateMetaWithFileInfo(meta, fileInfo)
 
 		const readStream = fs.createReadStream(fileInfo.fullPath)
-		ctx.body = readStream
 
-		return true
+		return { meta, body: readStream }
 	}
 	async postPackage(
 		paramPath: string,
 		ctx: CTXPost,
 		fileStreamOrText: string | Readable | undefined
-	): Promise<true | BadResponse> {
+	): Promise<{ meta: ResponseMeta; body: any } | BadResponse> {
 		const fullPath = path.join(this._basePath, paramPath)
 
 		await fsMkDir(path.dirname(fullPath), { recursive: true })
@@ -164,25 +161,27 @@ export class FileStorage extends Storage {
 			plainText = fileStreamOrText
 		}
 
+		const meta: ResponseMeta = {
+			statusCode: 200,
+		}
+
 		if (plainText) {
 			// store plain text into file
 			await fsWriteFile(fullPath, plainText)
 
-			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
-			ctx.response.status = 201
-			return true
+			meta.statusCode = 201
+			return { meta, body: { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` } }
 		} else if (fileStreamOrText && typeof fileStreamOrText !== 'string') {
 			const fileStream = fileStreamOrText
 			await asyncPipe(fileStream, fs.createWriteStream(fullPath))
 
-			ctx.body = { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` }
-			ctx.response.status = 201
-			return true
+			meta.statusCode = 201
+			return { meta, body: { code: 201, message: `${exists ? 'Updated' : 'Inserted'} "${paramPath}"` } }
 		} else {
 			return { code: 400, reason: 'No files provided' }
 		}
 	}
-	async deletePackage(paramPath: string, ctx: CTXPost): Promise<true | BadResponse> {
+	async deletePackage(paramPath: string): Promise<{ meta: ResponseMeta; body: any } | BadResponse> {
 		const fullPath = path.join(this._basePath, paramPath)
 
 		if (!(await this.exists(fullPath))) {
@@ -191,8 +190,11 @@ export class FileStorage extends Storage {
 
 		await fsUnlink(fullPath)
 
-		ctx.body = { message: `Deleted "${paramPath}"` }
-		return true
+		const meta: ResponseMeta = {
+			statusCode: 200,
+		}
+
+		return { meta, body: { message: `Deleted "${paramPath}"` } }
 	}
 
 	private async exists(fullPath: string) {
@@ -280,21 +282,23 @@ export class FileStorage extends Storage {
 	 * @param {CTX} ctx
 	 * @memberof FileStorage
 	 */
-	private setHeaders(info: FileInfo, ctx: CTX) {
-		ctx.type = info.mimeType
-		ctx.length = info.length
-		ctx.lastModified = info.lastModified
+	private updateMetaWithFileInfo(meta: ResponseMeta, info: FileInfo): void {
+		meta.type = info.mimeType
+		meta.length = info.length
+		meta.lastModified = info.lastModified
+
+		if (!meta.headers) meta.headers = {}
 
 		// Check the config. 0 or -1 means it's disabled:
 		if (this.config.httpServer.cleanFileAge >= 0) {
-			ctx.set(
-				'Expires',
-				FileStorage.calculateExpiresTimestamp(info.lastModified, this.config.httpServer.cleanFileAge)
+			meta.headers['Expires'] = FileStorage.calculateExpiresTimestamp(
+				info.lastModified,
+				this.config.httpServer.cleanFileAge
 			)
 		}
 	}
 	/**
-	 * Calculate the expiration timestamp, given a starting Date point and timespan duration
+	 * Calculate the expiration timestamp, given a starting Date point and time-span duration
 	 *
 	 * @private
 	 * @static

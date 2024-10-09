@@ -2,6 +2,7 @@ export enum PackageInfoType {
 	Scan = 'scan',
 	DeepScan = 'deepScan',
 	Loudness = 'loudness',
+	Iframes = 'iframes',
 
 	/** Unknown JSON data */
 	JSON = 'json',
@@ -76,4 +77,33 @@ export type LoudnessScanResultForStream =
 			 * This will only be calculated if "layout" is "stereo"
 			 * */
 			balanceDifference?: number
+	  }
+
+export enum CompressionType {
+	/** Undetected */
+	Unknown = 'unknown',
+	/** Every frame is a I-frame */
+	AllIntra = 'all_intra',
+	/** All I-frame are spaced evenly */
+	FixedDistance = 'fixed_distance',
+	/** I-frame distances vary */
+	VariableDistance = 'variable_distance',
+}
+
+export type IframesScanResult =
+	| {
+			type: CompressionType.Unknown
+	  }
+	| {
+			type: CompressionType.AllIntra
+	  }
+	| {
+			type: CompressionType.FixedDistance
+			/** Distance between I-frames, expressed in seconds */
+			distance: number
+	  }
+	| {
+			type: CompressionType.VariableDistance
+			/** Frame times of I-frames in seconds */
+			iframeTimes: number[]
 	  }
