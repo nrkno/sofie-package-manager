@@ -2112,18 +2112,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sofie-automation/server-core-integration@npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0":
-  version: 1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0
-  resolution: "@sofie-automation/server-core-integration@npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
+"@sofie-automation/server-core-integration@npm:1.51.0":
+  version: 1.51.0
+  resolution: "@sofie-automation/server-core-integration@npm:1.51.0"
   dependencies:
-    "@sofie-automation/shared-lib": "npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
+    "@sofie-automation/shared-lib": "npm:1.51.0"
     ejson: "npm:^2.2.3"
     eventemitter3: "npm:^4.0.7"
     faye-websocket: "npm:^0.11.4"
     got: "npm:^11.8.6"
     tslib: "npm:^2.6.2"
     underscore: "npm:^1.13.6"
-  checksum: 10/2553524266f311dd80c7a0f4ffecd1b69ed540ba54048c93816b78f767252988a2998037d106278ec397baaa0e39e4fdb98f2526e5ea15df80490113d969f353
+  checksum: 10/e840f0bad06aa9ce946343864d91c2c9c9b2ab59ec37d469c0913136de89174cf1776502fb96bc533dce60bebbcab841c23e14b9aa70fdf1ae95fd99ba52860e
+  languageName: node
+  linkType: hard
+
+"@sofie-automation/shared-lib@npm:1.51.0":
+  version: 1.51.0
+  resolution: "@sofie-automation/shared-lib@npm:1.51.0"
+  dependencies:
+    "@mos-connection/model": "npm:^4.1.1"
+    timeline-state-resolver-types: "npm:9.2.0"
+    tslib: "npm:^2.6.2"
+    type-fest: "npm:^3.13.1"
+  checksum: 10/61f3b1c8677f7cec47fc5f0a7c140187b76a771ac8dd337523ff59ed8b3602e56d5ad6856b8fc2016f8683b2f58fb38e22716ce9a5f19471cc7d446474876236
   languageName: node
   linkType: hard
 
@@ -10600,8 +10612,8 @@ __metadata:
   resolution: "package-manager-monorepo@workspace:."
   dependencies:
     "@sofie-automation/code-standard-preset": "npm:^2.5.1"
-    "@sofie-automation/server-core-integration": "npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
-    "@sofie-automation/shared-lib": "npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
+    "@sofie-automation/server-core-integration": "npm:1.51.0"
+    "@sofie-automation/shared-lib": "npm:1.51.0"
     "@types/jest": "npm:^29.2.5"
     "@types/rimraf": "npm:^3.0.0"
     "@yao-pkg/pkg": "npm:^5.11.5"
@@ -12821,6 +12833,15 @@ __metadata:
   dependencies:
     tslib: "npm:^2.6.2"
   checksum: 10/91ada784c017e502523d66cd7c79dd37bd1bb627a48f0b0f63da351f8e710dfbb113e645dac8c70c0b565a2de0ba10e802032da6eb8753aa2333fbd55cab994a
+  languageName: node
+  linkType: hard
+
+"timeline-state-resolver-types@npm:9.2.0":
+  version: 9.2.0
+  resolution: "timeline-state-resolver-types@npm:9.2.0"
+  dependencies:
+    tslib: "npm:^2.6.2"
+  checksum: 10/fd8fff1ccbde248f3f7d4be767fa29fbff4426befecb8f6bed039a3fb3e737172078c950c3f3558ab059794a474d5792dfd5ec4f8b27fef97751dcb3e58899df
   languageName: node
   linkType: hard
 

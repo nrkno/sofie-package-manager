@@ -1,87 +1,87 @@
 {
-    "name": "package-manager-monorepo",
-    "version": "1.0.0",
-    "repository": "https://github.com/nrkno/tv-automation-package-manager",
-    "private": true,
-    "workspaces": [
-        "shared/**",
-        "apps/**",
-        "tests/**"
-    ],
-    "scripts": {
-        "prepare": "husky install",
-        "ci": "yarn install && yarn build && yarn lint && yarn test",
-        "release:bump-release": "lerna version --conventional-commits --conventional-graduate --exact --no-push",
-        "release:bump-prerelease": "lerna version --conventional-commits --conventional-prerelease --exact --no-push",
-        "set-version": "lerna version --exact --no-changelog --no-git-tag-version --no-push --yes",
-        "setup": "lerna bootstrap",
-        "reset": "node scripts/reset.js",
-        "build": "lerna run build --stream",
-        "build:changed": "lerna run build --since head --exclude-dependents --stream",
-        "lint": "lerna exec --parallel --no-bail -- run -T eslint . --ext .ts,.tsx",
-        "lintfix": "yarn lint --fix",
-        "lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
-        "test": "yarn test:prepare && lerna run test --stream",
-        "test:ci": "yarn test:prepare && lerna run test --stream",
-        "test:changed": "yarn test:prepare && lerna run --since origin/master --include-dependents test",
-        "test:update": "yarn test:prepare && lerna run test -- -u",
-        "test:update:changed": "yarn test:prepare && lerna run --since origin/master --include-dependents test -- -u",
-        "test:prepare": "node scripts/prepare-for-tests.mjs",
-        "typecheck": "lerna exec -- tsc --noEmit",
-        "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
-        "build-win32": "node scripts/prepare-for-build32.js && lerna run build-win32 --stream && node scripts/cleanup-after-build32.mjs",
-        "build-win32:ci": "node scripts/prepare-for-build32.js && lerna run build-win32 --stream --concurrency=1 && node scripts/cleanup-after-build32.mjs",
-        "gather-built": "node scripts/gather-all-built.mjs",
-        "sign-executables": "node scripts/sign-executables.mjs",
-        "start:http-server": "lerna run start --stream --scope @http-server/app",
-        "start:workforce": "lerna run start --stream --scope @workforce/app",
-        "start:package-manager": "lerna run start --stream --scope @package-manager/app",
-        "start:worker": "lerna run start --stream --scope @worker/app",
-        "start:single-app": "lerna run start --stream --scope @single-app/app",
-        "update-packages": "node scripts/update-packages.js",
-        "do:build-win32": "yarn build && yarn build-win32 && yarn gather-built && yarn sign-executables",
-        "do:build-win32:ci": "yarn build && yarn build-win32:ci && yarn gather-built",
-        "do:test:everything": "node scripts/test-everything.js",
-        "verify:build-win32": "node scripts/verify-build-win32.mjs",
-        "precommit": "run -T lint-staged",
-        "generate-schema-types": "node scripts/schema-types.mjs",
-        "prettier": "cd $INIT_CWD && \"$PROJECT_CWD/node_modules/.bin/prettier\"",
-        "eslint": "cd $INIT_CWD && \"$PROJECT_CWD/node_modules/.bin/eslint\""
-    },
-    "devDependencies": {
-        "@sofie-automation/code-standard-preset": "^2.5.1",
-        "@types/jest": "^29.2.5",
-        "@types/rimraf": "^3.0.0",
-        "@yao-pkg/pkg": "^5.11.5",
-        "deep-extend": "^0.6.0",
-        "find": "^0.3.0",
-        "fs-extra": "^11.1.0",
-        "glob": "^10.3.10",
-        "jest": "^29.3.1",
-        "json-schema-to-typescript": "^10.1.5",
-        "lerna": "^6.6.1",
-        "lint-staged": "^15.2.2",
-        "node-fetch": "^2.6.9",
-        "rimraf": "^5.0.5",
-        "ts-jest": "^29.0.3",
-        "typescript": "~4.9",
-        "underscore": "^1.13.6"
-    },
-    "engines": {
-        "node": ">=18"
-    },
-    "dependencies": {
-        "@sofie-automation/server-core-integration": "1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0",
-        "@sofie-automation/shared-lib": "1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
-    },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-    "lint-staged": {
-        "*.{js,css,json,md,scss,yml,yaml}": [
-            "prettier"
-        ],
-        "*.{ts,tsx}": [
-            "eslint"
-        ]
-    },
-    "packageManager": "yarn@4.1.1"
+	"name": "package-manager-monorepo",
+	"version": "1.0.0",
+	"repository": "https://github.com/nrkno/tv-automation-package-manager",
+	"private": true,
+	"workspaces": [
+		"shared/**",
+		"apps/**",
+		"tests/**"
+	],
+	"scripts": {
+		"prepare": "husky install",
+		"ci": "yarn install && yarn build && yarn lint && yarn test",
+		"release:bump-release": "lerna version --conventional-commits --conventional-graduate --exact --no-push",
+		"release:bump-prerelease": "lerna version --conventional-commits --conventional-prerelease --exact --no-push",
+		"set-version": "lerna version --exact --no-changelog --no-git-tag-version --no-push --yes",
+		"setup": "lerna bootstrap",
+		"reset": "node scripts/reset.js",
+		"build": "lerna run build --stream",
+		"build:changed": "lerna run build --since head --exclude-dependents --stream",
+		"lint": "lerna exec --parallel --no-bail -- run -T eslint . --ext .ts,.tsx",
+		"lintfix": "yarn lint --fix",
+		"lint:changed": "lerna exec --since origin/master --include-dependents -- eslint . --ext .js,.jsx,.ts,.tsx",
+		"test": "yarn test:prepare && lerna run test --stream",
+		"test:ci": "yarn test:prepare && lerna run test --stream",
+		"test:changed": "yarn test:prepare && lerna run --since origin/master --include-dependents test",
+		"test:update": "yarn test:prepare && lerna run test -- -u",
+		"test:update:changed": "yarn test:prepare && lerna run --since origin/master --include-dependents test -- -u",
+		"test:prepare": "node scripts/prepare-for-tests.mjs",
+		"typecheck": "lerna exec -- tsc --noEmit",
+		"typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
+		"build-win32": "node scripts/prepare-for-build32.js && lerna run build-win32 --stream && node scripts/cleanup-after-build32.mjs",
+		"build-win32:ci": "node scripts/prepare-for-build32.js && lerna run build-win32 --stream --concurrency=1 && node scripts/cleanup-after-build32.mjs",
+		"gather-built": "node scripts/gather-all-built.mjs",
+		"sign-executables": "node scripts/sign-executables.mjs",
+		"start:http-server": "lerna run start --stream --scope @http-server/app",
+		"start:workforce": "lerna run start --stream --scope @workforce/app",
+		"start:package-manager": "lerna run start --stream --scope @package-manager/app",
+		"start:worker": "lerna run start --stream --scope @worker/app",
+		"start:single-app": "lerna run start --stream --scope @single-app/app",
+		"update-packages": "node scripts/update-packages.js",
+		"do:build-win32": "yarn build && yarn build-win32 && yarn gather-built && yarn sign-executables",
+		"do:build-win32:ci": "yarn build && yarn build-win32:ci && yarn gather-built",
+		"do:test:everything": "node scripts/test-everything.js",
+		"verify:build-win32": "node scripts/verify-build-win32.mjs",
+		"precommit": "run -T lint-staged",
+		"generate-schema-types": "node scripts/schema-types.mjs",
+		"prettier": "cd $INIT_CWD && \"$PROJECT_CWD/node_modules/.bin/prettier\"",
+		"eslint": "cd $INIT_CWD && \"$PROJECT_CWD/node_modules/.bin/eslint\""
+	},
+	"devDependencies": {
+		"@sofie-automation/code-standard-preset": "^2.5.1",
+		"@types/jest": "^29.2.5",
+		"@types/rimraf": "^3.0.0",
+		"@yao-pkg/pkg": "^5.11.5",
+		"deep-extend": "^0.6.0",
+		"find": "^0.3.0",
+		"fs-extra": "^11.1.0",
+		"glob": "^10.3.10",
+		"jest": "^29.3.1",
+		"json-schema-to-typescript": "^10.1.5",
+		"lerna": "^6.6.1",
+		"lint-staged": "^15.2.2",
+		"node-fetch": "^2.6.9",
+		"rimraf": "^5.0.5",
+		"ts-jest": "^29.0.3",
+		"typescript": "~4.9",
+		"underscore": "^1.13.6"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"dependencies": {
+		"@sofie-automation/server-core-integration": "1.51.0",
+		"@sofie-automation/shared-lib": "1.51.0"
+	},
+	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+	"lint-staged": {
+		"*.{js,css,json,md,scss,yml,yaml}": [
+			"prettier"
+		],
+		"*.{ts,tsx}": [
+			"eslint"
+		]
+	},
+	"packageManager": "yarn@4.1.1"
 }
