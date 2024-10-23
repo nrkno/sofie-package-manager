@@ -205,7 +205,7 @@ const appContainerArguments = defineArguments({
 	},
 	minRunningApps: {
 		type: 'number',
-		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 0,
+		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 1,
 		describe: 'Minimum amount of apps (of a certain appType) to be running',
 	},
 	maxAppKeepalive: {
