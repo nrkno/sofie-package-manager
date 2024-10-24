@@ -220,7 +220,7 @@ const appContainerArguments = defineArguments({
 	},
 	minCriticalWorkerApps: {
 		type: 'number',
-		default: 0,
+		default: 1,
 		describe: 'Number of Workers reserved for fulfilling playout-critical expectations that will be kept running',
 	},
 
