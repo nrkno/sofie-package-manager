@@ -689,7 +689,6 @@ __metadata:
   resolution: "@html-renderer/app@workspace:apps/html-renderer/app"
   dependencies:
     "@html-renderer/generic": "npm:1.50.5"
-    "@sofie-automation/shared-lib": "npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
     "@sofie-package-manager/api": "npm:1.50.6"
     "@types/ws": "npm:^8.5.4"
     archiver: "npm:^7.0.1"
@@ -701,6 +700,7 @@ __metadata:
     tslib: "npm:^2.1.0"
     yargs: "npm:^17.7.2"
   peerDependencies:
+    "@sofie-automation/shared-lib": "*"
     ws: "*"
   languageName: unknown
   linkType: soft
@@ -2136,18 +2136,6 @@ __metadata:
     tslib: "npm:^2.6.2"
     type-fest: "npm:^3.13.1"
   checksum: 10/61f3b1c8677f7cec47fc5f0a7c140187b76a771ac8dd337523ff59ed8b3602e56d5ad6856b8fc2016f8683b2f58fb38e22716ce9a5f19471cc7d446474876236
-  languageName: node
-  linkType: hard
-
-"@sofie-automation/shared-lib@npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0":
-  version: 1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0
-  resolution: "@sofie-automation/shared-lib@npm:1.51.0-nightly-fix-pm-types-html-template-20240823-061828-d90c220.0"
-  dependencies:
-    "@mos-connection/model": "npm:^4.1.1"
-    timeline-state-resolver-types: "npm:9.1.0"
-    tslib: "npm:^2.6.2"
-    type-fest: "npm:^3.13.1"
-  checksum: 10/3acccca603f9f55dccd39c69c41608ae01dedda744436aec7364726ee99815dcd3f97d8dc6aa91843972c378d73312bfb1bcdf8626393d6d6495dc5697cf7a98
   languageName: node
   linkType: hard
 
@@ -12824,15 +12812,6 @@ __metadata:
   version: 2.3.8
   resolution: "through@npm:2.3.8"
   checksum: 10/5da78346f70139a7d213b65a0106f3c398d6bc5301f9248b5275f420abc2c4b1e77c2abc72d218dedc28c41efb2e7c312cb76a7730d04f9c2d37d247da3f4198
-  languageName: node
-  linkType: hard
-
-"timeline-state-resolver-types@npm:9.1.0":
-  version: 9.1.0
-  resolution: "timeline-state-resolver-types@npm:9.1.0"
-  dependencies:
-    tslib: "npm:^2.6.2"
-  checksum: 10/91ada784c017e502523d66cd7c79dd37bd1bb627a48f0b0f63da351f8e710dfbb113e645dac8c70c0b565a2de0ba10e802032da6eb8753aa2333fbd55cab994a
   languageName: node
   linkType: hard
 
