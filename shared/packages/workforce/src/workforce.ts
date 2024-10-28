@@ -218,7 +218,8 @@ export class Workforce {
 		statuses['any-workers'] =
 			this.workerAgents.size === 0
 				? {
-						statusCode: StatusCode.BAD,
+						// This is perfectly normal in some scenarios, so we don't report this as an error
+						statusCode: StatusCode.GOOD,
 						message: 'No workers connected to workforce',
 				  }
 				: {

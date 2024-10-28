@@ -205,7 +205,7 @@ const appContainerArguments = defineArguments({
 	},
 	minRunningApps: {
 		type: 'number',
-		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 0,
+		default: parseInt(process.env.APP_CONTAINER_MIN_RUNNING_APPS || '', 10) || 1,
 		describe: 'Minimum amount of apps (of a certain appType) to be running',
 	},
 	maxAppKeepalive: {
@@ -220,7 +220,7 @@ const appContainerArguments = defineArguments({
 	},
 	minCriticalWorkerApps: {
 		type: 'number',
-		default: 0,
+		default: 1,
 		describe: 'Number of Workers reserved for fulfilling playout-critical expectations that will be kept running',
 	},
 
