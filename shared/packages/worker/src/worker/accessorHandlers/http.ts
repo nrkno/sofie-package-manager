@@ -104,7 +104,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async checkPackageReadAccess(): Promise<AccessorHandlerCheckPackageReadAccessResult> {
 		const header = await this.fetchHeader()
 
-		if (header.status >= 400) {
+		if (this.isBadHTTPResponseCode(header.status)) {
 			return {
 				success: false,
 				reason: {
@@ -148,6 +148,12 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async getPackageReadStream(): Promise<PackageReadStream> {
 		const fetch = fetchWithController(this.fullUrl)
 		const res = await fetch.response
+
+		if (this.isBadHTTPResponseCode(res.status)) {
+			throw new Error(
+				`HTTP.getPackageReadStream: Bad response: [${res.status}]: ${res.statusText}, GET ${this.fullUrl}`
+			)
+		}
 
 		return {
 			readStream: res.body,
@@ -400,7 +406,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			method: 'DELETE',
 		})
 		if (result.status === 404) return false // that's ok
-		if (result.status >= 400) {
+		if (this.isBadHTTPResponseCode(result.status)) {
 			const text = await result.text()
 			throw new Error(
 				`deletePackageIfExists: Bad response: [${result.status}]: ${result.statusText}, DELETE ${this.fullUrl}, ${text}`
@@ -422,7 +428,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	private async fetchJSON(url: string): Promise<any | undefined> {
 		const result = await fetchWithTimeout(url)
 		if (result.status === 404) return undefined
-		if (result.status >= 400) {
+		if (this.isBadHTTPResponseCode(result.status)) {
 			const text = await result.text()
 			throw new Error(
 				`getPackagesToRemove: Bad response: [${result.status}]: ${result.statusText}, GET ${url}, ${text}`
@@ -437,7 +443,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			method: 'POST',
 			body: formData,
 		})
-		if (result.status >= 400) {
+		if (this.isBadHTTPResponseCode(result.status)) {
 			const text = await result.text()
 			throw new Error(`storeJSON: Bad response: [${result.status}]: ${result.statusText}, POST ${url}, ${text}`)
 		}
@@ -448,6 +454,9 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	}
 	private _getFilePath(): string | undefined {
 		return this.accessor.url || this.content.path
+	}
+	private isBadHTTPResponseCode(code: number) {
+		return code >= 400
 	}
 }
 interface HTTPHeaders {
