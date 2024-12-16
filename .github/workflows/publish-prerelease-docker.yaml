@@ -7,10 +7,15 @@ on:
       - 'v*.*.*'
 
 jobs:
-  build:
-    name: Build and publish docker images
+  check-build-steps:
+    name: Check if build and push should be performed
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+
+    outputs:
+      dockerhub-enable: ${{ steps.dockerhub.outputs.dockerhub-publish }}
+      ghcr-enable: ${{ steps.check-ghcr.outputs.enable }}
+      build-and-push-enable: ${{ steps.check-build-and-push.outputs.enable }}
 
     steps:
       - uses: actions/checkout@v4
@@ -48,13 +53,29 @@ jobs:
           echo "Enable build and push: ${{ env.SECRET_ACCESS != '' }}"
           echo "enable=${{ env.SECRET_ACCESS != '' }}" >> $GITHUB_OUTPUT
 
-      - name: Get the http-server docker tag for GHCR
-        id: http-server-ghcr-tag
-        if: steps.check-build-and-push.outputs.enable == 'true'
+  build:
+    name: Build and publish docker image for ${{ matrix.repo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - check-build-steps
+
+    strategy:
+      matrix:
+        repo: [package-manager, workforce, http-server, quantel-http-transformer-proxy]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Get the docker tag for GHCR
+        id: ghcr-tag
+        if: needs.check-build-steps.outputs.build-and-push-enable == 'true'
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ github.repository }}-http-server
+            ghcr.io/${{ github.repository }}-${{ matrix.repo}}
           tags: |
             type=schedule
             type=ref,event=branch
@@ -62,41 +83,13 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=nightly,enable={{is_default_branch}}
 
-      - name: Get the http-server docker tag for DockerHub
-        id: http-server-dockerhub-tag
-        if: steps.check-build-and-push.outputs.enable == 'true'
+      - name: Get the docker tag for DockerHub
+        id: dockerhub-tag
+        if: needs.check-build-steps.outputs.build-and-push-enable == 'true'
         uses: docker/metadata-action@v5
         with:
           images: |
-            sofietv/package-manager-http-server
-          tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=tag
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=nightly,enable={{is_default_branch}}
-
-      - name: Get the quantel-http-transformer-proxy docker tag for GHCR
-        id: quantel-ghcr-tag
-        if: steps.check-build-and-push.outputs.enable == 'true'
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository }}-quantel-http-transformer-proxy
-          tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=tag
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=nightly,enable={{is_default_branch}}
-
-      - name: Get the quantel-http-transformer-proxy docker tag for DockerHub
-        id: quantel-dockerhub-tag
-        if: steps.check-build-and-push.outputs.enable == 'true'
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            sofietv/package-manager-quantel-http-transformer-proxy
+            sofietv/package-manager-${{ matrix.repo}}
           tags: |
             type=schedule
             type=ref,event=branch
@@ -105,97 +98,62 @@ jobs:
             type=raw,value=nightly,enable={{is_default_branch}}
 
       - name: Set up Docker Buildx
-        if: steps.check-build-and-push.outputs.enable == 'true'
+        if: needs.check-build-steps.outputs.build-and-push-enable == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to DockerHub
-        if: steps.check-build-and-push.outputs.enable == 'true' && steps.dockerhub.outputs.dockerhub-publish == '1'
+        if: needs.check-build-steps.outputs.build-and-push-enable == 'true' && needs.check-build-steps.outputs.dockerhub-enable == '1'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        if: steps.check-build-and-push.outputs.enable == 'true' && steps.check-ghcr.outputs.enable == 'true'
+        if: needs.check-build-steps.outputs.build-and-push-enable == 'true' && needs.check-build-steps.outputs.ghcr-enable == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push http-server to GHCR
-        if: steps.check-build-and-push.outputs.enable == 'true' && steps.check-ghcr.outputs.enable == 'true'
+      - name: Build and push to GHCR
+        if: needs.check-build-steps.outputs.build-and-push-enable == 'true' && needs.check-build-steps.outputs.ghcr-enable == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/http-server/app/Dockerfile
+          file: apps/${{ matrix.repo}}/app/Dockerfile
           push: true
           provenance: false
-          labels: ${{ steps.http-server-ghcr-tag.outputs.labels }}
-          tags: "${{ steps.http-server-ghcr-tag.outputs.tags }}"
+          labels: ${{ steps.ghcr-tag.outputs.labels }}
+          tags: '${{ steps.ghcr-tag.outputs.tags }}'
 
-      - name: Build and push http-server to DockerHub
-        if: steps.check-build-and-push.outputs.enable == 'true' && steps.dockerhub.outputs.dockerhub-publish == '1'
+      - name: Build and push to DockerHub
+        if: needs.check-build-steps.outputs.build-and-push-enable == 'true' && needs.check-build-steps.outputs.dockerhub-enable == '1'
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/http-server/app/Dockerfile
+          file: apps/${{ matrix.repo}}/app/Dockerfile
           push: true
           provenance: false
-          labels: ${{ steps.http-server-dockerhub-tag.outputs.labels }}
-          tags: "${{ steps.http-server-dockerhub-tag.outputs.tags }}"
+          labels: ${{ steps.dockerhub-tag.outputs.labels }}
+          tags: '${{ steps.dockerhub-tag.outputs.tags }}'
 
-      - name: Build and push quantel-http-transformer-proxy to GHCR
-        if: steps.check-build-and-push.outputs.enable == 'true' && steps.check-ghcr.outputs.enable == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/quantel-http-transformer-proxy/app/Dockerfile
-          push: true
-          provenance: false
-          labels: ${{ steps.quantel-ghcr-tag.outputs.labels }}
-          tags: "${{ steps.quantel-ghcr-tag.outputs.tags }}"
-
-      - name: Build and push quantel-http-transformer-proxy to DockerHub
-        if: steps.check-build-and-push.outputs.enable == 'true' && steps.dockerhub.outputs.dockerhub-publish == '1'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/quantel-http-transformer-proxy/app/Dockerfile
-          push: true
-          provenance: false
-          labels: ${{ steps.quantel-dockerhub-tag.outputs.labels }}
-          tags: "${{ steps.quantel-dockerhub-tag.outputs.tags }}"
-
-  trivy-scanning-http-server:
+  trivy-scanning:
+    name: Run Trivy scan for ${{ matrix.repo }}
     uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.1.1
+    strategy:
+      matrix:
+        repo: [package-manager, workforce, http-server, quantel-http-transformer-proxy]
     with:
       runs-on: "['ubuntu-latest']"
       registry-url: ghcr.io
       name: nrkno/sofie-package-manager
       # Don't actually push any images, this is just for trivy scanning for now
       push: false
-      trivy-severity: "CRITICAL"
+      trivy-severity: 'CRITICAL'
       trivy-summary-enabled: true
       trivy-sbom-enabled: true
-      dockerfile: apps/http-server/app/Dockerfile
-    secrets:
-      registry-username: ${{ github.repository_owner }}
-      registry-password: ${{ secrets.GITHUB_TOKEN }}
-      token: ${{ secrets.GITHUB_TOKEN }}
-
-  trivy-scanning-quantel-http-transformer-proxy:
-    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.1.1
-    with:
-      runs-on: "['ubuntu-latest']"
-      registry-url: ghcr.io
-      name: nrkno/sofie-package-manager
-      # Don't actually push any images, this is just for trivy scanning for now
-      push: false
-      trivy-severity: "CRITICAL"
-      trivy-summary-enabled: true
-      trivy-sbom-enabled: true
-      dockerfile: apps/quantel-http-transformer-proxy/app/Dockerfile
+      dockerfile: apps/${{ matrix.repo }}/app/Dockerfile
     secrets:
       registry-username: ${{ github.repository_owner }}
       registry-password: ${{ secrets.GITHUB_TOKEN }}

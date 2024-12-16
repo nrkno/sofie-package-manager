@@ -16,6 +16,7 @@
         "@sofie-automation/shared-lib": "*"
     },
     "devDependencies": {
+        "@types/underscore": "^1.10.24",
         "@types/winston": "^2.3.9",
         "@types/ws": "^8.5.4",
         "jest": "*",

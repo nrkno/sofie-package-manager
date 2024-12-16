@@ -2143,6 +2143,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/api@workspace:shared/packages/api"
   dependencies:
+    "@types/underscore": "npm:^1.10.24"
     "@types/winston": "npm:^2.3.9"
     "@types/ws": "npm:^8.5.4"
     jest: "npm:*"
