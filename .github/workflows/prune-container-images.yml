@@ -1,9 +1,9 @@
-name: "Prune container images"
+name: 'Prune container images'
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 15 * * *"
+    - cron: '0 15 * * *'
 
 jobs:
   prune-container-images:
@@ -11,7 +11,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        repo: [ http-server, quantel-http-transformer-proxy ]
+        repo: [package-manager, workforce, http-server, quantel-http-transformer-proxy]
     with:
       dry-run: false
       prune-untagged: true
