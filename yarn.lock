@@ -689,6 +689,7 @@ __metadata:
   resolution: "@html-renderer/app@workspace:apps/html-renderer/app"
   dependencies:
     "@html-renderer/generic": "npm:1.51.0-alpha.0"
+    "@sofie-automation/shared-lib": "npm:1.51.5"
     "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
     "@types/ws": "npm:^8.5.4"
     archiver: "npm:^7.0.1"
@@ -698,10 +699,8 @@ __metadata:
     portfinder: "npm:^1.0.32"
     rimraf: "npm:^5.0.5"
     tslib: "npm:^2.1.0"
+    ws: "npm:^8.12.0"
     yargs: "npm:^17.7.2"
-  peerDependencies:
-    "@sofie-automation/shared-lib": "*"
-    ws: "*"
   languageName: unknown
   linkType: soft
 
@@ -2112,30 +2111,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sofie-automation/server-core-integration@npm:1.51.0":
-  version: 1.51.0
-  resolution: "@sofie-automation/server-core-integration@npm:1.51.0"
+"@sofie-automation/server-core-integration@npm:1.51.5":
+  version: 1.51.5
+  resolution: "@sofie-automation/server-core-integration@npm:1.51.5"
   dependencies:
-    "@sofie-automation/shared-lib": "npm:1.51.0"
+    "@sofie-automation/shared-lib": "npm:1.51.5"
     ejson: "npm:^2.2.3"
     eventemitter3: "npm:^4.0.7"
     faye-websocket: "npm:^0.11.4"
     got: "npm:^11.8.6"
     tslib: "npm:^2.6.2"
     underscore: "npm:^1.13.6"
-  checksum: 10/e840f0bad06aa9ce946343864d91c2c9c9b2ab59ec37d469c0913136de89174cf1776502fb96bc533dce60bebbcab841c23e14b9aa70fdf1ae95fd99ba52860e
+  checksum: 10/36444857e22b3dfe018b0f0575eddf849767fc662a0637a07b52aa03c9c7beaf369ad94ae87b2a1d54d795db6d8aba867b05ac41d6e44d00d99bcf8cce0605d0
   languageName: node
   linkType: hard
 
-"@sofie-automation/shared-lib@npm:1.51.0":
-  version: 1.51.0
-  resolution: "@sofie-automation/shared-lib@npm:1.51.0"
+"@sofie-automation/shared-lib@npm:1.51.5":
+  version: 1.51.5
+  resolution: "@sofie-automation/shared-lib@npm:1.51.5"
   dependencies:
     "@mos-connection/model": "npm:^4.1.1"
     timeline-state-resolver-types: "npm:9.2.0"
     tslib: "npm:^2.6.2"
     type-fest: "npm:^3.13.1"
-  checksum: 10/61f3b1c8677f7cec47fc5f0a7c140187b76a771ac8dd337523ff59ed8b3602e56d5ad6856b8fc2016f8683b2f58fb38e22716ce9a5f19471cc7d446474876236
+  checksum: 10/0bc2426b1dd193bb6cb93ae594568da457bc4991f6824eb96acea82cd07e1a1b143156f2fb7369c532457f07f12c101909bc70d9bc37cacd4c16e310e5f3e7ad
   languageName: node
   linkType: hard
 
@@ -10600,8 +10599,8 @@ __metadata:
   resolution: "package-manager-monorepo@workspace:."
   dependencies:
     "@sofie-automation/code-standard-preset": "npm:^2.5.1"
-    "@sofie-automation/server-core-integration": "npm:1.51.0"
-    "@sofie-automation/shared-lib": "npm:1.51.0"
+    "@sofie-automation/server-core-integration": "npm:1.51.5"
+    "@sofie-automation/shared-lib": "npm:1.51.5"
     "@types/jest": "npm:^29.2.5"
     "@types/rimraf": "npm:^3.0.0"
     "@yao-pkg/pkg": "npm:^5.11.5"
