@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.51.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.51.0-alpha.0...v1.51.0-alpha.1) (2025-01-08)
+
+
+### Bug Fixes
+
+* resolve HTMLRenderer build issues ([e3da508](https://github.com/nrkno/tv-automation-package-manager/commit/e3da508120f43c9d32b88eed9cb2114ff809f73b))
+
+
+
+
+
 # [1.51.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.7...v1.51.0-alpha.0) (2025-01-08)
 
 
