@@ -1,6 +1,6 @@
 {
     "name": "@html-renderer/generic",
-    "version": "1.50.5",
+    "version": "1.51.0-alpha.0",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -26,7 +26,7 @@
         "electron": "*"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.50.6"
+        "@sofie-package-manager/api": "1.51.0-alpha.0"
     },
     "devDependencies": {
         "rimraf": "^5.0.5"

@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.51.0-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.50.7...v1.51.0-alpha.0) (2025-01-08)
+
+
+### Bug Fixes
+
+* add a `force` parameter to appcontainer.requestSpinDown() ([3255189](https://github.com/nrkno/sofie-package-manager/commit/3255189663d06d91e90d812bfc9a705589c5ba0d))
+* html-renderer lookup paths on linux ([40e12d3](https://github.com/nrkno/sofie-package-manager/commit/40e12d3083b385a2cddf8ea93cdaa522fbed7073))
+* make failureLimit to be passed through into appContainer ([f03434a](https://github.com/nrkno/sofie-package-manager/commit/f03434abfc909a0cdc04d8bea753d805163a6bad))
+
+
+### Features
+
+* refactor the failure tracking to track periods of time with failures within them ([d33f973](https://github.com/nrkno/sofie-package-manager/commit/d33f973fb5d7c67f442365dd29778e24766b0466))
+
+
+
+
+
 # [1.50.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.4...v1.50.5) (2024-04-09)
 
 ### Bug Fixes

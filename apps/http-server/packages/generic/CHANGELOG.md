@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.51.0-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.50.7...v1.51.0-alpha.0) (2025-01-08)
+
+
+### Bug Fixes
+
+* reject absolute file paths ([cf207e6](https://github.com/nrkno/sofie-package-manager/commit/cf207e602a7b8c6b9efeca740e8c5bf657569a8c))
+
+
+
+
+
 ## [1.50.7](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.6...v1.50.7) (2024-07-04)
 
 

@@ -3,6 +3,37 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.51.0-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.50.7...v1.51.0-alpha.0) (2025-01-08)
+
+
+### Bug Fixes
+
+* add a `force` parameter to appcontainer.requestSpinDown() ([3255189](https://github.com/nrkno/sofie-package-manager/commit/3255189663d06d91e90d812bfc9a705589c5ba0d))
+* add option to HTTP Accessor to either send a HEAD or GET to retrieve initial info ([e98854c](https://github.com/nrkno/sofie-package-manager/commit/e98854c32955c122aa6bf68a2ac47aa121448f40))
+* allow baseUrl to be optional for HTTP Accessor ([92c575f](https://github.com/nrkno/sofie-package-manager/commit/92c575fa767cb3adba649619c16ca312b0253065))
+* allow stringified JSON object as storeObject value. Also add some error handling ([0e589bf](https://github.com/nrkno/sofie-package-manager/commit/0e589bfb1809cc68f3ef6bf14a95ef02953966ce))
+* change how render width, height and scale works for html_template expectedPackages ([7fcdf70](https://github.com/nrkno/sofie-package-manager/commit/7fcdf700fda413b94f39e7fb6107e26ee7dd9713))
+* escape paths in args ([6c17eae](https://github.com/nrkno/sofie-package-manager/commit/6c17eae206bf548167e121ed2e429cdca46daa84))
+* handle bad http respnse codes better ([1ad7b2d](https://github.com/nrkno/sofie-package-manager/commit/1ad7b2dd6b0828c49b54cc4613ddd0ae92b9fddc))
+* html-renderer: add support for transparent backgrounds ([c3775a7](https://github.com/nrkno/sofie-package-manager/commit/c3775a71783e3ca915d950cb44055ed7e3f4f60e))
+* html-renderer: bug in background color and cropping ([e3e0242](https://github.com/nrkno/sofie-package-manager/commit/e3e024264f05e433dee6c6d3878201d4950536cd))
+* no need to re-throw in the catch ([8331ef4](https://github.com/nrkno/sofie-package-manager/commit/8331ef4c9b89fca091ccaf0f5176fedc21f0bcbf))
+* reject absolute file paths ([cf207e6](https://github.com/nrkno/sofie-package-manager/commit/cf207e602a7b8c6b9efeca740e8c5bf657569a8c))
+* remove outputPrefix for html-template expectations ([43e9887](https://github.com/nrkno/sofie-package-manager/commit/43e9887445c117dc6935960a0d881fd19c3d34dd))
+* rename supperHEAD to useGETinsteadOfHead ([c75757e](https://github.com/nrkno/sofie-package-manager/commit/c75757e9c65ec0babf080652c20d0af50895a767))
+* run HTMLRenderer using `yarn start` script when in development mode ([f3164b4](https://github.com/nrkno/sofie-package-manager/commit/f3164b48616710f5cd043475f4f0c9963400782e))
+
+
+### Features
+
+* add HTML Renderer ([8610b6e](https://github.com/nrkno/sofie-package-manager/commit/8610b6ebdb4bef441f9e56a3b3be512f3ccbcfad))
+* refactor the failure tracking to track periods of time with failures within them ([d33f973](https://github.com/nrkno/sofie-package-manager/commit/d33f973fb5d7c67f442365dd29778e24766b0466))
+* track failures in Workers in a time period (SOFIE-3355) ([732fa19](https://github.com/nrkno/sofie-package-manager/commit/732fa19fad801ae3be5600645fb5899d81aa11a0))
+
+
+
+
+
 # [1.50.5](https://github.com/nrkno/tv-automation-package-manager/compare/v1.50.4...v1.50.5) (2024-04-09)
 
 ### Bug Fixes

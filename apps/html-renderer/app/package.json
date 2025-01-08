@@ -1,6 +1,6 @@
 {
 	"name": "@html-renderer/app",
-	"version": "1.50.5",
+	"version": "1.51.0-alpha.0",
 	"description": "HTML-renderer",
 	"private": true,
 	"main": "dist/index.js",
@@ -30,8 +30,8 @@
 		"ws": "*"
 	},
 	"dependencies": {
-		"@html-renderer/generic": "1.50.5",
-		"@sofie-package-manager/api": "1.50.6",
+		"@html-renderer/generic": "1.51.0-alpha.0",
+		"@sofie-package-manager/api": "1.51.0-alpha.0",
 		"portfinder": "^1.0.32",
 		"tslib": "^2.1.0",
 		"yargs": "^17.7.2"
