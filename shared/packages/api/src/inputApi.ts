@@ -1,4 +1,3 @@
-// eslint-disable-next-line node/no-extraneous-import
 import { StatusCode as SofieStatusCode } from '@sofie-automation/shared-lib/dist/lib/status'
 import { PackageContainerId, ExpectedPackageId, AccessorId } from './ids'
 

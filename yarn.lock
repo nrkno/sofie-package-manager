@@ -45,7 +45,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/app@workspace:apps/appcontainer-node/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.51.0-alpha.0"
+    "@appcontainer-node/generic": "npm:1.51.0-alpha.1"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   peerDependencies:
@@ -54,12 +54,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@appcontainer-node/generic@npm:1.51.0-alpha.0, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
+"@appcontainer-node/generic@npm:1.51.0-alpha.1, @appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic":
   version: 0.0.0-use.local
   resolution: "@appcontainer-node/generic@workspace:apps/appcontainer-node/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/worker": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/worker": "npm:1.51.0-alpha.1"
     "@types/underscore": "npm:^1.10.24"
     rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
@@ -688,8 +688,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@html-renderer/app@workspace:apps/html-renderer/app"
   dependencies:
-    "@html-renderer/generic": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
+    "@html-renderer/generic": "npm:1.51.0-alpha.1"
+    "@sofie-automation/shared-lib": "npm:1.52.0-nightly-release52-20250110-120624-cb59dd9.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
     "@types/ws": "npm:^8.5.4"
     archiver: "npm:^7.0.1"
     electron: "npm:30.0.6"
@@ -698,18 +699,16 @@ __metadata:
     portfinder: "npm:^1.0.32"
     rimraf: "npm:^5.0.5"
     tslib: "npm:^2.1.0"
+    ws: "npm:^8.12.0"
     yargs: "npm:^17.7.2"
-  peerDependencies:
-    "@sofie-automation/shared-lib": "*"
-    ws: "*"
   languageName: unknown
   linkType: soft
 
-"@html-renderer/generic@npm:1.51.0-alpha.0, @html-renderer/generic@workspace:apps/html-renderer/packages/generic":
+"@html-renderer/generic@npm:1.51.0-alpha.1, @html-renderer/generic@workspace:apps/html-renderer/packages/generic":
   version: 0.0.0-use.local
   resolution: "@html-renderer/generic@workspace:apps/html-renderer/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
     rimraf: "npm:^5.0.5"
   peerDependencies:
     "@sofie-automation/shared-lib": "*"
@@ -721,18 +720,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@http-server/app@workspace:apps/http-server/app"
   dependencies:
-    "@http-server/generic": "npm:1.51.0-alpha.0"
+    "@http-server/generic": "npm:1.51.0-alpha.1"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@http-server/generic@npm:1.51.0-alpha.0, @http-server/generic@workspace:apps/http-server/packages/generic":
+"@http-server/generic@npm:1.51.0-alpha.1, @http-server/generic@workspace:apps/http-server/packages/generic":
   version: 0.0.0-use.local
   resolution: "@http-server/generic@workspace:apps/http-server/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
     "@types/busboy": "npm:^1.5.0"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.12"
@@ -1785,7 +1784,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@package-manager/app@workspace:apps/package-manager/app"
   dependencies:
-    "@package-manager/generic": "npm:1.51.0-alpha.0"
+    "@package-manager/generic": "npm:1.51.0-alpha.1"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   peerDependencies:
@@ -1795,14 +1794,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@package-manager/generic@npm:1.51.0-alpha.0, @package-manager/generic@workspace:apps/package-manager/packages/generic":
+"@package-manager/generic@npm:1.51.0-alpha.1, @package-manager/generic@workspace:apps/package-manager/packages/generic":
   version: 0.0.0-use.local
   resolution: "@package-manager/generic@workspace:apps/package-manager/packages/generic"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/expectation-manager": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/worker": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/expectation-manager": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/worker": "npm:1.51.0-alpha.1"
     "@types/deep-extend": "npm:0.6.2"
     "@types/underscore": "npm:^1.10.24"
     data-store: "npm:^4.0.3"
@@ -1973,18 +1972,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/app@workspace:apps/quantel-http-transformer-proxy/app"
   dependencies:
-    "@quantel-http-transformer-proxy/generic": "npm:1.51.0-alpha.0"
+    "@quantel-http-transformer-proxy/generic": "npm:1.51.0-alpha.1"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@quantel-http-transformer-proxy/generic@npm:1.51.0-alpha.0, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
+"@quantel-http-transformer-proxy/generic@npm:1.51.0-alpha.1, @quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic":
   version: 0.0.0-use.local
   resolution: "@quantel-http-transformer-proxy/generic@workspace:apps/quantel-http-transformer-proxy/packages/generic"
   dependencies:
     "@koa/cors": "npm:^5.0.0"
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
     "@types/koa": "npm:^2.13.5"
     "@types/koa-bodyparser": "npm:^4.3.0"
     "@types/koa-range": "npm:^0.3.2"
@@ -2037,13 +2036,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@single-app/app@workspace:apps/single-app/app"
   dependencies:
-    "@appcontainer-node/generic": "npm:1.51.0-alpha.0"
-    "@http-server/generic": "npm:1.51.0-alpha.0"
-    "@package-manager/generic": "npm:1.51.0-alpha.0"
-    "@quantel-http-transformer-proxy/generic": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/worker": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/workforce": "npm:1.51.0-alpha.0"
+    "@appcontainer-node/generic": "npm:1.51.0-alpha.1"
+    "@http-server/generic": "npm:1.51.0-alpha.1"
+    "@package-manager/generic": "npm:1.51.0-alpha.1"
+    "@quantel-http-transformer-proxy/generic": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/worker": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/workforce": "npm:1.51.0-alpha.1"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
     underscore: "npm:^1.12.0"
@@ -2139,7 +2138,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sofie-package-manager/api@npm:1.51.0-alpha.0, @sofie-package-manager/api@workspace:shared/packages/api":
+"@sofie-automation/shared-lib@npm:1.52.0-nightly-release52-20250110-120624-cb59dd9.0":
+  version: 1.52.0-nightly-release52-20250110-120624-cb59dd9.0
+  resolution: "@sofie-automation/shared-lib@npm:1.52.0-nightly-release52-20250110-120624-cb59dd9.0"
+  dependencies:
+    "@mos-connection/model": "npm:v4.2.0"
+    timeline-state-resolver-types: "npm:9.2.0-nightly-release52-20241219-123204-90290cef1.0"
+    tslib: "npm:^2.6.2"
+    type-fest: "npm:^3.13.1"
+  checksum: 10/4ef50e8f04955bc0dce736f197eb1ff92b32014123d2dc6db4b8db94ac3077869ea727ffc220b6e2f191000a04ba819c9c4925786afe555aa3fdcb4b7a36a15a
+  languageName: node
+  linkType: hard
+
+"@sofie-package-manager/api@npm:1.51.0-alpha.1, @sofie-package-manager/api@workspace:shared/packages/api":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/api@workspace:shared/packages/api"
   dependencies:
@@ -2157,12 +2168,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/expectation-manager@npm:1.51.0-alpha.0, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
+"@sofie-package-manager/expectation-manager@npm:1.51.0-alpha.1, @sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/expectation-manager@workspace:shared/packages/expectationManager"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/worker": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/worker": "npm:1.51.0-alpha.1"
     "@supercharge/promise-pool": "npm:^3.2.0"
     jest: "npm:*"
     rimraf: "npm:^5.0.5"
@@ -2171,12 +2182,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/worker@npm:1.51.0-alpha.0, @sofie-package-manager/worker@workspace:shared/packages/worker":
+"@sofie-package-manager/worker@npm:1.51.0-alpha.1, @sofie-package-manager/worker@workspace:shared/packages/worker":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/worker@workspace:shared/packages/worker"
   dependencies:
     "@parcel/watcher": "npm:^2.3.0"
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
     "@types/deep-diff": "npm:^1.0.0"
     "@types/node-fetch": "npm:^2.5.8"
     "@types/proper-lockfile": "npm:^4.1.4"
@@ -2204,11 +2215,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sofie-package-manager/workforce@npm:1.51.0-alpha.0, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
+"@sofie-package-manager/workforce@npm:1.51.0-alpha.1, @sofie-package-manager/workforce@workspace:shared/packages/workforce":
   version: 0.0.0-use.local
   resolution: "@sofie-package-manager/workforce@workspace:shared/packages/workforce"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
@@ -2233,12 +2244,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/internal-tests@workspace:tests/internal-tests"
   dependencies:
-    "@http-server/generic": "npm:1.51.0-alpha.0"
-    "@package-manager/generic": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/expectation-manager": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/worker": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/workforce": "npm:1.51.0-alpha.0"
+    "@http-server/generic": "npm:1.51.0-alpha.1"
+    "@package-manager/generic": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/expectation-manager": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/worker": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/workforce": "npm:1.51.0-alpha.1"
     deep-extend: "npm:^0.6.0"
     jest: "npm:*"
     tv-automation-quantel-gateway-client: "npm:^3.1.7"
@@ -3001,18 +3012,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@worker/app@workspace:apps/worker/app"
   dependencies:
-    "@worker/generic": "npm:1.51.0-alpha.0"
+    "@worker/generic": "npm:1.51.0-alpha.1"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@worker/generic@npm:1.51.0-alpha.0, @worker/generic@workspace:apps/worker/packages/generic":
+"@worker/generic@npm:1.51.0-alpha.1, @worker/generic@workspace:apps/worker/packages/generic":
   version: 0.0.0-use.local
   resolution: "@worker/generic@workspace:apps/worker/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/worker": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/worker": "npm:1.51.0-alpha.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
@@ -3021,18 +3032,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@workforce/app@workspace:apps/workforce/app"
   dependencies:
-    "@workforce/generic": "npm:1.51.0-alpha.0"
+    "@workforce/generic": "npm:1.51.0-alpha.1"
     lerna: "npm:^6.6.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft
 
-"@workforce/generic@npm:1.51.0-alpha.0, @workforce/generic@workspace:apps/workforce/packages/generic":
+"@workforce/generic@npm:1.51.0-alpha.1, @workforce/generic@workspace:apps/workforce/packages/generic":
   version: 0.0.0-use.local
   resolution: "@workforce/generic@workspace:apps/workforce/packages/generic"
   dependencies:
-    "@sofie-package-manager/api": "npm:1.51.0-alpha.0"
-    "@sofie-package-manager/workforce": "npm:1.51.0-alpha.0"
+    "@sofie-package-manager/api": "npm:1.51.0-alpha.1"
+    "@sofie-package-manager/workforce": "npm:1.51.0-alpha.1"
     rimraf: "npm:^5.0.5"
   languageName: unknown
   linkType: soft

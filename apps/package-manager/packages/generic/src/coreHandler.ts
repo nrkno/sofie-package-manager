@@ -165,7 +165,7 @@ export class CoreHandler {
 			this.core.autoSubscribe(
 				PeripheralDevicePubSub.packageManagerExpectedPackages,
 				this.core.deviceId,
-				undefined
+				undefined // filterPlayoutDeviceIds
 			),
 		])
 
