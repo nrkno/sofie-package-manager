@@ -23,6 +23,22 @@ export async function evaluateExpectationStateWaiting({
 
 	if (trackedExp.session.assignedWorker) {
 		try {
+			// First check if the Expectation depends on the fulfilled-status of another Expectation:
+			const isWaitingForOther = tracker.trackedExpectationAPI.isExpectationWaitingForOther(trackedExp)
+
+			if (isWaitingForOther) {
+				// Not ready to start because it's waiting for another expectation to be fulfilled first
+				// Stay here in WAITING state:
+				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
+					reason: {
+						user: `Waiting for "${isWaitingForOther.exp.statusReport.label}"`,
+						tech: `Waiting for "${isWaitingForOther.exp.statusReport.label}"`,
+					},
+				})
+
+				return
+			}
+
 			// First, check if it is already fulfilled:
 			const fulfilled = await trackedExp.session.assignedWorker.worker.isExpectationFulfilled(
 				trackedExp.exp,
@@ -30,6 +46,7 @@ export async function evaluateExpectationStateWaiting({
 			)
 			if (fulfilled.fulfilled) {
 				// The expectation is already fulfilled:
+
 				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 					state: ExpectedPackageStatusAPI.WorkStatusState.FULFILLED,
 				})
@@ -37,49 +54,39 @@ export async function evaluateExpectationStateWaiting({
 					// Something was triggered, run again ASAP:
 					trackedExp.session.triggerOtherExpectationsAgain = true
 				}
+				return
+			}
+			const readyToStart = await tracker.trackedExpectationAPI.isExpectationReadyToStartWorkingOn(
+				trackedExp.session.assignedWorker.worker,
+				trackedExp
+			)
+
+			const newStatus: Partial<TrackedExpectation['status']> = {}
+			{
+				const sourceExists = readyToStart.ready || readyToStart.sourceExists
+				if (sourceExists !== undefined) newStatus.sourceExists = sourceExists
+			}
+			{
+				const isPlaceholder = readyToStart.ready ? false : readyToStart.isPlaceholder
+				if (isPlaceholder !== undefined) newStatus.sourceIsPlaceholder = isPlaceholder
+			}
+
+			if (readyToStart.ready) {
+				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
+					state: ExpectedPackageStatusAPI.WorkStatusState.READY,
+					reason: {
+						user: 'About to start working..',
+						tech: `About to start, was not fulfilled: ${fulfilled.reason.tech}`,
+					},
+					status: newStatus,
+				})
 			} else {
-				const readyToStart = await tracker.trackedExpectationAPI.isExpectationReadyToStartWorkingOn(
-					trackedExp.session.assignedWorker.worker,
-					trackedExp
-				)
-
-				const newStatus: Partial<TrackedExpectation['status']> = {}
-				{
-					const sourceExists = readyToStart.ready || readyToStart.sourceExists
-					if (sourceExists !== undefined) newStatus.sourceExists = sourceExists
-				}
-				{
-					const isPlaceholder = readyToStart.ready ? false : readyToStart.isPlaceholder
-					if (isPlaceholder !== undefined) newStatus.sourceIsPlaceholder = isPlaceholder
-				}
-
-				if (readyToStart.ready) {
-					tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
-						state: ExpectedPackageStatusAPI.WorkStatusState.READY,
-						reason: {
-							user: 'About to start working..',
-							tech: `About to start, was not fulfilled: ${fulfilled.reason.tech}`,
-						},
-						status: newStatus,
-					})
-				} else {
-					// Not ready to start
-					if (readyToStart.isWaitingForAnother) {
-						// Not ready to start because it's waiting for another expectation to be fulfilled first
-						// Stay here in WAITING state:
-						tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
-							reason: readyToStart.reason,
-							status: newStatus,
-						})
-					} else {
-						// Not ready to start because of some other reason (e.g. the source doesn't exist)
-						// Stay here in WAITING state:
-						tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
-							reason: readyToStart.reason,
-							status: newStatus,
-						})
-					}
-				}
+				// Not ready to start because of some reason (e.g. the source doesn't exist)
+				// Stay here in WAITING state:
+				tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
+					reason: readyToStart.reason,
+					status: newStatus,
+				})
 			}
 		} catch (error) {
 			// There was an error, clearly it's not ready to start

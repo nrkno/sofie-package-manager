@@ -110,20 +110,6 @@ export class TrackedExpectationAPI {
 		workerAgent: WorkerAgentAPI,
 		trackedExp: TrackedExpectation
 	): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
-		// First check if the Expectation depends on the fulfilled-status of another Expectation:
-		const waitingFor = this.isExpectationWaitingForOther(trackedExp)
-
-		if (waitingFor) {
-			return {
-				ready: false,
-				reason: {
-					user: `Waiting for "${waitingFor.exp.statusReport.label}"`,
-					tech: `Waiting for "${waitingFor.exp.statusReport.label}"`,
-				},
-				isWaitingForAnother: true,
-			}
-		}
-
 		return workerAgent.isExpectationReadyToStartWorkingOn(trackedExp.exp)
 	}
 	/** Checks if the expectation is waiting for another expectation, and returns the awaited Expectation, otherwise null */
