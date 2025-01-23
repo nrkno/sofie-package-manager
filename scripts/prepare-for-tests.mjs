@@ -13,6 +13,8 @@ import path from 'path'
 import cp from 'child_process'
 import fetch from 'node-fetch'
 
+console.log(`Preparing for tests...`)
+
 const targetVersions = JSON.parse(await fs.readFile('./tests/ffmpegReleases.json'))
 
 const toPosix = (str) => str.split(path.sep).join(path.posix.sep)
@@ -33,12 +35,14 @@ async function pathExists(path) {
 
 const platformInfo = `${process.platform}-${process.arch}`
 const platformVersions = targetVersions[platformInfo]
+let didDoAnything = false
 
 if (platformVersions) {
 	for (const version of platformVersions) {
 		const versionPath = path.join(ffmpegRootDir, version.id)
 		const dirStat = await pathExists(versionPath)
 		if (!dirStat) {
+			didDoAnything = true
 			console.log(`Fetching ${version.url}`)
 			// Download it
 
@@ -80,4 +84,10 @@ if (platformVersions) {
 	}
 } else {
 	throw new Error(`No FFMpeg binaries have been defined for "${platformInfo}" yet`)
+}
+
+if (!didDoAnything) {
+	console.log(`Nothing to prepare!`)
+} else {
+	console.log(`Preparations done!`)
 }
