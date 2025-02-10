@@ -19,6 +19,7 @@ export async function evaluateExpectationStateFulfilled({
 	assertState(trackedExp, ExpectedPackageStatusAPI.WorkStatusState.FULFILLED)
 	// TODO: Some monitor that is able to invalidate if it isn't fulfilled anymore?
 
+	// We don't want to check too often if it's still fulfilled:
 	if (timeSinceLastEvaluation > tracker.getFulfilledWaitTime()) {
 		await manager.workerAgents.assignWorkerToSession(trackedExp)
 		if (trackedExp.session.assignedWorker) {

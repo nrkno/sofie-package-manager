@@ -40,6 +40,7 @@ import {
 
 import { WorkforceAPI } from './workforceApi'
 import { WorkerAgentAPI } from './workerAgentApi'
+import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 
 /** Mimimum time between app restarts */
 const RESTART_COOLDOWN = 60 * 1000 // ms
@@ -413,6 +414,10 @@ export class AppContainer {
 			this.logger.debug(`Available apps: ${Array.from(this.availableApps.keys()).join(', ')}`)
 		}
 
+		let lastNotSupportReason: ExpectedPackageStatusAPI.Reason = {
+			user: 'No apps available',
+			tech: 'No apps available',
+		}
 		for (const [appType, availableApp] of this.availableApps.entries()) {
 			const runningApp = await this.getRunningOrSpawnScalingApp(appType)
 
@@ -424,6 +429,11 @@ export class AppContainer {
 						appType: appType,
 						cost: availableApp.cost,
 					}
+				} else {
+					lastNotSupportReason = result.reason
+					this.logger.silly(
+						`App "${appType}": Does not support the expectation, reason: "${result.reason.tech}", cost: "${availableApp.cost}"`
+					)
 				}
 			} else {
 				this.logger.warn(`appType "${appType}" not available`)
@@ -432,8 +442,8 @@ export class AppContainer {
 		return {
 			success: false,
 			reason: {
-				user: `No worker supports this expectation`,
-				tech: `No worker supports this expectation`,
+				user: `No worker supports this expectation (reason: ${lastNotSupportReason?.user})`,
+				tech: `No worker supports this expectation (one reason: ${lastNotSupportReason?.tech})`,
 			},
 		}
 	}

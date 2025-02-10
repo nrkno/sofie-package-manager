@@ -31,7 +31,6 @@ export type ReturnTypeIsExpectationReadyToStartWorkingOn =
 			 */
 			sourceExists?: boolean
 			isPlaceholder?: boolean
-			isWaitingForAnother?: boolean
 			reason: Reason
 	  }
 export type ReturnTypeIsExpectationFulfilled =
