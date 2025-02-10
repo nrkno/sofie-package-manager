@@ -1,6 +1,6 @@
 {
     "name": "@workforce/generic",
-    "version": "1.51.0-alpha.1",
+    "version": "1.51.0-alpha.2",
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -10,8 +10,8 @@
         "__test": "jest"
     },
     "dependencies": {
-        "@sofie-package-manager/api": "1.51.0-alpha.1",
-        "@sofie-package-manager/workforce": "1.51.0-alpha.1"
+        "@sofie-package-manager/api": "1.51.0-alpha.2",
+        "@sofie-package-manager/workforce": "1.51.0-alpha.2"
     },
     "devDependencies": {
         "rimraf": "^5.0.5"
