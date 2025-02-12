@@ -138,7 +138,11 @@ export const FileVerify: ExpectationHandlerGenericWorker = {
 			throw new Error(`FileVerify.workOnExpectation: Unsupported accessor target "${lookupTarget.accessor.type}"`)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, _worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		_reason: string,
+		_worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isFileVerify(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Don't do anything upon removal.
 

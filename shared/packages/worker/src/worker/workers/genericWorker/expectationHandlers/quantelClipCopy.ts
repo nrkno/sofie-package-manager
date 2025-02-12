@@ -259,7 +259,11 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the clip on the location
 
@@ -275,7 +279,7 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage('expectation removed')
+			await lookupTarget.handle.removePackage(reason)
 		} catch (err) {
 			return {
 				removed: false,

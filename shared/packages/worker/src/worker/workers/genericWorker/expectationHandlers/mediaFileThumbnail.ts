@@ -283,7 +283,11 @@ export const MediaFileThumbnail: ExpectationHandlerGenericWorker = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isMediaFileThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
 		if (!lookupTarget.ready) {
@@ -297,7 +301,7 @@ export const MediaFileThumbnail: ExpectationHandlerGenericWorker = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage('expectation removed')
+			await lookupTarget.handle.removePackage(reason)
 		} catch (err) {
 			return {
 				removed: false,

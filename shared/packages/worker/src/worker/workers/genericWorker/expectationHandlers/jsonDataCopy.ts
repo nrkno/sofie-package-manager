@@ -106,7 +106,11 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 			if (packageInfoSynced.needsUpdate) {
 				if (wasFulfilled) {
 					// Remove the outdated result:
-					await lookupTarget.handle.removePackageInfo(PackageInfoType.JSON, exp)
+					await lookupTarget.handle.removePackageInfo(
+						PackageInfoType.JSON,
+						exp,
+						'in isExpectationFulfilled, needsUpdate'
+					)
 				}
 				return { fulfilled: false, reason: packageInfoSynced.reason }
 			} else {
@@ -323,7 +327,11 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 			`JsonDataCopy.workOnExpectation: Unsupported accessor source-target pair "${lookupSource.accessor.type}"-"${lookupTarget.accessor.type}"`
 		)
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
@@ -340,9 +348,9 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 
 		try {
 			if (isCorePackageInfoAccessorHandle(lookupTarget.handle)) {
-				await lookupTarget.handle.removePackageInfo(PackageInfoType.JSON, exp)
+				await lookupTarget.handle.removePackageInfo(PackageInfoType.JSON, exp, reason)
 			} else {
-				await lookupTarget.handle.removePackage('expectation removed')
+				await lookupTarget.handle.removePackage(reason)
 			}
 		} catch (err) {
 			return {

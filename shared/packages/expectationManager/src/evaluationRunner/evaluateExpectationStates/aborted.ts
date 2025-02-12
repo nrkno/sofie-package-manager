@@ -17,7 +17,10 @@ export async function evaluateExpectationStateAborted({
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
 		// Start by removing the expectation
-		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(
+			trackedExp.exp,
+			'expectation aborted'
+		)
 		if (removed.removed) {
 			// This will cause the expectation to be intentionally stuck in the ABORTED state.
 			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {

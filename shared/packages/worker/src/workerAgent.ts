@@ -670,8 +670,8 @@ export class WorkerAgent {
 				this.IDidSomeWork()
 				return this.createNewJobForExpectation(managerId, exp, cost, timeout)
 			},
-			removeExpectation: async (exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> => {
-				return this._worker.removeExpectation(exp)
+			removeExpectation: async (exp: Expectation.Any, reason: string): Promise<ReturnTypeRemoveExpectation> => {
+				return this._worker.removeExpectation(exp, reason)
 			},
 			cancelWorkInProgress: async (wipId: WorkInProgressLocalId): Promise<void> => {
 				return this.cancelJob(wipId)

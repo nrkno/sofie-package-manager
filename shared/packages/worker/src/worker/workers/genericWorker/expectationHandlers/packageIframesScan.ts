@@ -118,7 +118,11 @@ export const PackageIframesScan: ExpectationHandlerGenericWorker = {
 		if (packageInfoSynced.needsUpdate) {
 			if (wasFulfilled) {
 				// Remove the outdated scan result:
-				await lookupTarget.handle.removePackageInfo(PackageInfoType.Iframes, exp)
+				await lookupTarget.handle.removePackageInfo(
+					PackageInfoType.Iframes,
+					exp,
+					'in isExpectationFulfilled, needsUpdate'
+				)
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
@@ -236,7 +240,11 @@ export const PackageIframesScan: ExpectationHandlerGenericWorker = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageIframesScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupIframesTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -250,7 +258,7 @@ export const PackageIframesScan: ExpectationHandlerGenericWorker = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		try {
-			await lookupTarget.handle.removePackageInfo(PackageInfoType.Iframes, exp)
+			await lookupTarget.handle.removePackageInfo(PackageInfoType.Iframes, exp, reason)
 		} catch (err) {
 			return {
 				removed: false,

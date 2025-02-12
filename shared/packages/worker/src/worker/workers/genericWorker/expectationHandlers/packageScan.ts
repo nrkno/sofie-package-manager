@@ -112,7 +112,11 @@ export const PackageScan: ExpectationHandlerGenericWorker = {
 		if (packageInfoSynced.needsUpdate) {
 			if (wasFulfilled) {
 				// Remove the outdated scan result:
-				await lookupTarget.handle.removePackageInfo(PackageInfoType.Scan, exp)
+				await lookupTarget.handle.removePackageInfo(
+					PackageInfoType.Scan,
+					exp,
+					'in isExpectationFulfilled, needsUpdate'
+				)
 			}
 			return { fulfilled: false, reason: packageInfoSynced.reason }
 		} else {
@@ -191,7 +195,11 @@ export const PackageScan: ExpectationHandlerGenericWorker = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupScanTargets(worker, exp)
 		if (!lookupTarget.ready)
@@ -205,7 +213,7 @@ export const PackageScan: ExpectationHandlerGenericWorker = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		try {
-			await lookupTarget.handle.removePackageInfo(PackageInfoType.Scan, exp)
+			await lookupTarget.handle.removePackageInfo(PackageInfoType.Scan, exp, reason)
 		} catch (err) {
 			return {
 				removed: false,

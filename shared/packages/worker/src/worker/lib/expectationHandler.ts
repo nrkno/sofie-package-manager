@@ -56,5 +56,5 @@ export interface ExpectationHandler<TWorker extends BaseWorker> {
 	 * "Make an expectation un-fulfilled"
 	 * This is called when an expectation has been removed.
 	 */
-	removeExpectation: (exp: Expectation.Any, worker: TWorker) => Promise<ReturnTypeRemoveExpectation>
+	removeExpectation: (exp: Expectation.Any, reason: string, worker: TWorker) => Promise<ReturnTypeRemoveExpectation>
 }

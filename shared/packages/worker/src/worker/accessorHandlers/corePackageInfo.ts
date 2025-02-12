@@ -243,11 +243,11 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		}
 		await Promise.all(ps)
 	}
-	public async removePackageInfo(infoType: string, exp: Expectation.Any): Promise<void> {
+	public async removePackageInfo(infoType: string, exp: Expectation.Any, reason: string): Promise<void> {
 		const ps: Promise<any>[] = []
 
 		for (const fromPackage of exp.fromPackages) {
-			this.worker.logOperation(`Remove package info "${fromPackage.id}"`)
+			this.worker.logOperation(`Remove package info "${fromPackage.id}" (${reason})`)
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'removePackageInfo',

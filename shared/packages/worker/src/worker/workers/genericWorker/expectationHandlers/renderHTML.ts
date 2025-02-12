@@ -230,7 +230,11 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isHTMLRender(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the files on the location
 
@@ -263,7 +267,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 			}
 
 			try {
-				await lookupTarget.handle.removePackage('expectation removed')
+				await lookupTarget.handle.removePackage(reason)
 			} catch (err) {
 				return {
 					removed: false,
@@ -276,7 +280,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 		}
 		// Remove the main one last:
 		try {
-			await mainLookupTarget.handle.removePackage('expectation removed')
+			await mainLookupTarget.handle.removePackage(reason)
 		} catch (err) {
 			return {
 				removed: false,
