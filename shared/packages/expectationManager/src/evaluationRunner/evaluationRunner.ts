@@ -309,6 +309,16 @@ export class EvaluationRunner {
 			ExpectedPackageStatusAPI.WorkStatusState.WORKING,
 		]
 
+		/** Count of expectations that are in READY or WORKING */
+		const readyCount = tracked.reduce(
+			(memo, trackedExp) =>
+				trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.READY ||
+				trackedExp.state === ExpectedPackageStatusAPI.WorkStatusState.WORKING
+					? memo + 1
+					: memo,
+			0
+		)
+
 		// Step 1: Evaluate the Expectations which are in the states that can be handled in parallel:
 		for (const handleState of handleStatesParallel) {
 			const timer = startTimer()
@@ -322,6 +332,13 @@ export class EvaluationRunner {
 			if (trackedWithState.length) {
 				// We're using a PromisePool so that we don't send out an unlimited number of parallel requests to the workers.
 
+				const startTime = Date.now()
+				/** How long to wait before skipping ahead to process the next state */
+				const allowSkipTime =
+					this.tracker.constants.ALLOW_SKIPPING_QUEUE_TIME *
+					// If there are expectations in READY, we should skip ahead to process them sooner:
+					(readyCount > 0 ? 0.25 : 0.5)
+
 				await PromisePool.for(trackedWithState)
 					.withConcurrency(this.tracker.constants.PARALLEL_CONCURRENCY)
 					.handleError(async (error, trackedExp) => {
@@ -332,7 +349,18 @@ export class EvaluationRunner {
 							trackedExp.session.hadError = true
 						}
 					})
-					.process(async (trackedExp) => {
+					.process(async (trackedExp, _index, pool) => {
+						// If enough time has passed since we started processing this state,
+						// we should move on to the next state (by cancelling handling the rest of the expectations in this PromisePool).
+						// This is so that we can continue to process other states that might be more important.
+
+						const timeSinceStart = Date.now() - startTime
+						if (timeSinceStart > allowSkipTime) {
+							this.logger.debug(`Skipping ahead (after ${timeSinceStart}ms, limit: ${allowSkipTime}ms)`)
+							pool.stop()
+							return
+						}
+
 						await evaluateExpectationState(this, trackedExp)
 						postProcessSession(trackedExp)
 					})
@@ -356,7 +384,7 @@ export class EvaluationRunner {
 		const timer = startTimer()
 		// Step 2: Evaluate the expectations, now one by one:
 		for (const trackedExp of tracked) {
-			// Only handle the states that
+			// Only handle the states that are in this state
 			if (handleStatesSerial.includes(trackedExp.state)) {
 				// Evaluate the Expectation:
 				await evaluateExpectationState(this, trackedExp)

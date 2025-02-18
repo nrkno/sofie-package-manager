@@ -223,7 +223,7 @@ export function __setCallbackInterceptor(interceptor: (type: string, cb: () => v
 fs.__setCallbackInterceptor = __setCallbackInterceptor
 export function __restoreCallbackInterceptor(): void {
 	fs.__cb = (_type: string, cb: () => void) => {
-		cb()
+		return cb()
 	}
 }
 fs.__restoreCallbackInterceptor = __restoreCallbackInterceptor
@@ -504,16 +504,19 @@ fs.readFile = readFile
 export function open(path: string, _options: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
 	if (DEBUG_LOG) console.log('fs.open', path)
-	fsMockEmitter.emit('open', path)
-	try {
-		const file = getMock(path)
-		fdId++
-		openFileDescriptors[fdId + ''] = file
 
-		return callback(undefined, fdId)
-	} catch (err) {
-		callback(err)
-	}
+	fsMockEmitter.emit('open', path)
+	return fs.__cb('open', () => {
+		try {
+			const file = getMock(path)
+			fdId++
+			openFileDescriptors[fdId + ''] = file
+
+			return callback(undefined, fdId)
+		} catch (err) {
+			callback(err)
+		}
+	})
 }
 fs.open = open
 export function close(fd: number, callback: (error: any, result?: any) => void): void {
@@ -534,7 +537,7 @@ export function copyFile(source: string, destination: string, callback: (error: 
 	if (DEBUG_LOG) console.log('fs.copyFile', source, destination)
 
 	fsMockEmitter.emit('copyFile', source, destination)
-	fs.__cb('copyFile', () => {
+	return fs.__cb('copyFile', () => {
 		try {
 			const mockFile = getMock(source)
 			if (DEBUG_LOG) console.log('source', source)
@@ -558,7 +561,7 @@ export function rename(source: string, destination: string, callback: (error: an
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.rename', source, destination)
 	fsMockEmitter.emit('rename', source, destination)
-	fs.__cb('rename', () => {
+	return fs.__cb('rename', () => {
 		try {
 			const mockFile = getMock(source)
 			setMock(destination, mockFile, false)

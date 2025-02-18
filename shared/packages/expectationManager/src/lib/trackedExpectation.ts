@@ -86,7 +86,7 @@ export function sortTrackedExpectations(
 		if (aLastErrorTime > bLastErrorTime) return 1
 		if (aLastErrorTime < bLastErrorTime) return -1
 
-		// Lowest lastOperationTime first
+		// Lowest lastEvaluationTime first
 		if (a.lastEvaluationTime > b.lastEvaluationTime) return 1
 		if (a.lastEvaluationTime < b.lastEvaluationTime) return -1
 
