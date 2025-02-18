@@ -27,6 +27,11 @@ export interface TrackedExpectation {
 	noAvailableWorkersReason: Reason
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
+	/**
+	 * Number of times the expectation has been skipped (this is reset once the expectation is evaluated)
+	 * This is used to ensure that expectations are evaluated evenly
+	 */
+	skipEvaluationCount: number
 	/** Timestamp to track how long the expectation has been waiting for a worker (can't start working), used to request more resources */
 	waitingForWorkerTime: number | null
 	/** Timestamp to track  how long the expectation has been waiting for a worker, used to restart to re-query for workers */
@@ -78,6 +83,10 @@ export function sortTrackedExpectations(
 		if (aHadRecentError && !bHadRecentError) return 1
 		if (!aHadRecentError && bHadRecentError) return -1
 
+		// Highest skipEvaluationCount first
+		if (a.skipEvaluationCount < b.skipEvaluationCount) return 1
+		if (a.skipEvaluationCount > b.skipEvaluationCount) return -1
+
 		// Lowest priority first
 		if (a.exp.priority > b.exp.priority) return 1
 		if (a.exp.priority < b.exp.priority) return -1
@@ -109,6 +118,7 @@ export function getDefaultTrackedExpectation(
 			tech: 'N/A (init)',
 		},
 		lastEvaluationTime: 0,
+		skipEvaluationCount: 0,
 		waitingForWorkerTime: null,
 		noWorkerAssignedTime: null,
 		errorCount: 0,

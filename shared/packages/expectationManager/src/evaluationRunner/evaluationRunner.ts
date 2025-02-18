@@ -332,6 +332,10 @@ export class EvaluationRunner {
 			if (trackedWithState.length) {
 				// We're using a PromisePool so that we don't send out an unlimited number of parallel requests to the workers.
 
+				for (const trackedExp of trackedWithState) {
+					trackedExp.skipEvaluationCount++
+				}
+
 				const startTime = Date.now()
 				/** How long to wait before skipping ahead to process the next state */
 				const allowSkipTime =
