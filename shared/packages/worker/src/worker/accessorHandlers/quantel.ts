@@ -155,12 +155,28 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		const clipSummary = await this.searchForLatestClip(quantel)
 
+		const content = this.getContent()
+
 		if (!clipSummary) {
-			const content = this.getContent()
 			return {
 				success: false,
 				packageExists: false,
 				reason: { user: `Clip not found`, tech: `Clip "${content.guid || content.title}" not found` },
+			}
+		}
+
+		// Verify that the clip does exist:
+		const clipData = await quantel.getClip(clipSummary.ClipID)
+		if (!clipData) {
+			return {
+				success: false,
+				packageExists: false,
+				reason: {
+					user: `Clip not found`,
+					tech: `Clip id ${clipSummary.ClipID} not found in this zone (although "${
+						content.guid || content.title
+					}" was found)`,
+				},
 			}
 		}
 
@@ -279,6 +295,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 				// Verify that the clip is of the right version:
 				const clipData = await quantel.getClip(readInfo.clipId)
 				if (!clipData) throw new Error(`Clip id ${readInfo.clipId} not found`)
+
 				if (clipData.Created !== readInfo.version.created)
 					throw new Error(
 						`Clip id ${readInfo.clipId} property "Created" doesn't match (${clipData.Created} vs ${readInfo.version.created})`

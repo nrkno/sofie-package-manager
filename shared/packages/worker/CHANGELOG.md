@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.51.0-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.51.0-alpha.1...v1.51.0-alpha.2) (2025-02-10)
+
+
+### Bug Fixes
+
+* Check that Quantel source clips exist earlier, to avoid crashing out of a WorkInProgress. ([4c244b1](https://github.com/nrkno/sofie-package-manager/commit/4c244b12713c3b3011e105e10c623424a41e2a9d))
+
+
+
+
+
 # [1.51.0-alpha.1](https://github.com/nrkno/sofie-package-manager/compare/v1.51.0-alpha.0...v1.51.0-alpha.1) (2025-01-08)
 
 **Note:** Version bump only for package @sofie-package-manager/worker
