@@ -901,6 +901,10 @@ export class WorkerAgent {
 	private intervalErrorCheck() {
 		if (this.failureCounter === 0) {
 			// reset the failurePeriodCounter when there were no exceptions in the period
+
+			this.logger.debug(
+				`Worker ErrorCheck: There was a period with 0 errors, resetting failurePeriodCounter (from ${this.failurePeriodCounter})`
+			)
 			this.failurePeriodCounter = 0
 			// everything seems fine
 			return
@@ -908,12 +912,15 @@ export class WorkerAgent {
 
 		if (this.failureCounter > 0) {
 			this.failurePeriodCounter++
+			this.logger.debug(
+				`Worker ErrorCheck: There was a period with ${this.failureCounter} errors, incrementing failurePeriodCounter (to ${this.failurePeriodCounter})`
+			)
 			this.failureCounter = 0
 		}
 
 		if (this.failurePeriodCounter >= this.config.worker.failurePeriodLimit) {
 			this.logger.error(
-				`Worker: Failed failurePeriodLimit check: ${this.failurePeriodCounter} periods with errors. Requesting spin down.`
+				`Worker ErrorCheck: Failed failurePeriodLimit check: ${this.failurePeriodCounter} periods with errors. Requesting spin down.`
 			)
 			this.requestShutDown(true)
 		}
