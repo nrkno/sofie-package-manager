@@ -52,6 +52,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 		if (genericWorker.testHTMLRenderer)
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'There is an issue with the Worker (HTMLRenderer)',
 					tech: `Cannot access HTMLRenderer executable: ${genericWorker.testHTMLRenderer}`,
@@ -80,6 +81,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 		if (!mainFileName)
 			return {
 				ready: false,
+				knownReason: true,
 				reason: {
 					user: 'No output (this is a configuration issue)',
 					tech: `No output filename (${steps.length} steps)`,
@@ -103,6 +105,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 		if (!mainFileName)
 			return {
 				fulfilled: false,
+				knownReason: true,
 				reason: {
 					user: 'No output (this is a configuration issue)',
 					tech: `No output filename (${steps.length} steps)`,
@@ -126,6 +129,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 			if (!lookupTarget.ready)
 				return {
 					fulfilled: false,
+					knownReason: lookupTarget.knownReason,
 					reason: {
 						user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 						tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -136,6 +140,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 			if (!issuePackage.success) {
 				return {
 					fulfilled: false,
+					knownReason: issuePackage.knownReason,
 					reason: {
 						user: `Target package: ${issuePackage.reason.user}`,
 						tech: `Target package: ${issuePackage.reason.tech}`,
@@ -252,6 +257,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 		if (!mainLookupTarget.ready) {
 			return {
 				removed: false,
+				knownReason: mainLookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${mainLookupTarget.reason.user}`,
 					tech: `No access to target: ${mainLookupTarget.reason.tech}`,
@@ -271,6 +277,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 			} catch (err) {
 				return {
 					removed: false,
+					knownReason: false,
 					reason: {
 						user: `Cannot remove file due to an internal error`,
 						tech: `Cannot remove file: ${stringifyError(err)}`,
@@ -284,6 +291,7 @@ export const RenderHTML: ExpectationHandlerGenericWorker = {
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
 					tech: `Cannot remove file: ${stringifyError(err)}`,

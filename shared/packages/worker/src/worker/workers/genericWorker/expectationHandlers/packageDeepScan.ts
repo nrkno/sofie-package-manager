@@ -36,6 +36,7 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 		if (worker.testFFMpeg)
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
 					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
@@ -44,6 +45,7 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 		if (worker.testFFProbe)
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'There is an issue with the Worker (FFProbe)',
 					tech: `Cannot access FFProbe executable: ${worker.testFFProbe}`,
@@ -68,13 +70,25 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 		if (!isPackageDeepScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupDeepScanSources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return {
+				ready: lookupSource.ready,
+				knownReason: lookupSource.knownReason,
+				sourceExists: false,
+				reason: lookupSource.reason,
+			}
 		const lookupTarget = await lookupDeepScanSources(worker, exp)
-		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+		if (!lookupTarget.ready)
+			return { ready: lookupTarget.ready, knownReason: lookupTarget.knownReason, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
 		if (!tryReading.success)
-			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
+			return {
+				ready: false,
+				knownReason: tryReading.knownReason,
+				sourceExists: tryReading.packageExists,
+				reason: tryReading.reason,
+			}
 
 		return {
 			ready: true,
@@ -91,6 +105,7 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 		if (!lookupSource.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupSource.knownReason,
 				reason: {
 					user: `Not able to access source, due to ${lookupSource.reason.user}`,
 					tech: `Not able to access source: ${lookupSource.reason.tech}`,
@@ -100,6 +115,7 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Not able to access target, due to ${lookupTarget.reason.user}`,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -126,7 +142,7 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 					'in isExpectationFulfilled, needsUpdate'
 				)
 			}
-			return { fulfilled: false, reason: packageInfoSynced.reason }
+			return { fulfilled: false, knownReason: true, reason: packageInfoSynced.reason }
 		} else {
 			return { fulfilled: true }
 		}
@@ -321,6 +337,7 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -333,6 +350,7 @@ export const PackageDeepScan: ExpectationHandlerGenericWorker = {
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove the scan result due to an internal error`,
 					tech: `Cannot remove CorePackageInfo: ${stringifyError(err)}`,

@@ -7,8 +7,9 @@ export function defaultCheckHandleRead(
 	if (!accessor.allowRead) {
 		return {
 			success: false,
+			knownReason: true,
 			reason: {
-				user: `Not allowed to read`,
+				user: `Not allowed to read (in configuration)`,
 				tech: `Not allowed to read  (check PackageContainer settings)`,
 			},
 		}
@@ -21,8 +22,9 @@ export function defaultCheckHandleWrite(
 	if (!accessor.allowWrite) {
 		return {
 			success: false,
+			knownReason: true,
 			reason: {
-				user: `Not allowed to write`,
+				user: `Not allowed to write (in configuration)`,
 				tech: `Not allowed to write (check PackageContainer settings)`,
 			},
 		}

@@ -31,8 +31,15 @@ export async function isFileReadyToStartWorkingOn(
 	lookupSource: LookupPackageContainer<UniversalVersion>,
 	lookupTarget: LookupPackageContainer<UniversalVersion>
 ): Promise<ReturnTypeIsExpectationReadyToStartWorkingOn> {
-	if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
-	if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+	if (!lookupSource.ready)
+		return {
+			ready: lookupSource.ready,
+			knownReason: lookupSource.knownReason,
+			sourceExists: false,
+			reason: lookupSource.reason,
+		}
+	if (!lookupTarget.ready)
+		return { ready: lookupTarget.ready, knownReason: lookupTarget.knownReason, reason: lookupTarget.reason }
 
 	let sourceIsOld = false
 	// Do a quick check first:
@@ -67,6 +74,7 @@ export async function isFileReadyToStartWorkingOn(
 		if (versionDiff) {
 			return {
 				ready: false,
+				knownReason: true,
 				sourceExists: true,
 				reason: {
 					user: `Waiting for source file to stop growing`,
@@ -79,7 +87,13 @@ export async function isFileReadyToStartWorkingOn(
 	// Also check if we actually can read from the package,
 	// this might help in some cases if the file is currently transferring
 	const tryReading = await lookupSource.handle.tryPackageRead()
-	if (!tryReading.success) return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
+	if (!tryReading.success)
+		return {
+			ready: false,
+			knownReason: tryReading.knownReason,
+			sourceExists: tryReading.packageExists,
+			reason: tryReading.reason,
+		}
 
 	return {
 		ready: true,
@@ -93,6 +107,7 @@ export async function isFileFulfilled(
 	if (!lookupTarget.ready)
 		return {
 			fulfilled: false,
+			knownReason: lookupTarget.knownReason,
 			reason: {
 				user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 				tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -103,6 +118,7 @@ export async function isFileFulfilled(
 	if (!issuePackage.success) {
 		return {
 			fulfilled: false,
+			knownReason: issuePackage.knownReason,
 			reason: {
 				user: `Target package: ${issuePackage.reason.user}`,
 				tech: `Target package: ${issuePackage.reason.tech}`,
@@ -113,15 +129,20 @@ export async function isFileFulfilled(
 	// check that the file is of the right version:
 	const actualTargetVersion = await lookupTarget.handle.fetchMetadata()
 	if (!actualTargetVersion)
-		return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
+		return {
+			fulfilled: false,
+			knownReason: true,
+			reason: { user: `Target version is wrong`, tech: `Metadata missing` },
+		}
 
-	if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
+	if (!lookupSource.ready)
+		return { fulfilled: false, knownReason: lookupSource.knownReason, reason: lookupSource.reason }
 
 	const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
 	const issueVersions = compareUniversalVersions(makeUniversalVersion(actualSourceVersion), actualTargetVersion)
 	if (!issueVersions.success) {
-		return { fulfilled: false, reason: issueVersions.reason }
+		return { fulfilled: false, knownReason: issueVersions.knownReason, reason: issueVersions.reason }
 	}
 
 	return {

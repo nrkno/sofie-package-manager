@@ -27,6 +27,7 @@ import {
 	ExpectationManagerId,
 	AppContainerId,
 	literal,
+	WorkerConfig,
 } from '@sofie-package-manager/api'
 import {
 	ExpectationManager,
@@ -37,7 +38,7 @@ import { CoreMockAPI } from './coreMockAPI'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 
-const defaultTestConfig: SingleAppConfig = {
+export const defaultTestConfig: SingleAppConfig = {
 	singleApp: {
 		workerCount: 1,
 		workforcePort: 0,
@@ -150,12 +151,13 @@ export async function setupExpectationManager(
 	// Initialize workers:
 	const workerAgents: Worker.WorkerAgent[] = []
 	let workerI = 0
-	const addWorker = async () => {
+	const addWorker = async (workerConfig: Partial<WorkerConfig['worker']> = {}) => {
 		const workerId = protectString<WorkerAgentId>(defaultTestConfig.worker.workerId + '_' + workerI++)
 		const workerAgent = new Worker.WorkerAgent(logger, {
 			...defaultTestConfig,
 			worker: {
 				...defaultTestConfig.worker,
+				...workerConfig,
 				workerId: workerId,
 			},
 		})
@@ -182,6 +184,7 @@ export async function setupExpectationManager(
 	}
 
 	for (let i = 0; i < workerCount; i++) {
+		console.log('Adding worker', i)
 		await addWorker()
 	}
 
@@ -379,7 +382,7 @@ export interface TestEnvironment {
 	containerStatuses: ContainerStatuses
 	reset: () => void
 	terminate: () => void
-	addWorker: () => Promise<WorkerAgentId>
+	addWorker: (workerConfig?: Partial<WorkerConfig['worker']>) => Promise<WorkerAgentId>
 	removeWorker: (id: WorkerAgentId) => Promise<void>
 	setLogFilterFunction: (filter: (level: string, ...args: any[]) => boolean) => void
 }

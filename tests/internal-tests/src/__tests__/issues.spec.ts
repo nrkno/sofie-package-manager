@@ -17,6 +17,7 @@ import { prepareTestEnvironment, TestEnvironment } from './lib/setupEnv'
 import { waitUntil, waitTime, describeForAllPlatforms } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
 import { WorkerAgent } from '@sofie-package-manager/worker'
+
 jest.mock('fs')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
@@ -512,6 +513,74 @@ describeForAllPlatforms(
 				expect(statuses['fulfilled']).toBeGreaterThanOrEqual(1)
 			}
 		}, 5000)
+		test('Worker should try to restart itself after errors', async () => {
+			const FAILURE_PERIOD = 300
+			const FAILURE_COUNT = 3
+
+			expect(env.workerAgents).toHaveLength(1)
+			await env.removeWorker(env.workerAgents[0].id)
+			await env.addWorker({
+				// 3 * 1000 = 3000 ms to restart
+				failurePeriod: FAILURE_PERIOD,
+				failurePeriodLimit: FAILURE_COUNT,
+			})
+
+			fs.__mockSetDirectory('/sources/source0/')
+			fs.__mockSetDirectory('/targets/target0')
+			fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+
+			const listenToOpen = jest.fn(() => {
+				fs.__setCallbackInterceptor((type, cb) => {
+					if (type === 'open') {
+						// throw upon open:
+						// console.log('Throwing error')
+						cb(new Error('Simulated error in unit test'))
+					} else {
+						return cb()
+					}
+				})
+			})
+			fs.__emitter().on('open', listenToOpen)
+
+			const failurePeriodSpinDown = jest.fn()
+
+			env.setLogFilterFunction((level, ...args) => {
+				const str = args.join(',')
+
+				// Catch message "Worker ErrorCheck: Failed failurePeriodLimit check: 4 periods with errors. Requesting spin down."
+
+				if (
+					level === 'error' &&
+					str.match(/Worker ErrorCheck: Failed failurePeriodLimit check.*Requesting spin down/)
+				) {
+					failurePeriodSpinDown()
+					return true
+				}
+				return true
+			})
+
+			addCopyFileExpectation(
+				env,
+				EXP_copy0,
+				[getLocalSource(SOURCE0, 'file0Source.mp4')],
+				[getLocalTarget(TARGET0, 'file0Target.mp4')]
+			)
+
+			// Because the fs.open will throw, the worker should try to restart itself
+			// withing 3*1000 ms
+
+			await waitUntil(() => {
+				expect(failurePeriodSpinDown.mock.calls.length).toBeGreaterThanOrEqual(1)
+			}, FAILURE_COUNT * FAILURE_PERIOD + env.WAIT_JOB_TIME_SAFE)
+
+			// Afterwards:
+			// Remove the worker from this test, and re-add a default one:
+			expect(env.workerAgents).toHaveLength(1)
+			await env.removeWorker(env.workerAgents[0].id)
+			await env.addWorker()
+
+			// await sleep(500)
+		})
 		test.skip('One of the workers reply very slowly', async () => {
 			// The expectation should be picked up by one of the faster workers
 

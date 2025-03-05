@@ -11,6 +11,7 @@ import {
 	Reason,
 	stringifyError,
 	startTimer,
+	KnownReason,
 } from '@sofie-package-manager/api'
 import { getStandardCost } from '../lib/lib'
 import { BaseWorker } from '../../../worker'
@@ -34,6 +35,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		if (worker.testFFMpeg)
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
 					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
@@ -57,26 +59,44 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		if (!isQuantelClipThumbnail(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupThumbnailSources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return {
+				ready: lookupSource.ready,
+				knownReason: lookupSource.knownReason,
+				sourceExists: false,
+				reason: lookupSource.reason,
+			}
 		const lookupTarget = await lookupThumbnailTargets(worker, exp)
-		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+		if (!lookupTarget.ready)
+			return { ready: lookupTarget.ready, knownReason: lookupTarget.knownReason, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
 		if (!tryReading.success)
-			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
+			return {
+				ready: false,
+				knownReason: tryReading.knownReason,
+				sourceExists: tryReading.packageExists,
+				reason: tryReading.reason,
+			}
 
 		// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail:
 		const thumbnailURL = await getThumbnailURL(exp, lookupSource)
 		if (!thumbnailURL.success)
 			return {
 				ready: false,
+				knownReason: thumbnailURL.knownReason,
 				reason: thumbnailURL.reason,
 			}
 		const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, thumbnailURL)
 
 		const tryReadingHTTP = await sourceHTTPHandle.tryPackageRead()
 		if (!tryReadingHTTP.success)
-			return { ready: false, sourceExists: tryReadingHTTP.packageExists, reason: tryReadingHTTP.reason }
+			return {
+				ready: false,
+				knownReason: tryReadingHTTP.knownReason,
+				sourceExists: tryReadingHTTP.packageExists,
+				reason: tryReadingHTTP.reason,
+			}
 
 		return {
 			ready: true,
@@ -93,6 +113,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		if (!lookupSource.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupSource.knownReason,
 				reason: {
 					user: `Not able to access source, due to ${lookupSource.reason.user}`,
 					tech: `Not able to access source: ${lookupSource.reason.tech}`,
@@ -102,6 +123,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -112,6 +134,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		if (!issueReadPackage.success)
 			return {
 				fulfilled: false,
+				knownReason: issueReadPackage.knownReason,
 				reason: {
 					user: `Issue with target: ${issueReadPackage.reason.user}`,
 					tech: `Issue with target: ${issueReadPackage.reason.tech}`,
@@ -126,11 +149,13 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		if (!targetMetadata) {
 			return {
 				fulfilled: false,
+				knownReason: true,
 				reason: { user: `The thumbnail needs to be re-generated`, tech: `No thumbnail metadata file found` },
 			}
 		} else if (targetMetadata.sourceVersionHash !== expectedTargetMetadata.sourceVersionHash) {
 			return {
 				fulfilled: false,
+				knownReason: true,
 				reason: {
 					user: `The thumbnail needs to be re-generated`,
 					tech: `Thumbnail version doesn't match thumbnail file`,
@@ -251,6 +276,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready) {
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -263,6 +289,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
 					tech: `Cannot remove preview file: ${stringifyError(err)}`,
@@ -295,7 +322,9 @@ function getMetadata(exp: Expectation.QuantelClipThumbnail, actualSourceVersion:
 async function getThumbnailURL(
 	exp: Expectation.QuantelClipThumbnail,
 	lookupSource: LookupPackageContainer<any>
-): Promise<{ success: true; baseURL: string; url: string } | { success: false; reason: Reason }> {
+): Promise<
+	{ success: true; baseURL: string; url: string } | { success: false; knownReason: KnownReason; reason: Reason }
+> {
 	if (!lookupSource.accessor) throw new Error(`Source accessor not set!`)
 	if (lookupSource.accessor.type !== Accessor.AccessType.QUANTEL)
 		throw new Error(`Source accessor should have been a Quantel ("${lookupSource.accessor.type}")`)
@@ -304,6 +333,7 @@ async function getThumbnailURL(
 	if (!lookupSource.accessor.transformerURL)
 		return {
 			success: false,
+			knownReason: true,
 			reason: {
 				user: `transformerURL is not set in settings`,
 				tech: `transformerURL not set on accessor ${lookupSource.handle.accessorId}`,
@@ -331,6 +361,7 @@ async function getThumbnailURL(
 	} else {
 		return {
 			success: false,
+			knownReason: true,
 			reason: {
 				user: `Source clip not found`,
 				tech: `Source clip not found`,

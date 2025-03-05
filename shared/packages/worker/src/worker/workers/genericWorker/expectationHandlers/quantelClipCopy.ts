@@ -38,14 +38,22 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		if (!isQuantelClipCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return {
+				ready: lookupSource.ready,
+				knownReason: lookupSource.knownReason,
+				sourceExists: false,
+				reason: lookupSource.reason,
+			}
 		const lookupTarget = await lookupCopyTargets(worker, exp)
-		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+		if (!lookupTarget.ready)
+			return { ready: lookupTarget.ready, knownReason: lookupTarget.knownReason, reason: lookupTarget.reason }
 
 		if (lookupTarget.accessor.type === Accessor.AccessType.QUANTEL) {
 			if (!lookupTarget.accessor.serverId)
 				return {
 					ready: false,
+					knownReason: true,
 					reason: {
 						user: `There is an issue in the settings: The Accessor "${lookupTarget.handle.accessorId}" has no serverId set`,
 						tech: `Target Accessor "${lookupTarget.handle.accessorId}" has no serverId set`,
@@ -64,6 +72,7 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		if (!tryReading.success)
 			return {
 				ready: false,
+				knownReason: tryReading.knownReason,
 				sourceExists: tryReading.packageExists,
 				isPlaceholder: tryReading.sourceIsPlaceholder,
 				reason: tryReading.reason,
@@ -84,6 +93,7 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -94,6 +104,7 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		if (!issuePackage.success) {
 			return {
 				fulfilled: false,
+				knownReason: issuePackage.knownReason,
 				reason: {
 					user: `Target package: ${issuePackage.reason.user}`,
 					tech: `Target package: ${issuePackage.reason.tech}`,
@@ -106,15 +117,18 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		if (!actualTargetVersion)
 			return {
 				fulfilled: false,
+				knownReason: true,
 				reason: { user: `No clip found on target`, tech: `No clip found on target` },
 			}
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return { fulfilled: false, knownReason: lookupSource.knownReason, reason: lookupSource.reason }
 
 		// Check if we actually can read from the source package:
 		const tryReading = await lookupSource.handle.tryPackageRead()
-		if (!tryReading.success) return { fulfilled: false, reason: tryReading.reason }
+		if (!tryReading.success)
+			return { fulfilled: false, knownReason: tryReading.knownReason, reason: tryReading.reason }
 
 		// Check that the target clip is of the right version:
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
@@ -124,7 +138,7 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 			makeUniversalVersion(actualTargetVersion)
 		)
 		if (!issueVersions.success) {
-			return { fulfilled: false, reason: issueVersions.reason }
+			return { fulfilled: false, knownReason: issueVersions.knownReason, reason: issueVersions.reason }
 		}
 
 		return {
@@ -271,6 +285,7 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready) {
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -283,6 +298,7 @@ export const QuantelClipCopy: ExpectationHandlerGenericWorker = {
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove clip due to an internal error`,
 					tech: `Cannot remove preview clip: ${stringifyError(err)}`,

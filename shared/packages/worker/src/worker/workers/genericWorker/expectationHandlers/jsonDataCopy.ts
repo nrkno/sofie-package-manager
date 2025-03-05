@@ -49,15 +49,27 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 		if (!isJsonDataCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return {
+				ready: lookupSource.ready,
+				sourceExists: false,
+				reason: lookupSource.reason,
+				knownReason: lookupSource.knownReason,
+			}
 		const lookupTarget = await lookupCopyTargets(worker, exp)
-		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+		if (!lookupTarget.ready)
+			return { ready: lookupTarget.ready, reason: lookupTarget.reason, knownReason: lookupTarget.knownReason }
 
 		// Also check if we actually can read from the package,
 		// this might help in some cases if the file is currently transferring
 		const tryReading = await lookupSource.handle.tryPackageRead()
 		if (!tryReading.success)
-			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
+			return {
+				ready: false,
+				sourceExists: tryReading.packageExists,
+				reason: tryReading.reason,
+				knownReason: tryReading.knownReason,
+			}
 
 		return {
 			ready: true,
@@ -74,6 +86,7 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -84,6 +97,7 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 		if (!issuePackage.success) {
 			return {
 				fulfilled: false,
+				knownReason: issuePackage.knownReason,
 				reason: {
 					user: `Target package: ${issuePackage.reason.user}`,
 					tech: `Target package: ${issuePackage.reason.tech}`,
@@ -91,7 +105,8 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 			}
 		}
 		const lookupSource = await lookupCopySources(worker, exp)
-		if (!lookupSource.ready) return { fulfilled: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return { fulfilled: false, knownReason: lookupSource.knownReason, reason: lookupSource.reason }
 
 		const actualSourceVersion = await lookupSource.handle.getPackageActualVersion()
 
@@ -112,7 +127,7 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 						'in isExpectationFulfilled, needsUpdate'
 					)
 				}
-				return { fulfilled: false, reason: packageInfoSynced.reason }
+				return { fulfilled: false, knownReason: true, reason: packageInfoSynced.reason }
 			} else {
 				return { fulfilled: true }
 			}
@@ -121,14 +136,18 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 			const actualTargetUVersion = await lookupTarget.handle.fetchMetadata()
 			// const actualTargetVersion = await lookupTarget.handle.getPackageActualVersion()
 			if (!actualTargetUVersion)
-				return { fulfilled: false, reason: { user: `Target version is wrong`, tech: `Metadata missing` } }
+				return {
+					fulfilled: false,
+					knownReason: true,
+					reason: { user: `Target version is wrong`, tech: `Metadata missing` },
+				}
 
 			const issueVersions = compareUniversalVersions(
 				makeUniversalVersion(actualSourceVersion),
 				actualTargetUVersion
 			)
 			if (!issueVersions.success) {
-				return { fulfilled: false, reason: issueVersions.reason }
+				return { fulfilled: false, knownReason: issueVersions.knownReason, reason: issueVersions.reason }
 			}
 		}
 
@@ -339,6 +358,7 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready) {
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -355,6 +375,7 @@ export const JsonDataCopy: ExpectationHandlerGenericWorker = {
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove json-data due to an internal error`,
 					tech: `Cannot remove json-data: ${stringifyError(err)}`,

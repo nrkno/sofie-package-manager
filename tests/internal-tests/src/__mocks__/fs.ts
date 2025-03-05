@@ -217,7 +217,7 @@ export function __printAllFiles(): string {
 }
 fs.__printAllFiles = __printAllFiles
 
-export function __setCallbackInterceptor(interceptor: (type: string, cb: () => void) => void): void {
+export function __setCallbackInterceptor(interceptor: (type: string, cb: (err?: any) => void) => void): void {
 	fs.__cb = interceptor
 }
 fs.__setCallbackInterceptor = __setCallbackInterceptor
@@ -506,13 +506,13 @@ export function open(path: string, _options: string, callback: (error: any, resu
 	if (DEBUG_LOG) console.log('fs.open', path)
 
 	fsMockEmitter.emit('open', path)
-	return fs.__cb('open', () => {
+	return fs.__cb('open', (err: unknown) => {
 		try {
 			const file = getMock(path)
 			fdId++
 			openFileDescriptors[fdId + ''] = file
-
-			return callback(undefined, fdId)
+			if (err) return callback(err)
+			else return callback(undefined, fdId)
 		} catch (err) {
 			callback(err)
 		}
@@ -537,7 +537,7 @@ export function copyFile(source: string, destination: string, callback: (error: 
 	if (DEBUG_LOG) console.log('fs.copyFile', source, destination)
 
 	fsMockEmitter.emit('copyFile', source, destination)
-	return fs.__cb('copyFile', () => {
+	return fs.__cb('copyFile', (err: unknown) => {
 		try {
 			const mockFile = getMock(source)
 			if (DEBUG_LOG) console.log('source', source)
@@ -549,7 +549,8 @@ export function copyFile(source: string, destination: string, callback: (error: 
 
 			setMock(destination, mockFile, false)
 
-			callback(undefined, null)
+			if (err) return callback(err, null)
+			else return callback(undefined, null)
 		} catch (err) {
 			callback(err)
 		}
@@ -561,13 +562,14 @@ export function rename(source: string, destination: string, callback: (error: an
 	destination = fixPath(destination)
 	if (DEBUG_LOG) console.log('fs.rename', source, destination)
 	fsMockEmitter.emit('rename', source, destination)
-	return fs.__cb('rename', () => {
+	return fs.__cb('rename', (err: unknown) => {
 		try {
 			const mockFile = getMock(source)
 			setMock(destination, mockFile, false)
 			deleteMock(source)
 
-			callback(undefined, null)
+			if (err) return callback(err, null)
+			return callback(undefined, null)
 		} catch (err) {
 			callback(err)
 		}
