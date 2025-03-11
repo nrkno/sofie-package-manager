@@ -790,7 +790,10 @@ export class WorkerAgent {
 						}, 200)
 					})
 				try {
+					const startTime = performance.now()
 					const result = await ((fcn as any)(...args) as ReturnType<typeof fcn>)
+
+					this.logger.debug(`Operation "${key}" took ${Math.floor(performance.now() - startTime)}ms`)
 
 					let knownReason = true
 					if (result) {
@@ -936,11 +939,14 @@ export class WorkerAgent {
 		if (this.failureCounter === 0) {
 			// reset the failurePeriodCounter when there were no exceptions in the period
 
-			this.logger.debug(
-				`Worker ErrorCheck: There was a period with 0 errors, resetting failurePeriodCounter (from ${this.failurePeriodCounter})`
-			)
-			this.failurePeriodCounter = 0
-			// everything seems fine
+			if (this.failurePeriodCounter > 0) {
+				this.logger.debug(
+					`Worker ErrorCheck: There was a period with 0 errors, resetting failurePeriodCounter (from ${this.failurePeriodCounter})`
+				)
+				this.failurePeriodCounter = 0
+			} else {
+				this.logger.debug(`Worker ErrorCheck: There was a period with 0 errors`)
+			}
 			return
 		}
 
