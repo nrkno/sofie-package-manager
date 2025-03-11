@@ -43,7 +43,8 @@ export const FileVerify: ExpectationHandlerGenericWorker = {
 		if (!isFileVerify(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupTarget = await lookupTargets(worker, exp)
-		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+		if (!lookupTarget.ready)
+			return { ready: lookupTarget.ready, knownReason: lookupTarget.knownReason, reason: lookupTarget.reason }
 
 		return {
 			ready: true,
@@ -60,6 +61,7 @@ export const FileVerify: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -70,6 +72,7 @@ export const FileVerify: ExpectationHandlerGenericWorker = {
 		if (!issuePackage.success) {
 			return {
 				fulfilled: false,
+				knownReason: issuePackage.knownReason,
 				reason: {
 					user: `Target package: ${issuePackage.reason.user}`,
 					tech: `Target package: ${issuePackage.reason.tech}`,
@@ -84,6 +87,7 @@ export const FileVerify: ExpectationHandlerGenericWorker = {
 		if (!compareVersionResult.success) {
 			return {
 				fulfilled: false,
+				knownReason: compareVersionResult.knownReason,
 				reason: {
 					user: `Target version is wrong: ${compareVersionResult.reason.user}`,
 					tech: `${compareVersionResult.reason.tech}`,
@@ -138,7 +142,11 @@ export const FileVerify: ExpectationHandlerGenericWorker = {
 			throw new Error(`FileVerify.workOnExpectation: Unsupported accessor target "${lookupTarget.accessor.type}"`)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, _worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		_reason: string,
+		_worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isFileVerify(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Don't do anything upon removal.
 

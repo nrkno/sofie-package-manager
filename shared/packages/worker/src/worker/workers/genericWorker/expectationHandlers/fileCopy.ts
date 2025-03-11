@@ -13,6 +13,7 @@ import {
 	Reason,
 	stringifyError,
 	AccessorId,
+	KnownReason,
 } from '@sofie-package-manager/api'
 import { IWorkInProgress } from '../../../lib/workInProgress'
 import { checkWorkerHasAccessToPackageContainersOnPackage, lookupAccessorHandles, LookupPackageContainer } from './lib'
@@ -78,7 +79,11 @@ export const FileCopy: ExpectationHandlerGenericWorker = {
 			return workInProgress
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isFileCopy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
@@ -86,6 +91,7 @@ export const FileCopy: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready) {
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -94,10 +100,11 @@ export const FileCopy: ExpectationHandlerGenericWorker = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage('expectation removed')
+			await lookupTarget.handle.removePackage(reason)
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
 					tech: `Cannot remove file: ${stringifyError(err)}`,
@@ -152,11 +159,12 @@ function checkAccessorForQuantelFileflow(
 	_packageContainer: PackageContainerOnPackage,
 	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any
-): { success: true } | { success: false; reason: Reason } {
+): { success: true } | { success: false; knownReason: KnownReason; reason: Reason } {
 	if (accessor.type === Accessor.AccessType.QUANTEL) {
 		if (!accessor.fileflowURL) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Accessor "${accessorId}" does not have a FileFlow URL set.`,
 					tech: `Accessor "${accessorId}" does not have a FileFlow URL set.`,

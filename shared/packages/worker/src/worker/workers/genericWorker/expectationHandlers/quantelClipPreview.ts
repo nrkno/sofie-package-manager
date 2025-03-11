@@ -34,6 +34,7 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (worker.testFFMpeg)
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
 					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
@@ -58,13 +59,25 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupPreviewSources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return {
+				ready: lookupSource.ready,
+				knownReason: lookupSource.knownReason,
+				sourceExists: false,
+				reason: lookupSource.reason,
+			}
 		const lookupTarget = await lookupPreviewTargets(worker, exp)
-		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+		if (!lookupTarget.ready)
+			return { ready: lookupTarget.ready, knownReason: lookupTarget.knownReason, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
 		if (!tryReading.success)
-			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
+			return {
+				ready: false,
+				knownReason: tryReading.knownReason,
+				sourceExists: tryReading.packageExists,
+				reason: tryReading.reason,
+			}
 
 		// This is a bit special, as we use the Quantel HTTP-transformer to get a HLS-stream of the video:
 		if (!isQuantelClipAccessorHandle(lookupSource.handle)) throw new Error(`Source AccessHandler type is wrong`)
@@ -73,13 +86,19 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (!httpStreamURL.success)
 			return {
 				ready: false,
+				knownReason: httpStreamURL.knownReason,
 				reason: httpStreamURL.reason,
 			}
 		const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, httpStreamURL)
 
 		const tryReadingHTTP = await sourceHTTPHandle.tryPackageRead()
 		if (!tryReadingHTTP.success)
-			return { ready: false, sourceExists: tryReadingHTTP.packageExists, reason: tryReadingHTTP.reason }
+			return {
+				ready: false,
+				knownReason: tryReadingHTTP.knownReason,
+				sourceExists: tryReadingHTTP.packageExists,
+				reason: tryReadingHTTP.reason,
+			}
 
 		return {
 			ready: true,
@@ -96,6 +115,7 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (!lookupSource.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupSource.knownReason,
 				reason: {
 					user: `Not able to access source, due to ${lookupSource.reason.user}`,
 					tech: `Not able to access source: ${lookupSource.reason.tech}`,
@@ -105,6 +125,7 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Not able to access target, due to: ${lookupTarget.reason.user} `,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -115,6 +136,7 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (!issueReadPackage.success)
 			return {
 				fulfilled: false,
+				knownReason: issueReadPackage.knownReason,
 				reason: {
 					user: `Issue with target: ${issueReadPackage.reason.user}`,
 					tech: `Issue with target: ${issueReadPackage.reason.tech}`,
@@ -129,11 +151,13 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (!metadata) {
 			return {
 				fulfilled: false,
+				knownReason: true,
 				reason: { user: `The preview needs to be re-generated`, tech: `No preview metadata file found` },
 			}
 		} else if (metadata.sourceVersionHash !== actualSourceVersionHash) {
 			return {
 				fulfilled: false,
+				knownReason: true,
 				reason: {
 					user: `The preview needs to be re-generated`,
 					tech: `Preview version doesn't match source file`,
@@ -250,7 +274,11 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 			)
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isQuantelClipPreview(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
@@ -258,6 +286,7 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready) {
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -266,10 +295,11 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage('expectation removed')
+			await lookupTarget.handle.removePackage(reason)
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
 					tech: `Cannot remove preview file: ${stringifyError(err)}`,

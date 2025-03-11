@@ -62,6 +62,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		if (this.accessor.type !== Accessor.AccessType.CORE_PACKAGE_INFO) {
 			return {
 				success: false,
+				knownReason: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
 					tech: `CorePackageInfo Accessor type is not CORE_PACKAGE_INFO ("${this.accessor.type}")!`,
@@ -146,6 +147,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	async setupPackageContainerMonitors(): Promise<SetupPackageContainerMonitorsResult> {
 		return {
 			success: false,
+			knownReason: false,
 			reason: {
 				user: `There is an internal issue in Package Manager`,
 				tech: 'setupPackageContainerMonitors, not supported',
@@ -243,11 +245,11 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		}
 		await Promise.all(ps)
 	}
-	public async removePackageInfo(infoType: string, exp: Expectation.Any): Promise<void> {
+	public async removePackageInfo(infoType: string, exp: Expectation.Any, reason: string): Promise<void> {
 		const ps: Promise<any>[] = []
 
 		for (const fromPackage of exp.fromPackages) {
-			this.worker.logOperation(`Remove package info "${fromPackage.id}"`)
+			this.worker.logOperation(`Remove package info "${fromPackage.id}" (${reason})`)
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'removePackageInfo',

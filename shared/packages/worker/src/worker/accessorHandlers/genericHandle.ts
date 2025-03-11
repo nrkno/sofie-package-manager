@@ -8,6 +8,7 @@ import {
 	MonitorId,
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
+	KnownReason,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { MonitorInProgress } from '../lib/monitorInProgress'
@@ -215,6 +216,12 @@ type AccessorHandlerResultSuccess = {
 type AccessorHandlerResultBad = {
 	/** Whether the action was successful or not */
 	success: false
+	/**
+	 * This is set to true if the reason for being unsuccessful is well known.
+	 * If set to false, this means that there is a chance that the error originates from a Package Manager Worker,
+	 * so if this happens enough times, a worker might eventually be restarted.
+	 * */
+	knownReason: KnownReason
 	/** The reason why the action wasn't successful*/
 	reason: Reason
 }

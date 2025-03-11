@@ -99,8 +99,8 @@ export class GenericWorker extends BaseWorker {
 	async workOnExpectation(exp: Expectation.Any, progressTimeout: number): Promise<IWorkInProgress> {
 		return this.getExpectationHandler(exp).workOnExpectation(exp, this, progressTimeout)
 	}
-	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
-		return this.getExpectationHandler(exp).removeExpectation(exp, this)
+	async removeExpectation(exp: Expectation.Any, reason: string): Promise<ReturnTypeRemoveExpectation> {
+		return this.getExpectationHandler(exp).removeExpectation(exp, reason, this)
 	}
 	private getExpectationHandler(exp: Expectation.Any): ExpectationHandlerGenericWorker {
 		switch (exp.type) {

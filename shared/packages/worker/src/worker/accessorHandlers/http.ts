@@ -69,6 +69,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (this.accessor.type !== Accessor.AccessType.HTTP) {
 			return {
 				success: false,
+				knownReason: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
 					tech: `HTTP Accessor type is not HTTP ("${this.accessor.type}")!`,
@@ -82,6 +83,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			if (!this.path)
 				return {
 					success: false,
+					knownReason: true,
 					reason: {
 						user: `filePath not set`,
 						tech: `filePath not set`,
@@ -107,6 +109,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (this.isBadHTTPResponseCode(header.status)) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Got error code ${header.status} when trying to fetch package`,
 					tech: `Error when requesting url "${this.fullUrl}": [${header.status}]: ${header.statusText}`,
@@ -213,7 +216,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		}
 
 		if (!badReason) return { success: true }
-		else return { success: false, reason: badReason }
+		else return { success: false, knownReason: false, reason: badReason }
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation

@@ -95,7 +95,7 @@ export abstract class BaseWorker {
 	 * "Make an expectation un-fulfilled"
 	 * This is called when an expectation has been removed.
 	 */
-	abstract removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation>
+	abstract removeExpectation(exp: Expectation.Any, reason: string): Promise<ReturnTypeRemoveExpectation>
 
 	/**
 	 * Does the worker support this packageContainer?

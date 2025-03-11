@@ -35,6 +35,7 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 		if (worker.testFFMpeg)
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'There is an issue with the Worker (FFMpeg)',
 					tech: `Cannot access FFMpeg executable: ${worker.testFFMpeg}`,
@@ -43,6 +44,7 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 		if (worker.testFFProbe)
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'There is an issue with the Worker (FFProbe)',
 					tech: `Cannot access FFProbe executable: ${worker.testFFProbe}`,
@@ -67,13 +69,25 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 
 		const lookupSource = await lookupLoudnessSources(worker, exp)
-		if (!lookupSource.ready) return { ready: lookupSource.ready, sourceExists: false, reason: lookupSource.reason }
+		if (!lookupSource.ready)
+			return {
+				ready: lookupSource.ready,
+				knownReason: lookupSource.knownReason,
+				sourceExists: false,
+				reason: lookupSource.reason,
+			}
 		const lookupTarget = await lookupLoudnessSources(worker, exp)
-		if (!lookupTarget.ready) return { ready: lookupTarget.ready, reason: lookupTarget.reason }
+		if (!lookupTarget.ready)
+			return { ready: lookupTarget.ready, knownReason: lookupTarget.knownReason, reason: lookupTarget.reason }
 
 		const tryReading = await lookupSource.handle.tryPackageRead()
 		if (!tryReading.success)
-			return { ready: false, sourceExists: tryReading.packageExists, reason: tryReading.reason }
+			return {
+				ready: false,
+				knownReason: tryReading.knownReason,
+				sourceExists: tryReading.packageExists,
+				reason: tryReading.reason,
+			}
 
 		return {
 			ready: true,
@@ -90,6 +104,7 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 		if (!lookupSource.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupSource.knownReason,
 				reason: {
 					user: `Not able to access source, due to ${lookupSource.reason.user}`,
 					tech: `Not able to access source: ${lookupSource.reason.tech}`,
@@ -99,6 +114,7 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready)
 			return {
 				fulfilled: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Not able to access target, due to ${lookupTarget.reason.user}`,
 					tech: `Not able to access target: ${lookupTarget.reason.tech}`,
@@ -119,9 +135,13 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 		if (packageInfoSynced.needsUpdate) {
 			if (wasFulfilled) {
 				// Remove the outdated scan result:
-				await lookupTarget.handle.removePackageInfo(PackageInfoType.Loudness, exp)
+				await lookupTarget.handle.removePackageInfo(
+					PackageInfoType.Loudness,
+					exp,
+					'in isExpectationFulfilled, needsUpdate'
+				)
 			}
-			return { fulfilled: false, reason: packageInfoSynced.reason }
+			return { fulfilled: false, knownReason: true, reason: packageInfoSynced.reason }
 		} else {
 			return { fulfilled: true }
 		}
@@ -207,12 +227,17 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 
 		return workInProgress
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isPackageLoudnessScan(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		const lookupTarget = await lookupLoudnessTargets(worker, exp)
 		if (!lookupTarget.ready)
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -221,10 +246,11 @@ export const PackageLoudnessScan: ExpectationHandlerGenericWorker = {
 		if (!isCorePackageInfoAccessorHandle(lookupTarget.handle)) throw new Error(`Target AccessHandler type is wrong`)
 
 		try {
-			await lookupTarget.handle.removePackageInfo(PackageInfoType.Loudness, exp)
+			await lookupTarget.handle.removePackageInfo(PackageInfoType.Loudness, exp, reason)
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: true,
 				reason: {
 					user: `Cannot remove the scan result due to an internal error`,
 					tech: `Cannot remove CorePackageInfo: ${stringifyError(err)}`,
