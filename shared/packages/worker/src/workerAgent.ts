@@ -220,21 +220,21 @@ export class WorkerAgent {
 		// Connect to AppContainer
 		if (this.appContainerConnectionOptions.type === 'websocket') {
 			this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
-		}
-		const pAppContainer = new Promise<void>((resolve, reject) => {
-			this.initAppContainerAPIPromise = { resolve, reject }
-		})
-		await this.appContainerAPI.init(this.appContainerConnectionOptions, {
-			setLogLevel: async (logLevel: LogLevel) => this.setLogLevel(logLevel),
-			_debugKill: async () => this._debugKill(),
+			const pAppContainer = new Promise<void>((resolve, reject) => {
+				this.initAppContainerAPIPromise = { resolve, reject }
+			})
+			await this.appContainerAPI.init(this.appContainerConnectionOptions, {
+				setLogLevel: async (logLevel: LogLevel) => this.setLogLevel(logLevel),
+				_debugKill: async () => this._debugKill(),
 
-			doYouSupportExpectation: async (exp: Expectation.Any) => this.doesWorkerSupportExpectation(exp),
-			doYouSupportPackageContainer: async (packageContainer: PackageContainerExpectation) =>
-				this.doesWorkerSupportPackageContainer(packageContainer),
-			setSpinDownTime: async (spinDownTime: number) => this.setSpinDownTime(spinDownTime),
-		})
-		// Wait for this.appContainerAPI to be ready before continuing:
-		await pAppContainer
+				doYouSupportExpectation: async (exp: Expectation.Any) => this.doesWorkerSupportExpectation(exp),
+				doYouSupportPackageContainer: async (packageContainer: PackageContainerExpectation) =>
+					this.doesWorkerSupportPackageContainer(packageContainer),
+				setSpinDownTime: async (spinDownTime: number) => this.setSpinDownTime(spinDownTime),
+			})
+			// Wait for this.appContainerAPI to be ready before continuing:
+			await pAppContainer
+		}
 
 		// Connect to WorkForce:
 		if (this.workForceConnectionOptions.type === 'websocket') {
