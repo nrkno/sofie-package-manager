@@ -17,7 +17,6 @@ import {
 	PackageContainerExpectation,
 	Reason,
 	stringifyError,
-	LeveledLogMethod,
 	setLogLevel,
 	isNodeRunningInDebugMode,
 	INNER_ACTION_TIMEOUT,
@@ -36,6 +35,7 @@ import {
 	protectString,
 	getLogLevel,
 	Cost,
+	LeveledLogMethodLight,
 } from '@sofie-package-manager/api'
 
 import { WorkforceAPI } from './workforceApi'
@@ -754,7 +754,7 @@ export class AppContainer {
 			}
 		}
 	}
-	private onOutputFromApp(appId: AppId, appType: AppType, data: any, defaultLog: LeveledLogMethod): void {
+	private onOutputFromApp(appId: AppId, appType: AppType, data: any, defaultLog: LeveledLogMethodLight): void {
 		const messages = `${data}`.split('\n')
 
 		for (const message of messages) {
@@ -800,24 +800,13 @@ export class AppContainer {
 					parsedMessage = `${message}`
 				}
 
-				const logLevels: { [key: string]: LeveledLogMethod } = {
+				const logLevels: { [key: string]: LeveledLogMethodLight } = {
 					error: this.logger.error,
 					warn: this.logger.warn,
-					help: this.logger.help,
-					data: this.logger.data,
 					info: this.logger.info,
 					debug: this.logger.debug,
-					prompt: this.logger.prompt,
-					http: this.logger.http,
 					verbose: this.logger.verbose,
-					input: this.logger.input,
 					silly: this.logger.silly,
-
-					emerg: this.logger.emerg,
-					alert: this.logger.alert,
-					crit: this.logger.crit,
-					warning: this.logger.warning,
-					notice: this.logger.notice,
 				}
 				const logFcn = logLevels[logLevel] || defaultLog
 				logFcn(
