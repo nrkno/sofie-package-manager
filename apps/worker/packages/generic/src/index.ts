@@ -1,4 +1,10 @@
-import { getWorkerConfig, ProcessHandler, setupLogger, initializeLogger } from '@sofie-package-manager/api'
+import {
+	getWorkerConfig,
+	ProcessHandler,
+	setupLogger,
+	initializeLogger,
+	stringifyError,
+} from '@sofie-package-manager/api'
 import { WorkerAgent } from '@sofie-package-manager/worker'
 
 export async function startProcess(): Promise<void> {
@@ -21,5 +27,7 @@ export async function startProcess(): Promise<void> {
 		workerAgent.terminate()
 	})
 
-	workerAgent.init().catch(logger.error)
+	workerAgent.init().catch((e) => {
+		logger.error(`Worker: Error in init: ${stringifyError(e)}`)
+	})
 }

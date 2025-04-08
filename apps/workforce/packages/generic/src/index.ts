@@ -1,5 +1,5 @@
 import { Workforce } from '@sofie-package-manager/workforce'
-import { getWorkforceConfig, setupLogger, initializeLogger } from '@sofie-package-manager/api'
+import { getWorkforceConfig, setupLogger, initializeLogger, stringifyError } from '@sofie-package-manager/api'
 
 export async function startProcess(): Promise<void> {
 	const config = await getWorkforceConfig()
@@ -14,5 +14,5 @@ export async function startProcess(): Promise<void> {
 
 	const workforce = new Workforce(logger, config)
 
-	workforce.init().catch(logger.error)
+	workforce.init().catch((e) => logger.error(stringifyError(e)))
 }
