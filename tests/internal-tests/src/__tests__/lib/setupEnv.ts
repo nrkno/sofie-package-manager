@@ -76,7 +76,7 @@ export const defaultTestConfig: SingleAppConfig = {
 	worker: {
 		workerId: protectString<WorkerAgentId>('worker'),
 		workforceURL: null,
-		appContainerURL: null,
+		appContainerURL: 'internal', // This needs to be "internal", because `null` means run standalone
 		resourceId: '',
 		networkIds: [],
 		windowsDriveLetters: ['X', 'Y', 'Z'],
@@ -274,8 +274,7 @@ export async function prepareTestEnvironment(debugLogging: boolean): Promise<Tes
 				packageId: ExpectedPackageId,
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			) => {
-				if (debugLogging)
-					console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
+				if (debugLogging) console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
 
 				let container = containerStatuses[containerId]
 				if (!container) {
