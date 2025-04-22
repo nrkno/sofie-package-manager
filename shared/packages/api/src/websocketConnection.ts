@@ -12,7 +12,7 @@ export const PING_TIME = 10 * 1000
  * If the sender doesn't recieve a reply after this time,
  * the message is considered lost.
  */
-export const MESSAGE_TIMEOUT = isRunningInTest() ? 3000 : 35000 // TEMPORARY! This was 10s before
+export const MESSAGE_TIMEOUT = isRunningInTest() ? 3000 : 10000
 
 /**
  * Execution timeout.
