@@ -273,6 +273,7 @@ async function lookupLoudnessSources(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.startRequirement.sources,
+		exp.id,
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -289,6 +290,7 @@ async function lookupLoudnessTargets(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.endRequirement.targets,
+		exp.id,
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

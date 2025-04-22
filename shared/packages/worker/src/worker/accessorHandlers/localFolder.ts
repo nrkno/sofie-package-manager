@@ -14,6 +14,7 @@ import {
 	GenericAccessorHandle,
 	PackageOperation,
 	AccessorHandlerCheckHandleBasicResult,
+	AccessorConstructorProps,
 } from './genericHandle'
 import {
 	Accessor,
@@ -23,7 +24,6 @@ import {
 	assertNever,
 	Reason,
 	stringifyError,
-	AccessorId,
 	MonitorId,
 	protectString,
 	betterPathResolve,
@@ -57,28 +57,27 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 
 	private content: Content
 	private workOptions: Expectation.WorkOptions.RemoveDelay & Expectation.WorkOptions.UseTemporaryFilePath
+	private accessor: AccessorOnPackage.LocalFolder
 
-	constructor(
-		worker: BaseWorker,
-		accessorId: AccessorId,
-		private accessor: AccessorOnPackage.LocalFolder,
-		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-	) {
-		super(worker, accessorId, accessor, content, LocalFolderAccessorHandle.type)
+	constructor(arg: AccessorConstructorProps<AccessorOnPackage.LocalFolder>) {
+		super({
+			...arg,
+			type: LocalFolderAccessorHandle.type,
+		})
+		this.accessor = arg.accessor
+		this.workOptions = arg.workOptions
+		this.content = arg.content
 
-		this.content = content
 		// Verify content data:
-		if (!content.onlyContainerAccess) {
+		if (!this.content.onlyContainerAccess) {
 			if (!this._getFilePath())
 				throw new Error('Bad input data: neither accessor.filePath, content.filePath nor content.path are set!')
 		}
 
-		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
+		if (this.workOptions.removeDelay && typeof this.workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
-		if (workOptions.useTemporaryFilePath && typeof workOptions.useTemporaryFilePath !== 'boolean')
+		if (this.workOptions.useTemporaryFilePath && typeof this.workOptions.useTemporaryFilePath !== 'boolean')
 			throw new Error('Bad input data: workOptions.useTemporaryFilePath is not a boolean!')
-		this.workOptions = workOptions
 	}
 	static doYouSupportAccess(worker: BaseWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.LocalFolder
@@ -226,16 +225,16 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 	}
 	async removePackage(reason: string): Promise<void> {
 		if (this.workOptions.removeDelay) {
-			this.worker.logOperation(
+			this.logOperation(
 				`Remove package: Delay remove file "${this.packageName}", delay: ${this.workOptions.removeDelay} (${reason})`
 			)
 			await this.delayPackageRemoval(this.filePath, this.workOptions.removeDelay)
 		} else {
 			await this.removeMetadata()
 			if (await this.unlinkIfExists(this.fullPath)) {
-				this.worker.logOperation(`Remove package: Removed file "${this.packageName}" (${reason})`)
+				this.logOperation(`Remove package: Removed file "${this.packageName}" (${reason})`)
 			} else {
-				this.worker.logOperation(`Remove package: File already removed "${this.packageName}" (${reason})`)
+				this.logOperation(`Remove package: File already removed "${this.packageName}" (${reason})`)
 			}
 		}
 	}
@@ -262,8 +261,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		await fsMkDir(path.dirname(fullPath), { recursive: true }) // Create folder if it doesn't exist
 
 		// Remove the file if it exists:
-		if (await this.unlinkIfExists(fullPath))
-			this.worker.logOperation(`Put package stream: Remove file "${fullPath}"`)
+		if (await this.unlinkIfExists(fullPath)) this.logOperation(`Put package stream: Remove file "${fullPath}"`)
 
 		const writeStream = sourceStream.pipe(fs.createWriteStream(fullPath))
 
@@ -290,11 +288,11 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 
 		if (this.workOptions.useTemporaryFilePath) {
 			if (await this.unlinkIfExists(this.fullPath)) {
-				this.worker.logOperation(`Finalize package: Remove file "${this.fullPath}"`)
+				this.logOperation(`Finalize package: Remove file "${this.fullPath}"`)
 			}
 
 			await fsRename(this.temporaryFilePath, this.fullPath)
-			this.worker.logOperation(`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`)
+			this.logOperation(`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`)
 		}
 	}
 
@@ -377,7 +375,7 @@ export class LocalFolderAccessorHandle<Metadata> extends GenericFileAccessorHand
 		source: string | GenericAccessorHandle<any>
 	): Promise<PackageOperation> {
 		await this.clearPackageRemoval(this.filePath)
-		return this.worker.logWorkOperation(operationName, source, this.packageName)
+		return this.logWorkOperation(operationName, source, this.packageName)
 	}
 
 	/** Path to the PackageContainer, ie the folder */

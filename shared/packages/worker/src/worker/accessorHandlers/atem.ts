@@ -12,8 +12,9 @@ import {
 	AccessorHandlerRunCronJobResult,
 	PackageOperation,
 	AccessorHandlerCheckHandleBasicResult,
+	AccessorConstructorProps,
 } from './genericHandle'
-import { Expectation, Accessor, AccessorOnPackage, AccessorId, escapeFilePath } from '@sofie-package-manager/api'
+import { Expectation, Accessor, AccessorOnPackage, escapeFilePath } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { Atem, AtemConnectionStatus, Util as AtemUtil } from 'atem-connection'
 import { ClipBank } from 'atem-connection/dist/state/media'
@@ -38,17 +39,19 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		onlyContainerAccess?: boolean
 		filePath?: string
 	}
-	constructor(
-		worker: BaseWorker,
-		public readonly accessorId: AccessorId,
-		private accessor: AccessorOnPackage.AtemMediaStore,
-		content: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-	) {
-		super(worker, accessorId, accessor, content, ATEMAccessorHandle.type)
+	private accessor: AccessorOnPackage.AtemMediaStore
 
-		this.content = content
+	constructor(arg: AccessorConstructorProps<AccessorOnPackage.AtemMediaStore>) {
+		super({
+			...arg,
+			type: ATEMAccessorHandle.type,
+		})
+
+		this.accessor = arg.accessor
+		this.content = arg.content
+
 		// Verify content data:
-		if (!content.onlyContainerAccess) {
+		if (!this.content.onlyContainerAccess) {
 			if (!this._getFilePath())
 				throw new Error('Bad input data: neither content.filePath nor accessor.filePath are set!')
 		}
@@ -247,10 +250,10 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (this.accessor.mediaType && typeof this.accessor.bankIndex === 'number') {
 			if (this.accessor.mediaType === 'clip') {
 				await atem.clearMediaPoolClip(this.accessor.bankIndex)
-				this.worker.logOperation(`Remove package: Removed clip "${this.packageName}" (${reason})`)
+				this.logOperation(`Remove package: Removed clip "${this.packageName}" (${reason})`)
 			} else {
 				await atem.clearMediaPoolStill(this.accessor.bankIndex)
-				this.worker.logOperation(`Remove package: Removed still "${this.packageName}" (${reason})`)
+				this.logOperation(`Remove package: Removed still "${this.packageName}" (${reason})`)
 			}
 		} else {
 			throw new Error('mediaType or bankIndex were undefined')
@@ -424,7 +427,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		source: string | GenericAccessorHandle<any>
 	): Promise<PackageOperation> {
 		// do nothing
-		return this.worker.logWorkOperation(operationName, source, this.packageName)
+		return this.logWorkOperation(operationName, source, this.packageName)
 	}
 	async finalizePackage(operation: PackageOperation): Promise<void> {
 		// do nothing

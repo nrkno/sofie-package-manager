@@ -12,6 +12,7 @@ import {
 	AccessorHandlerTryPackageReadResult,
 	PackageOperation,
 	AccessorHandlerCheckHandleBasicResult,
+	AccessorConstructorProps,
 } from './genericHandle'
 import {
 	Accessor,
@@ -20,7 +21,6 @@ import {
 	PackageContainerExpectation,
 	assertNever,
 	Reason,
-	AccessorId,
 	MonitorId,
 	rebaseUrl,
 } from '@sofie-package-manager/api'
@@ -39,24 +39,24 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		path?: string
 	}
 	private workOptions: Expectation.WorkOptions.RemoveDelay
-	constructor(
-		worker: BaseWorker,
-		public readonly accessorId: AccessorId,
-		private accessor: AccessorOnPackage.HTTP,
-		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-	) {
-		super(worker, accessorId, accessor, content, HTTPAccessorHandle.type)
+	private accessor: AccessorOnPackage.HTTP
 
-		this.content = content
+	constructor(arg: AccessorConstructorProps<AccessorOnPackage.HTTP>) {
+		super({
+			...arg,
+			type: HTTPAccessorHandle.type,
+		})
+		this.accessor = arg.accessor
+		this.content = arg.content
+		this.workOptions = arg.workOptions
+
 		// Verify content data:
-		if (!content.onlyContainerAccess) {
+		if (!this.content.onlyContainerAccess) {
 			if (!this._getFilePath()) throw new Error('Bad input data: neither content.path nor accessor.url are set!')
 		}
 
-		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
+		if (this.workOptions.removeDelay && typeof this.workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
-		this.workOptions = workOptions
 	}
 	static doYouSupportAccess(worker: BaseWorker, accessor0: AccessorOnPackage.Any): boolean {
 		const accessor = accessor0 as AccessorOnPackage.HTTP
@@ -136,15 +136,15 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async removePackage(reason: string): Promise<void> {
 		if (this.workOptions.removeDelay) {
 			await this.delayPackageRemoval(this.workOptions.removeDelay)
-			this.worker.logOperation(
+			this.logOperation(
 				`Remove package: Delay remove package "${this.packageName}", delay: ${this.workOptions.removeDelay} (${reason})`
 			)
 		} else {
 			await this.removeMetadata()
 			if (await this.deletePackageIfExists(this.fullUrl)) {
-				this.worker.logOperation(`Remove package: Removed file "${this.packageName}" (${reason})`)
+				this.logOperation(`Remove package: Removed file "${this.packageName}" (${reason})`)
 			} else {
-				this.worker.logOperation(`Remove package: File already removed "${this.packageName}" (${reason})`)
+				this.logOperation(`Remove package: File already removed "${this.packageName}" (${reason})`)
 			}
 		}
 	}
@@ -179,7 +179,7 @@ export class HTTPAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		source: string | GenericAccessorHandle<any>
 	): Promise<PackageOperation> {
 		await this.clearPackageRemoval()
-		return this.worker.logWorkOperation(operationName, source, this.packageName)
+		return this.logWorkOperation(operationName, source, this.packageName)
 	}
 	async finalizePackage(operation: PackageOperation): Promise<void> {
 		// do nothing

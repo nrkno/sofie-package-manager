@@ -1,4 +1,5 @@
 import {
+	AccessorConstructorProps,
 	AccessorHandlerCheckHandleBasicResult,
 	AccessorHandlerCheckHandleReadResult,
 	AccessorHandlerCheckHandleWriteResult,
@@ -18,11 +19,9 @@ import {
 	hashObj,
 	Expectation,
 	Reason,
-	AccessorId,
 	protectString,
 	ExpectedPackageId,
 } from '@sofie-package-manager/api'
-import { BaseWorker } from '../worker'
 
 /**
  * Accessor handle for accessing data store in Sofie Core.
@@ -37,20 +36,21 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 	private content: null // not used by this class
 	// @ts-expect-error unused variable
 	private workOptions: Expectation.WorkOptions.RemoveDelay
-	constructor(
-		worker: BaseWorker,
-		accessorId: AccessorId,
-		private accessor: AccessorOnPackage.CorePackageCollection,
-		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-		workOptions: any // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-	) {
-		super(worker, accessorId, accessor, content, CorePackageInfoAccessorHandle.type)
+	private accessor: AccessorOnPackage.CorePackageCollection
+
+	constructor(arg: AccessorConstructorProps<AccessorOnPackage.CorePackageCollection>) {
+		super({
+			...arg,
+			type: CorePackageInfoAccessorHandle.type,
+		})
+
+		this.accessor = arg.accessor
+		this.content = arg.content // not used by this class
 
 		// Verify content data:
-		this.content = content // not used by this class
-		if (workOptions.removeDelay && typeof workOptions.removeDelay !== 'number')
+		if (arg.workOptions.removeDelay && typeof arg.workOptions.removeDelay !== 'number')
 			throw new Error('Bad input data: workOptions.removeDelay is not a number!')
-		this.workOptions = workOptions
+		this.workOptions = arg.workOptions
 	}
 	static doYouSupportAccess(): boolean {
 		return true // always has access
@@ -99,7 +99,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 
 		// todo: implement
 		// await this.removePackageInfo(this.content.infoType, 1234)
-		// if (removed) this.worker.logOperation(`Remove package: Removed packageInfo "${this.packageName}", ${reason}`)
+		// if (removed) this.logOperation(`Remove package: Removed packageInfo "${this.packageName}", ${reason}`)
 	}
 
 	async getPackageReadStream(): Promise<{
@@ -123,7 +123,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		source: string | GenericAccessorHandle<any>
 	): Promise<PackageOperation> {
 		// do nothing
-		return this.worker.logWorkOperation(operationName, source, this.packageName)
+		return this.logWorkOperation(operationName, source, this.packageName)
 	}
 	async finalizePackage(operation: PackageOperation): Promise<void> {
 		// do nothing
@@ -229,7 +229,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 
 		const ps: Promise<any>[] = []
 		for (const fromPackage of exp.fromPackages) {
-			this.worker.logOperation(`Update package info "${fromPackage.id}"`)
+			this.logOperation(`Update package info "${fromPackage.id}"`)
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'updatePackageInfo',
@@ -249,7 +249,7 @@ export class CorePackageInfoAccessorHandle<Metadata> extends GenericAccessorHand
 		const ps: Promise<any>[] = []
 
 		for (const fromPackage of exp.fromPackages) {
-			this.worker.logOperation(`Remove package info "${fromPackage.id}" (${reason})`)
+			this.logOperation(`Remove package info "${fromPackage.id}" (${reason})`)
 			ps.push(
 				this.worker.sendMessageToManager(exp.managerId, {
 					type: 'removePackageInfo',

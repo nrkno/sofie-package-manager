@@ -113,7 +113,7 @@ export const FileCopyProxy: ExpectationHandlerGenericWorker = {
 
 				const httpStreamURL = await sourceHandle.getTransformerStreamURL()
 				if (!httpStreamURL.success) throw new Error(httpStreamURL.reason.tech)
-				const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, httpStreamURL)
+				const sourceHTTPHandle = getSourceHTTPHandle(worker, exp.id, lookupSource.handle, httpStreamURL)
 
 				let ffMpegProcess: FFMpegProcess | undefined
 				const wip = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
@@ -234,6 +234,7 @@ async function lookupCopySources(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.startRequirement.sources,
+		exp.id,
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -251,6 +252,7 @@ async function lookupCopyTargets(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.endRequirement.targets,
+		exp.id,
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

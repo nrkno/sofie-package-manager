@@ -11,6 +11,7 @@ import {
 	ReturnTypeIsExpectationReadyToStartWorkingOn,
 	ReturnTypeRemoveExpectation,
 	ReturnTypeRunPackageContainerCronJob,
+	stringMaxLength,
 	WorkerAgentConfig,
 } from '@sofie-package-manager/api'
 import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from './accessorHandlers/genericHandle'
@@ -128,13 +129,14 @@ export abstract class BaseWorker {
 	 * @returns
 	 */
 	logWorkOperation(
+		expectationId: string,
 		operationName: string,
 		source: string | GenericAccessorHandle<any>,
 		target: string | GenericAccessorHandle<any>
 	): { logDone: () => void } {
-		const msg = `${operationName} from "${typeof source === 'string' ? source : source.packageName}" to "${
-			typeof target === 'string' ? target : target.packageName
-		}"`
+		const msg = `${stringMaxLength(expectationId, 16)}: ${operationName} from "${
+			typeof source === 'string' ? source : source.packageName
+		}" to "${typeof target === 'string' ? target : target.packageName}"`
 
 		this.logger.verbose(`${msg}...`)
 		return {

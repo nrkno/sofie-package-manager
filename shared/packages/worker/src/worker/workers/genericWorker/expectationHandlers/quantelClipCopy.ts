@@ -322,6 +322,7 @@ async function lookupCopySources(
 	return lookupAccessorHandles<QuantelMetadata>(
 		worker,
 		exp.startRequirement.sources,
+		exp.id,
 		exp.endRequirement.content,
 		exp.workOptions,
 		{
@@ -338,6 +339,7 @@ async function lookupCopyTargets(
 	return lookupAccessorHandles<QuantelMetadata>(
 		worker,
 		exp.endRequirement.targets,
+		exp.id,
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

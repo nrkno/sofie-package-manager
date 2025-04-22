@@ -144,6 +144,7 @@ export interface LookupChecks {
 export async function lookupAccessorHandles<Metadata>(
 	worker: BaseWorker,
 	packageContainers: PackageContainerOnPackage[],
+	expectationId: string,
 	expectationContent: unknown,
 	expectationWorkOptions: unknown,
 	checks: LookupChecks
@@ -171,6 +172,7 @@ export async function lookupAccessorHandles<Metadata>(
 					worker,
 					accessorId,
 					accessor,
+					expectationId,
 					expectationContent,
 					expectationWorkOptions
 				)
