@@ -189,7 +189,7 @@ export function getStandardCost(exp: Expectation.Any, worker: BaseWorker): Retur
 }
 /**
  * Compares two networkIds/resourceIds.
- * It is a forgiving comparison, returning true iether of the two is not defined.
+ * It is a forgiving comparison, returning true either of the two is not defined.
  * @returns true if equal
  */
 export function compareResourceIds(

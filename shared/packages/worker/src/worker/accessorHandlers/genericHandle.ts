@@ -95,7 +95,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 	 */
 	abstract checkHandleWrite(): AccessorHandlerCheckHandleWriteResult
 	/**
-	 * Checks if Accesor has access to the Package, for reading.
+	 * Checks if Accessor has access to the Package, for reading.
 	 * Errors from this method are related to access/permission issues, or that the package doesn't exist.
 	 * @returns undefined if all is OK / string with error message
 	 */
@@ -114,7 +114,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 	abstract checkPackageContainerWriteAccess(): Promise<AccessorHandlerCheckPackageContainerWriteAccessResult>
 	/**
 	 * Extracts and returns the version from the package
-	 * @returns the vesion of the package
+	 * @returns the version of the package
 	 */
 	abstract getPackageActualVersion(): Promise<Expectation.Version.Any>
 

@@ -105,18 +105,18 @@ export class EvaluationRunner {
 			let diffExplanation: string | null = null
 
 			let difference: null | 'new' | 'major' | 'minor' = null
-			const existingtrackedExp = this.tracker.trackedExpectations.get(exp.id)
-			if (!existingtrackedExp) {
+			const existingTrackedExp = this.tracker.trackedExpectations.get(exp.id)
+			if (!existingTrackedExp) {
 				// new
 				difference = 'new'
 			} else {
 				// Treat differences in priority as a "minor" update:
-				diffExplanation = diff(existingtrackedExp.exp, exp, ['priority'])
+				diffExplanation = diff(existingTrackedExp.exp, exp, ['priority'])
 				const isSignificantlyDifferent = Boolean(diffExplanation)
-				const isPriorityDifferent = existingtrackedExp.exp.priority !== exp.priority
+				const isPriorityDifferent = existingTrackedExp.exp.priority !== exp.priority
 
 				if (isSignificantlyDifferent) {
-					const trackedExp = existingtrackedExp
+					const trackedExp = existingTrackedExp
 
 					if (trackedExp.state == ExpectedPackageStatusAPI.WorkStatusState.WORKING) {
 						if (trackedExp.status.workInProgressCancel) {
@@ -131,7 +131,7 @@ export class EvaluationRunner {
 			}
 
 			if (difference === 'new' || difference === 'major') {
-				const newTrackedExp = getDefaultTrackedExpectation(exp, existingtrackedExp)
+				const newTrackedExp = getDefaultTrackedExpectation(exp, existingTrackedExp)
 
 				this.tracker.trackedExpectations.upsert(exp.id, newTrackedExp)
 				if (difference === 'new') {
@@ -161,7 +161,7 @@ export class EvaluationRunner {
 				const trackedExp = this.tracker.trackedExpectations.get(exp.id)
 				if (trackedExp) {
 					this.logger.debug(
-						`Minor update of expectation "${expLabel(trackedExp)}": ${diff(existingtrackedExp?.exp, exp)}`
+						`Minor update of expectation "${expLabel(trackedExp)}": ${diff(existingTrackedExp?.exp, exp)}`
 					)
 
 					trackedExp.exp = exp
@@ -572,7 +572,7 @@ export class EvaluationRunner {
 								continue // Break further execution for this PackageContainer
 							}
 						} else {
-							// Lost connecttion to the worker & monitor
+							// Lost connection to the worker & monitor
 						}
 						trackedPackageContainer.currentWorker = null
 					}
@@ -691,7 +691,7 @@ export class EvaluationRunner {
 							} else {
 								badStatus = true
 								this.logger.debug(
-									`_evaluateAllTrackedPackageContainers: setupPackageContainerMonitors did not suceed: ${JSON.stringify(
+									`_evaluateAllTrackedPackageContainers: setupPackageContainerMonitors did not succeed: ${JSON.stringify(
 										monitorSetup.reason
 									)}`
 								)
@@ -719,7 +719,7 @@ export class EvaluationRunner {
 						if (!cronJobStatus.success) {
 							badStatus = true
 							this.logger.error(
-								`_evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not suceed: ${JSON.stringify(
+								`_evaluateAllTrackedPackageContainers: runPackageContainerCronJob did not succeed: ${JSON.stringify(
 									cronJobStatus.reason
 								)}`
 							)

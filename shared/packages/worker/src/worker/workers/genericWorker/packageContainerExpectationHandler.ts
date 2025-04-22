@@ -98,7 +98,7 @@ async function lookupPackageContainer(
 		checks.read = true
 	} else if (forWhat === 'cronjob') {
 		checks.read = true
-		// If no cronjobs are setup, no need to check writeability:
+		// If no cronjobs are setup, no need to check writability:
 		if (Object.keys(packageContainer.cronjobs).length > 1) {
 			checks.write = true
 			checks.writePackageContainer = true

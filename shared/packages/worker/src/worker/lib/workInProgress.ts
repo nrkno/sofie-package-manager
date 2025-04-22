@@ -46,7 +46,7 @@ export class WorkInProgress extends HelpfulEventEmitter implements IWorkInProgre
 
 	/**
 	 * Report progress back to
-	 * @param actualVersionHash A hash of the actual Verison of the Package being worken on
+	 * @param actualVersionHash A hash of the actual Version of the Package being worked on
 	 * @param progress 0-1
 	 */
 	_reportProgress(actualVersionHash: string | null, progress: number): void {

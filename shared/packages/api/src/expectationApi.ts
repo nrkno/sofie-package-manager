@@ -4,13 +4,13 @@ import { AccessorOnPackage, PackageContainerOnPackage } from './inputApi'
 import { AccessorId, ExpectationId, ExpectationManagerId, ExpectedPackageId } from './ids'
 
 /*
- * This file contains definitions for Expectations, the internal datastructure upon which the Package Manager operates.
+ * This file contains definitions for Expectations, the internal data structure upon which the Package Manager operates.
  */
 
-/** An Expectation defines an "expected end state". The Package Manages takes these as input, then works towards fullfilling the expectations. */
+/** An Expectation defines an "expected end state". The Package Manages takes these as input, then works towards fulfilling the expectations. */
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expectation {
-	/** Generic Expectation, used as "Any Exopectation" */
+	/** Generic Expectation, used as "Any Expectation" */
 	export type Any =
 		| FileCopy
 		| FileCopyProxy
@@ -63,7 +63,7 @@ export namespace Expectation {
 		/** Expectation priority. Lower will be handled first. Note: This is not absolute, the actual execution order might vary. */
 		priority: number
 
-		/** A list of which expectedPackages that resultet in this expectation */
+		/** A list of which expectedPackages that resulted in this expectation */
 		fromPackages: {
 			/** ExpectedPackage id */
 			id: ExpectedPackageId
@@ -95,7 +95,7 @@ export namespace Expectation {
 		 */
 		dependsOnFulfilled?: ExpectationId[]
 		/** Reference to another expectation.
-		 * On fulfillement, this will be triggered immediately.
+		 * On fulfillment, this will be triggered immediately.
 		 */
 		triggerByFulfilledIds?: ExpectationId[]
 	}
@@ -165,9 +165,9 @@ export namespace Expectation {
 			targets: SpecificPackageContainerOnPackage.CorePackage[]
 			content: null // not using content, entries are stored using this.fromPackages
 			version: {
-				/** Enable field order detection. An expensive chcek that decodes the start of the video */
+				/** Enable field order detection. An expensive check that decodes the start of the video */
 				fieldOrder?: boolean
-				/** Number of frames to scan to determine files order. Neede sufficient motion, i.e. beyong title card */
+				/** Number of frames to scan to determine files order. Needs sufficient motion, i.e. beyond title card */
 				fieldOrderScanDuration?: number
 
 				/** Enable scene change detection */
@@ -580,7 +580,7 @@ export namespace Expectation {
 			type: Type.MEDIA_FILE_THUMBNAIL
 			/** Width of the thumbnail */
 			width: number
-			/** Heigth of the thumbnail, -1=preserve ratio */
+			/** Height of the thumbnail, -1=preserve ratio */
 			height: number
 			/** At what time to pick the thumbnail from [ms] */
 			seekTime: number
@@ -616,7 +616,7 @@ export namespace Expectation {
 			cloneId: number
 			created: string
 
-			frames: number // since this can grow during transfer, don't use it for comparing for fullfillment
+			frames: number // since this can grow during transfer, don't use it for comparing for fulfillment
 		}
 		export type ExpectedQuantelClip = ExpectedType<QuantelClip>
 

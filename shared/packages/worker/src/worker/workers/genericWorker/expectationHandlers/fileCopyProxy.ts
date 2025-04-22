@@ -37,7 +37,7 @@ import { ExpectationHandlerGenericWorker } from '../genericWorker'
 
 /**
  * Copies a file from one of the sources and into the target PackageContainer.
- * The result is intended to be a proxy, used for other operations such as scanning, thuumbnail generation etc.
+ * The result is intended to be a proxy, used for other operations such as scanning, thumbnail generation etc.
  */
 export const FileCopyProxy: ExpectationHandlerGenericWorker = {
 	doYouSupportExpectation(exp: Expectation.Any, genericWorker: BaseWorker): ReturnTypeDoYouSupportExpectation {
@@ -266,7 +266,7 @@ function checkAccessorForQuantelFiles(
 	accessor: AccessorOnPackage.Any
 ): { success: true } | { success: false; knownReason: KnownReason; reason: Reason } {
 	if (accessor.type === Accessor.AccessType.QUANTEL) {
-		// We need either a fileflow or the quantel http transformer url to be set
+		// We need either a fileFlow or the quantel http transformer url to be set
 		if (!accessor.fileflowURL && !accessor.transformerURL) {
 			return {
 				success: false,

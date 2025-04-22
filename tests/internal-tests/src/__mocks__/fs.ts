@@ -198,20 +198,20 @@ function existsMock(path: string): boolean {
 }
 export function __printAllFiles(): string {
 	const getPaths = (dir: MockDirectory, indent: string): string => {
-		const strs: any[] = []
+		const strings: any[] = []
 		for (const [name, file] of Object.entries<MockAny>(dir.content)) {
 			if (file.isDirectory) {
-				strs.push(`${indent}${name}/`)
-				strs.push(getPaths(file, indent + '  '))
+				strings.push(`${indent}${name}/`)
+				strings.push(getPaths(file, indent + '  '))
 			} else {
-				strs.push(
+				strings.push(
 					`${indent}${name}: size: ${file.size} (${file.accessRead ? 'read' : ''} ${
 						file.accessWrite ? 'write' : ''
 					})`
 				)
 			}
 		}
-		return strs.join('\n')
+		return strings.join('\n')
 	}
 	return getPaths(mockRoot, '')
 }

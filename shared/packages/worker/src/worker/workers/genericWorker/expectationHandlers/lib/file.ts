@@ -24,7 +24,7 @@ import { LookupPackageContainer, userReadableDiff } from '../lib'
 import { CancelablePromise } from '../../../../lib/cancelablePromise'
 import { PackageReadStream, PutPackageHandler } from '../../../../accessorHandlers/genericHandle'
 import { diff } from 'deep-diff'
-import { quantelFileflowCopy } from '../../lib/quantelFileflow'
+import { quantelFileFlowCopy } from '../../lib/quantelFileflow'
 
 export async function isFileReadyToStartWorkingOn(
 	worker: BaseWorker,
@@ -343,12 +343,12 @@ export async function doFileCopyExpectation(
 	) {
 		if (!isQuantelClipAccessorHandle(sourceHandle)) throw new Error(`Source AccessHandler type is wrong`)
 		if (!isFileShareAccessorHandle(targetHandle)) throw new Error(`Target AccessHandler type is wrong`)
-		if (!sourceHandle.fileflowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
+		if (!sourceHandle.fileFlowURL) throw new Error(`Source AccessHandler does not have a Fileflow URL set`)
 
 		targetHandle.disableDriveMapping = true // FileFlow needs to use the network share, not the mapped network drive
 
-		const fileflowURL = sourceHandle.fileflowURL
-		const profile = sourceHandle.fileflowProfile
+		const fileflowURL = sourceHandle.fileFlowURL
+		const profile = sourceHandle.fileFlowProfile
 		// If the sourceHandler zoneId is set to a useful value, use that
 		let prospectiveZoneId =
 			sourceHandle.zoneId !== '' && sourceHandle.zoneId !== 'default' ? sourceHandle.zoneId : undefined
@@ -392,7 +392,7 @@ export async function doFileCopyExpectation(
 				: targetHandle.fullPath
 
 			const sourceClipId = sourceClip.ClipID.toString()
-			copying = quantelFileflowCopy(
+			copying = quantelFileFlowCopy(
 				fileflowURL,
 				profile,
 				sourceClipId,

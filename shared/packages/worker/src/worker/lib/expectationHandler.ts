@@ -32,7 +32,7 @@ export interface ExpectationHandler<TWorker extends BaseWorker> {
 	) => Promise<ReturnTypeIsExpectationReadyToStartWorkingOn>
 	/**
 	 * Check if the expectation is fulfilled or not.
-	 * (If the exopectation is already fulfilled, theres no need to workOnExpectation().)
+	 * (If the expectation is already fulfilled, theres no need to workOnExpectation().)
 	 */
 	isExpectationFulfilled: (
 		exp: Expectation.Any,

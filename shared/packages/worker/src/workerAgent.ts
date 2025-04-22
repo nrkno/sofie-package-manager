@@ -176,7 +176,7 @@ export class WorkerAgent {
 					customTimeout: number | undefined,
 					cb: (current: any | undefined) => Promise<any> | any
 				) => {
-					// First, aquire a lock to the data, so that noone else can read/write to it:
+					// First, acquire a lock to the data, so that no-one else can read/write to it:
 					const { lockId, current } = await this.appContainerAPI.workerStorageWriteLock(dataId, customTimeout)
 					try {
 						// Then, execute the callback:
@@ -298,7 +298,7 @@ export class WorkerAgent {
 		this.appContainerAPI.hook(hook)
 	}
 
-	/** Keep track of the promise retorned by fcn and when it's resolved, to determine how busy we are */
+	/** Keep track of the promise returned by fcn and when it's resolved, to determine how busy we are */
 	// private async setBusy<T>(fcn: () => Promise<T>): Promise<T> {
 	// 	this._busyMethodCount++
 	// 	try {
@@ -427,7 +427,7 @@ export class WorkerAgent {
 		const expectationManager = this.expectationManagers.get(managerId)
 		if (!expectationManager) {
 			this.logger.error(
-				`Worker "${this.id}" could not start job for expectation (${exp.id}), because it could not find expecation manager "${managerId}"`
+				`Worker "${this.id}" could not start job for expectation (${exp.id}), because it could not find expectation manager "${managerId}"`
 			)
 
 			throw new Error(`ExpectationManager "${managerId}" not found`)
@@ -438,7 +438,7 @@ export class WorkerAgent {
 			this.logger.warn(
 				`createNewJobForExpectation called, even though there are ${
 					this.currentJobs.length
-				} current jobs. Startcost now: ${this.getStartCost(exp).cost}, spcified cost=${
+				} current jobs. StartCost now: ${this.getStartCost(exp).cost}, specified cost=${
 					cost.cost
 				}, specified startCost=${cost.startCost}`
 			)
@@ -502,14 +502,14 @@ export class WorkerAgent {
 		)
 
 		try {
-			const workInProgress = await this.makeWorkerWorkOnJobForExpecation(managerId, currentJob, exp, timeout)
+			const workInProgress = await this.makeWorkerWorkOnJobForExpectation(managerId, currentJob, exp, timeout)
 
 			return {
 				wipId: currentJob.wipId,
 				properties: workInProgress.properties,
 			}
 		} catch (err) {
-			// makeWorkerWorkOnExpecation() / _worker.workOnExpectation() failed.
+			// makeWorkerWorkOnExpectation() / _worker.workOnExpectation() failed.
 
 			this.removeJob(currentJob)
 			this.logger.warn(
@@ -520,7 +520,7 @@ export class WorkerAgent {
 		}
 	}
 
-	private async makeWorkerWorkOnJobForExpecation(
+	private async makeWorkerWorkOnJobForExpectation(
 		managerId: ExpectationManagerId,
 		job: CurrentJob,
 		exp: Expectation.Any,

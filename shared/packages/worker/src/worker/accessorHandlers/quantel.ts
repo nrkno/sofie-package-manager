@@ -31,7 +31,7 @@ import { BaseWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
 import { defaultCheckHandleRead, defaultCheckHandleWrite } from './lib/lib'
 
-/** The minimum amount of frames where a clip is minimumly playable */
+/** The minimum amount of frames where a clip is playable */
 const RESERVED_CLIP_MINIMUM_FRAMES = 10
 /** How long to wait for a response from Quantel Gateway before failing */
 const QUANTEL_TIMEOUT = INNER_ACTION_TIMEOUT - 500
@@ -438,11 +438,11 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		return this.accessor.zoneId
 	}
 
-	get fileflowURL(): string | undefined {
+	get fileFlowURL(): string | undefined {
 		return this.accessor.fileflowURL
 	}
 
-	get fileflowProfile(): string | undefined {
+	get fileFlowProfile(): string | undefined {
 		return this.accessor.fileflowProfile
 	}
 
@@ -491,7 +491,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		}
 	}
 	private async getQuantelGateway(): Promise<CachedQuantelGateway> {
-		/** Persistant store for Quantel gatews */
+		/** Persistent store for Quantel gateways */
 		const cacheGateways = this.ensureCache<Record<string, Promise<CachedQuantelGateway>>>('gateways', {})
 
 		// These errors are just for types. User-facing checks are done in this.checkAccessor()
@@ -550,11 +550,11 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 
 		// Verify that the cached gateway matches what we want:
 		// The reason for this is that a Quantel gateway is pointed at an ISA-setup on startup,
-		// and shouldn't be changed without restarting aftewards.
+		// and shouldn't be changed without restarting afterwards.
 		// So if you want to have multiple ISA:s, you should spin up multiple Quantel-gateways.
 		if (this.accessor.quantelGatewayUrl !== gateway.gatewayUrl)
 			throw new Error(
-				`Cached QuantelGateway.quantelGatewayUrl doesnt match accessor ("${this.accessor.quantelGatewayUrl}" vs "${gateway.gatewayUrl}")`
+				`Cached QuantelGateway.quantelGatewayUrl doesn't match accessor ("${this.accessor.quantelGatewayUrl}" vs "${gateway.gatewayUrl}")`
 			)
 		if (this.accessor.ISAUrls.join(',') !== gateway.ISAUrls.join(','))
 			throw new Error(

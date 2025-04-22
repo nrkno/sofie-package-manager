@@ -141,7 +141,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			}
 		}
 
-		// Reading actually not supprted, but oh well..
+		// Reading actually not supported, but oh well..
 		return {
 			success: false,
 			knownReason: true,
@@ -282,9 +282,9 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 
 					streamWrapper.emit('progress', 0.1)
 
-					const tmpobj = tmp.dirSync({ unsafeCleanup: true })
+					const tmpObj = tmp.dirSync({ unsafeCleanup: true })
 					try {
-						const inputFile = path.join(tmpobj.name, 'input')
+						const inputFile = path.join(tmpObj.name, 'input')
 						const info = AtemUtil.getVideoModeInfo(atem.state.settings.videoMode)
 						if (!info) {
 							throw new Error('ATEM is running at an unknown video mode')
@@ -300,12 +300,12 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 							streamWrapper.emit('progress', 0.5)
 
 							const allTGAs = fs
-								.readdirSync(tmpobj.name)
+								.readdirSync(tmpObj.name)
 								.filter((filename) => {
 									return filename.endsWith('.tga')
 								})
 								.map((tga) => {
-									return path.join(tmpobj.name, tga)
+									return path.join(tmpObj.name, tga)
 								})
 
 							if (allTGAs.length > 1) {
@@ -341,12 +341,12 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 							streamWrapper.emit('progress', 0.4)
 
 							const allTGAs = fs
-								.readdirSync(tmpobj.name)
+								.readdirSync(tmpObj.name)
 								.filter((filename) => {
 									return filename.endsWith('.tga')
 								})
 								.map((tga) => {
-									return path.join(tmpobj.name, tga)
+									return path.join(tmpObj.name, tga)
 								})
 
 							streamWrapper.emit('progress', 0.5)
@@ -380,8 +380,8 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 							}
 							if (aborted) return
 
-							const audioStreamIndicies = await getStreamIndicies(inputFile, 'audio')
-							if (audioStreamIndicies.length > 0) {
+							const audioStreamIndices = await getStreamIndices(inputFile, 'audio')
+							if (audioStreamIndices.length > 0) {
 								await convertAudio(inputFile)
 								await sleep(1000) // Helps avoid a lock-related "Code 5" error from the ATEM.
 
@@ -395,7 +395,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 					} catch (err) {
 						streamWrapper.emit('error', err)
 					} finally {
-						tmpobj.removeCallback()
+						tmpObj.removeCallback()
 					}
 
 					streamWrapper.emit('close')
@@ -568,7 +568,7 @@ export async function countFrames(inputFile: string): Promise<number> {
 	return parseInt(resultParts[1], 10)
 }
 
-export async function getStreamIndicies(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
+export async function getStreamIndices(inputFile: string, type: 'video' | 'audio'): Promise<number[]> {
 	const args = [
 		'-i',
 		escapeFilePath(inputFile),

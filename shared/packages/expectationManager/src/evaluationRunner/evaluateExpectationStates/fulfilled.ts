@@ -69,7 +69,7 @@ export async function evaluateExpectationStateFulfilled({
 						reason: notFulfilledReason,
 					})
 				} else {
-					// Yes it is still fullfiled
+					// Yes it is still fulfilled
 					// No need to update the tracked state, since it's already fulfilled:
 					// this.updateTrackedExp(trackedExp, WorkStatusState.FULFILLED, fulfilled.reason)
 

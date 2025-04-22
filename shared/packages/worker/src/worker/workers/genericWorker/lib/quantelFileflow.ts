@@ -14,7 +14,7 @@ async function sleep(ms: number): Promise<void> {
 	})
 }
 
-enum QuantelFileflowStatus {
+enum QuantelFileFlowStatus {
 	WAITING = 'WAITING',
 	PROCESSING = 'PROCESSING',
 	COMPLETED = 'COMPLETED',
@@ -25,10 +25,10 @@ enum QuantelFileflowStatus {
 }
 
 async function getJobStatus(
-	fileflowBaseUrl: string,
+	fileFlowBaseUrl: string,
 	jobId: string
 ): Promise<{ status: string; progress: number } | null> {
-	const requestResponse = await fetchWithTimeout(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}`)
+	const requestResponse = await fetchWithTimeout(`${fileFlowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}`)
 	if (requestResponse.ok) {
 		const body = xml.xml2js(await requestResponse.text(), DEFAULT_XML_JS_OPTIONS) as xml.ElementCompact
 		const status = body.QJobResponse?.QJob?.status?._text as string
@@ -42,8 +42,8 @@ async function getJobStatus(
 	return null
 }
 
-export function quantelFileflowCopy(
-	fileflowBaseUrl: string,
+export function quantelFileFlowCopy(
+	fileFlowBaseUrl: string,
 	profileName: string | undefined,
 	clipId: string,
 	zoneId: string,
@@ -52,7 +52,7 @@ export function quantelFileflowCopy(
 ): CancelablePromise<void> {
 	return new CancelablePromise<void>((resolve, reject, onCancel) => {
 		/**
-		 * Fileflow uses a system where the name is set using a "rename rule", possibly to handle things like
+		 * FileFlow uses a system where the name is set using a "rename rule", possibly to handle things like
 		 * open essence clips (multiple files for a single clip). This means that it takes a PATH as a destination
 		 * and then needs the desired fileName to be a part of the rename rule. The rename rule cannot affect the
 		 * file extension, so that needs to be skipped as well.
@@ -89,7 +89,7 @@ export function quantelFileflowCopy(
 			}
 		}
 
-		fetchWithTimeout(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/`, {
+		fetchWithTimeout(`${fileFlowBaseUrl}/fileflowqueue/ffq/jobs/`, {
 			method: 'POST',
 			body: xml.js2xml(jobRequest, DEFAULT_XML_JS_OPTIONS),
 			headers: {
@@ -108,13 +108,13 @@ export function quantelFileflowCopy(
 							StatusChange: {
 								status: {
 									_text:
-										status === QuantelFileflowStatus.WAITING
-											? QuantelFileflowStatus.CANCELLED
-											: QuantelFileflowStatus.ABORTING,
+										status === QuantelFileFlowStatus.WAITING
+											? QuantelFileFlowStatus.CANCELLED
+											: QuantelFileFlowStatus.ABORTING,
 								},
 							},
 						}
-						fetchWithTimeout(`${fileflowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}/status`, {
+						fetchWithTimeout(`${fileFlowBaseUrl}/fileflowqueue/ffq/jobs/${jobId}/status`, {
 							method: 'PUT',
 							body: xml.js2xml(cancelJobRequest),
 							headers: {
@@ -126,22 +126,22 @@ export function quantelFileflowCopy(
 									reject('Cancelled')
 								} else {
 									reject(
-										`Bad response on Fileflow cancel job ${jobId}: ${response.status} ${response.statusText}`
+										`Bad response on FileFlow cancel job ${jobId}: ${response.status} ${response.statusText}`
 									)
 								}
 							})
 							.catch((err) => {
-								reject(`Failed to execute Fileflow cancel job ${jobId} request: ${stringifyError(err)}`)
+								reject(`Failed to execute FileFlow cancel job ${jobId} request: ${stringifyError(err)}`)
 							})
 					})
 
 					while (
-						status === QuantelFileflowStatus.WAITING ||
-						status === QuantelFileflowStatus.PROCESSING ||
-						status === QuantelFileflowStatus.ABORTING
+						status === QuantelFileFlowStatus.WAITING ||
+						status === QuantelFileFlowStatus.PROCESSING ||
+						status === QuantelFileFlowStatus.ABORTING
 					) {
 						await sleep(3000)
-						const statusResult = await getJobStatus(fileflowBaseUrl, jobId)
+						const statusResult = await getJobStatus(fileFlowBaseUrl, jobId)
 						if (statusResult) {
 							status = statusResult.status
 							progress = statusResult.progress
@@ -149,33 +149,33 @@ export function quantelFileflowCopy(
 							if (progressClb) progressClb(progress)
 
 							if (
-								status === QuantelFileflowStatus.ABORTED ||
-								status === QuantelFileflowStatus.CANCELLED ||
-								status === QuantelFileflowStatus.FAILED
+								status === QuantelFileFlowStatus.ABORTED ||
+								status === QuantelFileFlowStatus.CANCELLED ||
+								status === QuantelFileFlowStatus.FAILED
 							) {
 								reject(`Failed: ${status}`)
 								return
-							} else if (status === QuantelFileflowStatus.COMPLETED) {
+							} else if (status === QuantelFileFlowStatus.COMPLETED) {
 								resolve(undefined)
 								return
 							}
 						}
 					}
 
-					// at this point, the job should either be completed, or it has failed (note the while loop abve)
-					if (status === QuantelFileflowStatus.COMPLETED) {
+					// at this point, the job should either be completed, or it has failed (note the while loop above)
+					if (status === QuantelFileFlowStatus.COMPLETED) {
 						resolve(undefined)
 					} else {
-						reject(`Quantel Fileflow status for job ${jobId}: ${status}`)
+						reject(`Quantel FileFlow status for job ${jobId}: ${status}`)
 					}
 				} else {
 					reject(
-						`Response is not Okay for creating Fileflow Export Job: ${
+						`Response is not Okay for creating FileFlow Export Job: ${
 							requestResponse.status
 						}: ${await requestResponse.text()}`
 					)
 				}
 			})
-			.catch((err) => reject(`Failed to execute Fileflow request: ${stringifyError(err)}`))
+			.catch((err) => reject(`Failed to execute FileFlow request: ${stringifyError(err)}`))
 	})
 }

@@ -362,24 +362,24 @@ export async function lookupAccessorHandles<Metadata>(
 
 /** Converts a diff to some kind of user-readable string */
 export function userReadableDiff<T>(diffs: Diff<T, T>[]): string {
-	const strs: string[] = []
+	const strings: string[] = []
 	for (const diff of diffs) {
 		if (diff.kind === 'A') {
 			// array
 			// todo: deep explanation for arrays?
-			strs.push((diff.path ? diff.path?.join('.') : '??') + `[${diff.index}]:` + '>>Array differs<<')
+			strings.push((diff.path ? diff.path?.join('.') : '??') + `[${diff.index}]:` + '>>Array differs<<')
 		} else if (diff.kind === 'E') {
 			// edited
-			strs.push((diff.path ? diff.path?.join('.') : '??') + `:"${diff.lhs}" not equal to "${diff.rhs}"`)
+			strings.push((diff.path ? diff.path?.join('.') : '??') + `:"${diff.lhs}" not equal to "${diff.rhs}"`)
 		} else if (diff.kind === 'D') {
 			// deleted
-			strs.push((diff.path ? diff.path?.join('.') : '??') + `:deleted`)
+			strings.push((diff.path ? diff.path?.join('.') : '??') + `:deleted`)
 		} else if (diff.kind === 'N') {
 			// new
-			strs.push((diff.path ? diff.path?.join('.') : '??') + `:added`)
+			strings.push((diff.path ? diff.path?.join('.') : '??') + `:added`)
 		}
 	}
-	return strs.join(', ')
+	return strings.join(', ')
 }
 function padTime(time: number, pad: number): string {
 	return time.toString().padStart(pad, '0')

@@ -40,7 +40,7 @@ const fsUnlink = promisify(fs.unlink)
 const fsLstat = promisify(fs.lstat)
 
 /**
- * This class handles things that are common between the Localfolder and FileShare classes
+ * This class handles things that are common between the LocalFolder and FileShare classes
  */
 export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
 	constructor(

@@ -38,7 +38,7 @@ function getAccessorTypePriority(accessor: AccessorOnPackage.Any): number {
 	}
 }
 
-/** Returns the PackageContainer Accessor which is the cheapes/best to use */
+/** Returns the PackageContainer Accessor which is the cheapest/best to use */
 export function prioritizeAccessors<T extends PackageContainerOnPackage>(
 	packageContainers: T[]
 ): AccessorWithPackageContainer<T>[] {

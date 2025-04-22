@@ -461,7 +461,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
 			const genericWorker = this.worker as GenericWorker
 
-			const STORE_DRIVELETTERS = protectString<DataId>(
+			const STORE_DRIVE_LETTERS = protectString<DataId>(
 				`fileShare_driveLetters_${this.worker.agentAPI.location.localComputerId}`
 			)
 			// Note: Use the mappedDriveLetters as a WorkerStorage, to avoid a potential issue where other workers
@@ -473,7 +473,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 				// they can all read in parallel from the same store. When doing a .workerStorageWrite(), that is a single-threaded process.
 
 				const mappedDriveLetters: MappedDriveLetters =
-					(await this.worker.agentAPI.workerStorageRead<MappedDriveLetters>(STORE_DRIVELETTERS)) ?? {}
+					(await this.worker.agentAPI.workerStorageRead<MappedDriveLetters>(STORE_DRIVE_LETTERS)) ?? {}
 
 				// Check if the drive letter has already been assigned in our cache:
 				let foundMappedDriveLetter: string | null = null
@@ -491,7 +491,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 			if (!handlingDone) {
 				await this.worker.agentAPI.workerStorageWrite<MappedDriveLetters>(
-					STORE_DRIVELETTERS,
+					STORE_DRIVE_LETTERS,
 					PREPARE_FILE_ACCESS_TIMEOUT,
 					async (mappedDriveLetters0): Promise<MappedDriveLetters> => {
 						const mappedDriveLetters: MappedDriveLetters = mappedDriveLetters0 ?? {}
@@ -566,7 +566,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 									const errStr = `${e}`
 									if (
 										errStr.match(/invalid response/i) ||
-										errStr.match(/Ugyldig svar/i) // "Invalid response" in Norvegian
+										errStr.match(/Ugyldig svar/i) // "Invalid response" in Norwegian
 									) {
 										// Temporary handling of the error
 
@@ -575,7 +575,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 										)
 
 										if (mappedDrives[freeDriveLetter]?.path === folderPath) {
-											this.worker.logger.warn(`Supressed error: ${errStr}`)
+											this.worker.logger.warn(`Suppressed error: ${errStr}`)
 
 											this.worker.logger.warn(
 												`Mapped drives: ${Object.keys(mappedDrives).join(',')}`

@@ -90,7 +90,7 @@ function makeVideoStream(clipData: ClipData, videoFormat: number): any {
 	}
 
 	if (videoFormat < 100) {
-		// renove non-AVC flags for MPEG-2 video
+		// remove non-AVC flags for MPEG-2 video
 		delete targetVideo.is_avc
 		delete targetVideo.nal_length_size
 	}
@@ -145,7 +145,8 @@ function makeAudioStreams(clipData: ClipData, audioFormat: number): any[] {
 			},
 			tags: {
 				source_audio_formats: clipData.AudioFormats,
-				sofie_selects_autio_format: audioFormat,
+				sofie_selects_autio_format: audioFormat, // kept for backwards compatibility
+				sofie_selects_audio_format: audioFormat,
 			},
 		})
 	}
@@ -195,7 +196,7 @@ function makeFormat(clipData: ClipData, videoFormat: number, audioFormat: number
 
 /**
  * Data used to make bitrate guess
- * clipID frms    bitrate       size
+ * clipID formats    bitrate       size
  * format code 633/524
  * 751189  353  151424695  267264588
  * 741202  278  152065804  211371468
