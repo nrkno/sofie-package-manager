@@ -2,7 +2,7 @@ import path from 'path'
 import { copyFile, mkdtemp, readdir } from 'fs/promises'
 import { runForEachFFMpegRelease, SamplesDir } from '../../../__tests__/ffmpegHelper'
 import { rimraf } from 'rimraf'
-import { convertAudio, countFrames, createTGASequence, getStreamIndicies } from '../atem'
+import { convertAudio, countFrames, createTGASequence, getStreamIndices } from '../atem'
 import { tmpdir } from 'os'
 
 async function copyToTmpDir(inputFile: string): Promise<{ tmpDir: string; copiedFile: string }> {
@@ -57,10 +57,10 @@ runForEachFFMpegRelease(() => {
 		})
 
 		it('getStreamIndicies', async () => {
-			const videoResult = await getStreamIndicies(copiedFile, 'video')
+			const videoResult = await getStreamIndices(copiedFile, 'video')
 			expect(videoResult).toEqual([0])
 
-			const audioResult = await getStreamIndicies(copiedFile, 'audio')
+			const audioResult = await getStreamIndices(copiedFile, 'audio')
 			expect(audioResult).toEqual([1])
 		})
 	})
