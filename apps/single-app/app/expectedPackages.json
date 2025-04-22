@@ -123,7 +123,7 @@
                     "inPhaseDifference": true,
                     "balanceDifference": true
                 },
-				"iframes": true
+                "iframes": true
             }
         },
         {
@@ -155,7 +155,7 @@
             "_id": "test-html",
             "contentVersionHash": "abc1234",
             "content": {
-                "path": "https://www.bouncingdvdlogo.com/",
+                "path": "https://www.bouncingdvdlogo.com/"
             },
             "version": {
                 "renderer": {
