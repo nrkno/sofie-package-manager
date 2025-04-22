@@ -126,7 +126,6 @@ async function lookupCopySources(
 	worker: BaseWorker,
 	exp: Expectation.FileCopy
 ): Promise<LookupPackageContainer<UniversalVersion>> {
-	exp.id
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.startRequirement.sources,
