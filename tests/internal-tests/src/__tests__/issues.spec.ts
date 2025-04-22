@@ -533,7 +533,6 @@ describeForAllPlatforms(
 				fs.__setCallbackInterceptor((type, cb) => {
 					if (type === 'open') {
 						// throw upon open:
-						// console.log('Throwing error')
 						cb(new Error('Simulated error in unit test'))
 					} else {
 						return cb()
@@ -594,7 +593,6 @@ describeForAllPlatforms(
 			fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
 			fs.__mockSetDirectory('/targets/target0')
 			fs.__mockSetDirectory('/targets/target1')
-			// console.log(fs.__printAllFiles())
 
 			const STEP1 = protectString<ExpectationId>('step1')
 			const STEP2 = protectString<ExpectationId>('step2')

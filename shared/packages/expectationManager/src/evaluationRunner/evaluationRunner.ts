@@ -757,7 +757,7 @@ export class EvaluationRunner {
 					}
 				)
 			}
-			this.logger.debug(`trackedPackageContainer ${trackedPackageContainer.id}, took ${timer.get()} ms`)
+			this.logger.silly(`trackedPackageContainer ${trackedPackageContainer.id}, took ${timer.get()} ms`)
 		}
 	}
 }

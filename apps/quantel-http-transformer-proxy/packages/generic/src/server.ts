@@ -164,7 +164,6 @@ export class QuantelHTTPTransformerProxy {
 
 async function manifestTransform(ssxml: string): Promise<string> {
 	const ssjs = await xmlParser(ssxml)
-	// console.dir(ssjs.SmoothStreamingMedia.StreamIndex, { depth: 10 })
 	const ssm = ssjs.SmoothStreamingMedia
 	const duration = (+ssm.$.Duration / +ssm.$.TimeScale).toFixed(3)
 	const video = ssjs.SmoothStreamingMedia.StreamIndex.find((x: any): any => x.$.Type === 'video')

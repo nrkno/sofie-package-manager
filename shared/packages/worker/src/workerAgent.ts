@@ -790,10 +790,13 @@ export class WorkerAgent {
 						}, 200)
 					})
 				try {
-					const startTime = performance.now()
+					const operationStartTime = performance.now()
+
 					const result = await ((fcn as any)(...args) as ReturnType<typeof fcn>)
 
-					this.logger.debug(`Operation "${key}" took ${Math.floor(performance.now() - startTime)}ms`)
+					const operationDuration = Math.floor((performance.now() - operationStartTime) * 10) / 10
+
+					this.logger.silly(`Operation "${key}" took ${operationDuration}ms`)
 
 					let knownReason = true
 					if (result) {

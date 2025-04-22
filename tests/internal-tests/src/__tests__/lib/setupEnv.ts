@@ -291,7 +291,6 @@ export async function prepareTestEnvironment(debugLogging: boolean): Promise<Tes
 			},
 			reportPackageContainerExpectationStatus: () => {
 				// todo
-				// if (debugLogging) console.log('reportPackageContainerExpectationStatus', containerId, packageId, packageStatus)
 			},
 			messageFromWorker: async (message: ExpectationManagerWorkerAgent.MessageFromWorkerPayload.Any) => {
 				switch (message.type) {
