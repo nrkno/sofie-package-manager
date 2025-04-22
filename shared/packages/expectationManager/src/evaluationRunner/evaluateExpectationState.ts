@@ -23,6 +23,8 @@ export async function evaluateExpectationState(
 	const manager: InternalManager = runner.manager
 	const tracker: ExpectationTracker = runner.tracker
 
+	trackedExp.skipEvaluationCount = 0 // Reset the skip count
+
 	const timeSinceLastEvaluation = Date.now() - trackedExp.lastEvaluationTime
 	if (trackedExp.session.hadError) return // There was an error during the session.
 

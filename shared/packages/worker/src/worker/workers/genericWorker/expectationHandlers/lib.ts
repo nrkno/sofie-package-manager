@@ -20,6 +20,7 @@ import {
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
 	escapeFilePath,
+	KnownReason,
 } from '@sofie-package-manager/api'
 import { LocalFolderAccessorHandle } from '../../../accessorHandlers/localFolder'
 import { FileShareAccessorHandle } from '../../../accessorHandlers/fileShare'
@@ -39,6 +40,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 		if (checks.sources.length === 0) {
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: `No sources configured`,
 					tech: `No sources configured`,
@@ -49,6 +51,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 		if (!accessSourcePackageContainer) {
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the source PackageContainers`,
 					tech: `Worker doesn't have access to any of the source packageContainers (${checks.sources
@@ -64,6 +67,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 		if (checks.targets.length === 0) {
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: `No targets configured`,
 					tech: `No targets configured`,
@@ -74,6 +78,7 @@ export function checkWorkerHasAccessToPackageContainersOnPackage(
 		if (!accessTargetPackageContainer) {
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: `There is an issue with the configuration of the Worker, it doesn't have access to any of the target PackageContainers`,
 					tech: `Worker doesn't have access to any of the target packageContainers (${checks.targets
@@ -114,6 +119,7 @@ export type LookupPackageContainer<Metadata> =
 			accessor: undefined
 			// handle: undefined
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export interface LookupChecks {
 	/** Check that the accessor-handle supports reading */
@@ -132,7 +138,7 @@ export interface LookupChecks {
 		packageContainer: PackageContainerOnPackage,
 		accessorId: AccessorId,
 		accessor: AccessorOnPackage.Any
-	) => { success: true } | { success: false; reason: Reason }
+	) => { success: true } | { success: false; knownReason: KnownReason; reason: Reason }
 }
 /** Go through the Accessors and return the best one that we can use for the expectation */
 export async function lookupAccessorHandles<Metadata>(
@@ -147,7 +153,15 @@ export async function lookupAccessorHandles<Metadata>(
 	return promiseTimeout<LookupPackageContainer<Metadata>>(
 		(async () => {
 			/** undefined if all good, error string otherwise */
-			let errorReason: undefined | Reason = { user: 'No target found', tech: 'No target found' }
+			let errorReason:
+				| undefined
+				| {
+						reason: Reason
+						knownReason: KnownReason
+				  } = {
+				reason: { user: 'No target found', tech: 'No target found' },
+				knownReason: true,
+			}
 
 			// See if the file is available at any of the targets:
 			for (const { packageContainer, accessorId, accessor } of prioritizedAccessors) {
@@ -165,11 +179,15 @@ export async function lookupAccessorHandles<Metadata>(
 				const basicResult = handle.checkHandleBasic()
 				if (!basicResult.success) {
 					errorReason = {
-						user: `There is an issue with the Package: ${basicResult.reason.user})`,
-						tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-							basicResult.reason.tech
-						}`,
+						reason: {
+							user: `There is an issue with the Package: ${basicResult.reason.user})`,
+							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+								basicResult.reason.tech
+							}`,
+						},
+						knownReason: basicResult.knownReason,
 					}
+
 					continue // Maybe next accessor works?
 				}
 
@@ -178,12 +196,15 @@ export async function lookupAccessorHandles<Metadata>(
 					const readResult = handle.checkHandleRead()
 					if (!readResult.success) {
 						errorReason = {
-							user: `There is an issue with the configuration for the PackageContainer "${
-								packageContainer.label
-							}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
-							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-								readResult.reason.tech
-							}`,
+							reason: {
+								user: `There is an issue with the configuration for the PackageContainer "${
+									packageContainer.label
+								}" (on accessor "${accessor.label || accessorId}"): ${readResult.reason.user}`,
+								tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+									readResult.reason.tech
+								}`,
+							},
+							knownReason: readResult.knownReason,
 						}
 						continue // Maybe next accessor works?
 					}
@@ -204,12 +225,15 @@ export async function lookupAccessorHandles<Metadata>(
 					)
 					if (!readResult.success) {
 						errorReason = {
-							user: `Can't read the Package from PackageContainer "${
-								packageContainer.label
-							}" (on accessor "${accessor.label || accessorId}"), due to: ${readResult.reason.user}`,
-							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-								readResult.reason.tech
-							}`,
+							reason: {
+								user: `Can't read the Package from PackageContainer "${
+									packageContainer.label
+								}" (on accessor "${accessor.label || accessorId}"), due to: ${readResult.reason.user}`,
+								tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+									readResult.reason.tech
+								}`,
+							},
+							knownReason: readResult.knownReason,
 						}
 
 						continue // Maybe next accessor works?
@@ -233,10 +257,13 @@ export async function lookupAccessorHandles<Metadata>(
 					const compareVersionResult = compareActualExpectVersions(actualSourceVersion, checks.packageVersion)
 					if (!compareVersionResult.success) {
 						errorReason = {
-							user: `Won't read from the package, due to: ${compareVersionResult.reason.user}`,
-							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-								compareVersionResult.reason.tech
-							}`,
+							reason: {
+								user: `Won't read from the package, due to: ${compareVersionResult.reason.user}`,
+								tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+									compareVersionResult.reason.tech
+								}`,
+							},
+							knownReason: compareVersionResult.knownReason,
 						}
 						continue // Maybe next accessor works?
 					}
@@ -247,12 +274,15 @@ export async function lookupAccessorHandles<Metadata>(
 					const writeResult = handle.checkHandleWrite()
 					if (!writeResult.success) {
 						errorReason = {
-							user: `There is an issue with the configuration for the PackageContainer "${
-								packageContainer.label
-							}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
-							tech: `${packageContainer.label}: lookupTargets: Accessor "${
-								accessor.label || accessorId
-							}": ${writeResult.reason.tech}`,
+							reason: {
+								user: `There is an issue with the configuration for the PackageContainer "${
+									packageContainer.label
+								}" (on accessor "${accessor.label || accessorId}"): ${writeResult.reason.user}`,
+								tech: `${packageContainer.label}: lookupTargets: Accessor "${
+									accessor.label || accessorId
+								}": ${writeResult.reason.tech}`,
+							},
+							knownReason: writeResult.knownReason,
 						}
 						continue // Maybe next accessor works?
 					}
@@ -274,12 +304,15 @@ export async function lookupAccessorHandles<Metadata>(
 
 					if (!writeAccessResult.success) {
 						errorReason = {
-							user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${
-								accessor.label || accessorId
-							}"), due to: ${writeAccessResult.reason.user}`,
-							tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
-								writeAccessResult.reason.tech
-							}`,
+							reason: {
+								user: `Can't write to the PackageContainer "${packageContainer.label}" (on accessor "${
+									accessor.label || accessorId
+								}"), due to: ${writeAccessResult.reason.user}`,
+								tech: `${packageContainer.label}: Accessor "${accessor.label || accessorId}": ${
+									writeAccessResult.reason.tech
+								}`,
+							},
+							knownReason: writeAccessResult.knownReason,
 						}
 						continue // Maybe next accessor works?
 					}
@@ -289,8 +322,11 @@ export async function lookupAccessorHandles<Metadata>(
 					const checkResult = checks.customCheck(packageContainer, accessorId, accessor)
 					if (!checkResult.success) {
 						errorReason = {
-							user: checkResult.reason.user,
-							tech: checkResult.reason.tech,
+							reason: {
+								user: checkResult.reason.user,
+								tech: checkResult.reason.tech,
+							},
+							knownReason: checkResult.knownReason,
 						}
 						continue // Maybe next accessor works?
 					}
@@ -302,16 +338,14 @@ export async function lookupAccessorHandles<Metadata>(
 						accessor: accessor,
 						handle: handle,
 						ready: true,
-						// reason: `Can access target "${packageContainer.label}" through accessor "${
-						// 	accessor.label || accessorId
-						// }"`,
 					}
 				}
 			}
 			return {
 				accessor: undefined,
 				ready: false,
-				reason: errorReason,
+				reason: errorReason?.reason,
+				knownReason: errorReason?.knownReason,
 			}
 		})(),
 		INNER_ACTION_TIMEOUT,

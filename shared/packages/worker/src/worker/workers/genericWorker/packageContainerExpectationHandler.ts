@@ -8,6 +8,7 @@ import {
 	Reason,
 	assertNever,
 	PackageContainerId,
+	KnownReason,
 } from '@sofie-package-manager/api'
 
 import { GenericAccessorHandle, SetupPackageContainerMonitorsResult } from '../../accessorHandlers/genericHandle'
@@ -26,11 +27,11 @@ export async function runPackageContainerCronJob(
 	genericWorker: BaseWorker
 ): Promise<ReturnTypeRunPackageContainerCronJob> {
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'cronjob')
-	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
+	if (!lookup.ready) return { success: lookup.ready, knownReason: lookup.knownReason, reason: lookup.reason }
 
 	const result = await lookup.handle.runCronJob(packageContainer)
 
-	if (!result.success) return { success: false, reason: result.reason }
+	if (!result.success) return { success: false, knownReason: result.knownReason, reason: result.reason }
 	else return { success: true } // all good
 }
 export async function setupPackageContainerMonitors(
@@ -38,11 +39,11 @@ export async function setupPackageContainerMonitors(
 	genericWorker: BaseWorker
 ): Promise<SetupPackageContainerMonitorsResult> {
 	const lookup = await lookupPackageContainer(genericWorker, packageContainer, 'monitor')
-	if (!lookup.ready) return { success: lookup.ready, reason: lookup.reason }
+	if (!lookup.ready) return { success: lookup.ready, knownReason: lookup.knownReason, reason: lookup.reason }
 
 	const result = await lookup.handle.setupPackageContainerMonitors(packageContainer)
 
-	if (!result.success) return { success: false, reason: result.reason }
+	if (!result.success) return { success: false, reason: result.reason, knownReason: result.knownReason }
 	else
 		return {
 			success: true,
@@ -69,6 +70,7 @@ function checkWorkerHasAccessToPackageContainer(
 	} else {
 		return {
 			support: false,
+			knownReason: true,
 			reason: {
 				user: `Worker doesn't support working with PackageContainer "${containerId}" (check settings?)`,
 				tech: `Worker doesn't have any access to the PackageContainer "${containerId}"`,
@@ -129,4 +131,5 @@ export type LookupPackageContainer =
 			handle: undefined
 			ready: false
 			reason: Reason
+			knownReason: KnownReason
 	  }

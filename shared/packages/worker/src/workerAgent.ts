@@ -38,6 +38,8 @@ import {
 	WorkInProgressLocalId,
 	objectEntries,
 	Cost,
+	assertNever,
+	KnownReason,
 } from '@sofie-package-manager/api'
 
 import { AppContainerAPI } from './appContainerApi'
@@ -315,6 +317,7 @@ export class WorkerAgent {
 		if (this.isOnlyForCriticalExpectations && !exp.workOptions.requiredForPlayout) {
 			return {
 				support: false,
+				knownReason: true,
 				reason: {
 					user: 'Worker is reserved for playout-critical operations',
 					tech: 'Worker is reserved for `workOptions.requiredForPlayout` expectations',
@@ -670,8 +673,8 @@ export class WorkerAgent {
 				this.IDidSomeWork()
 				return this.createNewJobForExpectation(managerId, exp, cost, timeout)
 			},
-			removeExpectation: async (exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> => {
-				return this._worker.removeExpectation(exp)
+			removeExpectation: async (exp: Expectation.Any, reason: string): Promise<ReturnTypeRemoveExpectation> => {
+				return this._worker.removeExpectation(exp, reason)
 			},
 			cancelWorkInProgress: async (wipId: WorkInProgressLocalId): Promise<void> => {
 				return this.cancelJob(wipId)
@@ -749,7 +752,10 @@ export class WorkerAgent {
 			disposePackageContainerMonitors: async (
 				packageContainerId: PackageContainerId
 			): Promise<ReturnTypeDisposePackageContainerMonitors> => {
-				let errorReason: Reason | null = null
+				let errorReason: null | {
+					knownReason: KnownReason
+					reason: Reason
+				} = null
 
 				const activeMonitors = this.activeMonitors.get(packageContainerId)
 				if (!activeMonitors) return { success: true } // nothing to dispose of
@@ -760,18 +766,21 @@ export class WorkerAgent {
 						activeMonitors.delete(monitorId)
 					} catch (err) {
 						errorReason = {
-							user: 'Unable to stop monitor',
-							tech: `Error: ${stringifyError(err)}`,
+							knownReason: false,
+							reason: {
+								user: 'Unable to stop monitor',
+								tech: `Error: ${stringifyError(err)}`,
+							},
 						}
 					}
 				}
 				if (!errorReason) return { success: true }
-				else return { success: false, reason: errorReason }
+				else return { success: false, knownReason: errorReason.knownReason, reason: errorReason.reason }
 			},
 		})
 		// Wrap the methods, so that we can cut off communication upon termination: (this is used in tests)
 		for (const key of Object.keys(methods) as Array<keyof Omit<ExpectationManagerWorkerAgent.WorkerAgent, 'id'>>) {
-			const fcn = methods[key] as any
+			const fcn = methods[key]
 			methods[key] = (async (...args: any[]) => {
 				if (this.terminated)
 					return new Promise((_resolve, reject) => {
@@ -780,7 +789,42 @@ export class WorkerAgent {
 							reject('Timeout')
 						}, 200)
 					})
-				return this.trackException(fcn(...args))
+				try {
+					const startTime = performance.now()
+					const result = await ((fcn as any)(...args) as ReturnType<typeof fcn>)
+
+					this.logger.debug(`Operation "${key}" took ${Math.floor(performance.now() - startTime)}ms`)
+
+					let knownReason = true
+					if (result) {
+						// This is a bit of a hack, to access the various result properties type safely:
+						if ('support' in result) {
+							if (!result.support) knownReason = result.knownReason
+						} else if ('fulfilled' in result) {
+							if (!result.fulfilled) knownReason = result.knownReason
+						} else if ('removed' in result) {
+							if (!result.removed) knownReason = result.knownReason
+						} else if ('success' in result) {
+							if (!result.success) knownReason = result.knownReason
+						} else if ('ready' in result) {
+							if (!result.ready) knownReason = result.knownReason
+						} else if ('cost' in result) {
+							// do nothing
+						} else if ('wipId' in result) {
+							// do nothing
+						} else {
+							assertNever(result)
+						}
+					}
+					if (!knownReason) {
+						// treat the unsuccessful result as an error:
+						this.IFailed()
+					}
+					return result
+				} catch (err) {
+					this.IFailed()
+					throw err
+				}
 			}) as any
 		}
 		// Connect to the ExpectationManager:
@@ -799,13 +843,6 @@ export class WorkerAgent {
 			url === '__internal' ? { type: 'internal' } : { type: 'websocket', url: expectationManager.url }
 
 		await expectationManager.api.init(connectionOptions, methods)
-	}
-
-	private async trackException<ReturnType>(fnc: Promise<ReturnType>): Promise<ReturnType> {
-		fnc.catch(() => {
-			this.IFailed()
-		})
-		return fnc
 	}
 
 	private async updateListOfExpectationManagers(newExpectationManagers: { id: ExpectationManagerId; url: string }[]) {
@@ -901,19 +938,29 @@ export class WorkerAgent {
 	private intervalErrorCheck() {
 		if (this.failureCounter === 0) {
 			// reset the failurePeriodCounter when there were no exceptions in the period
-			this.failurePeriodCounter = 0
-			// everything seems fine
+
+			if (this.failurePeriodCounter > 0) {
+				this.logger.debug(
+					`Worker ErrorCheck: There was a period with 0 errors, resetting failurePeriodCounter (from ${this.failurePeriodCounter})`
+				)
+				this.failurePeriodCounter = 0
+			} else {
+				this.logger.debug(`Worker ErrorCheck: There was a period with 0 errors`)
+			}
 			return
 		}
 
 		if (this.failureCounter > 0) {
 			this.failurePeriodCounter++
+			this.logger.debug(
+				`Worker ErrorCheck: There was a period with ${this.failureCounter} errors, incrementing failurePeriodCounter (to ${this.failurePeriodCounter})`
+			)
 			this.failureCounter = 0
 		}
 
 		if (this.failurePeriodCounter >= this.config.worker.failurePeriodLimit) {
 			this.logger.error(
-				`Worker: Failed failurePeriodLimit check: ${this.failurePeriodCounter} periods with errors. Requesting spin down.`
+				`Worker ErrorCheck: Failed failurePeriodLimit check: ${this.failurePeriodCounter} periods with errors. Requesting spin down.`
 			)
 			this.requestShutDown(true)
 		}

@@ -123,6 +123,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		if (this.accessor.type !== Accessor.AccessType.FILE_SHARE) {
 			return {
 				success: false,
+				knownReason: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
 					tech: `FileShare Accessor type is not FILE_SHARE ("${this.accessor.type}")!`,
@@ -130,15 +131,24 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			}
 		}
 		if (!this.originalFolderPath)
-			return { success: false, reason: { user: `Folder path not set`, tech: `Folder path not set` } }
+			return {
+				success: false,
+				knownReason: true,
+				reason: { user: `Folder path not set`, tech: `Folder path not set` },
+			}
 		if (!this.content.onlyContainerAccess) {
 			if (!this.filePath)
-				return { success: false, reason: { user: `File path not set`, tech: `File path not set` } }
+				return {
+					success: false,
+					knownReason: true,
+					reason: { user: `File path not set`, tech: `File path not set` },
+				}
 
 			// Don't allow absolute file paths:
 			if (betterPathIsAbsolute(this.filePath))
 				return {
 					success: false,
+					knownReason: true,
 					reason: {
 						user: `File path is an absolute path`,
 						tech: `File path "${this.filePath}" is an absolute path`,
@@ -151,6 +161,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (!fullPath.startsWith(folderPath))
 				return {
 					success: false,
+					knownReason: true,
 					reason: {
 						user: `File path is outside of folder path`,
 						tech: `Full path "${fullPath}" does not start with "${folderPath}"`,
@@ -198,18 +209,21 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			if (err && (err as any).code === 'EBUSY') {
 				return {
 					success: false,
+					knownReason: true,
 					packageExists: true,
 					reason: { user: `Not able to read file (file is busy)`, tech: `${stringifyError(err, true)}` },
 				}
 			} else if (err && (err as any).code === 'ENOENT') {
 				return {
 					success: false,
+					knownReason: true,
 					packageExists: false,
 					reason: { user: `File does not exist`, tech: `${stringifyError(err, true)}` },
 				}
 			} else {
 				return {
 					success: false,
+					knownReason: false,
 					packageExists: false,
 					reason: { user: `Not able to read file`, tech: `${stringifyError(err, true)}` },
 				}
@@ -227,6 +241,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// File is not readable
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `File doesn't exist`,
 					tech: `Not able to read file: ${stringifyError(err, true)}`,
@@ -244,6 +259,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// File is not writeable
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Not able to write to container folder`,
 					tech: `Not able to write to container folder: ${stringifyError(err, true)}`,
@@ -384,7 +400,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 		}
 
 		if (!badReason) return { success: true }
-		else return { success: false, reason: badReason }
+		else return { success: false, knownReason: false, reason: badReason }
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
@@ -653,6 +669,7 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			// File is not writeable
 			return {
 				success: false,
+				knownReason: false,
 				reason: {
 					user: `Not able to read from container folder`,
 					tech: `Not able to read from container folder: ${stringifyError(err, true)}`,

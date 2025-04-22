@@ -63,9 +63,9 @@ export class WorkerAgentAPI
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
 		return this._sendMessage('workOnExpectation', exp, cost, timeout)
 	}
-	async removeExpectation(exp: Expectation.Any): Promise<ReturnTypeRemoveExpectation> {
+	async removeExpectation(exp: Expectation.Any, reason: string): Promise<ReturnTypeRemoveExpectation> {
 		// Note: This call is ultimately received in shared/packages/worker/src/workerAgent.ts
-		return this._sendMessage('removeExpectation', exp)
+		return this._sendMessage('removeExpectation', exp, reason)
 	}
 
 	async cancelWorkInProgress(wipId: WorkInProgressLocalId): Promise<void> {

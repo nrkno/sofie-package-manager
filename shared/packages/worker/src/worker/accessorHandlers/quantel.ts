@@ -25,6 +25,7 @@ import {
 	INNER_ACTION_TIMEOUT,
 	AccessorId,
 	rebaseUrl,
+	KnownReason,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { ClipData, ClipDataSummary, ServerInfo, ZoneInfo } from 'tv-automation-quantel-gateway-client/dist/quantelTypes'
@@ -79,6 +80,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (this.accessor.type !== Accessor.AccessType.QUANTEL) {
 			return {
 				success: false,
+				knownReason: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
 					tech: `Quantel Accessor type is not QUANTEL ("${this.accessor.type}")!`,
@@ -88,13 +90,19 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!this.accessor.quantelGatewayUrl)
 			return {
 				success: false,
+				knownReason: true,
 				reason: { user: `Quantel GatewayUrl not set in settings`, tech: `Accessor quantelGatewayUrl not set` },
 			}
 		if (!this.accessor.ISAUrls)
-			return { success: false, reason: { user: `ISAUrls not set in settings`, tech: `Accessor ISAUrls not set` } }
+			return {
+				success: false,
+				knownReason: true,
+				reason: { user: `ISAUrls not set in settings`, tech: `Accessor ISAUrls not set` },
+			}
 		if (!this.accessor.ISAUrls.length)
 			return {
 				success: false,
+				knownReason: true,
 				reason: { user: `ISAUrls is empty in settings`, tech: `Accessor ISAUrls is empty` },
 			}
 		if (!this.content.onlyContainerAccess) {
@@ -102,6 +110,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			if (!content.guid && !content.title)
 				return {
 					success: false,
+					knownReason: true,
 					reason: {
 						user: `Neither guid or title are set on the package (at least one should be)`,
 						tech: `Neither guid or title are set (at least one should be)`,
@@ -122,6 +131,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!this.accessor.serverId) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `serverId not set, this is required for a target`,
 					tech: `serverId not set (required for target)`,
@@ -143,6 +153,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			const content = this.getContent()
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Quantel clip "${content.guid || content.title}" not found`,
 					tech: `Quantel clip "${content.guid || content.title}" not found when querying Quantel`,
@@ -160,6 +171,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!clipSummary) {
 			return {
 				success: false,
+				knownReason: true,
 				packageExists: false,
 				reason: { user: `Clip not found`, tech: `Clip "${content.guid || content.title}" not found` },
 			}
@@ -170,6 +182,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!clipData) {
 			return {
 				success: false,
+				knownReason: true,
 				packageExists: false,
 				reason: {
 					user: `Clip not found`,
@@ -183,11 +196,12 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		if (!parseInt(clipSummary.Frames, 10)) {
 			return {
 				success: false,
+				knownReason: true,
 				packageExists: true,
 				sourceIsPlaceholder: true,
 				reason: {
 					user: `Reserved clip, not yet ready for playout`,
-					tech: `Clip "${clipSummary.ClipGUID}" has no frames`,
+					tech: `Clip "${clipSummary.ClipGUID}" has "${clipSummary.Frames}" frames`,
 				},
 			}
 		}
@@ -199,6 +213,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 			// Check that it is meaningfully playable
 			return {
 				success: false,
+				knownReason: true,
 				packageExists: true,
 				sourceIsPlaceholder: true,
 				reason: {
@@ -393,6 +408,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	async setupPackageContainerMonitors(): Promise<SetupPackageContainerMonitorsResult> {
 		return {
 			success: false,
+			knownReason: false,
 			reason: {
 				user: `There is an internal issue in Package Manager`,
 				tech: 'setupPackageContainerMonitors, not supported',
@@ -431,11 +447,13 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 	}
 
 	async getTransformerStreamURL(): Promise<
-		{ success: true; baseURL: string; url: string; fullURL: string } | { success: false; reason: Reason }
+		| { success: true; baseURL: string; url: string; fullURL: string }
+		| { success: false; knownReason: KnownReason; reason: Reason }
 	> {
 		if (!this.accessor.transformerURL)
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `transformerURL is not set in settings`,
 					tech: `transformerURL not set on accessor ${this.accessorId}`,
@@ -455,6 +473,7 @@ export class QuantelAccessorHandle<Metadata> extends GenericAccessorHandle<Metad
 		} else {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `no clip found`,
 					tech: `no clip found`,

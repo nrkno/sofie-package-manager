@@ -27,6 +27,7 @@ import {
 	ExpectationManagerId,
 	AppContainerId,
 	literal,
+	WorkerConfig,
 } from '@sofie-package-manager/api'
 import {
 	ExpectationManager,
@@ -37,7 +38,7 @@ import { CoreMockAPI } from './coreMockAPI'
 // eslint-disable-next-line node/no-extraneous-import
 import { ExpectedPackageStatusAPI } from '@sofie-automation/shared-lib/dist/package-manager/package'
 
-const defaultTestConfig: SingleAppConfig = {
+export const defaultTestConfig: SingleAppConfig = {
 	singleApp: {
 		workerCount: 1,
 		workforcePort: 0,
@@ -150,12 +151,13 @@ export async function setupExpectationManager(
 	// Initialize workers:
 	const workerAgents: Worker.WorkerAgent[] = []
 	let workerI = 0
-	const addWorker = async () => {
+	const addWorker = async (workerConfig: Partial<WorkerConfig['worker']> = {}) => {
 		const workerId = protectString<WorkerAgentId>(defaultTestConfig.worker.workerId + '_' + workerI++)
 		const workerAgent = new Worker.WorkerAgent(logger, {
 			...defaultTestConfig,
 			worker: {
 				...defaultTestConfig.worker,
+				...workerConfig,
 				workerId: workerId,
 			},
 		})
@@ -182,6 +184,7 @@ export async function setupExpectationManager(
 	}
 
 	for (let i = 0; i < workerCount; i++) {
+		console.log('Adding worker', i)
 		await addWorker()
 	}
 
@@ -204,6 +207,9 @@ export async function prepareTestEnvironment(debugLogging: boolean): Promise<Tes
 	const WAIT_SCAN_TIME = 1000 // ms
 	const WORK_TIMEOUT_TIME = 900 // ms
 	const ERROR_WAIT_TIME = 500
+
+	const ALLOW_SKIPPING_QUEUE_TIME = 3000 // ms
+	const PARALLEL_CONCURRENCY = 10
 
 	const SCALE_UP_TIME = 100
 
@@ -268,7 +274,8 @@ export async function prepareTestEnvironment(debugLogging: boolean): Promise<Tes
 				packageId: ExpectedPackageId,
 				packageStatus: Omit<ExpectedPackageStatusAPI.PackageContainerPackageStatus, 'statusChanged'> | null
 			) => {
-				if (debugLogging) console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
+				if (debugLogging)
+					console.log('reportPackageContainerPackageStatus', containerId, packageId, packageStatus)
 
 				let container = containerStatuses[containerId]
 				if (!container) {
@@ -308,6 +315,8 @@ export async function prepareTestEnvironment(debugLogging: boolean): Promise<Tes
 				FULFILLED_MONITOR_TIME: WAIT_SCAN_TIME - WAIT_JOB_TIME - 300,
 				WORK_TIMEOUT_TIME: WORK_TIMEOUT_TIME - 300,
 				ERROR_WAIT_TIME: ERROR_WAIT_TIME - 300,
+				ALLOW_SKIPPING_QUEUE_TIME,
+				PARALLEL_CONCURRENCY,
 
 				SCALE_UP_TIME: SCALE_UP_TIME,
 			},
@@ -321,6 +330,8 @@ export async function prepareTestEnvironment(debugLogging: boolean): Promise<Tes
 		WAIT_SCAN_TIME,
 		WORK_TIMEOUT_TIME,
 		ERROR_WAIT_TIME,
+		ALLOW_SKIPPING_QUEUE_TIME,
+		PARALLEL_CONCURRENCY,
 		SCALE_UP_TIME,
 		expectationManager: em.expectationManager,
 		workerAgents: em.workerAgents,
@@ -360,6 +371,8 @@ export interface TestEnvironment {
 	WAIT_SCAN_TIME: number
 	WORK_TIMEOUT_TIME: number
 	ERROR_WAIT_TIME: number
+	ALLOW_SKIPPING_QUEUE_TIME: number
+	PARALLEL_CONCURRENCY: number
 	SCALE_UP_TIME: number
 	expectationManager: ExpectationManager
 	workerAgents: Worker.WorkerAgent[]
@@ -369,7 +382,7 @@ export interface TestEnvironment {
 	containerStatuses: ContainerStatuses
 	reset: () => void
 	terminate: () => void
-	addWorker: () => Promise<WorkerAgentId>
+	addWorker: (workerConfig?: Partial<WorkerConfig['worker']>) => Promise<WorkerAgentId>
 	removeWorker: (id: WorkerAgentId) => Promise<void>
 	setLogFilterFunction: (filter: (level: string, ...args: any[]) => boolean) => void
 }

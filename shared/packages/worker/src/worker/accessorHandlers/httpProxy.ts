@@ -70,6 +70,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		if (this.accessor.type !== Accessor.AccessType.HTTP_PROXY) {
 			return {
 				success: false,
+				knownReason: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
 					tech: `HTTPProxy Accessor type is not HTTP_PROXY ("${this.accessor.type}")!`,
@@ -79,6 +80,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		if (!this.accessor.baseUrl)
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Accessor baseUrl not set`,
 					tech: `Accessor baseUrl not set`,
@@ -88,6 +90,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 			if (!this.filePath)
 				return {
 					success: false,
+					knownReason: true,
 					reason: {
 						user: `filePath not set`,
 						tech: `filePath not set`,
@@ -112,6 +115,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		if (this.isBadHTTPResponseCode(header.status)) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Got error code ${header.status} when trying to fetch package`,
 					tech: `Error when requesting url "${this.fullUrl}": [${header.status}]: ${header.statusText}`,
@@ -244,7 +248,7 @@ export class HTTPProxyAccessorHandle<Metadata> extends GenericAccessorHandle<Met
 		}
 
 		if (!badReason) return { success: true }
-		else return { success: false, reason: badReason }
+		else return { success: false, knownReason: false, reason: badReason }
 	}
 	async setupPackageContainerMonitors(
 		packageContainerExp: PackageContainerExpectation
