@@ -11,7 +11,8 @@
     },
     "peerDependencies": {
         "@sofie-automation/server-core-integration": "*",
-        "@sofie-automation/shared-lib": "*"
+        "@sofie-automation/shared-lib": "*",
+        "typescript": "*"
     },
     "dependencies": {
         "@parcel/watcher": "^2.3.0",

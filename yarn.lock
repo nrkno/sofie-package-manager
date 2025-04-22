@@ -1813,6 +1813,7 @@ __metadata:
   peerDependencies:
     "@sofie-automation/server-core-integration": "*"
     "@sofie-automation/shared-lib": "*"
+    typescript: "*"
   languageName: unknown
   linkType: soft
 
@@ -2195,11 +2196,11 @@ __metadata:
     tv-automation-quantel-gateway-client: "npm:3.1.7"
     type-fest: "npm:3.13.1"
     windows-network-drive: "npm:^4.0.1"
+    ws: "npm:^8.12.0"
     xml-js: "npm:^1.6.11"
   peerDependencies:
     "@sofie-automation/shared-lib": "*"
     typescript: "*"
-    ws: "*"
   languageName: unknown
   linkType: soft
 
