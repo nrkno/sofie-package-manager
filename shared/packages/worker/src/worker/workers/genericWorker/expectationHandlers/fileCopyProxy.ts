@@ -15,6 +15,7 @@ import {
 	stringifyError,
 	AccessorId,
 	startTimer,
+	KnownReason,
 } from '@sofie-package-manager/api'
 import {
 	isFileShareAccessorHandle,
@@ -183,7 +184,11 @@ export const FileCopyProxy: ExpectationHandlerGenericWorker = {
 			return workInProgress
 		}
 	},
-	removeExpectation: async (exp: Expectation.Any, worker: BaseWorker): Promise<ReturnTypeRemoveExpectation> => {
+	removeExpectation: async (
+		exp: Expectation.Any,
+		reason: string,
+		worker: BaseWorker
+	): Promise<ReturnTypeRemoveExpectation> => {
 		if (!isFileCopyProxy(exp)) throw new Error(`Wrong exp.type: "${exp.type}"`)
 		// Remove the file on the location
 
@@ -191,6 +196,7 @@ export const FileCopyProxy: ExpectationHandlerGenericWorker = {
 		if (!lookupTarget.ready) {
 			return {
 				removed: false,
+				knownReason: lookupTarget.knownReason,
 				reason: {
 					user: `Can't access target, due to: ${lookupTarget.reason.user}`,
 					tech: `No access to target: ${lookupTarget.reason.tech}`,
@@ -199,10 +205,11 @@ export const FileCopyProxy: ExpectationHandlerGenericWorker = {
 		}
 
 		try {
-			await lookupTarget.handle.removePackage('expectation removed')
+			await lookupTarget.handle.removePackage(reason)
 		} catch (err) {
 			return {
 				removed: false,
+				knownReason: false,
 				reason: {
 					user: `Cannot remove file due to an internal error`,
 					tech: `Cannot remove file: ${stringifyError(err)}`,
@@ -257,12 +264,13 @@ function checkAccessorForQuantelFiles(
 	_packageContainer: PackageContainerOnPackage,
 	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any
-): { success: true } | { success: false; reason: Reason } {
+): { success: true } | { success: false; knownReason: KnownReason; reason: Reason } {
 	if (accessor.type === Accessor.AccessType.QUANTEL) {
 		// We need either a fileflow or the quantel http transformer url to be set
 		if (!accessor.fileflowURL && !accessor.transformerURL) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Accessor "${accessorId}" does not have a FileFlow nor a Transformer URL set.`,
 					tech: `Accessor "${accessorId}" does not have a FileFlow nor a Transformer URL set.`,

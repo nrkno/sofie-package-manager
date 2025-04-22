@@ -77,6 +77,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (this.accessor.type !== Accessor.AccessType.ATEM_MEDIA_STORE) {
 			return {
 				success: false,
+				knownReason: false,
 				reason: {
 					user: `There is an internal issue in Package Manager`,
 					tech: `ATEM Accessor type is not ATEM ("${this.accessor.type}")!`,
@@ -86,6 +87,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (!this.accessor.mediaType) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Accessor mediaType not set`,
 					tech: `Accessor mediaType not set`,
@@ -95,6 +97,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (typeof this.accessor.bankIndex !== 'number') {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: `Accessor bankIndex not set`,
 					tech: `Accessor bankIndex not set`,
@@ -141,6 +144,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		// Reading actually not supprted, but oh well..
 		return {
 			success: false,
+			knownReason: true,
 			reason: {
 				user: 'Clip not found',
 				tech: `Clip "${this.getAtemClipName()}" not found`,
@@ -152,6 +156,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 		if (!atem.state?.media.clipPool || !atem.state?.media.stillPool) {
 			return {
 				success: false,
+				knownReason: true,
 				packageExists: false,
 				reason: {
 					user: `ATEM media pools are inaccessible`,
@@ -177,6 +182,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 			const errorHandler = (error: string) => {
 				resolve({
 					success: false,
+					knownReason: false,
 					reason: {
 						user: `Error connecting to ATEM`,
 						tech: error,
@@ -447,6 +453,7 @@ export class ATEMAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata
 	async setupPackageContainerMonitors(): Promise<SetupPackageContainerMonitorsResult> {
 		return {
 			success: false,
+			knownReason: false,
 			reason: {
 				user: `There is an internal issue in Package Manager`,
 				tech: 'setupPackageContainerMonitors, not supported',

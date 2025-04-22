@@ -27,6 +27,7 @@ export function compareActualExpectVersions(
 		if (expect.value !== undefined && actual.value && expect.value !== actual.value) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: 'Actual version differs from expected',
 					tech: `Actual ${actual.name} differ from expected (${expect.value}, ${actual.value})`,
@@ -50,6 +51,7 @@ export function compareUniversalVersions(
 		if (source.value !== target.value) {
 			return {
 				success: false,
+				knownReason: true,
 				reason: {
 					user: 'Target version differs from Source',
 					tech: `Target ${source.name} differ from source (${target.value}, ${source.value})`,

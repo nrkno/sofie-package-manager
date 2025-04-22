@@ -17,6 +17,7 @@ import { prepareTestEnvironment, TestEnvironment } from './lib/setupEnv'
 import { waitUntil, waitTime, describeForAllPlatforms } from './lib/lib'
 import { getLocalSource, getLocalTarget } from './lib/containers'
 import { WorkerAgent } from '@sofie-package-manager/worker'
+
 jest.mock('fs')
 jest.mock('child_process')
 jest.mock('windows-network-drive')
@@ -75,6 +76,9 @@ describeForAllPlatforms(
 		})
 		afterEach(() => {
 			fs.__mockSetAccessDelay(0) // Reset any access delay
+
+			fs.__emitter().removeAllListeners()
+			fs.__restoreCallbackInterceptor()
 		})
 	},
 	(_platform: string) => {
@@ -310,7 +314,9 @@ describeForAllPlatforms(
 
 			// Wait until the work have been aborted, and restarted:
 			await waitUntil(() => {
-				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(expect.stringMatching(/new|waiting/))
+				expect(env.expectationStatuses[EXP_copy0].statusInfo.status).toEqual(
+					expect.stringMatching(/new|waiting/)
+				)
 			}, env.WORK_TIMEOUT_TIME + env.WAIT_JOB_TIME_SAFE)
 
 			// Add another worker:
@@ -399,6 +405,181 @@ describeForAllPlatforms(
 
 			// clean up:
 			deferredCallbacks.forEach((cb) => cb())
+		})
+		test('Access times out, queue should continue', async () => {
+			expect(env.workerAgents).toHaveLength(1)
+
+			const listenToOpen = jest.fn(() => {
+				fs.__setCallbackInterceptor((type, cb) => {
+					if (type === 'open') {
+						// Delay the access
+						setTimeout(() => {
+							cb()
+						}, 1000)
+					} else {
+						return cb()
+					}
+				})
+			})
+			fs.__emitter().on('open', listenToOpen)
+
+			const expectationList: Array<Expectation.Any> = []
+			fs.__mockSetDirectory('/targets/target0')
+			for (let i = 0; i < 100; i++) {
+				fs.__mockSetFile(`/sources/source0/file${i}Source.mp4`, 1234)
+
+				const expectationId = protectString<ExpectationId>(`copy${i}`)
+				expectationList.push(
+					literal<Expectation.FileCopy>({
+						id: expectationId,
+						priority: 0,
+						managerId: MANAGER0,
+						fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
+						type: Expectation.Type.FILE_COPY,
+						statusReport: {
+							label: `Copy file "${expectationId}"`,
+							description: `Copy "${expectationId}" because test`,
+							displayRank: 0,
+							sendReport: true,
+						},
+						startRequirement: {
+							sources: [getLocalSource(SOURCE0, `file${i}Source.mp4`)],
+						},
+						endRequirement: {
+							targets: [getLocalTarget(TARGET0, `file${i}Target.mp4`)],
+							content: {
+								filePath: `file${i}Target.mp4`,
+							},
+							version: { type: Expectation.Version.Type.FILE_ON_DISK },
+						},
+						workOptions: {
+							requiredForPlayout: true,
+						},
+					})
+				)
+			}
+
+			const expectations: Record<ExpectationId, Expectation.Any> = {}
+			expectationList.slice(0, 9999).forEach((exp) => {
+				expectations[exp.id] = exp
+			})
+			env.expectationManager.updateExpectations(expectations)
+
+			expect(env.PARALLEL_CONCURRENCY).toBe(10)
+			expect(env.ALLOW_SKIPPING_QUEUE_TIME).toBe(3000)
+
+			// What we're expecting to happen:
+			// * We've got 100 expectations.
+			// * The Expectations take 1 second to fs.open (which is done during WAITING)
+			// * The Expectations are evaluated in batches of 10
+			// * After 3s, expectationManager should decide to skip ahead from evaluating the WAITING expectations
+			// So a short while later, we should see that some of the expectations have been fulfilled
+
+			const getStatusCount = () => {
+				const statusCount: Record<string, number> = {
+					new: 0,
+					waiting: 0,
+					ready: 0,
+					working: 0,
+					fulfilled: 0,
+				}
+				Object.values(env.expectationStatuses).forEach((v) => {
+					if (v.statusInfo.status) {
+						statusCount[v.statusInfo.status] = (statusCount[v.statusInfo.status] || 0) + 1
+					}
+				})
+				return statusCount
+			}
+			{
+				await waitTime(1000) // 1000
+				// At this time, no expectations should have moved past the WAITING state yet
+				const statuses = getStatusCount()
+				expect(statuses['waiting']).toBe(100)
+			}
+			{
+				await waitTime(1000) // 2000
+				// At this time, some expectations should have moved past the WAITING state
+				const statuses = getStatusCount()
+				expect(statuses['waiting']).toBeGreaterThan(50)
+				expect(statuses['ready']).toBeGreaterThanOrEqual(10)
+				expect(statuses['working']).toBe(0)
+				expect(statuses['fulfilled']).toBe(0)
+			}
+			{
+				await waitTime(1000) // 3000
+				// By this time, expectationManager should have skipped ahead and processed more states
+
+				const statuses = getStatusCount()
+				expect(statuses['fulfilled']).toBeGreaterThanOrEqual(1)
+			}
+		}, 5000)
+		test('Worker should try to restart itself after errors', async () => {
+			const FAILURE_PERIOD = 300
+			const FAILURE_COUNT = 3
+
+			expect(env.workerAgents).toHaveLength(1)
+			await env.removeWorker(env.workerAgents[0].id)
+			await env.addWorker({
+				// 3 * 1000 = 3000 ms to restart
+				failurePeriod: FAILURE_PERIOD,
+				failurePeriodLimit: FAILURE_COUNT,
+			})
+
+			fs.__mockSetDirectory('/sources/source0/')
+			fs.__mockSetDirectory('/targets/target0')
+			fs.__mockSetFile('/sources/source0/file0Source.mp4', 1234)
+
+			const listenToOpen = jest.fn(() => {
+				fs.__setCallbackInterceptor((type, cb) => {
+					if (type === 'open') {
+						// throw upon open:
+						// console.log('Throwing error')
+						cb(new Error('Simulated error in unit test'))
+					} else {
+						return cb()
+					}
+				})
+			})
+			fs.__emitter().on('open', listenToOpen)
+
+			const failurePeriodSpinDown = jest.fn()
+
+			env.setLogFilterFunction((level, ...args) => {
+				const str = args.join(',')
+
+				// Catch message "Worker ErrorCheck: Failed failurePeriodLimit check: 4 periods with errors. Requesting spin down."
+
+				if (
+					level === 'error' &&
+					str.match(/Worker ErrorCheck: Failed failurePeriodLimit check.*Requesting spin down/)
+				) {
+					failurePeriodSpinDown()
+					return true
+				}
+				return true
+			})
+
+			addCopyFileExpectation(
+				env,
+				EXP_copy0,
+				[getLocalSource(SOURCE0, 'file0Source.mp4')],
+				[getLocalTarget(TARGET0, 'file0Target.mp4')]
+			)
+
+			// Because the fs.open will throw, the worker should try to restart itself
+			// withing 3*1000 ms
+
+			await waitUntil(() => {
+				expect(failurePeriodSpinDown.mock.calls.length).toBeGreaterThanOrEqual(1)
+			}, FAILURE_COUNT * FAILURE_PERIOD + env.WAIT_JOB_TIME_SAFE)
+
+			// Afterwards:
+			// Remove the worker from this test, and re-add a default one:
+			expect(env.workerAgents).toHaveLength(1)
+			await env.removeWorker(env.workerAgents[0].id)
+			await env.addWorker()
+
+			// await sleep(500)
 		})
 		test.skip('One of the workers reply very slowly', async () => {
 			// The expectation should be picked up by one of the faster workers
@@ -547,8 +728,8 @@ function addCopyFileExpectation(
 			fromPackages: [{ id: PACKAGE0, expectedContentVersionHash: 'abcd1234' }],
 			type: Expectation.Type.FILE_COPY,
 			statusReport: {
-				label: `Copy file0`,
-				description: `Copy file0 because test`,
+				label: `Copy file "${expectationId}"`,
+				description: `Copy "${expectationId}" because test`,
 				displayRank: 0,
 				sendReport: true,
 			},

@@ -19,7 +19,10 @@ export async function evaluateExpectationStateRemoved({
 
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
-		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(
+			trackedExp.exp,
+			'expectation removed'
+		)
 		// Check if the removal was successful:
 		if (removed.removed) {
 			removeTheExpectation = true

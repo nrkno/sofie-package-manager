@@ -12,6 +12,7 @@ export type ReturnTypeDoYouSupportExpectation =
 	| {
 			support: false
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export type ReturnTypeGetCostFortExpectation = {
 	/** (null means "infinite cost") */
@@ -32,6 +33,7 @@ export type ReturnTypeIsExpectationReadyToStartWorkingOn =
 			sourceExists?: boolean
 			isPlaceholder?: boolean
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export type ReturnTypeIsExpectationFulfilled =
 	| {
@@ -40,6 +42,7 @@ export type ReturnTypeIsExpectationFulfilled =
 	| {
 			fulfilled: false
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export type ReturnTypeRemoveExpectation =
 	| {
@@ -48,6 +51,7 @@ export type ReturnTypeRemoveExpectation =
 	| {
 			removed: false
 			reason: Reason
+			knownReason: KnownReason
 	  }
 
 /** Configurations for any of the workers */
@@ -74,6 +78,7 @@ export type ReturnTypeDoYouSupportPackageContainer =
 	| {
 			support: false
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export type ReturnTypeRunPackageContainerCronJob =
 	| {
@@ -82,6 +87,7 @@ export type ReturnTypeRunPackageContainerCronJob =
 	| {
 			success: false
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export type ReturnTypeDisposePackageContainerMonitors =
 	| {
@@ -90,6 +96,7 @@ export type ReturnTypeDisposePackageContainerMonitors =
 	| {
 			success: false
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export type ReturnTypeSetupPackageContainerMonitors =
 	| {
@@ -99,6 +106,7 @@ export type ReturnTypeSetupPackageContainerMonitors =
 	| {
 			success: false
 			reason: Reason
+			knownReason: KnownReason
 	  }
 export interface MonitorProperties {
 	label: string
@@ -110,3 +118,13 @@ export type Cost = number | null // Note: we're using null to represent infinity
 export function valueOfCost(cost: Cost): number {
 	return cost === null ? Number.POSITIVE_INFINITY : cost
 }
+
+/**
+ * This represents a flag that indicates if the reason for being unsuccessful is well known.
+ * - It should be set to true if the reason for being unsuccessful is well known.
+ * - If should be set to if there is a chance that the error has an unknown/external origin.
+ *   If this happens enough times, a worker might eventually be restarted to try to solve the issue
+ * @see config.worker.failurePeriod.
+ * @see config.worker.failurePeriodLimit.
+ * */
+export type KnownReason = boolean

@@ -16,7 +16,10 @@ export async function evaluateExpectationStateRestarted({
 	await manager.workerAgents.assignWorkerToSession(trackedExp)
 	if (trackedExp.session.assignedWorker) {
 		// Start by removing the expectation
-		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(trackedExp.exp)
+		const removed = await trackedExp.session.assignedWorker.worker.removeExpectation(
+			trackedExp.exp,
+			'expectation restarted'
+		)
 		if (removed.removed) {
 			tracker.trackedExpectationAPI.updateTrackedExpectationStatus(trackedExp, {
 				state: ExpectedPackageStatusAPI.WorkStatusState.NEW,

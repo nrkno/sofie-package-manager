@@ -140,7 +140,7 @@ jobs:
 
   trivy-scanning:
     name: Run Trivy scan for ${{ matrix.repo }}
-    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.1.1
+    uses: nrkno/github-workflow-docker-build-push/.github/workflows/workflow.yaml@v4.3.0
     strategy:
       matrix:
         repo: [package-manager, workforce, http-server, quantel-http-transformer-proxy]
