@@ -1,43 +1,43 @@
 {
-    "name": "@tests/internal-tests",
-    "version": "1.52.0-alpha.0",
-    "description": "Internal tests",
-    "private": true,
-    "scripts": {
-        "__build": "run -T rimraf dist && yarn build:main",
-        "build:main": "tsc -p tsconfig.json",
-        "test": "jest --runInBand --forceExit"
-    },
-    "peerDependencies": {
-        "@sofie-automation/server-core-integration": "*",
-        "@sofie-automation/shared-lib": "*",
-        "typescript": "*"
-    },
-    "devDependencies": {
-        "deep-extend": "^0.6.0",
-        "jest": "*",
-        "tv-automation-quantel-gateway-client": "^3.1.7"
-    },
-    "dependencies": {
-        "@http-server/generic": "1.52.0-alpha.0",
-        "@package-manager/generic": "1.52.0-alpha.0",
-        "@sofie-package-manager/api": "1.52.0-alpha.0",
-        "@sofie-package-manager/expectation-manager": "1.52.0-alpha.0",
-        "@sofie-package-manager/worker": "1.52.0-alpha.0",
-        "@sofie-package-manager/workforce": "1.52.0-alpha.0",
-        "underscore": "^1.12.0",
-        "windows-network-drive": "^4.0.1"
-    },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-    "engines": {
-        "node": ">=18"
-    },
-    "lint-staged": {
-        "*.{js,css,json,md,scss}": [
-            "prettier"
-        ],
-        "*.{ts,tsx}": [
-            "eslint"
-        ]
-    }
+	"name": "@tests/internal-tests",
+	"version": "1.52.0-alpha.0",
+	"description": "Internal tests",
+	"private": true,
+	"scripts": {
+		"__build": "run -T rimraf dist && yarn build:main",
+		"build:main": "tsc -p tsconfig.json",
+		"test": "jest --runInBand --forceExit"
+	},
+	"peerDependencies": {
+		"@sofie-automation/server-core-integration": "*",
+		"@sofie-automation/shared-lib": "*",
+		"typescript": "*"
+	},
+	"devDependencies": {
+		"deep-extend": "^0.6.0",
+		"jest": "*",
+		"tv-automation-quantel-gateway-client": "^4.0.0"
+	},
+	"dependencies": {
+		"@http-server/generic": "1.52.0-alpha.0",
+		"@package-manager/generic": "1.52.0-alpha.0",
+		"@sofie-package-manager/api": "1.52.0-alpha.0",
+		"@sofie-package-manager/expectation-manager": "1.52.0-alpha.0",
+		"@sofie-package-manager/worker": "1.52.0-alpha.0",
+		"@sofie-package-manager/workforce": "1.52.0-alpha.0",
+		"underscore": "^1.12.0",
+		"windows-network-drive": "^4.0.1"
+	},
+	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+	"engines": {
+		"node": ">=18"
+	},
+	"lint-staged": {
+		"*.{js,css,json,md,scss}": [
+			"prettier"
+		],
+		"*.{ts,tsx}": [
+			"eslint"
+		]
+	}
 }
