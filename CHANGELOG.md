@@ -3,6 +3,40 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.52.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.51.0-alpha.2...v1.52.0-alpha.1) (2025-05-05)
+
+
+### Bug Fixes
+
+* add .skipEvaluationCount property ([1b0246b](https://github.com/nrkno/tv-automation-package-manager/commit/1b0246b2a5881bbdb0145ae0a3d113f00e1ed6cd))
+* add `knownReason` to the accessorHandle/expectationHandler method responses. ([f6a9f37](https://github.com/nrkno/tv-automation-package-manager/commit/f6a9f3708f0d8effcb5c2121ccd5964c44583dba))
+* allow expectationManager to skip ahead in state processing ([e215d1f](https://github.com/nrkno/tv-automation-package-manager/commit/e215d1fd907f416348b2dbe06aaf7354be4ab947))
+
+
+### Reverts
+
+* Revert "chore: modify MESSAGE_TIMEOUT to 30s, tor troubleshooting" ([61bf908](https://github.com/nrkno/tv-automation-package-manager/commit/61bf908d9031614a2e101ca6ae372aaaddfad3af))
+
+
+
+# [1.52.0-alpha.0](https://github.com/nrkno/tv-automation-package-manager/compare/v1.51.0-alpha.1...v1.52.0-alpha.0) (2025-01-20)
+
+
+### Bug Fixes
+
+* compatibility with Sofie Core R52 ([8864bfd](https://github.com/nrkno/tv-automation-package-manager/commit/8864bfdff92d7d915c7e65817480c9e51b5eb44f))
+* package manager not following publication rules ([92c306c](https://github.com/nrkno/tv-automation-package-manager/commit/92c306c06d49e8d5debc423e49123306ee4dfa6b))
+
+
+### Features
+
+* add more dockerfiles ([46d34ff](https://github.com/nrkno/tv-automation-package-manager/commit/46d34ff1dbe9a828b13a468f692ab9f37364340d))
+* rework ci building to build additional packages and rely on build matrix ([420bb70](https://github.com/nrkno/tv-automation-package-manager/commit/420bb70c7d9b6b2ce5d4a7a3df63f119578d5b11))
+
+
+
+
+
 # [1.51.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.51.0-alpha.1...v1.51.0-alpha.2) (2025-02-10)
 
 

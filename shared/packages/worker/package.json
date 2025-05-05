@@ -1,6 +1,6 @@
 {
 	"name": "@sofie-package-manager/worker",
-	"version": "1.52.0-alpha.0",
+	"version": "1.52.0-alpha.1",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"license": "MIT",
@@ -28,7 +28,7 @@
 	},
 	"dependencies": {
 		"@parcel/watcher": "^2.3.0",
-		"@sofie-package-manager/api": "1.52.0-alpha.0",
+		"@sofie-package-manager/api": "1.52.0-alpha.1",
 		"abort-controller": "^3.0.0",
 		"atem-connection": "^3.2.0",
 		"csv-parser": "^3.0.0",

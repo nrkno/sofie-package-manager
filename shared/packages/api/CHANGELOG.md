@@ -3,6 +3,31 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.52.0-alpha.1](https://github.com/nrkno/sofie-package-manager/compare/v1.51.0-alpha.2...v1.52.0-alpha.1) (2025-05-05)
+
+
+### Bug Fixes
+
+* add `knownReason` to the accessorHandle/expectationHandler method responses. ([f6a9f37](https://github.com/nrkno/sofie-package-manager/commit/f6a9f3708f0d8effcb5c2121ccd5964c44583dba))
+
+
+### Reverts
+
+* Revert "chore: modify MESSAGE_TIMEOUT to 30s, tor troubleshooting" ([61bf908](https://github.com/nrkno/sofie-package-manager/commit/61bf908d9031614a2e101ca6ae372aaaddfad3af))
+
+
+
+# [1.52.0-alpha.0](https://github.com/nrkno/sofie-package-manager/compare/v1.51.0-alpha.1...v1.52.0-alpha.0) (2025-01-20)
+
+
+### Features
+
+* add more dockerfiles ([46d34ff](https://github.com/nrkno/sofie-package-manager/commit/46d34ff1dbe9a828b13a468f692ab9f37364340d))
+
+
+
+
+
 # [1.51.0-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.51.0-alpha.1...v1.51.0-alpha.2) (2025-02-10)
 
 
