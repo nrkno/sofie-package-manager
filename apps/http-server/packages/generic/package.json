@@ -1,51 +1,51 @@
 {
-    "name": "@http-server/generic",
-    "version": "1.52.0-alpha.1",
-    "private": true,
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "scripts": {
-        "build": "yarn rimraf dist && node scripts/prebuild.js && yarn build:main",
-        "build:main": "tsc -p tsconfig.json",
-        "__test": "jest"
-    },
-    "dependencies": {
-        "@koa/cors": "^5.0.0",
-        "@sofie-package-manager/api": "1.52.0-alpha.1",
-        "koa": "^2.14.1",
-        "koa-bodyparser": "^4.3.0",
-        "koa-range": "^0.3.0",
-        "koa-router": "^8.0.8",
-        "mime-types": "^2.1.28",
-        "pechkin": "^1.0.1",
-        "pretty-bytes": "^5.5.0",
-        "tslib": "^2.1.0",
-        "underscore": "^1.12.0",
-        "yargs": "^17.7.2"
-    },
-    "devDependencies": {
-        "@types/busboy": "^1.5.0",
-        "@types/koa": "^2.13.5",
-        "@types/koa-bodyparser": "^4.3.12",
-        "@types/koa-range": "^0.3.2",
-        "@types/koa-router": "^7.4.0",
-        "@types/koa__cors": "^4.0.0",
-        "@types/mime-types": "^2.1.0",
-        "@types/node": "^18",
-        "@types/underscore": "^1.10.24",
-        "@types/yargs": "^17.0.24",
-        "rimraf": "^5.0.5"
-    },
-    "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
-    "engines": {
-        "node": ">=18"
-    },
-    "lint-staged": {
-        "*.{js,css,json,md,scss}": [
-            "prettier"
-        ],
-        "*.{ts,tsx}": [
-            "eslint"
-        ]
-    }
+	"name": "@http-server/generic",
+	"version": "1.52.0-alpha.1",
+	"private": true,
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"build": "yarn rimraf dist && node scripts/prebuild.js && yarn build:main",
+		"build:main": "tsc -p tsconfig.json",
+		"__test": "jest"
+	},
+	"dependencies": {
+		"@koa/cors": "^5.0.0",
+		"@sofie-package-manager/api": "1.52.0-alpha.1",
+		"koa": "^2.16.1",
+		"koa-bodyparser": "^4.3.0",
+		"koa-range": "^0.3.0",
+		"koa-router": "^8.0.8",
+		"mime-types": "^2.1.28",
+		"pechkin": "^1.0.1",
+		"pretty-bytes": "^5.5.0",
+		"tslib": "^2.1.0",
+		"underscore": "^1.12.0",
+		"yargs": "^17.7.2"
+	},
+	"devDependencies": {
+		"@types/busboy": "^1.5.0",
+		"@types/koa": "^2.13.5",
+		"@types/koa-bodyparser": "^4.3.12",
+		"@types/koa-range": "^0.3.2",
+		"@types/koa-router": "^7.4.0",
+		"@types/koa__cors": "^4.0.0",
+		"@types/mime-types": "^2.1.0",
+		"@types/node": "^18",
+		"@types/underscore": "^1.10.24",
+		"@types/yargs": "^17.0.24",
+		"rimraf": "^5.0.5"
+	},
+	"prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
+	"engines": {
+		"node": ">=18"
+	},
+	"lint-staged": {
+		"*.{js,css,json,md,scss}": [
+			"prettier"
+		],
+		"*.{ts,tsx}": [
+			"eslint"
+		]
+	}
 }
