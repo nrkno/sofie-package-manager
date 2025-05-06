@@ -50,6 +50,7 @@ import { IWorkInProgress } from './worker/lib/workInProgress'
 import { BaseWorker } from './worker/worker'
 import { GenericWorker } from './worker/workers/genericWorker/genericWorker'
 import { WorkforceAPI } from './workforceApi'
+import { DummyAppContainerAPI, NoClientConnectionOptions } from './dummyAppContainerApi'
 
 /** The WorkerAgent is a front for a Worker (@see GenericWorker).
  * It is intended to be the main class in its worker-process, and handles things like communication with the WorkForce or the Expectation-Manager
@@ -64,7 +65,7 @@ export class WorkerAgent {
 	private currentJobs: CurrentJob[] = []
 	public readonly id: WorkerAgentId
 	private workForceConnectionOptions: ClientConnectionOptions
-	private appContainerConnectionOptions: ClientConnectionOptions
+	private appContainerConnectionOptions: ClientConnectionOptions | NoClientConnectionOptions
 
 	private expectationManagers: Map<
 		ExpectationManagerId,
@@ -100,6 +101,27 @@ export class WorkerAgent {
 		this.logger = logger.category('WorkerAgent')
 		this.id = config.worker.workerId
 
+		this.workForceConnectionOptions = this.config.worker.workforceURL
+			? {
+					type: 'websocket',
+					url: this.config.worker.workforceURL,
+			  }
+			: {
+					type: 'internal',
+			  }
+		this.appContainerConnectionOptions = !this.config.worker.appContainerURL
+			? {
+					type: 'none',
+			  }
+			: this.config.worker.appContainerURL === 'internal'
+			? {
+					type: 'internal',
+			  }
+			: {
+					type: 'websocket',
+					url: this.config.worker.appContainerURL,
+			  }
+
 		this.workforceAPI = new WorkforceAPI(this.id, this.logger)
 		this.workforceAPI.on('disconnected', () => {
 			this.logger.warn('Worker: Workforce disconnected')
@@ -127,34 +149,22 @@ export class WorkerAgent {
 			this.logger.error(`WorkerAgent: WorkforceAPI error event: ${stringifyError(err)}`)
 		})
 
-		this.appContainerAPI = new AppContainerAPI(this.id, this.logger)
-		this.appContainerAPI.on('disconnected', () => {
-			this.logger.warn('Worker: AppContainer disconnected')
-		})
-		this.appContainerAPI.on('connected', () => {
-			this.logger.info('Worker: AppContainer connected')
-			this.initAppContainerAPIPromise?.resolve() // To finish the init() function
-		})
-		this.appContainerAPI.on('error', (err) => {
-			this.logger.error(`WorkerAgent: AppContainerAPI error event: ${stringifyError(err)}`)
-		})
+		if (this.appContainerConnectionOptions.type === 'none') {
+			this.appContainerAPI = new DummyAppContainerAPI(this.id, this.logger)
+		} else {
+			this.appContainerAPI = new AppContainerAPI(this.id, this.logger)
+			this.appContainerAPI.on('disconnected', () => {
+				this.logger.warn('Worker: AppContainer disconnected')
+			})
+			this.appContainerAPI.on('connected', () => {
+				this.logger.info('Worker: AppContainer connected')
+				this.initAppContainerAPIPromise?.resolve() // To finish the init() function
+			})
+			this.appContainerAPI.on('error', (err) => {
+				this.logger.error(`WorkerAgent: AppContainerAPI error event: ${stringifyError(err)}`)
+			})
+		}
 
-		this.workForceConnectionOptions = this.config.worker.workforceURL
-			? {
-					type: 'websocket',
-					url: this.config.worker.workforceURL,
-			  }
-			: {
-					type: 'internal',
-			  }
-		this.appContainerConnectionOptions = this.config.worker.appContainerURL
-			? {
-					type: 'websocket',
-					url: this.config.worker.appContainerURL,
-			  }
-			: {
-					type: 'internal',
-			  }
 		this.isOnlyForCriticalExpectations = this.config.worker.pickUpCriticalExpectationsOnly
 		// Todo: Different types of workers:
 		this._worker = new GenericWorker(
@@ -223,20 +233,26 @@ export class WorkerAgent {
 		if (this.appContainerConnectionOptions.type === 'websocket') {
 			this.logger.info(`Worker: Connecting to AppContainer at "${this.appContainerConnectionOptions.url}"`)
 		}
-		const pAppContainer = new Promise<void>((resolve, reject) => {
-			this.initAppContainerAPIPromise = { resolve, reject }
-		})
-		await this.appContainerAPI.init(this.appContainerConnectionOptions, {
-			setLogLevel: async (logLevel: LogLevel) => this.setLogLevel(logLevel),
-			_debugKill: async () => this._debugKill(),
 
-			doYouSupportExpectation: async (exp: Expectation.Any) => this.doesWorkerSupportExpectation(exp),
-			doYouSupportPackageContainer: async (packageContainer: PackageContainerExpectation) =>
-				this.doesWorkerSupportPackageContainer(packageContainer),
-			setSpinDownTime: async (spinDownTime: number) => this.setSpinDownTime(spinDownTime),
-		})
-		// Wait for this.appContainerAPI to be ready before continuing:
-		await pAppContainer
+		if (
+			this.appContainerConnectionOptions.type === 'internal' ||
+			this.appContainerConnectionOptions.type === 'websocket'
+		) {
+			const pAppContainer = new Promise<void>((resolve, reject) => {
+				this.initAppContainerAPIPromise = { resolve, reject }
+			})
+			await this.appContainerAPI.init(this.appContainerConnectionOptions, {
+				setLogLevel: async (logLevel: LogLevel) => this.setLogLevel(logLevel),
+				_debugKill: async () => this._debugKill(),
+
+				doYouSupportExpectation: async (exp: Expectation.Any) => this.doesWorkerSupportExpectation(exp),
+				doYouSupportPackageContainer: async (packageContainer: PackageContainerExpectation) =>
+					this.doesWorkerSupportPackageContainer(packageContainer),
+				setSpinDownTime: async (spinDownTime: number) => this.setSpinDownTime(spinDownTime),
+			})
+			// Wait for this.appContainerAPI to be ready before continuing:
+			await pAppContainer
+		}
 
 		// Connect to WorkForce:
 		if (this.workForceConnectionOptions.type === 'websocket') {
