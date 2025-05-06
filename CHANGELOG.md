@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.52.0-alpha.2](https://github.com/nrkno/tv-automation-package-manager/compare/v1.52.0-alpha.1...v1.52.0-alpha.2) (2025-05-06)
+
+
+### Bug Fixes
+
+* update koa to 2.16.1 to resolve CVE-2025-25200 ([7b4cf05](https://github.com/nrkno/tv-automation-package-manager/commit/7b4cf0527db46eb516b65ecb74845b3a8441811e))
+
+
+### Features
+
+* **worker:** when appContainerURL is not specified, run standalone, for external management ([7feb156](https://github.com/nrkno/tv-automation-package-manager/commit/7feb1569d1a3898186811731ff27c4bea209bc33))
+
+
+
+
+
 # [1.52.0-alpha.1](https://github.com/nrkno/tv-automation-package-manager/compare/v1.51.0-alpha.2...v1.52.0-alpha.1) (2025-05-05)
 
 
