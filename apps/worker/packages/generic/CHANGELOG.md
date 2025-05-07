@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.52.0-alpha.3](https://github.com/nrkno/tv-automation-package-manager/compare/v1.52.0-alpha.2...v1.52.0-alpha.3) (2025-05-07)
+
+**Note:** Version bump only for package @worker/generic
+
+
+
+
+
 # [1.52.0-alpha.2](https://github.com/nrkno/sofie-package-manager/compare/v1.52.0-alpha.1...v1.52.0-alpha.2) (2025-05-06)
 
 **Note:** Version bump only for package @worker/generic

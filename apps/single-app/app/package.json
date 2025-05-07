@@ -1,6 +1,6 @@
 {
     "name": "@single-app/app",
-    "version": "1.52.0-alpha.2",
+    "version": "1.52.0-alpha.3",
     "description": "Package Manager, http-proxy etc.. all in one application",
     "private": true,
     "scripts": {
@@ -16,12 +16,12 @@
         "typescript": "*"
     },
     "dependencies": {
-        "@appcontainer-node/generic": "1.52.0-alpha.2",
+        "@appcontainer-node/generic": "1.52.0-alpha.3",
         "@http-server/generic": "1.52.0-alpha.2",
-        "@package-manager/generic": "1.52.0-alpha.2",
+        "@package-manager/generic": "1.52.0-alpha.3",
         "@quantel-http-transformer-proxy/generic": "1.52.0-alpha.2",
         "@sofie-package-manager/api": "1.52.0-alpha.1",
-        "@sofie-package-manager/worker": "1.52.0-alpha.2",
+        "@sofie-package-manager/worker": "1.52.0-alpha.3",
         "@sofie-package-manager/workforce": "1.52.0-alpha.1",
         "underscore": "^1.12.0"
     },
