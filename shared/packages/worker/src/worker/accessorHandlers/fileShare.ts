@@ -457,6 +457,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 
 		let handlingDone = false
 
+		if (process.platform !== 'win32') return // Only supported on Windows
+
 		if (!this.disableDriveMapping && this.worker.type === GenericWorker.type) {
 			// On windows, we can assign the share to a drive letter, as that increases performance quite a lot:
 			const genericWorker = this.worker as GenericWorker
@@ -641,6 +643,8 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 	}
 	private async getMountedDriveLetters(reason: string): Promise<{ [driveLetter: string]: networkDrive.DriveInfo }> {
 		let usedDriveLetters: { [driveLetter: string]: networkDrive.DriveInfo } = {}
+
+		if (process.platform !== 'win32') return usedDriveLetters // Only supported on Windows
 
 		try {
 			// usedDriveLetters = (await networkDrive.list()) as { [driveLetter: string]: string }
