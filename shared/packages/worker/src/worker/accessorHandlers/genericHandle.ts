@@ -23,14 +23,14 @@ export abstract class GenericAccessorHandle<Metadata> {
 	protected _accessor: AccessorOnPackage.Any
 	protected _content: unknown
 	public readonly type: string
-	public readonly expectationId: string
+	public readonly context: AccessorContext
 	constructor(arg: AccessorConstructorProps<AccessorOnPackage.Any> & { type: string }) {
 		this.worker = arg.worker
 		this.accessorId = arg.accessorId
 		this._accessor = arg.accessor
 		this._content = arg.content
 		this.type = arg.type
-		this.expectationId = arg.expectationId
+		this.context = arg.context
 
 		// Wrap all accessor methods which return promises into promiseTimeout.
 		// This is to get a finer grained logging, in case of a timeout:
@@ -214,14 +214,19 @@ export abstract class GenericAccessorHandle<Metadata> {
 		}
 	}
 	protected logOperation(message: string): void {
-		this.worker.logOperation(`${stringMaxLength(this.expectationId, 16)}: ${message}`)
+		this.worker.logOperation(`${this.getIdentifier()}: ${message}`)
 	}
 	protected logWorkOperation(
 		operationName: string,
 		source: string | GenericAccessorHandle<any>,
 		target: string | GenericAccessorHandle<any>
 	): { logDone: () => void } {
-		return this.worker.logWorkOperation(this.expectationId, operationName, source, target)
+		return this.worker.logWorkOperation(this.getIdentifier(), operationName, source, target)
+	}
+	private getIdentifier(): string {
+		return 'expectationId' in this.context
+			? stringMaxLength(this.context.expectationId, 16)
+			: `packageContainer ${stringMaxLength(this.context.packageContainerId, 16)}`
 	}
 }
 
@@ -311,7 +316,15 @@ export interface AccessorConstructorProps<AccessorType extends AccessorOnPackage
 	worker: BaseWorker
 	accessorId: AccessorId
 	accessor: AccessorType
-	expectationId: string
+	context: AccessorContext
 	content: any
 	workOptions: any
 }
+
+export type AccessorContext =
+	| {
+			expectationId: string
+	  }
+	| {
+			packageContainerId: string
+	  }

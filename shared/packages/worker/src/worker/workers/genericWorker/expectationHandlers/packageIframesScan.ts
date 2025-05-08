@@ -302,7 +302,7 @@ async function lookupIframesSources(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.startRequirement.sources,
-		exp.id,
+		{ expectationId: exp.id },
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -319,7 +319,7 @@ async function lookupIframesTargets(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.endRequirement.targets,
-		exp.id,
+		{ expectationId: exp.id },
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

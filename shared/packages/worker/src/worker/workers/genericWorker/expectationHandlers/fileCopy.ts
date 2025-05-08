@@ -129,7 +129,7 @@ async function lookupCopySources(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.startRequirement.sources,
-		exp.id,
+		{ expectationId: exp.id },
 		exp.endRequirement.content,
 		exp.workOptions,
 		{
@@ -147,7 +147,7 @@ async function lookupCopyTargets(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.endRequirement.targets,
-		exp.id,
+		{ expectationId: exp.id },
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

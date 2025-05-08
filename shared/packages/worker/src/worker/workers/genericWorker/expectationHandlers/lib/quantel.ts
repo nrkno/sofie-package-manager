@@ -24,7 +24,7 @@ export function getSourceHTTPHandle(
 			// networkId?: string
 			url: thumbnailURL.url,
 		}),
-		expectationId,
+		{ expectationId },
 		{ filePath: thumbnailURL.url },
 		{}
 	)

@@ -110,7 +110,7 @@ async function lookupPackageContainer(
 	return (await lookupAccessorHandles(
 		worker,
 		packageContainers,
-		packageContainer.id,
+		{ packageContainerId: packageContainer.id },
 		{
 			// This is somewhat of a hack, it makes the AccessorHandlers to not look to close on the package-related content data,
 			// in order to still be able to use them as-is for PackageContainer-related stuff.

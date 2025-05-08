@@ -316,7 +316,7 @@ async function lookupSources(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.startRequirement.sources,
-		exp.id,
+		{ expectationId: exp.id },
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -334,7 +334,7 @@ async function lookupTargets(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.endRequirement.targets,
-		exp.id,
+		{ expectationId: exp.id },
 		{
 			filePath,
 		},
@@ -523,7 +523,7 @@ class HTMLRenderHandler {
 					folderPath: this.outputPath,
 					filePath: tempFileName,
 				},
-				expectationId: this.exp.id,
+				context: { expectationId: this.exp.id },
 				content: {},
 				workOptions: {},
 			})

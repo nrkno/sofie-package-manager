@@ -166,7 +166,7 @@ async function lookupTargets(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.endRequirement.targets,
-		exp.id,
+		{ expectationId: exp.id },
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

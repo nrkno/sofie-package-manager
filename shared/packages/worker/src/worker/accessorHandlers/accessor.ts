@@ -2,7 +2,7 @@ import { assertNever, Accessor, AccessorOnPackage, AccessorId } from '@sofie-pac
 import { BaseWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
-import { AccessorConstructorProps, GenericAccessorHandle } from './genericHandle'
+import { AccessorConstructorProps, AccessorContext, GenericAccessorHandle } from './genericHandle'
 import { HTTPAccessorHandle } from './http'
 import { HTTPProxyAccessorHandle } from './httpProxy'
 import { LocalFolderAccessorHandle } from './localFolder'
@@ -13,7 +13,7 @@ export function getAccessorHandle<Metadata>(
 	worker: BaseWorker,
 	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any,
-	expectationId: string,
+	accessorContext: AccessorContext,
 	content: unknown,
 	workOptions: unknown
 ): GenericAccessorHandle<Metadata> {
@@ -23,7 +23,7 @@ export function getAccessorHandle<Metadata>(
 		worker: worker,
 		accessorId: accessorId,
 		accessor: accessor as any,
-		expectationId: expectationId,
+		context: accessorContext,
 		content: content as any,
 		workOptions: workOptions as any,
 	}

@@ -38,7 +38,7 @@ test('checkHandleBasic', () => {
 			worker,
 			accessorId: protectString('share0'),
 			accessor,
-			expectationId: 'exp0',
+			context: { expectationId: 'exp0' },
 			content,
 			workOptions,
 		})
