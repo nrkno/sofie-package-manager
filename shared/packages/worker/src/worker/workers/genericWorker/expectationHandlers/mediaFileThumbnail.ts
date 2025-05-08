@@ -352,6 +352,7 @@ async function lookupThumbnailSources(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.startRequirement.sources,
+		{ expectationId: exp.id },
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -368,6 +369,7 @@ async function lookupThumbnailTargets(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.endRequirement.targets,
+		{ expectationId: exp.id },
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

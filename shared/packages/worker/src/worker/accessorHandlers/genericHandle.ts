@@ -9,6 +9,7 @@ import {
 	promiseTimeout,
 	INNER_ACTION_TIMEOUT,
 	KnownReason,
+	stringMaxLength,
 } from '@sofie-package-manager/api'
 import { BaseWorker } from '../worker'
 import { MonitorInProgress } from '../lib/monitorInProgress'
@@ -17,13 +18,20 @@ import { MonitorInProgress } from '../lib/monitorInProgress'
  * The AccessorHandle provides a common API to manipulate Packages across multiple types of Accessors
  */
 export abstract class GenericAccessorHandle<Metadata> {
-	constructor(
-		protected worker: BaseWorker,
-		public readonly accessorId: AccessorId,
-		protected _accessor: AccessorOnPackage.Any,
-		protected _content: unknown,
-		public readonly type: string
-	) {
+	protected worker: BaseWorker
+	public readonly accessorId: AccessorId
+	protected _accessor: AccessorOnPackage.Any
+	protected _content: unknown
+	public readonly type: string
+	public readonly context: AccessorContext
+	constructor(arg: AccessorConstructorProps<AccessorOnPackage.Any> & { type: string }) {
+		this.worker = arg.worker
+		this.accessorId = arg.accessorId
+		this._accessor = arg.accessor
+		this._content = arg.content
+		this.type = arg.type
+		this.context = arg.context
+
 		// Wrap all accessor methods which return promises into promiseTimeout.
 		// This is to get a finer grained logging, in case of a timeout:
 
@@ -58,7 +66,7 @@ export abstract class GenericAccessorHandle<Metadata> {
 						`Timeout after ${duration} ms in ${methodName} for Accessor "${
 							this.accessorId
 						}". Context: ${JSON.stringify({
-							type: type,
+							type: this.type,
 							accessor: this._accessor,
 							content: this._content,
 						})}`
@@ -205,6 +213,21 @@ export abstract class GenericAccessorHandle<Metadata> {
 			return this.setCache(key, defaultValue)
 		}
 	}
+	protected logOperation(message: string): void {
+		this.worker.logOperation(`${this.getIdentifier()}: ${message}`)
+	}
+	protected logWorkOperation(
+		operationName: string,
+		source: string | GenericAccessorHandle<any>,
+		target: string | GenericAccessorHandle<any>
+	): { logDone: () => void } {
+		return this.worker.logWorkOperation(this.getIdentifier(), operationName, source, target)
+	}
+	private getIdentifier(): string {
+		return 'expectationId' in this.context
+			? stringMaxLength(this.context.expectationId, 16)
+			: `packageContainer ${stringMaxLength(this.context.packageContainerId, 16)}`
+	}
 }
 
 /** Default result returned from most accessorHandler-methods when the result was a success */
@@ -288,3 +311,20 @@ export interface PackageReadInfoWrap {
 export interface PackageOperation {
 	logDone: () => void
 }
+
+export interface AccessorConstructorProps<AccessorType extends AccessorOnPackage.Any> {
+	worker: BaseWorker
+	accessorId: AccessorId
+	accessor: AccessorType
+	context: AccessorContext
+	content: any
+	workOptions: any
+}
+
+export type AccessorContext =
+	| {
+			expectationId: string
+	  }
+	| {
+			packageContainerId: string
+	  }

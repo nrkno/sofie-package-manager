@@ -89,7 +89,7 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 				knownReason: httpStreamURL.knownReason,
 				reason: httpStreamURL.reason,
 			}
-		const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, httpStreamURL)
+		const sourceHTTPHandle = getSourceHTTPHandle(worker, exp.id, lookupSource.handle, httpStreamURL)
 
 		const tryReadingHTTP = await sourceHTTPHandle.tryPackageRead()
 		if (!tryReadingHTTP.success)
@@ -199,7 +199,7 @@ export const QuantelClipPreview: ExpectationHandlerGenericWorker = {
 			// This is a bit special, as we use the Quantel HTTP-transformer to get a HLS-stream of the video:
 			const httpStreamURL = await sourceHandle.getTransformerStreamURL()
 			if (!httpStreamURL.success) throw new Error(httpStreamURL.reason.tech)
-			const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, httpStreamURL)
+			const sourceHTTPHandle = getSourceHTTPHandle(worker, exp.id, lookupSource.handle, httpStreamURL)
 
 			let ffMpegProcess: FFMpegProcess | undefined
 			const workInProgress = new WorkInProgress({ workLabel: 'Generating preview' }, async () => {
@@ -326,6 +326,7 @@ async function lookupPreviewSources(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.startRequirement.sources,
+		{ expectationId: exp.id },
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -342,6 +343,7 @@ async function lookupPreviewTargets(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.endRequirement.targets,
+		{ expectationId: exp.id },
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

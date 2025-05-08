@@ -783,7 +783,7 @@ export class AppContainer {
 						messageData = _.omit(json, ['message', 'localTimestamp', 'level'])
 					}
 				} catch {
-					// There was an error parsing the message (the probably message wasn't JSON).
+					// There was an error parsing the message (the message probably wasn't JSON).
 				}
 
 				if (parsedMessage === undefined) {

@@ -34,7 +34,14 @@ test('checkHandleBasic', () => {
 			Expectation.WorkOptions.UseTemporaryFilePath = {}
 	) {
 		accessor.type = Accessor.AccessType.LOCAL_FOLDER
-		return new LocalFolderAccessorHandle(worker, protectString('local0'), accessor, content, workOptions)
+		return new LocalFolderAccessorHandle({
+			worker,
+			accessorId: protectString('local0'),
+			accessor,
+			context: { expectationId: 'exp0' },
+			content,
+			workOptions,
+		})
 	}
 
 	expect(() => getLocalFolderAccessor({}, {}).checkHandleBasic()).toThrowError('Bad input data')

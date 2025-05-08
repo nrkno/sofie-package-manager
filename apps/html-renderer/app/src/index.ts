@@ -75,7 +75,6 @@ async function main(): Promise<void> {
 
 					ws.on('message', (data) => {
 						const str = data.toString()
-						// console.log('received', str)
 						try {
 							const message = JSON.parse(str) as InteractiveMessage
 							if (typeof message === 'object') {

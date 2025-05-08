@@ -9,6 +9,9 @@ import { Agent as HTTPSAgent } from 'https'
 
 const client: any = jest.createMockFromModule('tv-automation-quantel-gateway-client')
 const DEBUG_LOG = false
+function debugLog(...args: any[]): void {
+	if (DEBUG_LOG) console.log(...args)
+}
 
 export const mock: QuantelMock = {
 	servers: [],
@@ -40,7 +43,7 @@ interface MockClip {
 let mockClipId = 1000
 
 export function resetMock(): void {
-	if (DEBUG_LOG) console.log('RESET MOCK')
+	debugLog('RESET MOCK')
 	mock.servers = [
 		{
 			ident: 1000,
@@ -181,7 +184,7 @@ class QuantelGateway extends EventEmitter {
 	}
 
 	async getServer(): Promise<Q.ServerInfo | null> {
-		if (DEBUG_LOG) console.log('getServer')
+		debugLog('getServer')
 		if (!this.serverId) return null
 		const s = mock.servers.find((server) => server.ident === this.serverId)
 		if (!s) return null
@@ -193,7 +196,7 @@ class QuantelGateway extends EventEmitter {
 		}
 	}
 	async getClip(clipId: number): Promise<Q.ClipData | null> {
-		if (DEBUG_LOG) console.log('getClip', clipId)
+		debugLog('getClip', clipId)
 		const clip = getClip(clipId)
 		if (clip) {
 			return {
@@ -250,7 +253,7 @@ class QuantelGateway extends EventEmitter {
 		_priority?: number,
 		_history?: boolean
 	): Promise<Q.CloneResult> {
-		if (DEBUG_LOG) console.log('copyClip', zoneID, clipID, poolID)
+		debugLog('copyClip', zoneID, clipID, poolID)
 		// ignoring zoneid for now..
 
 		this.mockCopyCount++
@@ -273,7 +276,7 @@ class QuantelGateway extends EventEmitter {
 			return c.CloneId === clip.CloneId || clip.ClipID
 		})
 		if (existingClip) {
-			if (DEBUG_LOG) console.log('copyClip: already there')
+			debugLog('copyClip: already there')
 			// already there:
 			return {
 				zoneID: zoneID,
@@ -293,7 +296,7 @@ class QuantelGateway extends EventEmitter {
 
 			toPool.clips.push(newClip)
 
-			if (DEBUG_LOG) console.log('copyClip: add', newClip)
+			debugLog('copyClip: add', newClip)
 
 			return {
 				zoneID: zoneID,
@@ -309,7 +312,7 @@ class QuantelGateway extends EventEmitter {
 		}
 	}
 	async searchClip(searchQuery: ClipSearchQuery): Promise<Q.ClipDataSummary[]> {
-		if (DEBUG_LOG) console.log('searchClip', JSON.stringify(searchQuery))
+		debugLog('searchClip', JSON.stringify(searchQuery))
 
 		return searchClip((clip) => {
 			for (const [key, value] of Object.entries<string | number | undefined>(searchQuery)) {

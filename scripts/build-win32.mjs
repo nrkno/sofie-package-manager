@@ -38,7 +38,7 @@ if (!executableName) {
 	try {
 		packages = JSON.parse(str)
 	} catch (err) {
-		console.log(str)
+		log(str)
 		throw err
 	}
 

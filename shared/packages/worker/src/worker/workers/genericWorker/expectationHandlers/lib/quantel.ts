@@ -8,6 +8,7 @@ import { BaseWorker } from '../../../../worker'
 
 export function getSourceHTTPHandle(
 	worker: BaseWorker,
+	expectationId: string,
 	sourceHandle: GenericAccessorHandle<any>,
 	thumbnailURL: { baseURL: string; url: string }
 ): HTTPProxyAccessorHandle<any> {
@@ -23,6 +24,7 @@ export function getSourceHTTPHandle(
 			// networkId?: string
 			url: thumbnailURL.url,
 		}),
+		{ expectationId },
 		{ filePath: thumbnailURL.url },
 		{}
 	)

@@ -34,7 +34,14 @@ test('checkHandleBasic', () => {
 			Expectation.WorkOptions.UseTemporaryFilePath = {}
 	) {
 		accessor.type = Accessor.AccessType.FILE_SHARE
-		return new FileShareAccessorHandle(worker, protectString('share0'), accessor, content, workOptions)
+		return new FileShareAccessorHandle({
+			worker,
+			accessorId: protectString('share0'),
+			accessor,
+			context: { expectationId: 'exp0' },
+			content,
+			workOptions,
+		})
 	}
 
 	expect(() => getFileShareAccessor({}, {}).checkHandleBasic()).toThrowError('Bad input data')

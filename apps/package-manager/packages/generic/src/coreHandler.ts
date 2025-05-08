@@ -97,7 +97,6 @@ export class CoreHandler {
 	}
 
 	async init(config: PackageManagerConfig, processHandler: ProcessHandler): Promise<void> {
-		// this.logger.info('========')
 		this._statusInitialized = false
 		this._coreConfig = {
 			host: config.packageManager.coreHost,

@@ -2,7 +2,7 @@ import { assertNever, Accessor, AccessorOnPackage, AccessorId } from '@sofie-pac
 import { BaseWorker } from '../worker'
 import { CorePackageInfoAccessorHandle } from './corePackageInfo'
 import { FileShareAccessorHandle } from './fileShare'
-import { GenericAccessorHandle } from './genericHandle'
+import { AccessorConstructorProps, AccessorContext, GenericAccessorHandle } from './genericHandle'
 import { HTTPAccessorHandle } from './http'
 import { HTTPProxyAccessorHandle } from './httpProxy'
 import { LocalFolderAccessorHandle } from './localFolder'
@@ -13,14 +13,24 @@ export function getAccessorHandle<Metadata>(
 	worker: BaseWorker,
 	accessorId: AccessorId,
 	accessor: AccessorOnPackage.Any,
+	accessorContext: AccessorContext,
 	content: unknown,
 	workOptions: unknown
 ): GenericAccessorHandle<Metadata> {
 	const HandleClass = getAccessorStaticHandle(accessor)
 
+	const constructorOptions: AccessorConstructorProps<AccessorOnPackage.Any> = {
+		worker: worker,
+		accessorId: accessorId,
+		accessor: accessor as any,
+		context: accessorContext,
+		content: content as any,
+		workOptions: workOptions as any,
+	}
+
 	// For some reason, tsc complains about build error TS2351: This expression is not constructable:
 	// But it works..!
-	return new (HandleClass as any)(worker, accessorId, accessor as any, content as any, workOptions as any)
+	return new (HandleClass as any)(constructorOptions)
 }
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getAccessorStaticHandle(accessor: AccessorOnPackage.Any) {

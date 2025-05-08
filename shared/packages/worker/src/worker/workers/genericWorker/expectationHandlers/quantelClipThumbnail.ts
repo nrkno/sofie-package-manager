@@ -87,7 +87,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 				knownReason: thumbnailURL.knownReason,
 				reason: thumbnailURL.reason,
 			}
-		const sourceHTTPHandle = getSourceHTTPHandle(worker, lookupSource.handle, thumbnailURL)
+		const sourceHTTPHandle = getSourceHTTPHandle(worker, exp.id, lookupSource.handle, thumbnailURL)
 
 		const tryReadingHTTP = await sourceHTTPHandle.tryPackageRead()
 		if (!tryReadingHTTP.success)
@@ -198,7 +198,7 @@ export const QuantelThumbnail: ExpectationHandlerGenericWorker = {
 			// This is a bit special, as we use the Quantel HTTP-transformer to extract the thumbnail:
 			const thumbnailURL = await getThumbnailURL(exp, lookupSource)
 			if (!thumbnailURL.success) throw new Error(`Can't start working due to source: ${thumbnailURL.reason.tech}`)
-			const sourceHTTPHandle = getSourceHTTPHandle(worker, sourceHandle, thumbnailURL)
+			const sourceHTTPHandle = getSourceHTTPHandle(worker, exp.id, sourceHandle, thumbnailURL)
 
 			let wasCancelled = false
 			let sourceStream: PackageReadStream | undefined
@@ -379,6 +379,7 @@ async function lookupThumbnailSources(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.startRequirement.sources,
+		{ expectationId: exp.id },
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -395,6 +396,7 @@ async function lookupThumbnailTargets(
 	return lookupAccessorHandles<Metadata>(
 		worker,
 		exp.endRequirement.targets,
+		{ expectationId: exp.id },
 		exp.endRequirement.content,
 		exp.workOptions,
 		{

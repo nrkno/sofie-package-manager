@@ -5,7 +5,7 @@ import {
 	isLocalFolderAccessorHandle,
 } from '../../../accessorHandlers/accessor'
 import { prioritizeAccessors } from '../../../lib/lib'
-import { GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
+import { AccessorContext, GenericAccessorHandle } from '../../../accessorHandlers/genericHandle'
 import { BaseWorker } from '../../../worker'
 import { compareActualExpectVersions, findBestPackageContainerWithAccessToPackage } from '../lib/lib'
 import { Diff } from 'deep-diff'
@@ -144,6 +144,7 @@ export interface LookupChecks {
 export async function lookupAccessorHandles<Metadata>(
 	worker: BaseWorker,
 	packageContainers: PackageContainerOnPackage[],
+	accessorContext: AccessorContext,
 	expectationContent: unknown,
 	expectationWorkOptions: unknown,
 	checks: LookupChecks
@@ -171,6 +172,7 @@ export async function lookupAccessorHandles<Metadata>(
 					worker,
 					accessorId,
 					accessor,
+					accessorContext,
 					expectationContent,
 					expectationWorkOptions
 				)

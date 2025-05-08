@@ -316,6 +316,7 @@ async function lookupSources(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.startRequirement.sources,
+		{ expectationId: exp.id },
 		exp.startRequirement.content,
 		exp.workOptions,
 		{
@@ -333,6 +334,7 @@ async function lookupTargets(
 	return lookupAccessorHandles<UniversalVersion>(
 		worker,
 		exp.endRequirement.targets,
+		{ expectationId: exp.id },
 		{
 			filePath,
 		},
@@ -512,18 +514,19 @@ class HTMLRenderHandler {
 			if (this.wasCancelled) break
 			const tempFileName = this.outputFileNames[i]
 			const fileName = this.fileNames[i]
-			const localFileSourceHandle = new LocalFolderAccessorHandle(
-				this.worker,
-				protectString<AccessorId>('tmpLocalHTMLRenderer'),
-				{
+			const localFileSourceHandle = new LocalFolderAccessorHandle({
+				worker: this.worker,
+				accessorId: protectString<AccessorId>('tmpLocalHTMLRenderer'),
+				accessor: {
 					type: Accessor.AccessType.LOCAL_FOLDER,
 					allowRead: true,
 					folderPath: this.outputPath,
 					filePath: tempFileName,
 				},
-				{},
-				{}
-			)
+				context: { expectationId: this.exp.id },
+				content: {},
+				workOptions: {},
+			})
 			const lookupTarget = await lookupTargets(this.worker, this.exp, fileName)
 			if (!lookupTarget.ready) throw new Error(`Can't start working due to target: ${lookupTarget.reason.tech}`)
 

@@ -16,14 +16,11 @@ import {
 	ExpectedPackageId,
 	protectString,
 	MonitorId,
-	AccessorId,
 	betterPathJoin,
 	removeBasePath,
 } from '@sofie-package-manager/api'
 
-import { BaseWorker } from '../../worker'
-
-import { GenericAccessorHandle } from '../genericHandle'
+import { AccessorConstructorProps, GenericAccessorHandle } from '../genericHandle'
 import { MonitorInProgress } from '../../lib/monitorInProgress'
 import { FileEvent, FileWatcher, IFileWatcher } from './FileWatcher'
 import { updateJSONFileBatch } from './json-write-file'
@@ -43,14 +40,15 @@ const fsLstat = promisify(fs.lstat)
  * This class handles things that are common between the LocalFolder and FileShare classes
  */
 export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccessorHandle<Metadata> {
+	private _type: typeof LocalFolderAccessorHandleType | typeof FileShareAccessorHandleType
+
 	constructor(
-		worker: BaseWorker,
-		accessorId: AccessorId,
-		accessor: AccessorOnPackage.Any,
-		content: any, // eslint-disable-line  @typescript-eslint/explicit-module-boundary-types
-		private _type: typeof LocalFolderAccessorHandleType | typeof FileShareAccessorHandleType
+		arg: AccessorConstructorProps<AccessorOnPackage.Any> & {
+			type: typeof LocalFolderAccessorHandleType | typeof FileShareAccessorHandleType
+		}
 	) {
-		super(worker, accessorId, accessor, content, _type)
+		super(arg)
+		this._type = arg.type
 	}
 	/** Path to the PackageContainer, ie the folder */
 	protected abstract get folderPath(): string
@@ -98,7 +96,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 				const metadataPath = this.getMetadataPath(entry.filePath)
 
 				if (await this.unlinkIfExists(fullPath))
-					this.worker.logOperation(`Remove due packages: Removed file "${fullPath}"`)
+					this.logOperation(`Remove due packages: Removed file "${fullPath}"`)
 				await this.unlinkIfExists(metadataPath)
 
 				removedFilePaths.push(entry.filePath)
@@ -360,7 +358,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			if (files.length === 0) {
 				if (removeEmptyDir) {
 					const dirFullPath = path.join(this.folderPath, dirPath)
-					this.worker.logOperation(`Clean up old files: Remove empty dir "${dirFullPath}"`)
+					this.logOperation(`Clean up old files: Remove empty dir "${dirFullPath}"`)
 					await fsRmDir(dirFullPath)
 				}
 			} else {
@@ -380,7 +378,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 
 						if (age > cleanFileAge) {
 							await fsUnlink(fullPath)
-							this.worker.logOperation(`Clean up old files: Remove file "${fullPath}" (age: ${age})`)
+							this.logOperation(`Clean up old files: Remove file "${fullPath}" (age: ${age})`)
 						}
 					}
 				}

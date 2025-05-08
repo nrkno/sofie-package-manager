@@ -330,8 +330,8 @@ export function ensureValidValue<T>(value: T, check: (value: any) => boolean, de
 }
 /**
  * Convenience method to map entries of a Map.
- * Array.from(myMap.entries()).map(([key, value]) => console.log(key, value))
- * mapEntries(myMap, (key, value) => console.log(key, value))
+ * Array.from(myMap.entries()).map(([key, value]) => doSomething(key, value))
+ * mapEntries(myMap, (key, value) => doSomething(key, value))
  */
 export function mapEntries<K, V, R>(map: Map<K, V>, cb: (key: K, value: V) => R): R[] {
 	return Array.from(map.entries()).map(([key, value]) => cb(key, value))

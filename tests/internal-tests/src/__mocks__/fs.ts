@@ -9,8 +9,11 @@ import type { WNDMockType } from './windows-network-drive'
 
 const wndMock = wndMock0 as any as WNDMockType
 
-/* eslint-disable no-console */
 const DEBUG_LOG = false
+function debugLog(...args: any[]): void {
+	// eslint-disable-next-line no-console
+	if (DEBUG_LOG) console.log(...args)
+}
 
 const fs: any = jest.createMockFromModule('fs')
 
@@ -141,7 +144,7 @@ function setMock(path: string, create: MockAny, autoCreateTree: boolean, force =
 		}
 		dir.content[fileName] = create
 
-		if (DEBUG_LOG) console.log('setMock', path, create)
+		debugLog('setMock', path, create)
 	}
 }
 function deleteMock(path: string, orgPath?: string, dir?: MockDirectory): void {
@@ -308,7 +311,7 @@ fs.constants = constants
 
 export function stat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.stat', path)
+	debugLog('fs.stat', path)
 	fsMockEmitter.emit('stat', path)
 	try {
 		const mockFile = getMock(path)
@@ -334,7 +337,7 @@ export function access(path: string, mode: number | undefined, callback: (error:
 		)
 	path = fixPath(path)
 	const mockFile = getMock(path)
-	// if (DEBUG_LOG) console.log('fs.access', path, mode)
+	// debugLog('fs.access', path, mode)
 	fsMockEmitter.emit('access', path, mode)
 	setTimeout(() => {
 		try {
@@ -359,7 +362,7 @@ fs.__mockSetAccessDelay = __mockSetAccessDelay
 
 export function unlink(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.unlink', path)
+	debugLog('fs.unlink', path)
 	fsMockEmitter.emit('unlink', path)
 	try {
 		deleteMock(path)
@@ -386,7 +389,7 @@ export function mkdir(
 	}
 
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.mkdir', path)
+	debugLog('fs.mkdir', path)
 	fsMockEmitter.emit('mkdir', path)
 
 	try {
@@ -426,7 +429,7 @@ fs.mkdir = mkdir
 
 export function readdir(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.readdir', path)
+	debugLog('fs.readdir', path)
 	fsMockEmitter.emit('readdir', path)
 	try {
 		const mockFile = getMock(path)
@@ -443,7 +446,7 @@ fs.readdir = readdir
 
 export function lstat(path: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.lstat', path)
+	debugLog('fs.lstat', path)
 	fsMockEmitter.emit('lstat', path)
 	try {
 		const mockFile = getMock(path)
@@ -459,7 +462,7 @@ fs.lstat = lstat
 
 export function writeFile(path: string, data: Buffer | string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.writeFile', path)
+	debugLog('fs.writeFile', path)
 	fsMockEmitter.emit('writeFile', path, data)
 	try {
 		setMock(
@@ -490,7 +493,7 @@ function readFile(path: string, ...args: any[]): void {
 		callback = args[1]
 	} else throw new Error(`Mock poorly implemented: ` + args)
 
-	if (DEBUG_LOG) console.log('fs.readFile', path)
+	debugLog('fs.readFile', path)
 	fsMockEmitter.emit('readFile', path)
 	try {
 		const file = getMock(path)
@@ -503,7 +506,7 @@ fs.readFile = readFile
 
 export function open(path: string, _options: string, callback: (error: any, result?: any) => void): void {
 	path = fixPath(path)
-	if (DEBUG_LOG) console.log('fs.open', path)
+	debugLog('fs.open', path)
 
 	fsMockEmitter.emit('open', path)
 	return fs.__cb('open', (err: unknown) => {
@@ -520,7 +523,7 @@ export function open(path: string, _options: string, callback: (error: any, resu
 }
 fs.open = open
 export function close(fd: number, callback: (error: any, result?: any) => void): void {
-	if (DEBUG_LOG) console.log('fs.close')
+	debugLog('fs.close')
 	fsMockEmitter.emit('close', fd)
 	if (openFileDescriptors[fd + '']) {
 		delete openFileDescriptors[fd + '']
@@ -534,15 +537,15 @@ export function copyFile(source: string, destination: string, callback: (error: 
 	source = fixPath(source)
 	destination = fixPath(destination)
 	const destinationFolder = destination.replace(/[^\\/]+$/, '')
-	if (DEBUG_LOG) console.log('fs.copyFile', source, destination)
+	debugLog('fs.copyFile', source, destination)
 
 	fsMockEmitter.emit('copyFile', source, destination)
 	return fs.__cb('copyFile', (err: unknown) => {
 		try {
 			const mockFile = getMock(source)
-			if (DEBUG_LOG) console.log('source', source)
-			if (DEBUG_LOG) console.log('mockFile', mockFile)
-			if (DEBUG_LOG) console.log('destination', destination)
+			debugLog('source', source)
+			debugLog('mockFile', mockFile)
+			debugLog('destination', destination)
 
 			const destinationFolderMock = getMock(destinationFolder)
 			if (!destinationFolderMock.accessWrite) throw new Error(`Not allowed to write to "${destinationFolder}"`)
@@ -560,7 +563,7 @@ fs.copyFile = copyFile
 export function rename(source: string, destination: string, callback: (error: any, result?: any) => void): void {
 	source = fixPath(source)
 	destination = fixPath(destination)
-	if (DEBUG_LOG) console.log('fs.rename', source, destination)
+	debugLog('fs.rename', source, destination)
 	fsMockEmitter.emit('rename', source, destination)
 	return fs.__cb('rename', (err: unknown) => {
 		try {
@@ -599,9 +602,13 @@ export function createWriteStream(path: string, _options?: BufferEncoding | unde
 fs.createWriteStream = createWriteStream
 
 const DEBUG_STREAMS = false
+function debugStreamsLog(...args: any[]): void {
+	// eslint-disable-next-line no-console
+	if (DEBUG_STREAMS) console.log(...args)
+}
 class FSReadStream extends Readable {
 	constructor(public path: string) {
-		if (DEBUG_STREAMS) console.log('READ created')
+		debugStreamsLog('READ created')
 		super()
 	}
 	_construct(callback: () => void) {
@@ -612,7 +619,7 @@ class FSReadStream extends Readable {
 
 	private readI = 0
 	_read(_size: number): void {
-		if (DEBUG_STREAMS) console.log('READ read')
+		debugStreamsLog('READ read')
 		if (this.readI === 0) {
 			this.push(JSON.stringify({ sourcePath: this.path }))
 		} else {
@@ -621,7 +628,7 @@ class FSReadStream extends Readable {
 		this.readI++
 	}
 	pipe<T extends NodeJS.WritableStream>(destination: T, options?: { end?: boolean | undefined } | undefined): T {
-		if (DEBUG_STREAMS) console.log('READ pipe')
+		debugStreamsLog('READ pipe')
 		return super.pipe(destination, options)
 	}
 	close() {
@@ -630,7 +637,7 @@ class FSReadStream extends Readable {
 }
 class FSWriteStream extends Writable {
 	constructor(public path: string) {
-		if (DEBUG_STREAMS) console.log('WRITE created')
+		debugStreamsLog('WRITE created')
 		super()
 	}
 	_construct(callback: () => void) {
@@ -641,11 +648,11 @@ class FSWriteStream extends Writable {
 	_write(chunk: any, _encoding: any, callback: (err?: any) => void) {
 		const chunkStr = String(chunk)
 
-		if (DEBUG_STREAMS) console.log('WRITE write', chunkStr)
+		debugStreamsLog('WRITE write', chunkStr)
 		const obj = JSON.parse(chunkStr)
 
 		if (obj.sourcePath) {
-			if (DEBUG_STREAMS) console.log('COPY', obj.sourcePath, this.path)
+			debugStreamsLog('COPY', obj.sourcePath, this.path)
 			copyFile(obj.sourcePath, this.path, (error, _result) => {
 				if (error) {
 					// this.emit('error', error)
@@ -660,7 +667,7 @@ class FSWriteStream extends Writable {
 		}
 	}
 	_final(callback: () => void) {
-		if (DEBUG_STREAMS) console.log('WRITE final')
+		debugStreamsLog('WRITE final')
 		callback()
 	}
 	close() {

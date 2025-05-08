@@ -313,7 +313,7 @@ export class PackageManagerHandler {
 
 			this.handleExpectedPackages(packageContainers, activePlaylist, activeRundowns, expectedPackageSources)
 
-			this.logger.debug(`Took ${timer.get()} ms to handle updated expectedPackages`)
+			this.logger.silly(`Took ${timer.get()} ms to handle updated expectedPackages`)
 		}, 300)
 	}
 
