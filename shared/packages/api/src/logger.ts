@@ -1,15 +1,28 @@
 import _ from 'underscore'
 import * as Winston from 'winston'
 import { ProcessConfig } from './config'
-import { isRunningInTest, stringifyError } from './lib'
+import { isRunningInTest, literal, stringifyError } from './lib'
 
 const { combine, label, json, timestamp, printf } = Winston.format
 
-export interface LoggerInstance extends Winston.Logger {
+export interface LoggerInstanceFull extends Winston.Logger {
 	warning: never // logger.warning is not a function
 
-	category: (category: string, label?: string) => LoggerInstance
+	category: (category: string) => LoggerInstance
 }
+/** Like LoggerInstance, but is optimized for memory usage (reducing memory leaks) */
+export interface LoggerInstance {
+	error: LeveledLogMethodLight
+	warn: LeveledLogMethodLight
+	info: LeveledLogMethodLight
+	debug: LeveledLogMethodLight
+	verbose: LeveledLogMethodLight
+	silly: LeveledLogMethodLight
+
+	category: (category: string) => LoggerInstance
+}
+/** This is a subset of Winston.LeveledLogMethod */
+export type LeveledLogMethodLight = (msg: any, data?: any) => void
 export type LeveledLogMethod = Winston.LeveledLogMethod
 
 export enum LogLevel {
@@ -149,17 +162,10 @@ export function setupLogger(
 		if (initialLogLevel) setLogLevel(initialLogLevel, true)
 	}
 	// Somewhat of a hack, inject the category method:
-	const loggerInstance = logger as LoggerInstance
-	loggerInstance.category = (subCategory: string, subLabel?: string): LoggerInstance => {
-		return setupLogger(
-			config,
-			`${category ? `${category}.` : ''}${subCategory}`,
-			subLabel && `${categoryLabel}>${subLabel}`,
-			undefined,
-			initialLogLevel,
-			filterFcn
-		)
-	}
+	const loggerInstance = logger as any as LoggerInstance
+
+	loggerInstance.category = getCategory(loggerInstance, '')
+
 	if (filterFcn) {
 		for (const methodName of [
 			'error',
@@ -194,5 +200,36 @@ function safeStringify(o: any): string {
 		return JSON.stringify(o) // make single line
 	} catch (e) {
 		return 'ERROR in safeStringify: ' + stringifyError(e)
+	}
+}
+function getCategory(outerLogger: LoggerInstance, outerCategory: string) {
+	return (subCategory: string): LoggerInstance => {
+		// Notes:
+		// This returns a lightweight logger method, similar to the Winston.logger
+		// The reason for implementing this lightweight logger is to avoid memory leaks
+		// Which can happen when using Winston.logger directly
+		// (when using logger.category('subCategory') intermittently)
+
+		const fullCategory = `${outerCategory ? `${outerCategory}.` : ''}${subCategory}`
+
+		const createLogMethod = (type: keyof LoggerInstance) => {
+			return (msg: any, data?: any) => {
+				let msgStr = `${fullCategory}: ${safeStringify(msg)}`
+
+				if (data !== undefined) msgStr += ` ${safeStringify(data)}`
+
+				outerLogger[type](msgStr)
+			}
+		}
+
+		return literal<LoggerInstance>({
+			error: createLogMethod('error'),
+			warn: createLogMethod('warn'),
+			info: createLogMethod('info'),
+			debug: createLogMethod('debug'),
+			verbose: createLogMethod('verbose'),
+			silly: createLogMethod('silly'),
+			category: getCategory(outerLogger, fullCategory),
+		})
 	}
 }
