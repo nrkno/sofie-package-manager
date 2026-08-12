@@ -206,6 +206,7 @@ export abstract class BaseWorker implements ExecutableAliasSource {
 
 		if (key instanceof RegExp) {
 			for (const cacheKey of Object.keys(cache)) {
+				key.lastIndex = 0
 				if (key.test(cacheKey)) {
 					delete cache[cacheKey]
 				}
