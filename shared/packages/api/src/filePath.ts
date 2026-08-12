@@ -71,12 +71,17 @@ export type FileResolutionResult =
  * // If both file and file.mp4 exist:
  * // Returns: { result: 'multiple', matches: ['/path/to/file', '/path/to/file.mp4'] }
  */
-export async function resolveFileWithoutExtension(fullPath: string): Promise<FileResolutionResult> {
+export async function resolveFileWithoutExtension(
+	/** Full path to the file to resolve, including the directory and base name (without extension) */
+	fullPath: string,
+	/** (Optional) Pre-fetched list of files in the directory of the file (this is useful when the list is cached) */
+	files?: string[]
+): Promise<FileResolutionResult> {
 	const dir = path.dirname(fullPath)
 	const base = path.basename(fullPath)
 
 	try {
-		const files = await fsReaddir(dir)
+		if (!files) files = await fsReaddir(dir)
 		const matches = files.filter((f) => f.startsWith(base + '.') || f === base)
 
 		if (matches.length === 0) {

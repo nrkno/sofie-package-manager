@@ -136,9 +136,29 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			return fullPath
 		}
 
-		// Resolve the file with any extension.
-		// Note: This must not be cached long-term, since file existence can change over time.
-		const resolution = await resolveFileWithoutExtension(fullPath)
+		// Use worker cache to avoid repeated file system lookups for files in the same directory:
+		let files: string[]
+		const dir = path.dirname(fullPath)
+		try {
+			files = await this.worker.cacheData(
+				this._type,
+				`readDir:${dir}`,
+				async () => {
+					// Resolve the file with any extension
+					return fsReaddir(dir)
+				},
+				1000 * 10 // 10 seconds, to avoid quickly repeated file system lookups for files in the same directory
+			)
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+				// If the directory itself doesn't exist, the list is empty
+				files = []
+			} else {
+				throw new Error(`Error listing files in "${dir}": ${stringifyError(error, true)}`)
+			}
+		}
+		// Resolve the file with any extension
+		const resolution = await resolveFileWithoutExtension(fullPath, files)
 
 		switch (resolution.result) {
 			case 'found':
