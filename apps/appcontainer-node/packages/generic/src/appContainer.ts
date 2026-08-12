@@ -358,7 +358,7 @@ export class AppContainer {
 						? workerArgs.allowedExpectationTypes.join(';')
 						: undefined
 				} else if (key === 'matchFilenamesWithoutExtension') {
-					// This is handled separately above, skip it here
+					argValue = workerArgs.matchFilenamesWithoutExtension ? 'true' : 'false'
 				} else {
 					assertNever(key)
 					this.logger.error(`Unknown worker argument key: "${key}"=${workerArgs[key]}`)
