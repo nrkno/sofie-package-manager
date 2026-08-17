@@ -415,8 +415,11 @@ export class FileShareAccessorHandle<Metadata> extends GenericFileAccessorHandle
 			}
 
 			await fsRename(this.temporaryFilePath, this.fullPath)
+			this.worker.clearCachesMatching(this.type, path.dirname(this.temporaryFilePath))
 			this.logOperation(`Finalize package: Rename file "${this.temporaryFilePath}" to "${this.fullPath}"`)
 		}
+
+		this.worker.clearCachesMatching(this.type, path.dirname(this.fullPath)) // Clear cache so that the cache in this.getResolvedFullPath() will be updated next time it is called
 	}
 
 	// Note: We handle metadata by storing a metadata json-file to the side of the file.

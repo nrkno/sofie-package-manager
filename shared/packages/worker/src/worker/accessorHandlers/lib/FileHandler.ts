@@ -126,7 +126,7 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 	 * Get the resolved full path to the package.
 	 * If matchFilenamesWithoutExtension is enabled, this will resolve the path to include the file extension.
 	 * For FFmpeg/FFprobe operations, use this instead of fullPath.
-	 * The result is cached to avoid repeated file system lookups.
+	 * When extension matching is enabled, the path is resolved on every call.
 	 */
 	async getResolvedFullPath(): Promise<string> {
 		const fullPath = this.fullPath
@@ -136,28 +136,40 @@ export abstract class GenericFileAccessorHandle<Metadata> extends GenericAccesso
 			return fullPath
 		}
 
-		// Use worker cache to avoid repeated file system lookups
-		return await this.worker.cacheData(
-			this._type,
-			`resolvedFullPath:${fullPath}`,
-			async () => {
-				// Resolve the file with any extension
-				const resolution = await resolveFileWithoutExtension(fullPath)
+		// Use worker cache to avoid repeated file system lookups for files in the same directory:
+		let files: string[]
+		const dir = path.dirname(fullPath)
+		try {
+			files = await this.worker.cacheData(
+				this._type,
+				`readDir:${dir}`,
+				async () => {
+					// Resolve the file with any extension
+					return fsReaddir(dir)
+				},
+				1000 * 10 // 10 seconds, to avoid quickly repeated file system lookups for files in the same directory
+			)
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+				// If the directory itself doesn't exist, the list is empty
+				files = []
+			} else {
+				throw new Error(`Error listing files in "${dir}": ${stringifyError(error, true)}`)
+			}
+		}
+		// Resolve the file with any extension
+		const resolution = await resolveFileWithoutExtension(fullPath, files)
 
-				switch (resolution.result) {
-					case 'found':
-						return resolution.fullPath
-					case 'multiple':
-						throw new Error(`Multiple files found matching "${fullPath}": ${resolution.matches.join(', ')}`)
-					case 'notFound':
-						throw new Error(`File not found: "${fullPath}"`)
-					case 'error':
-						throw new Error(`Error resolving file "${fullPath}": ${stringifyError(resolution.error, true)}`)
-				}
-			},
-			// Cache for 4 hours
-			1000 * 60 * 60 * 4 // 4 hours
-		)
+		switch (resolution.result) {
+			case 'found':
+				return resolution.fullPath
+			case 'multiple':
+				throw new Error(`Multiple files found matching "${fullPath}": ${resolution.matches.join(', ')}`)
+			case 'notFound':
+				throw new Error(`File not found: "${fullPath}"`)
+			case 'error':
+				throw new Error(`Error resolving file "${fullPath}": ${stringifyError(resolution.error, true)}`)
+		}
 	}
 	async readFile(fullPath: string): Promise<Buffer> {
 		return fsReadFile(fullPath)

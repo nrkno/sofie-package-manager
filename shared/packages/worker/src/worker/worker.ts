@@ -200,6 +200,25 @@ export abstract class BaseWorker implements ExecutableAliasSource {
 		}
 		return data
 	}
+	public clearCachesMatching(accessorType: string, key: string | RegExp): void {
+		const cache = this._accessorTemporaryCache[accessorType]
+		if (!cache) return
+
+		if (key instanceof RegExp) {
+			for (const cacheKey of Object.keys(cache)) {
+				key.lastIndex = 0
+				if (key.test(cacheKey)) {
+					delete cache[cacheKey]
+				}
+			}
+		} else {
+			for (const cacheKey of Object.keys(cache)) {
+				if (cacheKey.includes(key)) {
+					delete cache[cacheKey]
+				}
+			}
+		}
+	}
 	/** Looks up executable alias and returns a path to the executable (as defined in --executableAliases CLI) */
 	public getExecutable(executableAlias: string): string | undefined {
 		return this.agentAPI.config.executableAliases[executableAlias]

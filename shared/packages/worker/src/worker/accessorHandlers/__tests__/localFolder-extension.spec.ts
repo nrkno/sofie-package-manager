@@ -1,5 +1,15 @@
 // Mock resolveFileWithoutExtension before importing modules
 const mockResolveFileWithoutExtension = jest.fn()
+const mockFsReaddir = jest.fn()
+
+jest.mock('fs', () => {
+	const actual = jest.requireActual('fs')
+	return {
+		...actual,
+		readdir: mockFsReaddir,
+	}
+})
+
 jest.mock('@sofie-package-manager/api', () => {
 	const actual = jest.requireActual('@sofie-package-manager/api')
 	return {
@@ -38,6 +48,20 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 		certificates: [],
 	}
 
+	const createAccessor = (worker: PassiveTestWorker, folderPath: string, filePath = 'testfile') => {
+		return new LocalFolderAccessorHandle<Content>({
+			worker,
+			accessorId: protectString('local0'),
+			accessor: {
+				type: Accessor.AccessType.LOCAL_FOLDER,
+				folderPath: folderPath,
+			} as AccessorOnPackage.LocalFolder,
+			context: { expectationId: 'exp0' },
+			content: { filePath },
+			workOptions: {},
+		})
+	}
+
 	test('should resolve file with single extension match', async () => {
 		const logger = setupLogger({ process: processConfig }, '')
 		const worker = new PassiveTestWorker(logger, processConfig, true)
@@ -45,6 +69,10 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 		const folderPath = path.join('test', 'folder')
 		const expectedPath = path.join(folderPath, 'testfile.mp4')
 		const fullPathWithoutExt = path.join(folderPath, 'testfile')
+		const filesInDir = ['testfile.mp4', 'other.mov']
+		mockFsReaddir.mockImplementation((_: string, cb: (err: Error | null, files?: string[]) => void) => {
+			cb(null, filesInDir)
+		})
 
 		// Mock resolveFileWithoutExtension to return a single match
 		mockResolveFileWithoutExtension.mockResolvedValue({
@@ -53,21 +81,11 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 			extension: '.mp4',
 		})
 
-		const accessor = new LocalFolderAccessorHandle<Content>({
-			worker,
-			accessorId: protectString('local0'),
-			accessor: {
-				type: Accessor.AccessType.LOCAL_FOLDER,
-				folderPath: folderPath,
-			} as AccessorOnPackage.LocalFolder,
-			context: { expectationId: 'exp0' },
-			content: { filePath: 'testfile' },
-			workOptions: {},
-		})
+		const accessor = createAccessor(worker, folderPath)
 
 		const result = await accessor.getResolvedFullPath()
 		expect(result).toBe(expectedPath)
-		expect(mockResolveFileWithoutExtension).toHaveBeenCalledWith(fullPathWithoutExt)
+		expect(mockResolveFileWithoutExtension).toHaveBeenCalledWith(fullPathWithoutExt, filesInDir)
 	})
 
 	test('should throw error when multiple files match', async () => {
@@ -75,6 +93,10 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 		const worker = new PassiveTestWorker(logger, processConfig, true)
 
 		const folderPath = path.join('test', 'folder')
+		const filesInDir = ['testfile.mp4', 'testfile.mov', 'testfile.avi']
+		mockFsReaddir.mockImplementation((_: string, cb: (err: Error | null, files?: string[]) => void) => {
+			cb(null, filesInDir)
+		})
 
 		// Mock resolveFileWithoutExtension to return multiple matches
 		mockResolveFileWithoutExtension.mockResolvedValue({
@@ -86,17 +108,7 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 			],
 		})
 
-		const accessor = new LocalFolderAccessorHandle<Content>({
-			worker,
-			accessorId: protectString('local0'),
-			accessor: {
-				type: Accessor.AccessType.LOCAL_FOLDER,
-				folderPath: folderPath,
-			} as AccessorOnPackage.LocalFolder,
-			context: { expectationId: 'exp0' },
-			content: { filePath: 'testfile' },
-			workOptions: {},
-		})
+		const accessor = createAccessor(worker, folderPath)
 
 		await expect(accessor.getResolvedFullPath()).rejects.toThrow(/Multiple files found matching/)
 	})
@@ -106,25 +118,51 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 		const worker = new PassiveTestWorker(logger, processConfig, true)
 
 		const folderPath = path.join('test', 'folder')
+		mockFsReaddir.mockImplementation((_: string, cb: (err: Error | null, files?: string[]) => void) => {
+			cb(null, ['unrelated.mov'])
+		})
 
 		// Mock resolveFileWithoutExtension to return no matches
 		mockResolveFileWithoutExtension.mockResolvedValue({
 			result: 'notFound',
 		})
 
-		const accessor = new LocalFolderAccessorHandle<Content>({
-			worker,
-			accessorId: protectString('local0'),
-			accessor: {
-				type: Accessor.AccessType.LOCAL_FOLDER,
-				folderPath: folderPath,
-			} as AccessorOnPackage.LocalFolder,
-			context: { expectationId: 'exp0' },
-			content: { filePath: 'testfile' },
-			workOptions: {},
-		})
+		const accessor = createAccessor(worker, folderPath)
 
 		await expect(accessor.getResolvedFullPath()).rejects.toThrow(/File not found/)
+	})
+
+	test('should retry resolving after notFound (late delivery)', async () => {
+		const logger = setupLogger({ process: processConfig }, '')
+		const worker = new PassiveTestWorker(logger, processConfig, true)
+
+		const folderPath = path.join('test', 'folder')
+		const expectedPath = path.join(folderPath, 'testfile.mp4')
+		const fullPathWithoutExt = path.join(folderPath, 'testfile')
+		const filesInDir = ['testfile.mp4']
+		mockFsReaddir.mockImplementation((_: string, cb: (err: Error | null, files?: string[]) => void) => {
+			cb(null, filesInDir)
+		})
+
+		mockResolveFileWithoutExtension
+			.mockResolvedValueOnce({
+				result: 'notFound',
+			})
+			.mockResolvedValueOnce({
+				result: 'found',
+				fullPath: expectedPath,
+				extension: '.mp4',
+			})
+
+		const accessor = createAccessor(worker, folderPath)
+
+		await expect(accessor.getResolvedFullPath()).rejects.toThrow(/File not found/)
+
+		const result = await accessor.getResolvedFullPath()
+		expect(result).toBe(expectedPath)
+		expect(mockResolveFileWithoutExtension).toHaveBeenCalledTimes(2)
+		expect(mockResolveFileWithoutExtension).toHaveBeenNthCalledWith(1, fullPathWithoutExt, filesInDir)
+		expect(mockResolveFileWithoutExtension).toHaveBeenNthCalledWith(2, fullPathWithoutExt, filesInDir)
 	})
 
 	test('should resolve file with compound extension', async () => {
@@ -133,6 +171,9 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 
 		const folderPath = path.join('test', 'folder')
 		const expectedPath = path.join(folderPath, 'archive.tar.gz')
+		mockFsReaddir.mockImplementation((_: string, cb: (err: Error | null, files?: string[]) => void) => {
+			cb(null, ['archive.tar.gz'])
+		})
 
 		// Mock resolveFileWithoutExtension to return a compound extension match
 		mockResolveFileWithoutExtension.mockResolvedValue({
@@ -141,17 +182,7 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 			extension: '.tar.gz',
 		})
 
-		const accessor = new LocalFolderAccessorHandle<Content>({
-			worker,
-			accessorId: protectString('local0'),
-			accessor: {
-				type: Accessor.AccessType.LOCAL_FOLDER,
-				folderPath: folderPath,
-			} as AccessorOnPackage.LocalFolder,
-			context: { expectationId: 'exp0' },
-			content: { filePath: 'archive' },
-			workOptions: {},
-		})
+		const accessor = createAccessor(worker, folderPath, 'archive')
 
 		const result = await accessor.getResolvedFullPath()
 		expect(result).toBe(expectedPath)
@@ -166,51 +197,55 @@ describe('matchFilenamesWithoutExtension for LocalFolder', () => {
 		const folderPath = path.join('test', 'folder')
 		const expectedPath = path.join(folderPath, 'testfile')
 
-		const accessor = new LocalFolderAccessorHandle<Content>({
-			worker,
-			accessorId: protectString('local0'),
-			accessor: {
-				type: Accessor.AccessType.LOCAL_FOLDER,
-				folderPath: folderPath,
-			} as AccessorOnPackage.LocalFolder,
-			context: { expectationId: 'exp0' },
-			content: { filePath: 'testfile' },
-			workOptions: {},
-		})
+		const accessor = createAccessor(worker, folderPath)
 
 		const result = await accessor.getResolvedFullPath()
 		expect(result).toBe(expectedPath)
 		expect(resolveSpy).not.toHaveBeenCalled()
 	})
 
-	test('should handle directory read errors', async () => {
+	test('should use an empty directory listing when directory does not exist', async () => {
 		const logger = setupLogger({ process: processConfig }, '')
 		const worker = new PassiveTestWorker(logger, processConfig, true)
 
 		const folderPath = path.join('test', 'folder')
+		const fullPathWithoutExt = path.join(folderPath, 'testfile')
+		const enoent = new Error('ENOENT: no such file or directory') as NodeJS.ErrnoException
+		enoent.code = 'ENOENT'
+		mockFsReaddir.mockImplementation((_: string, cb: (err: Error | null, files?: string[]) => void) => {
+			cb(enoent)
+		})
 
-		// Mock resolveFileWithoutExtension to return an error
+		// Even when folder doesn't exist, resolver is called with empty listing.
 		mockResolveFileWithoutExtension.mockResolvedValue({
-			result: 'error',
-			error: new Error('EACCES: permission denied'),
+			result: 'notFound',
 		})
 
-		const accessor = new LocalFolderAccessorHandle<Content>({
-			worker,
-			accessorId: protectString('local0'),
-			accessor: {
-				type: Accessor.AccessType.LOCAL_FOLDER,
-				folderPath: folderPath,
-			} as AccessorOnPackage.LocalFolder,
-			context: { expectationId: 'exp0' },
-			content: { filePath: 'testfile' },
-			workOptions: {},
+		const accessor = createAccessor(worker, folderPath)
+
+		await expect(accessor.getResolvedFullPath()).rejects.toThrow(/File not found/)
+		expect(mockResolveFileWithoutExtension).toHaveBeenCalledWith(fullPathWithoutExt, [])
+	})
+
+	test('should throw error when directory listing fails for other reasons', async () => {
+		const logger = setupLogger({ process: processConfig }, '')
+		const worker = new PassiveTestWorker(logger, processConfig, true)
+
+		const folderPath = path.join('test', 'folder')
+		const eacces = new Error('EACCES: permission denied') as NodeJS.ErrnoException
+		eacces.code = 'EACCES'
+		mockFsReaddir.mockImplementation((_: string, cb: (err: Error | null, files?: string[]) => void) => {
+			cb(eacces)
 		})
 
-		await expect(accessor.getResolvedFullPath()).rejects.toThrow(/Error resolving file/)
+		const accessor = createAccessor(worker, folderPath)
+
+		await expect(accessor.getResolvedFullPath()).rejects.toThrow(/Error listing files in/)
+		expect(mockResolveFileWithoutExtension).not.toHaveBeenCalled()
 	})
 
 	afterEach(() => {
 		mockResolveFileWithoutExtension.mockReset()
+		mockFsReaddir.mockReset()
 	})
 })
