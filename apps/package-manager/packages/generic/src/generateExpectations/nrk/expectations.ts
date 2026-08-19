@@ -226,7 +226,8 @@ function getSideEffectOfExpectation(
 	if (
 		expectation0.type === Expectation.Type.FILE_COPY ||
 		expectation0.type === Expectation.Type.FILE_VERIFY ||
-		expectation0.type === Expectation.Type.FILE_COPY_PROXY
+		expectation0.type === Expectation.Type.FILE_COPY_PROXY ||
+		expectation0.type === Expectation.Type.MEDIA_FILE_CONVERT
 	) {
 		const expectation = expectation0
 

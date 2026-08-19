@@ -32,9 +32,14 @@ type SomeClipCopyExpectation =
 	| Expectation.FileCopy
 	| Expectation.FileCopyProxy
 	| Expectation.FileVerify
+	| Expectation.MediaFileConvert
 	| Expectation.QuantelClipCopy
 
-type SomeClipFileOnDiskCopyExpectation = Expectation.FileCopy | Expectation.FileCopyProxy | Expectation.FileVerify
+type SomeClipFileOnDiskCopyExpectation =
+	| Expectation.FileCopy
+	| Expectation.FileCopyProxy
+	| Expectation.FileVerify
+	| Expectation.MediaFileConvert
 
 export function generateMediaFileCopy(
 	managerId: ExpectationManagerId,
@@ -109,6 +114,7 @@ export function generateMediaFileCopy(
 					conversions: expWrapMediaFile.expectedPackage.version.conversions,
 				},
 			},
+			workOptions: exp.workOptions,
 		}
 
 		return convertExp
@@ -259,7 +265,13 @@ export function generatePackageScan(
 				: [...expectation.endRequirement.targets, ...expectation.startRequirement.sources],
 
 			content: expectation.endRequirement.content,
-			version: expectation.endRequirement.version,
+			version:
+				expectation.endRequirement.version.type === Expectation.Version.Type.FILE_ON_DISK ||
+				expectation.endRequirement.version.type === Expectation.Version.Type.QUANTEL_CLIP
+					? expectation.endRequirement.version
+					: {
+							type: Expectation.Version.Type.FILE_ON_DISK,
+					  },
 		},
 		endRequirement: {
 			targets: [
@@ -310,7 +322,13 @@ export function generatePackageDeepScan(
 				? [...expectation.endRequirement.targets]
 				: [...expectation.endRequirement.targets, ...expectation.startRequirement.sources],
 			content: expectation.endRequirement.content,
-			version: expectation.endRequirement.version,
+			version:
+				expectation.endRequirement.version.type === Expectation.Version.Type.FILE_ON_DISK ||
+				expectation.endRequirement.version.type === Expectation.Version.Type.QUANTEL_CLIP
+					? expectation.endRequirement.version
+					: {
+							type: Expectation.Version.Type.FILE_ON_DISK,
+					  },
 		},
 		endRequirement: {
 			targets: [
@@ -369,7 +387,13 @@ export function generatePackageLoudness(
 				? [...expectation.endRequirement.targets]
 				: [...expectation.endRequirement.targets, ...expectation.startRequirement.sources],
 			content: expectation.endRequirement.content,
-			version: expectation.endRequirement.version,
+			version:
+				expectation.endRequirement.version.type === Expectation.Version.Type.FILE_ON_DISK ||
+				expectation.endRequirement.version.type === Expectation.Version.Type.QUANTEL_CLIP
+					? expectation.endRequirement.version
+					: {
+							type: Expectation.Version.Type.FILE_ON_DISK,
+					  },
 		},
 		endRequirement: {
 			targets: [
@@ -426,7 +450,13 @@ export function generatePackageIframes(
 				? [...expectation.endRequirement.targets]
 				: [...expectation.endRequirement.targets, ...expectation.startRequirement.sources],
 			content: expectation.endRequirement.content,
-			version: expectation.endRequirement.version,
+			version:
+				expectation.endRequirement.version.type === Expectation.Version.Type.FILE_ON_DISK ||
+				expectation.endRequirement.version.type === Expectation.Version.Type.QUANTEL_CLIP
+					? expectation.endRequirement.version
+					: {
+							type: Expectation.Version.Type.FILE_ON_DISK,
+					  },
 		},
 		endRequirement: {
 			targets: [
@@ -583,7 +613,12 @@ export function generateMediaFileThumbnail(
 				? [...expectation.endRequirement.targets]
 				: [...expectation.endRequirement.targets, ...expectation.startRequirement.sources],
 			content: expectation.endRequirement.content,
-			version: expectation.endRequirement.version,
+			version:
+				expectation.endRequirement.version.type === Expectation.Version.Type.FILE_ON_DISK
+					? expectation.endRequirement.version
+					: {
+							type: Expectation.Version.Type.FILE_ON_DISK,
+					  },
 		},
 		endRequirement: {
 			targets: [
@@ -640,7 +675,12 @@ export function generateMediaFilePreview(
 				? [...expectation.endRequirement.targets]
 				: [...expectation.endRequirement.targets, ...expectation.startRequirement.sources],
 			content: expectation.endRequirement.content,
-			version: expectation.endRequirement.version,
+			version:
+				expectation.endRequirement.version.type === Expectation.Version.Type.FILE_ON_DISK
+					? expectation.endRequirement.version
+					: {
+							type: Expectation.Version.Type.FILE_ON_DISK,
+					  },
 		},
 		endRequirement: {
 			targets: [
