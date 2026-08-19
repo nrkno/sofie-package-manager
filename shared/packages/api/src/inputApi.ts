@@ -105,6 +105,12 @@ export namespace ExpectedPackage {
 			/** Should the package be loaded into the RAM on a KAIROS vision mixer */
 			kairosLoadToRam?: SideEffectKairosLoadToRamSettings
 
+			/** If true, deep scanning is skipped */
+			skipDeepScan?: boolean
+
+			/** If true, scanning is skipped */
+			skipScan?: boolean
+
 			/** Other custom configuration */
 			[key: string]: any
 		}

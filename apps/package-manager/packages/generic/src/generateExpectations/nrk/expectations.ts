@@ -231,7 +231,7 @@ function getSideEffectOfExpectation(
 	) {
 		const expectation = expectation0
 
-		if (!expectation0.external) {
+		if (!(expectation0.external || expectation0.sideEffect?.skipScan)) {
 			// All files that have been copied should also be scanned:
 			if (
 				expectation.type === Expectation.Type.FILE_COPY_PROXY &&
@@ -246,7 +246,7 @@ function getSideEffectOfExpectation(
 				expectations[scan.id] = scan
 			}
 
-			if (!settings.skipDeepScan) {
+			if (!(settings.skipDeepScan || expectation0.sideEffect?.skipDeepScan)) {
 				// All files that have been copied should also be deep-scanned:
 				const deepScan = generatePackageDeepScan(expectation, settings)
 				expectations[deepScan.id] = deepScan
