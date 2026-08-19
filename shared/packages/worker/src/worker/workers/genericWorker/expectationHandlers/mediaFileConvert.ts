@@ -565,7 +565,7 @@ class MediaConversionOperation {
 
 		this.reportPrepareLocal = this.parent.progressTracker.addPart(isFirst && this.anyNeedsLocalSource() ? 3 : 0)
 		this.reportFinalizeLocal = this.parent.progressTracker.addPart(
-			this.isFinalStep && conversion.needsLocalTarget ? 3 : 0
+			this.isFinalStep || conversion.needsLocalTarget ? 3 : 0
 		)
 		;(this.conversion.preChecks ?? []).forEach(() => {
 			this.reportPreChecks.push(this.parent.progressTracker.addPart(1))
