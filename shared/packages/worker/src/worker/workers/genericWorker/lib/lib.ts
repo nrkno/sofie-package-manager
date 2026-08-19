@@ -43,8 +43,8 @@ export function compareUniversalVersions(
 	targetVersion: UniversalVersion
 ): AccessorHandlerResultGeneric {
 	for (const key of Object.keys(sourceVersion)) {
-		const source = sourceVersion[key]
-		const target = targetVersion[key]
+		const source = sourceVersion[key] ?? ({ name: key, value: undefined } satisfies VersionProperty)
+		const target = targetVersion[key] ?? ({ name: key, value: undefined } satisfies VersionProperty)
 
 		if (source.omit || target.omit) continue // skip that comparison
 
