@@ -995,11 +995,15 @@ export class WorkerAgent {
 		}
 
 		if (currentJob) {
+			// Remove the job before cancelling the work.
+			// Cancelling causes the work to reject, and if the job is still tracked at that point
+			// the rejection is reported as a work failure (see makeWorkerWorkOnJobForExpectation).
+			this.removeJob(currentJob)
+
 			if (currentJob.workInProgress) {
 				await currentJob.workInProgress.cancel()
 				currentJob.workInProgress = null
 			}
-			this.removeJob(currentJob)
 		}
 	}
 	private removeJob(currentJob: CurrentJob): void {

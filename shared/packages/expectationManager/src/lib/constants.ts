@@ -25,6 +25,12 @@ export interface ExpectationTrackerConstants {
 	/** How long to wait in case of an expectation error before trying again [ms] */
 	ERROR_WAIT_TIME: number
 
+	/**
+	 * How long a PackageContainer may be without a suitable worker before it is reported as BAD [ms].
+	 * Workers are routinely spun up and down, so short gaps are expected and shouldn't be reported as errors.
+	 */
+	WORKER_UNAVAILABLE_GRACE_TIME: number
+
 	/** How many times to try to remove a package upon fail */
 	FAILED_REMOVE_COUNT: number
 
@@ -47,6 +53,7 @@ export function getDefaultConstants(): ExpectationTrackerConstants {
 		SCALE_UP_COUNT: 1,
 		WORKER_SUPPORT_TIME: 10 * 60 * 1000, // 10 minutes
 		ERROR_WAIT_TIME: 30 * 1000,
+		WORKER_UNAVAILABLE_GRACE_TIME: 30 * 1000,
 
 		FAILED_REMOVE_COUNT: 2,
 		DEFAULT_CRONJOB_INTERVAL: 60 * 1000,
