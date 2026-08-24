@@ -440,6 +440,7 @@ export class EvaluationRunner {
 					packageContainer: packageContainer,
 					currentWorker: null,
 					waitingForWorkerTime: null,
+					noWorkerSince: null,
 					isUpdated: true,
 					removed: false,
 					lastEvaluationTime: 0,
@@ -589,6 +590,8 @@ export class EvaluationRunner {
 					// Find a worker that supports this PackageContainer
 
 					let notSupportReason: Reason | null = null
+					/** Whether notSupportReason is due to no suitable worker being available at this moment */
+					let noWorkerAvailable = false
 					await Promise.all(
 						this.manager.workerAgents.list().map<Promise<void>>(async ({ workerId, workerAgent }) => {
 							if (!workerAgent.connected) return
@@ -607,6 +610,7 @@ export class EvaluationRunner {
 					)
 					if (objectSize(trackedPackageContainer.packageContainer.accessors) > 0) {
 						if (!trackedPackageContainer.currentWorker) {
+							noWorkerAvailable = true
 							if (this.manager.workerAgents.list().length) {
 								notSupportReason = {
 									user: 'Found no worker that supports this packageContainer',
@@ -633,6 +637,22 @@ export class EvaluationRunner {
 								trackedPackageContainer.id
 							}": ${JSON.stringify(notSupportReason)}`
 						)
+						// Workers are spun up and down as a matter of course, which briefly leaves a
+						// PackageContainer without one. Reporting that immediately surfaces a routine worker
+						// restart to the user as an error, so hold off until it has persisted for a while:
+						if (noWorkerAvailable) {
+							if (!trackedPackageContainer.noWorkerSince) {
+								trackedPackageContainer.noWorkerSince = Date.now()
+							}
+							const withoutWorkerFor = Date.now() - trackedPackageContainer.noWorkerSince
+							if (withoutWorkerFor < this.tracker.constants.WORKER_UNAVAILABLE_GRACE_TIME) {
+								this.logger.debug(
+									`_evaluateAllTrackedPackageContainers: No worker available for "${trackedPackageContainer.id}" (for ${withoutWorkerFor}ms), keeping the previous status for now`
+								)
+								continue // Break further execution, leaving the status untouched
+							}
+						}
+
 						this.tracker.trackedPackageContainerAPI.updateTrackedPackageContainerStatus(
 							trackedPackageContainer,
 							StatusCode.BAD,
@@ -644,6 +664,8 @@ export class EvaluationRunner {
 						continue // Break further execution for this PackageContainer
 					}
 				}
+				// A worker is in place, so reset the grace timer:
+				trackedPackageContainer.noWorkerSince = null
 
 				if (trackedPackageContainer.currentWorker) {
 					const workerAgent = this.manager.workerAgents.get(trackedPackageContainer.currentWorker)

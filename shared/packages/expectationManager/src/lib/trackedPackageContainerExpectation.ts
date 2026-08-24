@@ -14,6 +14,11 @@ export interface TrackedPackageContainerExpectation {
 	currentWorker: WorkerAgentId | null
 	/** Timestamp to track how long the packageContainer has been waiting for a worker (can't start working), used to request more resources */
 	waitingForWorkerTime: number | null
+	/**
+	 * Timestamp of when the packageContainer last found itself without a suitable worker.
+	 * Used to hold off on reporting a BAD status while workers are being spun up/down.
+	 */
+	noWorkerSince: number | null
 
 	/** Timestamp of the last time the expectation was evaluated. */
 	lastEvaluationTime: number
