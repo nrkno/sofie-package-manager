@@ -1610,7 +1610,7 @@ __metadata:
     "@sofie-package-manager/api": "npm:1.53.0"
     "@types/ws": "npm:^8.18.1"
     archiver: "npm:^7.0.1"
-    electron: "npm:35.7.5"
+    electron: "npm:39.8.10"
     electron-builder: "npm:^24.13.3"
     lerna: "npm:^9.0.7"
     portfinder: "npm:^1.0.38"
@@ -7454,16 +7454,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:35.7.5":
-  version: 35.7.5
-  resolution: "electron@npm:35.7.5"
+"electron@npm:39.8.10":
+  version: 39.8.10
+  resolution: "electron@npm:39.8.10"
   dependencies:
     "@electron/get": "npm:^2.0.0"
     "@types/node": "npm:^22.7.7"
     extract-zip: "npm:^2.0.1"
   bin:
     electron: cli.js
-  checksum: 10/f3757f0b6f21ddd5ebf8b83becdaa3e47dc13473e5375e6e6aee638d7029e73d08d6a4170b37ad8c594057da139e7cdf4c8b82b70c2c1ad0306abdcc274c5fee
+  checksum: 10/d85c8a86d6213885a8b0f22e8d18ad28147913510d0c89838567e9f7a244538945c292724ede3e5110b49a7ae71430600e181709cdbc37decdb4a0197d5394aa
   languageName: node
   linkType: hard
 
