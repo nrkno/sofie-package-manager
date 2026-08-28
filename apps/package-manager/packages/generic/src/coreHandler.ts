@@ -18,6 +18,7 @@ import {
 	CollectionDocCheck,
 	ICoreHandler,
 } from '@sofie-automation/server-core-integration'
+import { PeripheralDeviceStatusObject } from '@sofie-automation/shared-lib/dist/peripheralDevice/peripheralDeviceAPI'
 
 import { DeviceConfig } from './connector'
 
@@ -409,33 +410,34 @@ export class CoreHandler implements ICoreHandler {
 		this.statuses = statuses
 		await this.updateCoreStatus()
 	}
-	getCoreStatus(): {
-		statusCode: StatusCode
-		messages: string[]
-	} {
+	getCoreStatus(): PeripheralDeviceStatusObject {
 		let statusCode = SofieStatusCode.GOOD
-		const messages: Array<string> = []
+		const statusDetails: PeripheralDeviceStatusObject['statusDetails'] = []
 
 		if (!this._statusInitialized) {
 			statusCode = SofieStatusCode.BAD
-			messages.push('Starting up...')
+			statusDetails.push({ message: 'Starting up...' })
 		}
 		if (this._statusDestroyed) {
 			statusCode = SofieStatusCode.BAD
-			messages.push('Shut down')
+			statusDetails.push({ message: 'Shut down' })
 		}
 
-		if (statusCode === SofieStatusCode.GOOD) {
-			for (const [statusId, status] of Object.entries<Status | null>(this.statuses)) {
-				if (status && status.statusCode !== StatusCode.GOOD) {
-					statusCode = Math.max(statusCode, status.statusCode)
-					messages.push(`${status.message} ("${statusId}")`)
+		for (const [statusId, status] of Object.entries<Status | null>(this.statuses)) {
+			if (status && status.statusCode !== StatusCode.GOOD) {
+				if (
+					(status.statusCode === SofieStatusCode.UNKNOWN && statusCode === SofieStatusCode.GOOD) ||
+					status.statusCode > statusCode
+				) {
+					statusCode = status.statusCode
 				}
+				const message = `${status.message} ("${statusId}")`
+				statusDetails.push({ message })
 			}
 		}
 		return {
 			statusCode,
-			messages,
+			statusDetails,
 		}
 	}
 	private async updateCoreStatus(): Promise<any> {

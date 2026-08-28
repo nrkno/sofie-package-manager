@@ -21,7 +21,9 @@ module.exports = {
 	},
 	testMatch: ['**/__tests__/**/*.spec.(ts|js)'],
 	testEnvironment: 'node',
-	transformIgnorePatterns: ['node_modules/(?!(p-queue|p-timeout)/)'], // This is not pretty, but required for any esm dependencies
+	transformIgnorePatterns: [
+		'node_modules/(?!(p-queue|p-timeout|@sofie-automation/shared-lib|@sofie-automation/server-core-integration)/)',
+	], // This is not pretty, but required for any esm dependencies
 	coverageThreshold: {
 		global: {
 			branches: 100,
