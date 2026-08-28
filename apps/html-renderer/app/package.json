@@ -37,7 +37,7 @@
 	"devDependencies": {
 		"@types/ws": "^8.18.1",
 		"archiver": "^7.0.1",
-		"electron": "35.7.5",
+		"electron": "39.8.5",
 		"electron-builder": "^24.13.3",
 		"lerna": "^9.0.7",
 		"rimraf": "^6.1.3"
