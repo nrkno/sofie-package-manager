@@ -425,7 +425,10 @@ export class CoreHandler implements ICoreHandler {
 
 		for (const [statusId, status] of Object.entries<Status | null>(this.statuses)) {
 			if (status && status.statusCode !== StatusCode.GOOD) {
-				if (status.statusCode === SofieStatusCode.UNKNOWN || status.statusCode > statusCode) {
+				if (
+					(status.statusCode === SofieStatusCode.UNKNOWN && statusCode === SofieStatusCode.GOOD) ||
+					status.statusCode > statusCode
+				) {
 					statusCode = status.statusCode
 				}
 				const message = `${status.message} ("${statusId}")`
