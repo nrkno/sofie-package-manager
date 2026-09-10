@@ -69,8 +69,8 @@
     "node": ">=24"
   },
   "dependencies": {
-    "@sofie-automation/server-core-integration": "26.3.0-1",
-    "@sofie-automation/shared-lib": "26.3.0-1"
+    "@sofie-automation/server-core-integration": "npm:@nrk/sofie-server-core-integration@26.3.0-nightly-feat-pm-limited-removeAll-20260910-104009-158585b.0",
+    "@sofie-automation/shared-lib": "npm:@nrk/sofie-shared-lib@26.3.0-nightly-feat-pm-limited-removeAll-20260910-104009-158585b.0"
   },
   "prettier": "@sofie-automation/code-standard-preset/.prettierrc.json",
   "lint-staged": {

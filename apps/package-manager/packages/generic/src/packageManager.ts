@@ -153,16 +153,15 @@ export class PackageManagerHandler {
 			// Trigger a send of status updates:
 			this.callbacksHandler.onCoreConnected()
 		})
+
+		// this flag will cause the ExpectationManagerCallbacksHandler.triggerReportUpdatedStatuses() method to clean up
+		// any orphaned reported statuses, when it eventually runs as a result of the triggerUpdatedExpectedPackages()
+		this.callbacksHandler.needsOrphanedReportedStatusesCleanup = true
+
 		this.setupObservers()
 		this.onSettingsChanged()
 		this.triggerUpdatedExpectedPackages()
 
-		try {
-			await this.callbacksHandler.cleanReportedStatuses()
-		} catch (e) {
-			this.logger.error(`Error during cleanReportedStatuses()`)
-			throw e
-		}
 		try {
 			await this.expectationManager.init()
 		} catch (e) {
@@ -501,6 +500,8 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 
 	private increment = 1
 
+	public needsOrphanedReportedStatusesCleanup = true
+
 	private toReportExpectationStatuses: ReportStatuses<
 		ExpectationId,
 		ExpectedPackageStatusAPI.WorkStatus | null,
@@ -718,18 +719,18 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 				throw new Error(`Unsupported message type "${message.type}"`)
 		}
 	}
-	public async cleanReportedStatuses() {
-		// Clean out all reported statuses, this is an easy way to sync a clean state with core
+	// public async cleanReportedStatuses() {
+	// 	// Clean out all reported statuses, this is an easy way to sync a clean state with core
 
-		this.reportedExpectationStatuses = new Map()
-		await this.getCoreMethods().removeAllExpectedPackageWorkStatusOfDevice()
+	// 	this.reportedExpectationStatuses = new Map()
+	// 	await this.getCoreMethods().removeAllExpectedPackageWorkStatusOfDevice()
 
-		this.reportedPackageContainerStatuses = new Map()
-		await this.getCoreMethods().removeAllPackageContainerPackageStatusesOfDevice()
+	// 	this.reportedPackageContainerStatuses = new Map()
+	// 	await this.getCoreMethods().removeAllPackageContainerPackageStatusesOfDevice()
 
-		this.reportedPackageStatuses = new Map()
-		await this.getCoreMethods().removeAllPackageContainerStatusesOfDevice()
-	}
+	// 	this.reportedPackageStatuses = new Map()
+	// 	await this.getCoreMethods().removeAllPackageContainerStatusesOfDevice()
+	// }
 	public onCoreConnected() {
 		this.triggerReportUpdatedStatuses()
 	}
@@ -802,6 +803,16 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 						await this.reportUpdatePackageContainerPackageStatus()
 						await this.reportUpdatePackageContainerStatus()
 
+						// Run the orphaned cleanup at the end, so that we know what we have processed and
+						// can safely remove the rest.
+						if (this.needsOrphanedReportedStatusesCleanup) {
+							await this.removeOrphanedExpectationStatus()
+							await this.removeOrphanedPackageContainerPackageStatus()
+							await this.removeOrphanedPackageContainerStatus()
+
+							this.needsOrphanedReportedStatusesCleanup = false
+						}
+
 						await this.checkAndReportPackageManagerStatus()
 					})
 					.catch((err) => {
@@ -816,6 +827,43 @@ class ExpectationManagerCallbacksHandler implements ExpectationManagerCallbacks 
 					})
 			}, WAIT_TIME)
 		}
+	}
+	private async removeOrphanedExpectationStatus(): Promise<void> {
+		// We can just look at the packageManager dataSnapshot - `reportUpdateExpectationStatus`
+		// uses the expectationId as workStatus id, and if it's not here, we want it gone
+		const knownWorkStatusIds = objectKeys(this.packageManager.dataSnapshot.expectations).map((expectationId) =>
+			convProtectedString<ExpectationId, ExpectedPackageWorkStatusId>(expectationId)
+		)
+		await this.getCoreMethods().removeAllExpectedPackageWorkStatusOfDeviceNotInList(knownWorkStatusIds)
+	}
+
+	private async removeOrphanedPackageContainerPackageStatus(): Promise<void> {
+		const knownPackageContainerPackagePairs = Array.from(this.reportedPackageStatuses.values()).map((status) => ({
+			packageId: status.ids.packageId,
+			containerId: status.ids.containerId,
+		}))
+		// this.reportedPackageStatuses may not contain all the statuses that are about to be reported in this.toReportPackageStatus
+		// Therefore, we also include the statuses that are about to be reported in this.toReportPackageStatus
+		this.toReportPackageStatus.forEach((value) => {
+			if (value.status === null) {
+				// This status is marked for removal, skip it
+				return
+			}
+
+			knownPackageContainerPackagePairs.push({
+				packageId: value.ids.packageId,
+				containerId: value.ids.containerId,
+			})
+		})
+		await this.getCoreMethods().removeAllPackageContainerPackageStatusesOfDeviceNotInList(
+			knownPackageContainerPackagePairs
+		)
+	}
+	private async removeOrphanedPackageContainerStatus(): Promise<void> {
+		// We can just look at the packageManager dataSnapshot for packageContainers: if it's not in the data from Core
+		// we want it gone.
+		const knownPackageContainerIds = Array.from(objectKeys(this.packageManager.dataSnapshot.packageContainers))
+		await this.getCoreMethods().removeAllPackageContainerStatusesOfDeviceNotInList(knownPackageContainerIds)
 	}
 	private async removeInvalidExpectationStatus(): Promise<void> {
 		// Go through the previously reported expectations, and check if they are still valid:

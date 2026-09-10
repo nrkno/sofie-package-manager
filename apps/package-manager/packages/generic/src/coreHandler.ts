@@ -44,6 +44,7 @@ import { PackageManagerHandler } from './packageManager'
 import { getCredentials } from './credentials'
 import { FakeCore } from './fakeCore'
 import { PeripheralDeviceCommandId } from '@sofie-automation/shared-lib/dist/core/model/Ids'
+import { PeripheralDeviceStatusObject } from '@sofie-automation/shared-lib/dist/peripheralDevice/peripheralDeviceAPI'
 
 let packageJson: any
 try {
@@ -409,33 +410,30 @@ export class CoreHandler implements ICoreHandler {
 		this.statuses = statuses
 		await this.updateCoreStatus()
 	}
-	getCoreStatus(): {
-		statusCode: StatusCode
-		messages: string[]
-	} {
+	getCoreStatus(): PeripheralDeviceStatusObject {
 		let statusCode = SofieStatusCode.GOOD
-		const messages: Array<string> = []
+		const details: PeripheralDeviceStatusObject['statusDetails'] = []
 
 		if (!this._statusInitialized) {
 			statusCode = SofieStatusCode.BAD
-			messages.push('Starting up...')
+			details.push({ message: 'Starting up...' })
 		}
 		if (this._statusDestroyed) {
 			statusCode = SofieStatusCode.BAD
-			messages.push('Shut down')
+			details.push({ message: 'Shut down' })
 		}
 
 		if (statusCode === SofieStatusCode.GOOD) {
 			for (const [statusId, status] of Object.entries<Status | null>(this.statuses)) {
 				if (status && status.statusCode !== StatusCode.GOOD) {
 					statusCode = Math.max(statusCode, status.statusCode)
-					messages.push(`${status.message} ("${statusId}")`)
+					details.push({ message: `${status.message} ("${statusId}")` })
 				}
 			}
 		}
 		return {
 			statusCode,
-			messages,
+			statusDetails: details,
 		}
 	}
 	private async updateCoreStatus(): Promise<any> {
